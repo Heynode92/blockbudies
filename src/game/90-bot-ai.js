@@ -49,7 +49,8 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
     if(t){dx=t.x-e.x;dz=t.z-e.z;d=Math.hypot(dx,dz)||1;}
     combat=!!t&&e.lok&&e.navT<=0;
     if(isBombMode()&&e.bAction)combat=false;
-    if(combat){var fw=d>16?1:d<7?-.6:0,st;e.bt=(e.bt||0)-dt;if(e.bt<=0){e.bt=.7+Math.random()*1.4;e.sd=[-1,0,1][(Math.random()*3)|0];}st=(e.sd||0)*.9;
+    if(combat){var fw=(isBombMode()&&bombMatch&&bombMatch.state==='planted'&&e.tm===0)?
+      (d>BOMB_AI.retakeCombatDistance?1:-.3):(d>16?1:d<7?-.6:0),st;e.bt=(e.bt||0)-dt;if(e.bt<=0){e.bt=.7+Math.random()*1.4;e.sd=[-1,0,1][(Math.random()*3)|0];}st=(e.sd||0)*.9;
       mvx=dx/d*fw+(dz/d)*st;mvz=dz/d*fw-(dx/d)*st;
       if(GB[gc(e.z+mvz*sp*dt*4)*GN+gc(e.x+mvx*sp*dt*4)]){e.sd=-(e.sd||1);mvx=dx/d*fw;mvz=dz/d*fw;}}
     else{gx=t?t.x:e.wx;gz=t?t.z:e.wz;e.pt=(e.pt||0)-dt;

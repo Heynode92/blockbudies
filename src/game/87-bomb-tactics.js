@@ -2,7 +2,9 @@
 var BOMB_AI=Object.freeze({
   engagementRange:26,urgentThreatRange:6,coverRadius:11,roamRadius:23,
   destinationRefresh:6,defuserReview:.75,defusePriorityRadius:4,
-  teammateSpacing:2.5,repathGoalDistance:2.4,navSpeed:5.3
+  teammateSpacing:2.5,repathGoalDistance:2.4,navSpeed:5.3,
+  retakeThreatRadius:34,retakeSeekRadius:36,retakeSweepRadius:4,retakeSweepStep:3,
+  retakeCombatDistance:5
 });
 function bombLiving(team){return en.filter(function(e){return e.tm===team&&!e.dead;}).concat(!pl.dead&&pl.tm===team?[pl]:[]);}
 function bombNearestOpponent(e){var foes=bombLiving(1-e.tm),best=null,dist=Infinity;
@@ -26,7 +28,7 @@ function bombTacticalStage(e){
   if(!bombMatch||bombMatch.done)return 'none';
   var b=bombMatch;
   if(b.state==='planted'){
-    if(e.tm===0)return bombPickDefuser()===e?'retake-defuse':'retake-cover';
+    if(e.tm===0)return bombPickDefuser()===e?'retake-defuse':'retake-assault';
     return e.idx%3===0?'hold':'hunt';
   }
   if(e.tm===0)return e.idx%3===0?'patrol':'site-defense';
@@ -54,10 +56,19 @@ function bombTacticalGoal(e){
   if(b.state==='planted'){
     site=BOMB_SITES[b.site];
     if(stage==='retake-defuse')return bombSafeGoal(b.device.position.x,b.device.position.z,e);
-    if(stage==='retake-cover'){
-      // Spread across approaches and contest the planted device instead of crowding the defuser.
-      radius=6+idx%3*3;angle=(idx*2+phase%3)*Math.PI/4;
-      return bombSafeGoal(site.x+Math.cos(angle)*radius,site.z+Math.sin(angle)*radius,e);
+    if(stage==='retake-assault'){
+      // Every available officer retakes the PLANTED site; no guarding the other site
+      // and no static camping at distant cover points while the fuse is ticking.
+      foe=bombNearestOpponent(e);
+      if(foe&&Math.hypot(foe.x-site.x,foe.z-site.z)<BOMB_AI.retakeThreatRadius&&
+          Math.hypot(foe.x-e.x,foe.z-e.z)<BOMB_AI.retakeSeekRadius){
+        return bombSafeGoal(foe.x,foe.z,e);
+      }
+      // Stagger the final sweep so squadmates enter from different angles.
+      radius=BOMB_AI.retakeSweepRadius;
+      angle=(idx*2+Math.floor(tt/BOMB_AI.retakeSweepStep))*Math.PI/4;
+      return bombSafeGoal(b.device.position.x+Math.cos(angle)*radius,
+        b.device.position.z+Math.sin(angle)*radius,e);
     }
     if(stage==='hunt'){
       foe=bombNearestOpponent(e);

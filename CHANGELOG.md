@@ -2,6 +2,19 @@
 
 Every update must record its date, scope, affected modules, user-visible strings, compatibility, and validation. Keep the original fixture immutable.
 
+## 2026-10-28 — Planted bomb retake AI, spectator HUD and exact minimap beacon
+
+### Fixed
+- All surviving Police bots now actively retake the planted bomb site: the designated defuser heads for the device while other officers seek nearby Terrorists or sweep into the active site. The outdated distant-site guard behavior is no longer used after plant. Officers also close distance to visible enemies instead of standing idle at medium combat range.
+- The Bomb Mission spectator label is smaller, has less padding and uses compact mobile sizing; its redundant giant center-screen `SPECTATING` overlay is hidden only while spectating. No existing English message was changed.
+- The circular minimap now draws a pulsing red bomb beacon at `bombMatch.device.position`, not an approximate site marker. Radar range automatically expands when the planted device would otherwise be outside the minimap, so the beacon stays at its true world coordinates.
+
+### Configuration, scope, validation
+- New `BOMB_RADAR` options and `BOMB_AI` retake options keep timing, radii and colors configurable.
+- Only `src/game/87-bomb-tactics.js`, `src/game/90-bot-ai.js`, `src/game/96-hud-and-radar.js`, `src/styles/07-bomb-mission.css`, tests, generated `assets/game.js`, and this changelog changed.
+- Team Deathmatch, plants (5 s), defuses (7 s), weapon behavior, maps and spectator camera geometry are unchanged.
+- Validation: automated Node tests, syntax, and committed-bundle parity; actual browser behavior still requires in-game verification.
+
 ## 2026-10-28 — Bomb Mission grounded props and physical collision fix
 
 ### Fixed

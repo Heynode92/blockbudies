@@ -1538,7 +1538,9 @@ document.getElementById('bombNext').addEventListener('click',function(){bombSpec
 var BOMB_AI=Object.freeze({
   engagementRange:26,urgentThreatRange:6,coverRadius:11,roamRadius:23,
   destinationRefresh:6,defuserReview:.75,defusePriorityRadius:4,
-  teammateSpacing:2.5,repathGoalDistance:2.4,navSpeed:5.3
+  teammateSpacing:2.5,repathGoalDistance:2.4,navSpeed:5.3,
+  retakeThreatRadius:34,retakeSeekRadius:36,retakeSweepRadius:4,retakeSweepStep:3,
+  retakeCombatDistance:5
 });
 function bombLiving(team){return en.filter(function(e){return e.tm===team&&!e.dead;}).concat(!pl.dead&&pl.tm===team?[pl]:[]);}
 function bombNearestOpponent(e){var foes=bombLiving(1-e.tm),best=null,dist=Infinity;
@@ -1562,7 +1564,7 @@ function bombTacticalStage(e){
   if(!bombMatch||bombMatch.done)return 'none';
   var b=bombMatch;
   if(b.state==='planted'){
-    if(e.tm===0)return bombPickDefuser()===e?'retake-defuse':'retake-cover';
+    if(e.tm===0)return bombPickDefuser()===e?'retake-defuse':'retake-assault';
     return e.idx%3===0?'hold':'hunt';
   }
   if(e.tm===0)return e.idx%3===0?'patrol':'site-defense';
@@ -1590,10 +1592,19 @@ function bombTacticalGoal(e){
   if(b.state==='planted'){
     site=BOMB_SITES[b.site];
     if(stage==='retake-defuse')return bombSafeGoal(b.device.position.x,b.device.position.z,e);
-    if(stage==='retake-cover'){
-      // Spread across approaches and contest the planted device instead of crowding the defuser.
-      radius=6+idx%3*3;angle=(idx*2+phase%3)*Math.PI/4;
-      return bombSafeGoal(site.x+Math.cos(angle)*radius,site.z+Math.sin(angle)*radius,e);
+    if(stage==='retake-assault'){
+      // Every available officer retakes the PLANTED site; no guarding the other site
+      // and no static camping at distant cover points while the fuse is ticking.
+      foe=bombNearestOpponent(e);
+      if(foe&&Math.hypot(foe.x-site.x,foe.z-site.z)<BOMB_AI.retakeThreatRadius&&
+          Math.hypot(foe.x-e.x,foe.z-e.z)<BOMB_AI.retakeSeekRadius){
+        return bombSafeGoal(foe.x,foe.z,e);
+      }
+      // Stagger the final sweep so squadmates enter from different angles.
+      radius=BOMB_AI.retakeSweepRadius;
+      angle=(idx*2+Math.floor(tt/BOMB_AI.retakeSweepStep))*Math.PI/4;
+      return bombSafeGoal(b.device.position.x+Math.cos(angle)*radius,
+        b.device.position.z+Math.sin(angle)*radius,e);
     }
     if(stage==='hunt'){
       foe=bombNearestOpponent(e);
@@ -1727,7 +1738,8 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
     if(t){dx=t.x-e.x;dz=t.z-e.z;d=Math.hypot(dx,dz)||1;}
     combat=!!t&&e.lok&&e.navT<=0;
     if(isBombMode()&&e.bAction)combat=false;
-    if(combat){var fw=d>16?1:d<7?-.6:0,st;e.bt=(e.bt||0)-dt;if(e.bt<=0){e.bt=.7+Math.random()*1.4;e.sd=[-1,0,1][(Math.random()*3)|0];}st=(e.sd||0)*.9;
+    if(combat){var fw=(isBombMode()&&bombMatch&&bombMatch.state==='planted'&&e.tm===0)?
+      (d>BOMB_AI.retakeCombatDistance?1:-.3):(d>16?1:d<7?-.6:0),st;e.bt=(e.bt||0)-dt;if(e.bt<=0){e.bt=.7+Math.random()*1.4;e.sd=[-1,0,1][(Math.random()*3)|0];}st=(e.sd||0)*.9;
       mvx=dx/d*fw+(dz/d)*st;mvz=dz/d*fw-(dx/d)*st;
       if(GB[gc(e.z+mvz*sp*dt*4)*GN+gc(e.x+mvx*sp*dt*4)]){e.sd=-(e.sd||1);mvx=dx/d*fw;mvz=dz/d*fw;}}
     else{gx=t?t.x:e.wx;gz=t?t.z:e.wz;e.pt=(e.pt||0)-dt;
@@ -1877,6 +1889,25 @@ var E={};["sc","hpf","hpt","wn","wi","mg","rs","rbf"].forEach(function(k){E[k]=d
 var wiK=-1,hhi=document.getElementById("hhi"),chE=document.getElementById("ch"),rbEl=document.getElementById("rb"),mx2=document.getElementById("map").getContext("2d");
 // Radar constants (canvas size, center, rings) and compass labels CDN.
 var RS=320,RC=160,RO=156,RI=116,RWD=30,CDN=["N","NE","E","SE","S","SW","W","NW"];
+// Planted-bomb beacon uses the ACTUAL device position, not the static site label.
+// The radar zooms out only while the device is active so its exact position stays visible.
+var BOMB_RADAR=Object.freeze({baseRange:50,padding:1.25,pulseHz:1.8,
+  ringPixels:11,ringGrowthPixels:11,dotPixels:4,color:'#ff4d4d',core:'#fff0bd'});
+function bombRadarRange(observer){
+  if(!isBombMode()||!bombMatch||bombMatch.state!=='planted'||bombMatch.done)return BOMB_RADAR.baseRange;
+  return Math.max(BOMB_RADAR.baseRange,
+    Math.hypot(bombMatch.device.position.x-observer.x,bombMatch.device.position.z-observer.z)*BOMB_RADAR.padding);
+}
+function bombRadarBeacon(X,k,now){
+  if(!isBombMode()||!bombMatch||bombMatch.state!=='planted'||bombMatch.done)return;
+  var pos=bombMatch.device.position,p=(now*BOMB_RADAR.pulseHz)%1;
+  X.save();X.shadowColor=BOMB_RADAR.color;X.shadowBlur=12;
+  X.strokeStyle=BOMB_RADAR.color;X.lineWidth=2.5/k;
+  X.beginPath();X.arc(pos.x,pos.z,(BOMB_RADAR.ringPixels+p*BOMB_RADAR.ringGrowthPixels)/k,0,6.2832);X.stroke();
+  X.globalAlpha=1-p;X.beginPath();X.arc(pos.x,pos.z,BOMB_RADAR.ringPixels/k,0,6.2832);X.stroke();
+  X.globalAlpha=1;X.fillStyle=BOMB_RADAR.core;X.beginPath();X.arc(pos.x,pos.z,BOMB_RADAR.dotPixels/k,0,6.2832);X.fill();
+  X.restore();
+}
 // cfont(): returns the CSS font string used on the radar canvas.
 function cfont(n){return "700 "+n+'px Rajdhani,"Trebuchet MS",sans-serif';}
 // rrect(): draws a rounded-rectangle path on canvas context X.
@@ -1884,7 +1915,7 @@ function rrect(X,x,y,w,h,r){X.beginPath();X.moveTo(x+r,y);X.arcTo(x+w,y,x+w,y+h,
 // radar(): draws the mini-map radar (player at center, rotates with facing; teammates blue, enemies red when visible).
 function radar(){
   var rp=isBombMode()&&pl.dead?bombSpectatorTarget()||pl:pl,originFace=rp===pl?pl.face:rp.g.rotation.y;
-  var range=isBombMode()?50:RWD;
+  var range=isBombMode()?bombRadarRange(rp):RWD;
   var X=mx2,f=originFace,co=Math.cos(f),sn=Math.sin(f),k=RI/range,a=-k*co,b=-k*sn,c=k*sn,d=-k*co,now=performance.now()/1000,th=Math.PI-f,i,g,gx,gz;
   X.setTransform(1,0,0,1,0,0);X.clearRect(0,0,RS,RS);X.lineCap="round";
   // base disc
@@ -1917,6 +1948,8 @@ function radar(){
   cr.forEach(function(q){if(q.ci===3&&q.land&&Math.hypot(q.x-rp.x,q.z-rp.z)<range*.95){var m=2.6/k;X.fillRect(q.x-m,q.z-m*.35,m*2,m*.7);X.fillRect(q.x-m*.35,q.z-m,m*.7,m*2);}});
   if(isBombMode()){BOMB_SITES.forEach(function(site){X.fillStyle="#ffe066";X.shadowBlur=0;X.font=cfont(12/k);X.textAlign="center";X.fillText(site.id,site.x,site.z);});if(bombMatch&&bombMatch.dropped){X.fillStyle="#ff5555";X.beginPath();X.arc(bombMatch.dropped.x,bombMatch.dropped.z,1.4,0,6.283);X.fill();}}
   en.forEach(function(q){var al=q.tm===pl.tm;if(!al&&!(q.vis>0))return;var ddx=q.x-rp.x,ddz=q.z-rp.z,dl=Math.hypot(ddx,ddz),mxr=range*.93,px=q.x,pz=q.z;if(dl>mxr){px=rp.x+ddx/dl*mxr;pz=rp.z+ddz/dl*mxr;}X.shadowColor=al?"#4dabf7":"#ff4d4d";X.shadowBlur=al?10:0;X.fillStyle=al?"#4dabf7":"#ff4d4d";X.strokeStyle="#fff";X.lineWidth=2/k;X.beginPath();X.arc(px,pz,(al?8:6)/k,0,6.29);X.fill();X.stroke();});
+  // Draw after character dots, at the planted device world coordinates.
+  bombRadarBeacon(X,k,now);
   X.shadowBlur=0;X.setTransform(1,0,0,1,0,0);
   // range rings + cross lines
   X.strokeStyle="rgba(120,200,255,.2)";X.lineWidth=1.5;
