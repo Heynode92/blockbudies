@@ -42,5 +42,5 @@ function gh(x,z,y){var g=0;for(var i=0;i<OB.length;i++){var o=OB[i];if(o.h<=y+(o
 function resolve(p,r){
   p.x=Math.max(-A,Math.min(A,p.x));p.z=Math.max(-A,Math.min(A,p.z));
   OB.forEach(function(o){if(o.fl||(p.y||0)>=o.h-.05||(p.y||0)+1.8<=(o.y0||0))return;var nx=Math.max(o.x-o.hw,Math.min(o.x+o.hw,p.x)),nz=Math.max(o.z-o.hd,Math.min(o.z+o.hd,p.z)),dx=p.x-nx,dz=p.z-nz,d=Math.hypot(dx,dz);
-    if(d<r){if(d>0){p.x+=dx/d*(r-d);p.z+=dz/d*(r-d);}else p.x+=r;}});
+    if(d<r){if(d>0){p.x+=dx/d*(r-d);p.z+=dz/d*(r-d);}else if(isBombMode())bombPushOutOfSolid(p,o,r);else p.x+=r;}});
 }

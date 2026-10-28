@@ -33,8 +33,13 @@ function makeContext(){
     SPH:[[],[]],A:60,
     document:{getElementById(id){return dom[id];},createElement(){return fakeCanvas;},body:{classList:{remove(){},add(){}}}},
     addEventListener(){},toast(){},mmss(t){return String(t);},
-    mk(w,h,d,col,x,y,z){const m=new T.Mesh();m.position.set(x,y,z);S.add(m);return m;},
+    visualDetails:[],
+    mk(w,h,d,col,x,y,z){const m=new T.Mesh();m.position.set(x,y,z);m.userData.box={w,h,d,col};S.add(m);return m;},
     wl(x,z,w,d,h,col){ctx.OB.push({x,z,hw:w/2,hd:d/2,h,c:col});return ctx.mk(w,h,d,col,x,h/2,z);},
+    dk(w,h,d,col,x,y,z){ctx.visualDetails.push({w,h,d,col,x,y,z});},
+    flushDeco(){const m=new T.Mesh();m.userData.decorationBatch=true;S.add(m);},
+    cBox(q){ctx.wl(q[0],q[1],q[2],q[3],2.4,0x687586);},
+    cBar(q){ctx.wl(q[0],q[1],q[2],q[3],1.3,0xadb5bd);},
     inObs(x,z,m){return ctx.OB.some(o=>Math.abs(x-o.x)<o.hw+(m||0)&&Math.abs(z-o.z)<o.hd+(m||0));},
     reset(){},startMatch(){},endMatch(){ctx.mt.over=true;}
   };
@@ -184,4 +189,81 @@ test('radar paints actual indoor walls and tracks spectated teammate',()=>{
   const radar=readFileSync(resolve(root,'src/game/96-hud-and-radar.js'),'utf8');
   assert.match(radar,/BOMB_NAV_WALLS\.forEach/);
   assert.match(radar,/pl\.dead\?bombSpectatorTarget\(\)/);
+});
+
+// Regression: all gameplay-scale props need an actual collision volume and a base
+// touching the floor. Decorative trim is intentionally not a navigation obstacle.
+test('grounded racks, lockers, generator, console and cover register physical collisions',()=>{
+  const c=makeContext();c.selectGameMap(true);
+  const n=c.BOMB_RULES.cells,step=c.BOMB_RULES.cellSize,half=(n-1)/2,inset=c.BOMB_PROPS.inset;
+  let checked=0;const patterns=new Set();
+  for(let j=1;j<n-1;j++)for(let i=1;i<n-1;i++){
+    const x=(i-half)*step,z=(j-half)*step;
+    if(c.BOMB_SITES.some(q=>Math.hypot(q.x-x,q.z-z)<step*1.3))continue;
+    const pattern=(i*7+j*11)%9,sgn=(i+j)%2?1:-1;
+    const px=x+sgn*inset,pz=z+(i%2?-1:1)*inset;
+    assert.ok(c.OB.some(o=>Math.abs(o.x-px)<.01&&Math.abs(o.z-pz)<.01&&o.h>=1.1),
+      `missing collidable furniture at cell ${i},${j}`);
+    patterns.add(pattern);checked++;
+  }
+  assert.ok(checked>120);assert.equal(patterns.size,9);
+  assert.ok(c.visualDetails.length>100,'batched visual detailing is present');
+  for(const o of c.OB)assert.ok(o.h>0,'no hovering or inverted collision geometry');
+});
+test('ceiling closes wall gap and blocks shots without blocking floor navigation',()=>{
+  const c=makeContext();c.selectGameMap(true);const r=c.BOMB_RULES;
+  assert.ok(r.wallHeight>=r.ceilingHeight-r.ceilingThickness/2);
+  assert.ok(c.LT.some(o=>o.hw>=80&&o.hd>=80&&o.y0>5),
+    'indoor roof has a proper overhead projectile collider');
+  for(const q of c.BOMB_SITES)assert.equal(c.inObs(q.x,q.z,.65),false);
+});
+test('every collision body stays under a matching visible floor-to-height mesh',()=>{
+  const c=makeContext();c.selectGameMap(true);
+  // The lower wl geometry uses y=h/2 with height=h; upper monitor intentionally uses y0.
+  for(const o of c.OB.filter(o=>!o.y0)){
+    const hasMesh=c.S.children.some(m=>m.isMesh&&m.userData.box&&
+      Math.abs(m.position.x-o.x)<.001&&Math.abs(m.position.z-o.z)<.001&&
+      Math.abs(m.position.y-o.h/2)<.001&&Math.abs(m.userData.box.h-o.h)<.001);
+    assert.ok(hasMesh,`invisible colliding geometry at ${o.x},${o.z}`);
+  }
+});
+
+// These checks execute the ORIGINAL production projectile/character collision
+// functions against the newly registered map obstacles (not a mock hit test).
+function productionFunction(file,name){
+  const source=readFileSync(resolve(root,file),'utf8');
+  const start=source.indexOf('function '+name+'(');
+  assert.ok(start>=0,'missing production '+name);
+  const open=source.indexOf('{',start);
+  let depth=0;
+  for(let i=open;i<source.length;i++){
+    if(source[i]==='{')depth++;
+    if(source[i]==='}'&&!--depth)return source.slice(start,i+1);
+  }
+  throw new Error('unterminated production function: '+name);
+}
+test('production bullet sweep and movement collision stop at bomb furniture',()=>{
+  const c=makeContext();c.selectGameMap(true);
+  runInNewContext([
+    productionFunction('src/game/60-impact-effects.js','segBox'),
+    productionFunction('src/game/60-impact-effects.js','sweepObs'),
+    productionFunction('src/game/20-sky-and-physics.js','resolve')
+  ].join('\n'),c);
+  const cellX=-65,cellZ=-65,px=cellX-c.BOMB_PROPS.inset,pz=cellZ-c.BOMB_PROPS.inset;
+  const furniture=c.OB.find(o=>Math.abs(o.x-px)<.001&&Math.abs(o.z-pz)<.001);
+  assert.ok(furniture,'representative server rack exists');
+  const hit=c.sweepObs(px-furniture.hw-1,1.4,pz,px+furniture.hw+1,1.4,pz);
+  assert.equal(hit,furniture,'projectile hits the actual rack collision');
+  const actor={x:px-furniture.hw-.18,y:0,z:pz};
+  actor.x+=.35; // Walk into the rack from an unblocked adjacent point.
+  c.resolve(actor,.55);
+  assert.ok(actor.x<=px-furniture.hw-.50,'player radius cannot enter the rack');
+});
+test('production ceiling sweep stops projectiles passing through indoor roof',()=>{
+  const c=makeContext();c.selectGameMap(true);
+  runInNewContext([
+    productionFunction('src/game/60-impact-effects.js','segBox'),
+    productionFunction('src/game/60-impact-effects.js','sweepLT')
+  ].join('\n'),c);
+  assert.ok(c.sweepLT(0,5,0,0,6.5,0),'roof collision blocks vertical shots');
 });

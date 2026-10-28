@@ -181,7 +181,7 @@ flushDeco();
 var BOMB_RULES=Object.freeze({teamSize:5,rounds:12,wins:7,roundSeconds:120,freezeSeconds:5,
   plantSeconds:5,defuseSeconds:7,fuseSeconds:40,roundBreakSeconds:3,
   siteRadius:3.1,interactRadius:2.45,pickupRadius:2,cellSize:10,cells:16,
-  wallHeight:5.4,ceilingHeight:5.7,seed:73021,botUseRange:2.1});
+  wallHeight:5.75,ceilingHeight:5.7,ceilingThickness:.22,seed:73021,botUseRange:2.1});
 var BOMB_TEXT=Object.freeze({
   plant:'Plant bomb here',defuse:'Defuse the bomb',planting:'PLANTING BOMB',defusing:'DEFUSING BOMB',
   planted:'BOMB PLANTED',dropped:'BOMB DROPPED',carrier:'YOU HAVE THE BOMB',picked:'BOMB PICKED UP',
@@ -190,12 +190,29 @@ var BOMB_TEXT=Object.freeze({
   explosion:'BOMB DETONATED',defused:'BOMB DEFUSED',round:'ROUND',hold:'HOLD E',
   elimination:'TEAM ELIMINATED',timeout:'TIME EXPIRED',site:'BOMB SITE'});
 var BOMB_SITES=[{id:'A',x:-25,z:-5,col:0xffa94d},{id:'B',x:25,z:5,col:0x4dabf7}];
+// Rendered furniture must have a grounded, solid body. Small trim/details may be visual only.
+// Sizes are kept here so walkability clearance can be adjusted in one place.
+var BOMB_PROPS=Object.freeze({inset:3.05,doorClearance:2.8,
+  rack:{w:1.85,d:.95,h:2.85},locker:{w:2.3,d:.95,h:2.55},
+  desk:{w:2.3,d:1.15,h:1.15},generator:{w:1.85,d:1.25,h:2.7},
+  cover:{w:2.3,d:1.55}});
 var BOMB_CITY=S.children.filter(function(o){return o.isMesh||o.isGridHelper;});
 var BOMB_CITY_OB=OB.slice(),BOMB_CITY_BR=BR.slice(),BOMB_CITY_LT=LT.slice();
 var BOMB_WORLD=null,BOMB_OB=[],BOMB_BR=[],BOMB_LT=[],BOMB_FOG=S.fog,BOMB_BACKGROUND=S.background,BOMB_NAV_WALLS=[];
 var BOMB_CITY_HALF=A;
 var selectedGameMode=0;
 function isBombMode(){return selectedGameMode===1;}
+// When a full movement step lands a character CENTER inside a Bomb Mode solid,
+// push to the nearest outer face. The original TDM collision policy is unchanged.
+function bombPushOutOfSolid(p,o,r){
+  var left=p.x-(o.x-o.hw),right=(o.x+o.hw)-p.x,
+      near=p.z-(o.z-o.hd),far=(o.z+o.hd)-p.z,
+      side=Math.min(left,right,near,far);
+  if(side===left)p.x=o.x-o.hw-r;
+  else if(side===right)p.x=o.x+o.hw+r;
+  else if(side===near)p.z=o.z-o.hd-r;
+  else p.z=o.z+o.hd+r;
+}
 // A guaranteed connected, looped indoor maze: DFS spanning tree + additional doors and open rooms.
 function makeBombMap(){
   var before=S.children.slice(),cfg=BOMB_RULES,n=cfg.cells,step=cfg.cellSize,h=cfg.wallHeight;
@@ -213,6 +230,10 @@ function makeBombMap(){
   function linked(a,b){return !!cells[a].links[b];}
   function blockedWall(x,z,w,d,col){wl(x,z,w,d,h,col);}
   mk(step*n,.16,step*n,0x1e2631,0,-.08,0).castShadow=false;
+  // Seal tile seams with a continuous roof backing. Individual ceiling panels have
+  // small visual seams; without this slab those seams expose the outdoor sky.
+  var roofTop=cfg.ceilingHeight+cfg.ceilingThickness/2;
+  mk(step*n,.14,step*n,0x202b35,0,roofTop+.055,0).castShadow=false;
   BOMB_NAV_WALLS=[];
   var zones=[
     {floor:0x344757,ceiling:0x303a45,wall:0x4f6779,accent:0x4dabf7,label:'SECURITY'},
@@ -221,34 +242,67 @@ function makeBombMap(){
     {floor:0x494450,ceiling:0x383440,wall:0x776878,accent:0xb197fc,label:'LABORATORY'}
   ];
   function visualBox(w,hh,d,col,x,y,z){var m=mk(w,hh,d,col,x,y,z);m.castShadow=false;return m;}
-  function mapBarrier(x,z,w,d,hh,col){blockedWall(x,z,w,d,col);BOMB_NAV_WALLS.push({x:x,z:z,hw:w/2,hd:d/2});}
-  // Keep props near the perimeter of each room, away from its navigation hub.
+  // Thin details use the SAME batched decoration system as Deathmatch. This reduces
+  // draw calls and keeps the gameplay collisions on the actual solid furniture bodies.
+  function trim(w,hh,d,col,x,y,z){dk(w,hh,d,col,x,y,z);}
+  function groundedDetail(w,hh,d,col,x,bottom,z){trim(w,hh,d,col,x,bottom+hh/2,z);}
+  function mapBarrier(x,z,w,d,hh,col){
+    wl(x,z,w,d,hh,col);BOMB_NAV_WALLS.push({x:x,z:z,hw:w/2,hd:d/2});
+    // Continuous skirting and wall-edge trim, not disconnected hovering panels.
+    groundedDetail(w+.04,.12,d+.04,0x263642,x,0,z);
+    trim(w+.025,.12,d+.025,0xa2acb2,x,hh-.16,z);
+  }
+  // No decorative body is allowed to be walk-through. Collision uses the same
+  // wl()/OB convention as TDM, so physics, bullets and A* share the geometry.
+  function solidFurniture(x,z,dim,col){
+    wl(x,z,dim.w,dim.d,dim.h,col);
+    groundedDetail(dim.w+.08,.12,dim.d+.08,0x26313a,x,0,z);
+  }
   function facilityProps(x,z,i,j,zone){
-    var pattern=(i*7+j*11)%9,edge=(i+j)%2?1:-1;
-    if(pattern===0||pattern===7){ // server racks and consoles
-      visualBox(2.1,2.6,.85,0x202934,x+edge*3.8,1.3,z+3.8);
-      for(var a=0;a<3;a++)visualBox(1.55,.19,.08,a===1?zone.accent:0x80b0c8,x+edge*3.8,.7+a*.65,z+3.32);
-      visualBox(1.7,.12,.18,0x131c26,x+edge*3.8,2.7,z+3.65);
-    }else if(pattern===1||pattern===5){ // steel cargo shelves with colored supplies
-      visualBox(2.5,.13,1.0,0x77848d,x+edge*3.6,1.0,z-3.8);
-      visualBox(2.5,.13,1.0,0x77848d,x+edge*3.6,2.0,z-3.8);
-      for(var a=0;a<2;a++)visualBox(.72,.7,.7,a?zone.accent:0x9e7d57,x+edge*(3.6+a*.6),1.39+a*.85,z-3.8);
-    }else if(pattern===2){ // utility pipes + tank
-      visualBox(.7,2.7,.7,0x8197a0,x+3.6,1.35,z+edge*3.6);
-      visualBox(3.0,.18,.18,0x6ccacb,x+2.5,3.15,z+edge*3.7);
-      visualBox(.35,1.7,.35,0xc0cad1,x+3.6,3.0,z+edge*3.6);
-    }else if(pattern===3){ // modular low cover
-      visualBox(2.8,1.1,1.4,0x79604e,x-3.6,.55,z+edge*3.5);
-      visualBox(2.9,.12,1.5,zone.accent,x-3.6,1.14,z+edge*3.5);
-    }else if(pattern===4){ // supply workstations with bright displays
-      visualBox(2.8,.15,1.2,0x7d838a,x+edge*3.4,1.1,z+3.7);
-      visualBox(1.5,.9,.11,0x1a2731,x+edge*3.4,1.7,z+3.8);
-      visualBox(1.16,.57,.06,zone.accent,x+edge*3.4,1.75,z+3.71);
-    }else if(pattern===6){ // tanks / generators
-      for(var a=0;a<2;a++){
-        visualBox(.9,2.7,.9,a?0x7798a0:0x647c88,x+edge*3.6+a*1.2,1.35,z+3.7);
-        visualBox(1.1,.2,1.1,zone.accent,x+edge*3.6+a*1.2,2.7,z+3.7);
+    var pattern=(i*7+j*11)%9,sgn=(i+j)%2?1:-1,
+        inset=BOMB_PROPS.inset,px=x+sgn*inset,pz=z+((i%2)?-1:1)*inset,
+        C=0x26313a,steel=0x84939b,dark=0x1a232c;
+    if(pattern===0||pattern===7){ // FULLY GROUNDED security rack, ventilated front, powered display strips
+      var r=BOMB_PROPS.rack;solidFurniture(px,pz,r,0x293642);
+      trim(r.w-.2,r.h-.37,.035,dark,px,r.h*.51,pz+r.d/2+.025);
+      for(var a=0;a<5;a++){
+        trim(r.w-.43,.055,.045,a===2?zone.accent:steel,px,.4+a*.44,pz+r.d/2+.055);
+        trim(.11,.11,.05,0x80ffbc,px+r.w/2-.27,.45+a*.44,pz+r.d/2+.07);
       }
+      groundedDetail(.16,r.h,.16,steel,px-r.w/2+.06,0,pz+r.d/2);
+      groundedDetail(.16,r.h,.16,steel,px+r.w/2-.06,0,pz+r.d/2);
+    }else if(pattern===1||pattern===5){ // Framed storage locker, no unsupported floating shelves
+      var l=BOMB_PROPS.locker;solidFurniture(px,pz,l,0x495761);
+      groundedDetail(l.w+.04,.17,l.d+.09,steel,px,0,pz);
+      for(var a=0;a<3;a++){
+        trim(l.w-.18,.07,.06,steel,px,.65+a*.73,pz+l.d/2+.035);
+        trim(.12,.4,.07,zone.accent,px-l.w/2+.16,.78+a*.68,pz+l.d/2+.06);
+      }
+      trim(.09,1.6,.06,0xd0d6d8,px+l.w/2-.24,1.28,pz+l.d/2+.06);
+    }else if(pattern===2||pattern===6){ // Floor-mounted generator with silhouette, protective tank and footings
+      var g=BOMB_PROPS.generator;solidFurniture(px,pz,g,0x415764);
+      groundedDetail(g.w+.24,.22,g.d+.23,C,px,0,pz);
+      // Rounded tank cap sits on an actual support body; collision covers its footprint.
+      var cylinder=new T.Mesh(new T.CylinderGeometry(.45,.45,1.62,10),
+        new T.MeshLambertMaterial({color:pattern===2?0x718d91:0x70877c}));
+      cylinder.position.set(px,1.47,pz);cylinder.castShadow=true;S.add(cylinder);
+      trim(g.w+.05,.13,g.d+.05,zone.accent,px,2.55,pz);
+      for(var a=0;a<3;a++)trim(.32,.14,.06,0xc8d2d6,px-.48+a*.48,.56,pz+g.d/2+.05);
+      trim(.15,1.9,.1,dark,px-g.w/2+.13,1.2,pz+g.d/2+.045);
+    }else if(pattern===3){ // Existing TDM hazard barrier: registered collision + striped geometry
+      var b=BOMB_PROPS.cover;cBar([px,pz,b.w,b.d]);
+    }else if(pattern===4){ // Grounded command console with a flush mounted screen housing
+      var d=BOMB_PROPS.desk;solidFurniture(px,pz,d,0x586b75);
+      trim(d.w+.12,.13,d.d+.12,steel,px,d.h-.03,pz);
+      // Screen and support occupy the same collision volume, not free-floating geometry.
+      var panelW=1.32,panelH=.76,panelY=d.h+.56;
+      trim(.17,.7,.22,dark,px,d.h+.34,pz);
+      trim(panelW,panelH,.17,dark,px,panelY,pz);
+      trim(panelW-.18,panelH-.19,.02,zone.accent,px,panelY,pz+.105);
+      OB.push({x:px,z:pz,hw:panelW/2,hd:.13,h:panelY+panelH/2,y0:d.h+.17,c:dark});
+      trim(.14,.09,.05,0x97e0bd,px+.76,d.h-.22,pz+d.d/2+.05);
+    }else{ // Existing TDM cargo container: physically solid and detailed, not a plain block
+      cBox([px,pz,2.25,1.85]);
     }
   }
   for(j=0;j<n;j++)for(i=0;i<n;i++){
@@ -256,10 +310,13 @@ function makeBombMap(){
     // Quadrant palettes give landmarks to navigate by instead of identical gray rooms.
     var sector=(i<n/2?0:1)+(j<n/2?0:2),zone=zones[sector];
     visualBox(step-.16,.07,step-.16,zone.floor,x,.015,z);
-    visualBox(step-.10,.22,step-.10,zone.ceiling,x,cfg.ceilingHeight,z);
+    visualBox(step-.10,cfg.ceilingThickness,step-.10,zone.ceiling,x,cfg.ceilingHeight,z);
     // Floor markings and overhead services lead players towards the central objectives.
-    if((i+j)%3===0){visualBox(2.4,.055,.7,0xcce6ef,x,cfg.ceilingHeight-.18,z);
-      visualBox(2.8,.08,.8,0x26343c,x,cfg.ceilingHeight-.25,z);}
+    if((i+j)%3===0){
+      var underRoof=cfg.ceilingHeight-cfg.ceilingThickness/2;
+      visualBox(2.8,.08,.82,0x26343c,x,underRoof-.04,z);
+      visualBox(2.38,.026,.68,0xcce6ef,x,underRoof-.09,z);
+    }
     if((i+j)%4===0){visualBox(.12,.035,step*.65,zone.accent,x-.9,.06,z);
       visualBox(.12,.035,step*.65,zone.accent,x+.9,.06,z);}
     if(i===0)mapBarrier(x-step/2,z,.5,step+.15,h,zone.wall);
@@ -272,16 +329,27 @@ function makeBombMap(){
     // Dress every sector differently. The props are decorative, never a hidden maze obstacle.
     var isSite=BOMB_SITES.some(function(q){return Math.hypot(q.x-x,q.z-z)<step*1.3;});
     if(!isSite&&i>0&&j>0&&i<n-1&&j<n-1)facilityProps(x,z,i,j,zone);
-    if((i+j)%5===0){ // ceiling ducts (mounted high enough to clear players and bullets)
-      visualBox(step*.7,.28,.35,0x778b96,x,cfg.ceilingHeight-.52,z-3.5);
-      visualBox(.25,.15,.8,zone.accent,x+2,cfg.ceilingHeight-.7,z-3.5);
+    if((i+j)%5===0){ // Roof duct WITH brackets connecting it to the ceiling
+      var ductY=cfg.ceilingHeight-.36,roofBase=cfg.ceilingHeight-cfg.ceilingThickness/2;
+      trim(step*.58,.23,.36,0x778b96,x,ductY,z-3.3);
+      for(var a=-1;a<=1;a+=2){
+        trim(.1,roofBase-(ductY+.115)+.02,.16,0xb4bec3,x+a*2,
+          (roofBase+ductY+.115)/2,z-3.3);
+      }
+      trim(.26,.07,.37,zone.accent,x,ductY-.14,z-3.3);
     }
     // Floor-level cabinets act as usable cover without filling central routes.
     if(!isSite&&(i*13+j*17)%11===0&&i>0&&j>0&&i<n-1&&j<n-1){
-      var ax=x-3.65,az=z-3.65;wl(ax,az,1.7,1.5,1.4,0x687586);
-      visualBox(1.6,.13,1.4,zone.accent,ax,1.47,az);
+      var ax=x-3.45,az=z-3.45;
+      cBar([ax,az,1.65,1.4]);
     }
   }
+  // The continuous overhead slab is a real bullet blocker, like TDM roof lintels,
+  // but never a ground obstacle that would invalidate bot navigation.
+  LT.push({x:0,z:0,hw:step*n/2,hd:step*n/2,
+    y0:cfg.ceilingHeight-cfg.ceilingThickness/2,
+    h:roofTop+.125,c:0x303a45});
+  flushDeco(); // Batch visual-only details using the unchanged TDM decoration helper.
   // Numbered, readable A/B target rooms. Sprites are visual and never obstruct collision.
   BOMB_SITES.forEach(function(q){
     var ring=new T.Mesh(new T.RingGeometry(cfg.siteRadius-.25,cfg.siteRadius,40),new T.MeshBasicMaterial({color:q.col,transparent:true,opacity:.85,side:T.DoubleSide,depthWrite:false}));
@@ -361,7 +429,7 @@ function gh(x,z,y){var g=0;for(var i=0;i<OB.length;i++){var o=OB[i];if(o.h<=y+(o
 function resolve(p,r){
   p.x=Math.max(-A,Math.min(A,p.x));p.z=Math.max(-A,Math.min(A,p.z));
   OB.forEach(function(o){if(o.fl||(p.y||0)>=o.h-.05||(p.y||0)+1.8<=(o.y0||0))return;var nx=Math.max(o.x-o.hw,Math.min(o.x+o.hw,p.x)),nz=Math.max(o.z-o.hd,Math.min(o.z+o.hd,p.z)),dx=p.x-nx,dz=p.z-nz,d=Math.hypot(dx,dz);
-    if(d<r){if(d>0){p.x+=dx/d*(r-d);p.z+=dz/d*(r-d);}else p.x+=r;}});
+    if(d<r){if(d>0){p.x+=dx/d*(r-d);p.z+=dz/d*(r-d);}else if(isBombMode())bombPushOutOfSolid(p,o,r);else p.x+=r;}});
 }
 // mkHelm(): builds a helmet mesh group (can fly off when a headshot pops it, see popHelm()).
 function mkHelm(col,ms){var h=new T.Group();
