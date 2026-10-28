@@ -50,3 +50,7 @@ The original engine was built in a single shared IIFE. Feature fragments are int
 ## Status of validation
 
 Automated source and isolated mode-logic tests are included. Full interactive browser smoke testing remains pending because the test environment blocked browser access to local pages. Please report runtime anomalies with the browser console output to help reproduce them. No production/online readiness is claimed.
+
+## Bomb Mission map and bots (2026-10-28)
+
+Bomb Mission uses a dedicated **160×160** indoor arena (16×16 cells) with four themed industrial sectors, actual walls on the radar, two central bomb sites and 5v5 role-based bots. On death, follow a full teammate model from behind; use Left/Right arrows to change teammate. Bots independently guard sites, escort and plant the bomb, chase threats, retake and defuse. Plant/defuse mechanics and existing English strings remain unchanged. Player runs the committed bundle without a build. See `CHANGELOG.md` for test coverage and limitations.

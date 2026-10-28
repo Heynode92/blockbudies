@@ -5,7 +5,7 @@ var GN=0,GB=null,GCS=1;
 // gc(): converts a world coordinate to a grid cell index.
 function gc(v){return Math.max(0,Math.min(GN-1,Math.floor((v+A)/GCS)));}
 // gInit(): builds the walkability grid from OB (solid boxes).
-function gInit(){GN=Math.ceil(2*A/GCS);GB=new Uint8Array(GN*GN);for(var cz=0;cz<GN;cz++)for(var cx=0;cx<GN;cx++){var x=-A+(cx+.5)*GCS,z=-A+(cz+.5)*GCS;GB[cz*GN+cx]=(inObs(x,z,.6)||Math.abs(x)>A-1||Math.abs(z)>A-1)?1:0;}}
+function gInit(){GCS=isBombMode()?1.5:1;GN=Math.ceil(2*A/GCS);GB=new Uint8Array(GN*GN);for(var cz=0;cz<GN;cz++)for(var cx=0;cx<GN;cx++){var x=-A+(cx+.5)*GCS,z=-A+(cz+.5)*GCS;GB[cz*GN+cx]=(inObs(x,z,.6)||Math.abs(x)>A-1||Math.abs(z)>A-1)?1:0;}}
 // gFree(): nearest free cell to (cx,cz) (spiral search).
 function gFree(cx,cz){var r,a,b,x,z;if(!GB[cz*GN+cx])return[cx,cz];for(r=1;r<10;r++)for(a=-r;a<=r;a++)for(b=-r;b<=r;b++){if(Math.max(Math.abs(a),Math.abs(b))!==r)continue;x=cx+a;z=cz+b;if(x>=0&&z>=0&&x<GN&&z<GN&&!GB[z*GN+x])return[x,z];}return null;}
 // gClear(): true if the straight line between two points crosses only free cells.
@@ -26,20 +26,25 @@ function gPath(x0,z0,x1,z1){if(!GB)gInit();var N=GN,s=gFree(gc(x0),gc(z0)),g=gFr
   while(cur<pts.length-1){best=cur+1;for(j=cur+2;j<pts.length&&j<=cur+30;j++)if(gClear(pts[cur][0],pts[cur][1],pts[j][0],pts[j][1]))best=j;out.push(pts[best]);cur=best;}
   return out;}
 // botPath(): assigns bot e a path to goal (gx,gz) and a repath timer.
-function botPath(e,gx,gz){var p=gPath(e.x,e.z,gx,gz);e.path=p||[[gx,gz]];e.pi=0;e.pt=1.1+Math.random()*.8;}
+function botPath(e,gx,gz){var p=gPath(e.x,e.z,gx,gz);
+  // Never charge directly into a solid wall if A* finds no route.
+  e.path=p||(isBombMode()?[]:[[gx,gz]]);e.pi=0;e.pt=1.1+Math.random()*.8;e.goalX=gx;e.goalZ=gz;
+}
 // botsUpd(dt): LIVE bot AI (movement along paths, target choice, line-of-sight, shooting with fire(..., "e")).
 function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
   for(i=rq.length-1;i>=0;i--){var q=rq[i];q.t-=dt;if(q.t<=0&&!mt.over&&!isBombMode()){var nb=newBot(q.b.tm,q.b.idx);nb.st=q.b.st;placeBot(nb);rq.splice(i,1);}}
-  en.forEach(function(e){var t,dx=0,dz=0,d=99,f,mvx=0,mvz=0,sp=4.8,ox=e.x,oz=e.z,combat,gx,gz,wp,ml;
+  en.forEach(function(e){var t,dx=0,dz=0,d=99,f,mvx=0,mvz=0,sp=isBombMode()?BOMB_AI.navSpeed:4.8,ox=e.x,oz=e.z,combat,gx,gz,wp,ml;
     e.inv=Math.max(0,(e.inv||0)-(cdn?0:dt));e.vis=Math.max(0,(e.vis||0)-dt);e.tq=(e.tq||0)-dt;e.navT=Math.max(0,(e.navT||0)-dt);
     if(e.tq<=0){e.tq=.35+Math.random()*.2;var bd=1e9,bt=null;
       en.forEach(function(o){if(o.tm!==e.tm){var dd=Math.hypot(o.x-e.x,o.z-e.z);if(dd<bd&&dd<45&&los(e.x,e.z,o.x,o.z)){bd=dd;bt=o;}}});
       if(pl.tm!==e.tm&&!pl.dead){var d2=Math.hypot(pl.x-e.x,pl.z-e.z);if(d2<bd&&d2<45&&los(e.x,e.z,pl.x,pl.z)){bd=d2;bt=pl;}}
       e.tg=bt;e.lok=!!bt;
-      if(!bt&&isBombMode()){var objective=bombBotGoal(e);if(objective){e.wx=objective[0];e.wz=objective[1];}}
+      if(isBombMode()){var objective=bombBotGoal(e);if(objective){e.wx=objective[0];e.wz=objective[1];}}
       if(!bt&&!isBombMode()){var ob=null,od=1e9;en.concat(pl.dead?[]:[pl]).forEach(function(o){if(o.tm!==e.tm){var dd=Math.hypot(o.x-e.x,o.z-e.z);if(dd<od){od=dd;ob=o;}}});
         if(ob){e.wx=ob.x+(Math.random()-.5)*12;e.wz=ob.z+(Math.random()-.5)*12;}else{e.wx=(Math.random()-.5)*2*(A-8);e.wz=(Math.random()-.5)*2*(A-8);}}}
     t=e.tg;if(t&&(t.dead||(t===pl&&pl.dead)))t=e.tg=null;
+    // Bomb carriers and designated defusers prioritize the objective unless an enemy is close.
+    if(t&&bombBotWantsObjective(e,t))t=null;
     e.lt=(e.lt||0)-dt;if(t&&e.lt<=0){e.lt=.15;e.lok=los(e.x,e.z,t.x,t.z);}
     if(t){dx=t.x-e.x;dz=t.z-e.z;d=Math.hypot(dx,dz)||1;}
     combat=!!t&&e.lok&&e.navT<=0;
@@ -48,14 +53,28 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
       mvx=dx/d*fw+(dz/d)*st;mvz=dz/d*fw-(dx/d)*st;
       if(GB[gc(e.z+mvz*sp*dt*4)*GN+gc(e.x+mvx*sp*dt*4)]){e.sd=-(e.sd||1);mvx=dx/d*fw;mvz=dz/d*fw;}}
     else{gx=t?t.x:e.wx;gz=t?t.z:e.wz;e.pt=(e.pt||0)-dt;
-      if(!e.path||e.pt<=0||e.stk>.5){botPath(e,gx,gz);e.stk=0;}
+      if(!e.path||e.pt<=0||e.stk>.5||
+         (isBombMode()&&Math.hypot((e.goalX||0)-gx,(e.goalZ||0)-gz)>BOMB_AI.repathGoalDistance)){
+        botPath(e,gx,gz);e.stk=0;
+      }
       wp=e.path[e.pi];while(wp&&e.pi<e.path.length-1&&Math.hypot(wp[0]-e.x,wp[1]-e.z)<1.1){e.pi++;wp=e.path[e.pi];}
       if(wp){var wx=wp[0]-e.x,wz=wp[1]-e.z,wl=Math.hypot(wx,wz)||1;if(wl>.4){mvx=wx/wl;mvz=wz/wl;}}}
     if(isBombMode()&&e.bAction)mvx=mvz=0;
-    en.forEach(function(o){if(o!==e){var sx=e.x-o.x,sz=e.z-o.z,sq=Math.hypot(sx,sz);if(sq<1.8&&sq>.01){mvx+=sx/sq*.7;mvz+=sz/sq*.7;}}});
+    if(!e.bAction)en.forEach(function(o){if(o!==e&&!o.dead){
+      var sx=e.x-o.x,sz=e.z-o.z,sq=Math.hypot(sx,sz),space=isBombMode()?BOMB_AI.teammateSpacing:1.8;
+      if(sq<space&&sq>.01){mvx+=sx/sq*.75;mvz+=sz/sq*.75;}
+    }});
     ml=Math.hypot(mvx,mvz);if(ml>1){mvx/=ml;mvz/=ml;}if(cdn)mvx=mvz=0;
     f=(t&&e.lok)?Math.atan2(dx,dz):(mvx||mvz)?Math.atan2(mvx,mvz):e.g.rotation.y;
     e.x+=mvx*sp*dt;e.z+=mvz*sp*dt;resolve(e,.55);
+    if(isBombMode()&&!e.bAction&&(mvx||mvz)){
+      // If a narrow corner blocks movement, try sliding instead of oscillating into it.
+      var forward=Math.hypot(e.x-ox,e.z-oz);
+      if(forward<sp*dt*.2){
+        var side=e.idx%2?1:-1,tx=e.x+side*(-mvz)*sp*dt,tz=e.z+side*mvx*sp*dt;
+        if(!inObs(tx,tz,.65)){e.x=tx;e.z=tz;resolve(e,.55);}
+      }
+    }
     var dm=Math.hypot(e.x-ox,e.z-oz);
     if((mvx||mvz)&&dm<sp*dt*.3){e.stk=(e.stk||0)+dt;if(combat&&e.stk>.5){e.navT=1.2;e.sd=-(e.sd||1);e.stk=0;e.pt=0;}}else e.stk=0;
     e.g.rotation.y=f;e.cd-=dt;

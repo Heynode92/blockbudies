@@ -47,7 +47,7 @@ function bombStartMatch(){
   var options=bombCandidates();bombMatch.carrier=options[(Math.random()*options.length)|0]||null;
   en.concat([pl]).forEach(function(e){e.bAction=null;});
   if(bombMatch.carrier===pl)toast(BOMB_TEXT.carrier);
-  bombSpectatorIndex=0;document.body.classList.remove('bomb-spectator');
+  bombSpectatorIndex=0;bombResetSpectatorCamera();document.body.classList.remove('bomb-spectator');
 }
 function bombDrop(holder){
   if(!isBombMode()||!bombMatch||bombMatch.state!=='idle')return;
@@ -95,19 +95,8 @@ function bombNextRound(){var old=bombMatch,team=pl.tm,wins=ts.slice(),stats={};
   reset();startMatch(team);
   ts=wins;ROS.forEach(function(s){var h=stats[s.tm+':'+s.name];if(h){s.k=h.k;s.d=h.d;}});
 }
-function bombBotGoal(e){var b=bombMatch;if(!b||b.done)return null;
-  if(b.state==='planted'){
-    var pos=b.device.position;
-    if(e.tm===0)return[pos.x,pos.z];
-    return[pos.x+(e.idx%2?4:-4),pos.z+(e.idx%3?4:-4)];
-  }
-  if(e.tm===1){
-    if(b.dropped)return[b.dropped.x,b.dropped.z];
-    if(e===b.carrier){var site=BOMB_SITES[e.siteChoice===undefined?(e.siteChoice=(e.idx+b.round)%BOMB_SITES.length):e.siteChoice];return[site.x,site.z];}
-    if(b.carrier)return[b.carrier.x+(e.idx%2?3:-3),b.carrier.z+(e.idx%3?3:-3)];
-  }
-  var area=BOMB_SITES[(e.idx+b.round)%BOMB_SITES.length];return[area.x,area.z];
-}
+// The tactical director assigns moving, separate objectives to every team member.
+function bombBotGoal(e){return bombTacticalGoal(e);}
 function bombSpectatorTarget(){
   if(!isBombMode()||!pl.dead||!bombMatch||mt.over)return null;
   var living=en.filter(function(e){return e.tm===pl.tm&&!e.dead;});
@@ -115,7 +104,7 @@ function bombSpectatorTarget(){
   bombSpectatorIndex=((bombSpectatorIndex%living.length)+living.length)%living.length;
   return living[bombSpectatorIndex];
 }
-function bombSpectatorNext(d){if(isBombMode()&&pl.dead){bombSpectatorIndex+=d;}}
+function bombSpectatorNext(d){if(isBombMode()&&pl.dead){bombSpectatorIndex+=d;bombResetSpectatorCamera();}}
 function bombUpdate(dt){if(!isBombMode()||!bombMatch||mt.over)return;
   var b=bombMatch;
   if(b.done){b.finishDelay-=dt;if(b.finishDelay<=0){if(ts[0]>=BOMB_RULES.wins||ts[1]>=BOMB_RULES.wins||b.round>=BOMB_RULES.rounds)endMatch();else bombNextRound();}return;}
@@ -128,9 +117,12 @@ function bombUpdate(dt){if(!isBombMode()||!bombMatch||mt.over)return;
     }
   }
   if(!pl.dead)bombAct(pl,dt,!!(keys.KeyE||bombHold));
-  en.forEach(function(e){var canAct=!!bombActionFor(e),near=canAct&&!(e.tg&&e.lok&&Math.hypot(e.tg.x-e.x,e.tg.z-e.z)<6);
-    // AI interaction is unarmed and stationary while operating the device.
-    bombAct(e,dt,near);});
+  if(b.state==='planted')bombPickDefuser();
+  en.forEach(function(e){
+    // Only the assigned defuser handles the device. Others cover approaches.
+    // Plant and defuse leave the actor vulnerable to bullets.
+    bombAct(e,dt,bombBotCanAct(e));
+  });
   if(b.state==='planted'){
     b.fuseLeft=mt.t;
     b.device.userData.led.visible=Math.floor(tt*4)%2===0;

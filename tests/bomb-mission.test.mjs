@@ -6,15 +6,17 @@ import {resolve} from 'node:path';
 const root = resolve(import.meta.dirname, '..');
 const mapSource=readFileSync(resolve(root,'src/game/11-bomb-map.js'),'utf8');
 const missionSource=readFileSync(resolve(root,'src/game/86-bomb-mission.js'),'utf8');
+const tacticsSource=readFileSync(resolve(root,'src/game/87-bomb-tactics.js'),'utf8');
+const cameraSource=readFileSync(resolve(root,'src/game/88-spectator-camera.js'),'utf8');
 function fakeThree(){
-  class Position { constructor(){this.x=0;this.y=0;this.z=0;} set(x,y,z){this.x=x;this.y=y;this.z=z;return this;} }
+  class Position { constructor(x=0,y=0,z=0){this.x=x;this.y=y;this.z=z;} set(x,y,z){this.x=x;this.y=y;this.z=z;return this;} copy(o){return this.set(o.x,o.y,o.z);} lerp(o,t){this.x+=(o.x-this.x)*t;this.y+=(o.y-this.y)*t;this.z+=(o.z-this.z)*t;return this;} }
   class Group{constructor(){this.children=[];this.position=new Position();this.scale=new Position();this.rotation={x:0,y:0,z:0};this.userData={};this.visible=true;}add(...items){this.children.push(...items);} }
   class Mesh extends Group{constructor(){super();this.isMesh=true;}}
   class Sprite extends Group{}
   class Material{constructor(props){Object.assign(this,props);}}
   class Geometry{constructor(){}}
   class Color{constructor(color){this.value=color;}}
-  return {Group,Mesh,Sprite,Color,Fog:class{},MeshBasicMaterial:Material,MeshLambertMaterial:Material,SpriteMaterial:Material,BoxGeometry:Geometry,CylinderGeometry:Geometry,SphereGeometry:Geometry,CircleGeometry:Geometry,RingGeometry:Geometry,CanvasTexture:class{}};
+  return {Group,Mesh,Sprite,Vector3:Position,Color,Fog:class{},MeshBasicMaterial:Material,MeshLambertMaterial:Material,SpriteMaterial:Material,BoxGeometry:Geometry,CylinderGeometry:Geometry,SphereGeometry:Geometry,CircleGeometry:Geometry,RingGeometry:Geometry,CanvasTexture:class{}};
 }
 function makeContext(){
   const T=fakeThree();
@@ -23,9 +25,9 @@ function makeContext(){
   }
   const fakeCanvas={width:0,height:0,getContext(){return {fillRect(){},fillText(){},fillStyle:'',font:'',textAlign:''};}};
   const S=new T.Group();S.fog=null;S.background=null;
-  const C={};
+  const C={position:new T.Vector3(),lookAt(x,y,z){this.at={x,y,z};}};
   const ctx={
-    Math,Object,Array,Uint8Array,Date,console,T,S,VS:new T.Group(),OB:[],BR:[],LT:[],GB:null,
+    Math,Object,Array,Uint8Array,Date,console,T,S,C,VS:new T.Group(),OB:[],BR:[],LT:[],GB:null,
     pl:{x:0,z:0,tm:1,dead:false,name:'You'},en:[],ts:[0,0],
     mt:{cd:0,t:120,over:false},tt:10,run:true,lob:false,touch:false,keys:{KeyE:true},
     SPH:[[],[]],A:60,
@@ -36,12 +38,12 @@ function makeContext(){
     inObs(x,z,m){return ctx.OB.some(o=>Math.abs(x-o.x)<o.hw+(m||0)&&Math.abs(z-o.z)<o.hd+(m||0));},
     reset(){},startMatch(){},endMatch(){ctx.mt.over=true;}
   };
-  runInNewContext(mapSource+'\n'+missionSource,ctx);
+  runInNewContext(mapSource+'\n'+missionSource+'\n'+tacticsSource+'\n'+cameraSource,ctx);
   ctx.selectedGameMode=1;
   return ctx;
 }
 function init(c){
-  c.pl.dead=false;c.pl.tm=1;c.pl.x=-21;c.pl.z=-7;
+  c.pl.dead=false;c.pl.tm=1;c.pl.x=-25;c.pl.z=-5;
   c.bombMatch={state:'idle',carrier:c.pl,dropped:null,device:{visible:false,position:{x:0,y:0,z:0,set(x,y,z){this.x=x;this.y=y;this.z=z;}},userData:{led:{visible:true}}},site:-1,done:false,round:1,fuseLeft:40};
   c.mt={cd:0,t:100,over:false};c.ts=[0,0];c.run=true;c.bombHold=false;
 }
@@ -62,18 +64,18 @@ test('plant requires full five seconds and bombs are dropped on carrier death',(
   c.bombAct(c.pl,1,true);
   assert.equal(c.bombMatch.state,'planted');assert.equal(c.bombMatch.site,0);
   init(c);c.bombDrop(c.pl);
-  assert.equal(c.bombMatch.carrier,null);assert.equal(c.bombMatch.dropped.x,-21);
+  assert.equal(c.bombMatch.carrier,null);assert.equal(c.bombMatch.dropped.x,-25);
 });
 test('plant progress cancels on key release, movement out of site, or death',()=>{
   const c=makeContext();init(c);
   c.bombAct(c.pl,2,true);assert.equal(c.pl.bAction.t,2);
   c.bombAct(c.pl,.1,false);assert.equal(c.pl.bAction,null);
   c.bombAct(c.pl,1,true);c.pl.x=10;c.bombAct(c.pl,1,true);assert.equal(c.pl.bAction,null);
-  c.pl.x=-21;c.bombAct(c.pl,1,true);c.pl.dead=true;c.bombAct(c.pl,1,true);assert.equal(c.pl.bAction,null);
+  c.pl.x=-25;c.bombAct(c.pl,1,true);c.pl.dead=true;c.bombAct(c.pl,1,true);assert.equal(c.pl.bAction,null);
 });
 test('defuse takes seven seconds and awards one Police round point',()=>{
   const c=makeContext();init(c);c.pl.tm=0;c.bombMatch.state='planted';c.bombMatch.site=0;
-  c.bombMatch.device.position.set(-21,0,-7);
+  c.bombMatch.device.position.set(-25,0,-5);
   for(let i=0;i<6;i++)c.bombAct(c.pl,1,true);
   assert.equal(c.ts[0],0);assert.equal(c.bombMatch.done,false);
   c.bombAct(c.pl,1,true);
@@ -82,7 +84,7 @@ test('defuse takes seven seconds and awards one Police round point',()=>{
 test('terrorist automatically recovers dropped bomb in pickup radius',()=>{
   const c=makeContext();init(c);c.bombDrop(c.pl);c.bombMatch.device.visible=true;
   c.pl.x=20;c.pl.z=20;
-  const buddy={x:-21,z:-7,tm:1,dead:false,idx:1,name:'Razor',bAction:null};c.en=[buddy];
+  const buddy={x:-25,z:-5,tm:1,dead:false,idx:1,name:'Razor',bAction:null};c.en=[buddy];
   c.bombUpdate(.1);
   assert.equal(c.bombMatch.carrier,buddy);assert.equal(c.bombMatch.dropped,null);assert.equal(c.bombMatch.device.visible,false);
 });
@@ -92,7 +94,7 @@ test('bomb detonation and unplanted round timeout award correct rounds',()=>{
   c.bombUpdate(.1);assert.equal(c.bombMatch.done,true);assert.equal(c.ts[1],1);
   init(c);c.mt.t=0;c.bombUpdate(.1);assert.equal(c.bombMatch.done,true);assert.equal(c.ts[0],1);
 });
-test('generated maze keeps all 121 rooms connected by real corridors',()=>{
+test('generated 160x160 maze keeps all 256 rooms connected by real corridors',()=>{
   const c=makeContext();c.selectGameMap(true);
   const step=c.BOMB_RULES.cellSize,half=(c.BOMB_RULES.cells-1)/2,n=c.BOMB_RULES.cells;
   const seen=new Set(['0:0']),q=[[0,0]];
@@ -104,15 +106,16 @@ test('generated maze keeps all 121 rooms connected by real corridors',()=>{
     seen.add(key);q.push([nx,nz]);
   }}
   assert.equal(seen.size,n*n);
+  assert.equal(c.A,80);
 });
 test('bot goal changes between bomb carrying, dropped device, and planted defuse',()=>{
   const c=makeContext();init(c);
-  const bot={tm:1,idx:2,dead:false,x:0,z:-35,siteChoice:0};c.en=[bot];c.bombMatch.carrier=bot;
-  assert.equal(c.bombBotGoal(bot)[0],-21);
+  const bot={tm:1,idx:2,dead:false,x:0,z:-65,siteChoice:0};c.en=[bot];c.bombMatch.carrier=bot;
+  assert.equal(c.bombBotGoal(bot)[0],-25);
   c.bombMatch.carrier=null;c.bombMatch.dropped={x:12,z:3};
   assert.equal(c.bombBotGoal(bot)[0],12);
   c.bombMatch.dropped=null;c.bombMatch.state='planted';c.bombMatch.device.position.set(21,0,7);
-  const cop={tm:0,idx:0,x:0,z:35};
+  const cop={tm:0,idx:0,x:0,z:65,dead:false};c.en.push(cop);
   assert.equal(c.bombBotGoal(cop)[0],21);
 });
 test('spectator only selects living teammates, never enemies',()=>{
@@ -120,4 +123,65 @@ test('spectator only selects living teammates, never enemies',()=>{
   c.en=[{tm:0,name:'Police',dead:false},{tm:1,name:'Living',dead:false},{tm:1,name:'Dead',dead:true}];
   assert.equal(c.bombSpectatorTarget().name,'Living');
   c.en[1].dead=true;assert.equal(c.bombSpectatorTarget(),null);
+});
+
+// Additional tactical regression tests, independent of browser and rendering.
+const navSource=readFileSync(resolve(root,'src/game/90-bot-ai.js'),'utf8').split('// botsUpd(dt):')[0];
+test('Bomb Mode uses a 160x160 world and TDM restores its original boundary',()=>{
+  const c=makeContext();assert.equal(c.A,60);c.selectGameMap(true);
+  assert.equal(c.BOMB_RULES.cells*c.BOMB_RULES.cellSize,160);
+  assert.equal(c.A,80);
+  assert.ok(Math.hypot(c.BOMB_SITES[0].x-c.BOMB_SITES[1].x,c.BOMB_SITES[0].z-c.BOMB_SITES[1].z)>40);
+  c.selectGameMap(false);assert.equal(c.A,60);
+});
+test('A* supplies connected routes from both spawns to both sites and between sites',()=>{
+  const c=makeContext();c.selectGameMap(true);
+  runInNewContext(navSource,c);
+  const paths=[[[-15,65],c.BOMB_SITES[0]],[[15,-65],c.BOMB_SITES[1]],[[c.BOMB_SITES[0].x,c.BOMB_SITES[0].z],c.BOMB_SITES[1]]];
+  for(const [start,goal] of paths){
+    const path=c.gPath(start[0],start[1],goal.x,goal.z);
+    assert.ok(path&&path.length>0,'navigable route exists');
+    assert.ok(Math.hypot(path.at(-1)[0]-goal.x,path.at(-1)[1]-goal.z)<3,'route reaches target room');
+    for(const [x,z] of path)assert.ok(!c.inObs(x,z,.25),'waypoint is not inside a wall');
+  }
+});
+test('assigned police bot defuses when the human is passive; human can take over',()=>{
+  const c=makeContext();init(c);c.pl.tm=0;c.pl.x=25;c.pl.z=5;
+  c.bombMatch.state='planted';c.bombMatch.site=1;c.bombMatch.device.position.set(25,0,5);
+  const guard={tm:0,idx:0,x:26,z:5,dead:false};c.en=[guard];
+  assert.equal(c.bombPickDefuser(),guard);
+  assert.equal(c.bombBotCanAct(guard),true);
+  c.pl.bAction={type:'defuse',site:1,t:1};
+  assert.equal(c.bombPickDefuser(),c.pl);
+  assert.equal(c.bombBotCanAct(guard),false);
+});
+test('terrorist behavior changes from escort and plant to defense and pursuit',()=>{
+  const c=makeContext();init(c);
+  const carrier={tm:1,idx:1,x:0,z:-60,dead:false,siteChoice:1};
+  const escort={tm:1,idx:2,x:-12,z:-52,dead:false};
+  const hunter={tm:1,idx:3,x:12,z:-52,dead:false};
+  c.en=[carrier,escort,hunter];c.bombMatch.carrier=carrier;
+  assert.equal(c.bombTacticalStage(carrier),'plant');
+  assert.equal(c.bombTacticalStage(escort),'escort');
+  assert.equal(c.bombTacticalStage(hunter),'hunt');
+  const escortGoal=c.bombTacticalGoal(escort),plantGoal=c.bombTacticalGoal(carrier);
+  assert.ok(Math.hypot(escortGoal[0]-plantGoal[0],escortGoal[1]-plantGoal[1])>3);
+  c.bombMatch.state='planted';c.bombMatch.site=1;c.bombMatch.device.position.set(25,0,5);
+  assert.ok(['hold','hunt'].includes(c.bombTacticalStage(escort)));
+  assert.equal(c.bombTacticalStage(carrier),'hunt');
+});
+test('third-person spectator shows a teammate from behind, never through the nearest wall',()=>{
+  const c=makeContext();init(c);c.selectGameMap(true);
+  c.pl.dead=true;
+  const mate={tm:1,idx:0,name:'Viper',x:5,z:5,y:0,dead:false,g:{rotation:{y:0}}};
+  c.en=[mate];c.bombResetSpectatorCamera();c.bombSpectatorCamera(1/60);
+  assert.ok(c.C.position.z<mate.z,'camera behind a forward-facing teammate');
+  assert.ok(c.C.position.y>=2,'camera elevated to frame body');
+  assert.equal(c.C.at.x,mate.x);
+  assert.ok(!c.inObs(c.C.position.x,c.C.position.z,.15,c.C.position.y),'camera is outside solid walls');
+});
+test('radar paints actual indoor walls and tracks spectated teammate',()=>{
+  const radar=readFileSync(resolve(root,'src/game/96-hud-and-radar.js'),'utf8');
+  assert.match(radar,/BOMB_NAV_WALLS\.forEach/);
+  assert.match(radar,/pl\.dead\?bombSpectatorTarget\(\)/);
 });

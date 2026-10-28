@@ -19,3 +19,12 @@ For every update, regenerate `assets/game.js`, then run syntax, bundle-sync and 
 ## Security / online readiness
 
 This remains an **offline client-simulated game**. Client-supplied position, health, damage, bomb state and round results are untrusted for real PvP. Before multiplayer, movement, collision, shots, bomb actions, round results and spectator visibility must be handled by a server-authoritative engine; these file boundaries are only a foundation, not anti-cheat.
+
+## Bomb Mission tactical upgrade (2026-10-28)
+
+- `11-bomb-map.js` owns `BOMB_RULES`, world boundary switching (60 for TDM, 80 for Bomb Mode), `BOMB_SITES`, navigation walls, procedural indoor geometry and its visibility.
+- `87-bomb-tactics.js` owns `BOMB_AI` and per-bot behavioral goals. Police designate one living defuser while other bots cover and pursue threats; Terrorists choose carrier, escort, hunt and defend the planted site. Roles change with objective state.
+- `88-spectator-camera.js` owns `SPECTATOR_CAMERA` and third-person chase camera, with collision testing. It never changes the original first-person gun camera for living players.
+- `90-bot-ai.js` retains the original pathfinding and Deathmatch AI. Bomb Mode uses higher navigation resolution, repathing when goals move, team spacing and wall fallback.
+- `96-hud-and-radar.js` renders actual indoor walls and cover; spectator radar follows living teammate.
+- All gameplay configuration remains in named objects. The generated runtime remains committed and auto-generated from the ordered source manifest.

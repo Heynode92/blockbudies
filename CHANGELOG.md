@@ -2,6 +2,29 @@
 
 Every update must record its date, scope, affected modules, user-visible strings, compatibility, and validation. Keep the original fixture immutable.
 
+## 2026-10-28 — Third-person spectator, larger indoor arena, tactical bots
+
+### Updated
+- Expanded Bomb Mission map to **160×160 units** using a connected 16×16 grid. Added four visually distinct industrial zones: Security, Warehouse, Reactor and Laboratory, with racks, displays, shelving, pipes, generators, equipment, route markings and additional cover.
+- Repositioned Bomb Sites A/B to (-25,-5) and (25,5), separated by over 50 world units, and moved team spawns farther apart.
+- Spectator now follows **behind** a living teammate in third person, with camera-wall collision checks, smoothing and Left/Right switching.
+- Bot roles dynamically adapt to bomb state: Police site guards, roamers, retake covering units and a designated defuser; Terrorists escort a randomized carrier, pursue defenders, plant and defend the bomb.
+- Fixed wall-stuck navigation by avoiding direct wall charge on failed Bomb Mode A*, repathing for moved goals, spacing teammates and attempting short slide maneuvers around narrow corners.
+- Radar now renders actual indoor wall positions and cover rather than just circular range rings; spectating radar follows the observed teammate.
+- AI will attempt defusal even if a passive human player is standing nearer to the bomb.
+
+### Configuration and UI strings
+- Map size, round duration, existing 5-second plant and 7-second defuse stay configured in `BOMB_RULES`; site coordinates are in `BOMB_SITES`, tactical settings in `BOMB_AI`, and third-person camera settings in `SPECTATOR_CAMERA`.
+- **No existing English user-facing strings were changed.** Existing Bomb Mission labels remain in `BOMB_TEXT`.
+- Team Deathmatch arena size, weapon stats, gameplay timing and first-person camera remain unchanged.
+
+### Files and validation
+- New: `src/game/87-bomb-tactics.js`, `src/game/88-spectator-camera.js`.
+- Updated: `src/game/11-bomb-map.js`, `86-bomb-mission.js`, `90-bot-ai.js`, `96-hud-and-radar.js`, `99-render-loop.js`, manifest, committed runtime bundle, tests, README, and architecture documentation.
+- 28/28 automated Node tests pass, including A* routing between both sites and spawns, fully connected 256-cell layout, role changes, AI defuser designation, third-person camera, radar markers and regressions.
+- Runtime syntax and generated bundle check pass.
+- Interactive browser performance, bot balancing and edge-case playtesting were not independently verified; tactical AI is rule-based rather than machine-learning intelligence.
+
 ## 2026-10-28 — Global camera reversal protection
 
 ### Fixed

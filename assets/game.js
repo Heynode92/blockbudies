@@ -180,7 +180,7 @@ flushDeco();
 // BOMB MISSION: rules and UI strings are centralized here; no gameplay constants in input/HUD.
 var BOMB_RULES=Object.freeze({teamSize:5,rounds:12,wins:7,roundSeconds:120,freezeSeconds:5,
   plantSeconds:5,defuseSeconds:7,fuseSeconds:40,roundBreakSeconds:3,
-  siteRadius:3.1,interactRadius:2.45,pickupRadius:2,cellSize:7,cells:11,
+  siteRadius:3.1,interactRadius:2.45,pickupRadius:2,cellSize:10,cells:16,
   wallHeight:5.4,ceilingHeight:5.7,seed:73021,botUseRange:2.1});
 var BOMB_TEXT=Object.freeze({
   plant:'Plant bomb here',defuse:'Defuse the bomb',planting:'PLANTING BOMB',defusing:'DEFUSING BOMB',
@@ -189,15 +189,16 @@ var BOMB_TEXT=Object.freeze({
   policeWin:'POLICE WIN THE ROUND',terrorWin:'TERRORISTS WIN THE ROUND',
   explosion:'BOMB DETONATED',defused:'BOMB DEFUSED',round:'ROUND',hold:'HOLD E',
   elimination:'TEAM ELIMINATED',timeout:'TIME EXPIRED',site:'BOMB SITE'});
-var BOMB_SITES=[{id:'A',x:-21,z:-7,col:0xffa94d},{id:'B',x:21,z:7,col:0x4dabf7}];
+var BOMB_SITES=[{id:'A',x:-25,z:-5,col:0xffa94d},{id:'B',x:25,z:5,col:0x4dabf7}];
 var BOMB_CITY=S.children.filter(function(o){return o.isMesh||o.isGridHelper;});
 var BOMB_CITY_OB=OB.slice(),BOMB_CITY_BR=BR.slice(),BOMB_CITY_LT=LT.slice();
-var BOMB_WORLD=null,BOMB_OB=[],BOMB_BR=[],BOMB_LT=[],BOMB_FOG=S.fog,BOMB_BACKGROUND=S.background;
+var BOMB_WORLD=null,BOMB_OB=[],BOMB_BR=[],BOMB_LT=[],BOMB_FOG=S.fog,BOMB_BACKGROUND=S.background,BOMB_NAV_WALLS=[];
+var BOMB_CITY_HALF=A;
 var selectedGameMode=0;
 function isBombMode(){return selectedGameMode===1;}
 // A guaranteed connected, looped indoor maze: DFS spanning tree + additional doors and open rooms.
 function makeBombMap(){
-  var before=S.children.slice(),cfg=BOMB_RULES,n=cfg.cells,step=cfg.cellSize,h=cfg.wallHeight,half=n*step/2;
+  var before=S.children.slice(),cfg=BOMB_RULES,n=cfg.cells,step=cfg.cellSize,h=cfg.wallHeight;
   var seed=cfg.seed;function random(){seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;}
   var dirs=[[1,0],[-1,0],[0,1],[0,-1]],cells=[],stack=[[0,0]];
   for(var j=0;j<n;j++)for(var i=0;i<n;i++)cells[j*n+i]={seen:false,links:{}};
@@ -211,23 +212,74 @@ function makeBombMap(){
   // Controlled loops make multiple flanking routes. Never close a spanning-tree connection.
   function linked(a,b){return !!cells[a].links[b];}
   function blockedWall(x,z,w,d,col){wl(x,z,w,d,h,col);}
-  mk(step*n,.16,step*n,0x1e2631,0,-.08,0);
+  mk(step*n,.16,step*n,0x1e2631,0,-.08,0).castShadow=false;
+  BOMB_NAV_WALLS=[];
+  var zones=[
+    {floor:0x344757,ceiling:0x303a45,wall:0x4f6779,accent:0x4dabf7,label:'SECURITY'},
+    {floor:0x474d50,ceiling:0x363a41,wall:0x66727a,accent:0xffa94d,label:'WAREHOUSE'},
+    {floor:0x3f4b46,ceiling:0x33413c,wall:0x5e7363,accent:0x69db7c,label:'REACTOR'},
+    {floor:0x494450,ceiling:0x383440,wall:0x776878,accent:0xb197fc,label:'LABORATORY'}
+  ];
+  function visualBox(w,hh,d,col,x,y,z){var m=mk(w,hh,d,col,x,y,z);m.castShadow=false;return m;}
+  function mapBarrier(x,z,w,d,hh,col){blockedWall(x,z,w,d,col);BOMB_NAV_WALLS.push({x:x,z:z,hw:w/2,hd:d/2});}
+  // Keep props near the perimeter of each room, away from its navigation hub.
+  function facilityProps(x,z,i,j,zone){
+    var pattern=(i*7+j*11)%9,edge=(i+j)%2?1:-1;
+    if(pattern===0||pattern===7){ // server racks and consoles
+      visualBox(2.1,2.6,.85,0x202934,x+edge*3.8,1.3,z+3.8);
+      for(var a=0;a<3;a++)visualBox(1.55,.19,.08,a===1?zone.accent:0x80b0c8,x+edge*3.8,.7+a*.65,z+3.32);
+      visualBox(1.7,.12,.18,0x131c26,x+edge*3.8,2.7,z+3.65);
+    }else if(pattern===1||pattern===5){ // steel cargo shelves with colored supplies
+      visualBox(2.5,.13,1.0,0x77848d,x+edge*3.6,1.0,z-3.8);
+      visualBox(2.5,.13,1.0,0x77848d,x+edge*3.6,2.0,z-3.8);
+      for(var a=0;a<2;a++)visualBox(.72,.7,.7,a?zone.accent:0x9e7d57,x+edge*(3.6+a*.6),1.39+a*.85,z-3.8);
+    }else if(pattern===2){ // utility pipes + tank
+      visualBox(.7,2.7,.7,0x8197a0,x+3.6,1.35,z+edge*3.6);
+      visualBox(3.0,.18,.18,0x6ccacb,x+2.5,3.15,z+edge*3.7);
+      visualBox(.35,1.7,.35,0xc0cad1,x+3.6,3.0,z+edge*3.6);
+    }else if(pattern===3){ // modular low cover
+      visualBox(2.8,1.1,1.4,0x79604e,x-3.6,.55,z+edge*3.5);
+      visualBox(2.9,.12,1.5,zone.accent,x-3.6,1.14,z+edge*3.5);
+    }else if(pattern===4){ // supply workstations with bright displays
+      visualBox(2.8,.15,1.2,0x7d838a,x+edge*3.4,1.1,z+3.7);
+      visualBox(1.5,.9,.11,0x1a2731,x+edge*3.4,1.7,z+3.8);
+      visualBox(1.16,.57,.06,zone.accent,x+edge*3.4,1.75,z+3.71);
+    }else if(pattern===6){ // tanks / generators
+      for(var a=0;a<2;a++){
+        visualBox(.9,2.7,.9,a?0x7798a0:0x647c88,x+edge*3.6+a*1.2,1.35,z+3.7);
+        visualBox(1.1,.2,1.1,zone.accent,x+edge*3.6+a*1.2,2.7,z+3.7);
+      }
+    }
+  }
   for(j=0;j<n;j++)for(i=0;i<n;i++){
-    var x=(i-(n-1)/2)*step,z=(j-(n-1)/2)*step,id=j*n+i,sector=(i+j*3)%4;
-    mk(step-.18,.06,step-.18,[0x333c49,0x3c414b,0x414653,0x343e4a][sector],x,.015,z);
-    mk(step-.07,.22,step-.07,[0x3e4651,0x36404c,0x434a55][sector%3],x,cfg.ceilingHeight,z);
-    // Deterministic industrial light panels, pipes and floor stripes.
-    if((i+j)%3===0){var lamp=mk(2,.07,.7,0xcce6ef,x,cfg.ceilingHeight-.16,z);lamp.castShadow=false;}
-    if(i===0)blockedWall(x-step/2,z,.5,step+.15,0x627083);
-    if(j===0)blockedWall(x,z-step/2,step+.15,.5,0x627083);
-    if(i===n-1)blockedWall(x+step/2,z,.5,step+.15,0x627083);
-    if(j===n-1)blockedWall(x,z+step/2,step+.15,.5,0x627083);
-    if(i<n-1&&!linked(id,id+1)&&random()>.29)blockedWall(x+step/2,z,.52,step+.03,sector%2?0x5c6573:0x58616e);
-    if(j<n-1&&!linked(id,id+n)&&random()>.29)blockedWall(x,z+step/2,step+.03,.52,sector%2?0x596576:0x525f6d);
-    if((i+j)%7===0&&i>0&&i<n-1&&j>0&&j<n-1&&!(i===2&&j===4)&&!(i===8&&j===6)){
-      // low cover, never blocks the whole 7-unit-wide cell or maze navigation
-      var bx0=x+(random()>.5?1.5:-1.5),bz0=z+(random()>.5?1.4:-1.4);
-      wl(bx0,bz0,1.25,1.4,1.45,0x7a6048);
+    var x=(i-(n-1)/2)*step,z=(j-(n-1)/2)*step,id=j*n+i;
+    // Quadrant palettes give landmarks to navigate by instead of identical gray rooms.
+    var sector=(i<n/2?0:1)+(j<n/2?0:2),zone=zones[sector];
+    visualBox(step-.16,.07,step-.16,zone.floor,x,.015,z);
+    visualBox(step-.10,.22,step-.10,zone.ceiling,x,cfg.ceilingHeight,z);
+    // Floor markings and overhead services lead players towards the central objectives.
+    if((i+j)%3===0){visualBox(2.4,.055,.7,0xcce6ef,x,cfg.ceilingHeight-.18,z);
+      visualBox(2.8,.08,.8,0x26343c,x,cfg.ceilingHeight-.25,z);}
+    if((i+j)%4===0){visualBox(.12,.035,step*.65,zone.accent,x-.9,.06,z);
+      visualBox(.12,.035,step*.65,zone.accent,x+.9,.06,z);}
+    if(i===0)mapBarrier(x-step/2,z,.5,step+.15,h,zone.wall);
+    if(j===0)mapBarrier(x,z-step/2,step+.15,.5,h,zone.wall);
+    if(i===n-1)mapBarrier(x+step/2,z,.5,step+.15,h,zone.wall);
+    if(j===n-1)mapBarrier(x,z+step/2,step+.15,.5,h,zone.wall);
+    // Keep many broad openings, and a large number of secondary flanking paths.
+    if(i<n-1&&!linked(id,id+1)&&random()>.42)mapBarrier(x+step/2,z,.52,step+.03,h,zone.wall);
+    if(j<n-1&&!linked(id,id+n)&&random()>.42)mapBarrier(x,z+step/2,step+.03,.52,h,zone.wall);
+    // Dress every sector differently. The props are decorative, never a hidden maze obstacle.
+    var isSite=BOMB_SITES.some(function(q){return Math.hypot(q.x-x,q.z-z)<step*1.3;});
+    if(!isSite&&i>0&&j>0&&i<n-1&&j<n-1)facilityProps(x,z,i,j,zone);
+    if((i+j)%5===0){ // ceiling ducts (mounted high enough to clear players and bullets)
+      visualBox(step*.7,.28,.35,0x778b96,x,cfg.ceilingHeight-.52,z-3.5);
+      visualBox(.25,.15,.8,zone.accent,x+2,cfg.ceilingHeight-.7,z-3.5);
+    }
+    // Floor-level cabinets act as usable cover without filling central routes.
+    if(!isSite&&(i*13+j*17)%11===0&&i>0&&j>0&&i<n-1&&j<n-1){
+      var ax=x-3.65,az=z-3.65;wl(ax,az,1.7,1.5,1.4,0x687586);
+      visualBox(1.6,.13,1.4,zone.accent,ax,1.47,az);
     }
   }
   // Numbered, readable A/B target rooms. Sprites are visual and never obstruct collision.
@@ -237,7 +289,7 @@ function makeBombMap(){
     var field=new T.Mesh(new T.CircleGeometry(cfg.siteRadius-.4,40),new T.MeshBasicMaterial({color:q.col,transparent:true,opacity:.14,side:T.DoubleSide,depthWrite:false}));field.rotation.x=-Math.PI/2;field.position.set(q.x,.1,q.z);S.add(field);
     var canvas=document.createElement('canvas');canvas.width=256;canvas.height=128;var cx=canvas.getContext('2d');
     cx.fillStyle='rgba(7,15,27,.9)';cx.fillRect(0,0,256,128);cx.fillStyle='#ffffff';cx.font='bold 84px Impact, sans-serif';cx.textAlign='center';cx.fillText(q.id,128,94);
-    var sign=new T.Sprite(new T.SpriteMaterial({map:new T.CanvasTexture(canvas),transparent:true,depthTest:false}));sign.scale.set(3.2,1.6,1);sign.position.set(q.x,3.3,q.z);S.add(sign);
+    var sign=new T.Sprite(new T.SpriteMaterial({map:new T.CanvasTexture(canvas),transparent:true,depthTest:true}));sign.scale.set(3.2,1.6,1);sign.position.set(q.x,3.3,q.z);S.add(sign);
   });
   BOMB_WORLD=S.children.filter(function(o){return before.indexOf(o)<0;});
   BOMB_OB=OB.slice();BOMB_BR=BR.slice();BOMB_LT=LT.slice();
@@ -247,10 +299,12 @@ function selectGameMap(bombActive){
   BOMB_CITY.forEach(function(m){m.visible=!bombActive;});
   OB.length=0;BR.length=0;LT.length=0;
   if(bombActive){
+    A=BOMB_RULES.cellSize*BOMB_RULES.cells/2;
     if(!BOMB_WORLD)makeBombMap();
     else{Array.prototype.push.apply(OB,BOMB_OB);Array.prototype.push.apply(BR,BOMB_BR);Array.prototype.push.apply(LT,BOMB_LT);}
     BOMB_WORLD.forEach(function(m){m.visible=true;});S.background=new T.Color(0x1b2735);S.fog=new T.Fog(0x1b2735,25,95);
   }else{
+    A=BOMB_CITY_HALF;
     if(BOMB_WORLD)BOMB_WORLD.forEach(function(m){m.visible=false;});
     Array.prototype.push.apply(OB,BOMB_CITY_OB);Array.prototype.push.apply(BR,BOMB_CITY_BR);Array.prototype.push.apply(LT,BOMB_CITY_LT);
     S.background=BOMB_BACKGROUND;S.fog=BOMB_FOG;
@@ -258,8 +312,8 @@ function selectGameMap(bombActive){
   GB=null;
 }
 function bombSpawnPt(team){
-  var hist=SPH[team],step=BOMB_RULES.cellSize,candidates=[],z=team?-35:35;
-  [-14,-7,0,7,14].forEach(function(x){if(!inObs(x,z,.85)&&!hist.some(function(p){return Math.hypot(p[0]-x,p[1]-z)<4;}))candidates.push([x,z]);});
+  var hist=SPH[team],step=BOMB_RULES.cellSize,candidates=[],z=team?-65:65;
+  [-35,-15,-5,5,15,35].forEach(function(x){if(!inObs(x,z,.85)&&!hist.some(function(p){return Math.hypot(p[0]-x,p[1]-z)<5;}))candidates.push([x,z]);});
   var pick=candidates.length?candidates[(Math.random()*candidates.length)|0]:[(Math.random()-.5)*10,z];
   hist.push(pick);return pick;
 }
@@ -1291,7 +1345,7 @@ function bombStartMatch(){
   var options=bombCandidates();bombMatch.carrier=options[(Math.random()*options.length)|0]||null;
   en.concat([pl]).forEach(function(e){e.bAction=null;});
   if(bombMatch.carrier===pl)toast(BOMB_TEXT.carrier);
-  bombSpectatorIndex=0;document.body.classList.remove('bomb-spectator');
+  bombSpectatorIndex=0;bombResetSpectatorCamera();document.body.classList.remove('bomb-spectator');
 }
 function bombDrop(holder){
   if(!isBombMode()||!bombMatch||bombMatch.state!=='idle')return;
@@ -1339,19 +1393,8 @@ function bombNextRound(){var old=bombMatch,team=pl.tm,wins=ts.slice(),stats={};
   reset();startMatch(team);
   ts=wins;ROS.forEach(function(s){var h=stats[s.tm+':'+s.name];if(h){s.k=h.k;s.d=h.d;}});
 }
-function bombBotGoal(e){var b=bombMatch;if(!b||b.done)return null;
-  if(b.state==='planted'){
-    var pos=b.device.position;
-    if(e.tm===0)return[pos.x,pos.z];
-    return[pos.x+(e.idx%2?4:-4),pos.z+(e.idx%3?4:-4)];
-  }
-  if(e.tm===1){
-    if(b.dropped)return[b.dropped.x,b.dropped.z];
-    if(e===b.carrier){var site=BOMB_SITES[e.siteChoice===undefined?(e.siteChoice=(e.idx+b.round)%BOMB_SITES.length):e.siteChoice];return[site.x,site.z];}
-    if(b.carrier)return[b.carrier.x+(e.idx%2?3:-3),b.carrier.z+(e.idx%3?3:-3)];
-  }
-  var area=BOMB_SITES[(e.idx+b.round)%BOMB_SITES.length];return[area.x,area.z];
-}
+// The tactical director assigns moving, separate objectives to every team member.
+function bombBotGoal(e){return bombTacticalGoal(e);}
 function bombSpectatorTarget(){
   if(!isBombMode()||!pl.dead||!bombMatch||mt.over)return null;
   var living=en.filter(function(e){return e.tm===pl.tm&&!e.dead;});
@@ -1359,7 +1402,7 @@ function bombSpectatorTarget(){
   bombSpectatorIndex=((bombSpectatorIndex%living.length)+living.length)%living.length;
   return living[bombSpectatorIndex];
 }
-function bombSpectatorNext(d){if(isBombMode()&&pl.dead){bombSpectatorIndex+=d;}}
+function bombSpectatorNext(d){if(isBombMode()&&pl.dead){bombSpectatorIndex+=d;bombResetSpectatorCamera();}}
 function bombUpdate(dt){if(!isBombMode()||!bombMatch||mt.over)return;
   var b=bombMatch;
   if(b.done){b.finishDelay-=dt;if(b.finishDelay<=0){if(ts[0]>=BOMB_RULES.wins||ts[1]>=BOMB_RULES.wins||b.round>=BOMB_RULES.rounds)endMatch();else bombNextRound();}return;}
@@ -1372,9 +1415,12 @@ function bombUpdate(dt){if(!isBombMode()||!bombMatch||mt.over)return;
     }
   }
   if(!pl.dead)bombAct(pl,dt,!!(keys.KeyE||bombHold));
-  en.forEach(function(e){var canAct=!!bombActionFor(e),near=canAct&&!(e.tg&&e.lok&&Math.hypot(e.tg.x-e.x,e.tg.z-e.z)<6);
-    // AI interaction is unarmed and stationary while operating the device.
-    bombAct(e,dt,near);});
+  if(b.state==='planted')bombPickDefuser();
+  en.forEach(function(e){
+    // Only the assigned defuser handles the device. Others cover approaches.
+    // Plant and defuse leave the actor vulnerable to bullets.
+    bombAct(e,dt,bombBotCanAct(e));
+  });
   if(b.state==='planted'){
     b.fuseLeft=mt.t;
     b.device.userData.led.visible=Math.floor(tt*4)%2===0;
@@ -1420,6 +1466,148 @@ bombTouch.addEventListener('pointerdown',function(e){e.stopPropagation();e.preve
 ['pointerup','pointercancel','lostpointercapture'].forEach(function(ev){bombTouch.addEventListener(ev,function(){bombHold=false;});});
 addEventListener('blur',function(){bombHold=false;});
 document.getElementById('bombNext').addEventListener('click',function(){bombSpectatorNext(1);});
+// Bomb Mission tactical director. Every position and behavior is local to Bomb Mode.
+var BOMB_AI=Object.freeze({
+  engagementRange:26,urgentThreatRange:6,coverRadius:11,roamRadius:23,
+  destinationRefresh:6,defuserReview:.75,defusePriorityRadius:4,
+  teammateSpacing:2.5,repathGoalDistance:2.4,navSpeed:5.3
+});
+function bombLiving(team){return en.filter(function(e){return e.tm===team&&!e.dead;}).concat(!pl.dead&&pl.tm===team?[pl]:[]);}
+function bombNearestOpponent(e){var foes=bombLiving(1-e.tm),best=null,dist=Infinity;
+  foes.forEach(function(f){var d=Math.hypot(f.x-e.x,f.z-e.z);if(d<dist){dist=d;best=f;}});
+  return best;
+}
+function bombPickDefuser(){
+  if(!bombMatch||bombMatch.done||bombMatch.state!=='planted')return null;
+  var b=bombMatch,team=bombLiving(0),current=b.defuser;
+  // A human who is merely standing near the bomb must not block bot defuse attempts.
+  var humansDefusing=!pl.dead&&pl.tm===0&&pl.bAction&&pl.bAction.type==='defuse';
+  if(humansDefusing){b.defuser=pl;return pl;}
+  var botOptions=team.filter(function(e){return e!==pl;});
+  if(botOptions.length)team=botOptions;
+  if(current&&!current.dead&&team.indexOf(current)>=0)return current;
+  var target=b.device.position;
+  team.sort(function(a,c){return Math.hypot(a.x-target.x,a.z-target.z)-Math.hypot(c.x-target.x,c.z-target.z);});
+  b.defuser=team[0]||null;return b.defuser;
+}
+function bombTacticalStage(e){
+  if(!bombMatch||bombMatch.done)return 'none';
+  var b=bombMatch;
+  if(b.state==='planted'){
+    if(e.tm===0)return bombPickDefuser()===e?'retake-defuse':'retake-cover';
+    return e.idx%3===0?'hold':'hunt';
+  }
+  if(e.tm===0)return e.idx%3===0?'patrol':'site-defense';
+  if(e===b.carrier)return 'plant';
+  return e.idx%3===0?'hunt':'escort';
+}
+// Compute a reachable tactical candidate rather than stacking all bots on a single site.
+function bombSafeGoal(x,z,e){
+  var min=-A+2,max=A-2;x=Math.max(min,Math.min(max,x));z=Math.max(min,Math.min(max,z));
+  if(!inObs(x,z,.85))return[x,z];
+  for(var radius=2;radius<=9;radius+=1.5)for(var j=0;j<12;j++){
+    var angle=j*Math.PI/6+(e.idx||0)*.25,nx=x+Math.cos(angle)*radius,nz=z+Math.sin(angle)*radius;
+    if(!inObs(nx,nz,.85))return[nx,nz];
+  }
+  return[e.x,e.z];
+}
+function bombStrategicSite(e){
+  if(e.siteChoice===undefined){var round=bombMatch?bombMatch.round:1;e.siteChoice=(e.idx+round+(e.tm?1:0))%BOMB_SITES.length;}
+  return BOMB_SITES[e.siteChoice];
+}
+function bombTacticalGoal(e){
+  var b=bombMatch;if(!b||b.done)return null;
+  var stage=bombTacticalStage(e),site,phase=Math.floor(tt/BOMB_AI.destinationRefresh),idx=e.idx||0,
+    angle=((idx*3+phase%4)*Math.PI/4),radius=BOMB_AI.coverRadius,foe;
+  if(b.state==='planted'){
+    site=BOMB_SITES[b.site];
+    if(stage==='retake-defuse')return bombSafeGoal(b.device.position.x,b.device.position.z,e);
+    if(stage==='retake-cover'){
+      // Spread across approaches and contest the planted device instead of crowding the defuser.
+      radius=6+idx%3*3;angle=(idx*2+phase%3)*Math.PI/4;
+      return bombSafeGoal(site.x+Math.cos(angle)*radius,site.z+Math.sin(angle)*radius,e);
+    }
+    if(stage==='hunt'){
+      foe=bombNearestOpponent(e);
+      if(foe&&Math.hypot(foe.x-site.x,foe.z-site.z)<BOMB_AI.roamRadius)
+        return bombSafeGoal(foe.x,foe.z,e);
+      radius=11+idx%3*4;
+    }else radius=5+idx%3*2;
+    return bombSafeGoal(site.x+Math.cos(angle)*radius,site.z+Math.sin(angle)*radius,e);
+  }
+  if(e.tm===1){
+    if(b.dropped)return bombSafeGoal(b.dropped.x,b.dropped.z,e);
+    var carrier=b.carrier;
+    if(stage==='plant'){
+      site=bombStrategicSite(e);
+      // Enter the center of the site to trigger the actual planting interaction.
+      return bombSafeGoal(site.x,site.z,e);
+    }
+    if(stage==='hunt'){
+      foe=bombNearestOpponent(e);
+      if(foe)return bombSafeGoal(foe.x,foe.z,e);
+    }
+    if(carrier){
+      // Move with the carrier using different flanking lanes; no identical objectives.
+      var bearing=Math.atan2(carrier.x-e.x,carrier.z-e.z);
+      angle=bearing+(idx%2?1:-1)*Math.PI/2;
+      radius=5+idx%3*2;
+      var cx=carrier.x+Math.sin(angle)*radius,cz=carrier.z+Math.cos(angle)*radius;
+      return bombSafeGoal(cx,cz,e);
+    }
+  }
+  site=bombStrategicSite(e);
+  if(stage==='patrol'){
+    // Roam the middle between sites, occasionally reinforce a side.
+    var p=(phase+idx)%4;
+    return bombSafeGoal(p===0?site.x:p===1?-site.x:0,p===2?site.z:-site.z,e);
+  }
+  // Site anchors move between actual covering positions, not the planting center.
+  angle=(idx*2+phase%3)*Math.PI/4;
+  return bombSafeGoal(site.x+Math.cos(angle)*8,site.z+Math.sin(angle)*8,e);
+}
+function bombBotWantsObjective(e,t){
+  if(!isBombMode()||!bombMatch||bombMatch.done)return false;
+  if(e.bAction)return true;
+  var role=bombTacticalStage(e);
+  if(role==='retake-defuse'||role==='plant'){
+    // Do not abandon the objective for distant gunfire; fight close threats normally.
+    return !t||Math.hypot(t.x-e.x,t.z-e.z)>BOMB_AI.urgentThreatRange;
+  }
+  return false;
+}
+function bombBotCanAct(e){
+  var a=bombActionFor(e);if(!a)return false;
+  if(a.type==='defuse'&&bombPickDefuser()!==e)return false;
+  if(e.tg&&e.lok&&Math.hypot(e.tg.x-e.x,e.tg.z-e.z)<BOMB_AI.defusePriorityRadius)return false;
+  return true;
+}
+// Bomb Mission third-person chase camera. Renders teammates' entire visible character.
+var SPECTATOR_CAMERA=Object.freeze({
+  followDistance:5.2,height:2.75,targetHeight:1.05,
+  collisionRadius:.34,step:.18,minDistance:1.05,followSmoothing:11,fieldOfView:63
+});
+var spectatorCameraLast=null;
+function bombResetSpectatorCamera(){spectatorCameraLast=null;}
+function bombSpectatorCamera(dt){
+  var target=bombSpectatorTarget();if(!target){
+    C.position.set(pl.x,2.5+pl.y,pl.z);C.lookAt(pl.x,1+pl.y,pl.z+3);return;
+  }
+  var c=SPECTATOR_CAMERA,y=target.y||0,face=target.g.rotation.y,sx=Math.sin(face),sz=Math.cos(face);
+  // Follow from behind the character, ray-testing the wall so the view never clips.
+  var cameraDist=c.followDistance;
+  for(var d=c.step;d<=c.followDistance;d+=c.step){
+    var testY=y+c.targetHeight+(c.height-c.targetHeight)*d/c.followDistance;
+    if(inObs(target.x-sx*d,target.z-sz*d,c.collisionRadius,testY)){
+      cameraDist=Math.max(c.minDistance,d-c.step*2);break;
+    }
+  }
+  var x=target.x-sx*cameraDist,z=target.z-sz*cameraDist;
+  var dest=new T.Vector3(x,y+c.height,z);
+  if(spectatorCameraLast!==target){C.position.copy(dest);spectatorCameraLast=target;}
+  else C.position.lerp(dest,Math.min(1,dt*c.followSmoothing));
+  C.lookAt(target.x,y+c.targetHeight,target.z);
+}
 // ---- BOT PATH-FINDING GRID ----
 // GB = walkability grid (GN x GN cells). GCS = grid cell size in world units.
 // NOTE: the cell size is named GCS (not GS) on purpose. GS is already the array of gun sound presets; reusing the name GS here would overwrite it and silence the player gun sounds.
@@ -1427,7 +1615,7 @@ var GN=0,GB=null,GCS=1;
 // gc(): converts a world coordinate to a grid cell index.
 function gc(v){return Math.max(0,Math.min(GN-1,Math.floor((v+A)/GCS)));}
 // gInit(): builds the walkability grid from OB (solid boxes).
-function gInit(){GN=Math.ceil(2*A/GCS);GB=new Uint8Array(GN*GN);for(var cz=0;cz<GN;cz++)for(var cx=0;cx<GN;cx++){var x=-A+(cx+.5)*GCS,z=-A+(cz+.5)*GCS;GB[cz*GN+cx]=(inObs(x,z,.6)||Math.abs(x)>A-1||Math.abs(z)>A-1)?1:0;}}
+function gInit(){GCS=isBombMode()?1.5:1;GN=Math.ceil(2*A/GCS);GB=new Uint8Array(GN*GN);for(var cz=0;cz<GN;cz++)for(var cx=0;cx<GN;cx++){var x=-A+(cx+.5)*GCS,z=-A+(cz+.5)*GCS;GB[cz*GN+cx]=(inObs(x,z,.6)||Math.abs(x)>A-1||Math.abs(z)>A-1)?1:0;}}
 // gFree(): nearest free cell to (cx,cz) (spiral search).
 function gFree(cx,cz){var r,a,b,x,z;if(!GB[cz*GN+cx])return[cx,cz];for(r=1;r<10;r++)for(a=-r;a<=r;a++)for(b=-r;b<=r;b++){if(Math.max(Math.abs(a),Math.abs(b))!==r)continue;x=cx+a;z=cz+b;if(x>=0&&z>=0&&x<GN&&z<GN&&!GB[z*GN+x])return[x,z];}return null;}
 // gClear(): true if the straight line between two points crosses only free cells.
@@ -1448,20 +1636,25 @@ function gPath(x0,z0,x1,z1){if(!GB)gInit();var N=GN,s=gFree(gc(x0),gc(z0)),g=gFr
   while(cur<pts.length-1){best=cur+1;for(j=cur+2;j<pts.length&&j<=cur+30;j++)if(gClear(pts[cur][0],pts[cur][1],pts[j][0],pts[j][1]))best=j;out.push(pts[best]);cur=best;}
   return out;}
 // botPath(): assigns bot e a path to goal (gx,gz) and a repath timer.
-function botPath(e,gx,gz){var p=gPath(e.x,e.z,gx,gz);e.path=p||[[gx,gz]];e.pi=0;e.pt=1.1+Math.random()*.8;}
+function botPath(e,gx,gz){var p=gPath(e.x,e.z,gx,gz);
+  // Never charge directly into a solid wall if A* finds no route.
+  e.path=p||(isBombMode()?[]:[[gx,gz]]);e.pi=0;e.pt=1.1+Math.random()*.8;e.goalX=gx;e.goalZ=gz;
+}
 // botsUpd(dt): LIVE bot AI (movement along paths, target choice, line-of-sight, shooting with fire(..., "e")).
 function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
   for(i=rq.length-1;i>=0;i--){var q=rq[i];q.t-=dt;if(q.t<=0&&!mt.over&&!isBombMode()){var nb=newBot(q.b.tm,q.b.idx);nb.st=q.b.st;placeBot(nb);rq.splice(i,1);}}
-  en.forEach(function(e){var t,dx=0,dz=0,d=99,f,mvx=0,mvz=0,sp=4.8,ox=e.x,oz=e.z,combat,gx,gz,wp,ml;
+  en.forEach(function(e){var t,dx=0,dz=0,d=99,f,mvx=0,mvz=0,sp=isBombMode()?BOMB_AI.navSpeed:4.8,ox=e.x,oz=e.z,combat,gx,gz,wp,ml;
     e.inv=Math.max(0,(e.inv||0)-(cdn?0:dt));e.vis=Math.max(0,(e.vis||0)-dt);e.tq=(e.tq||0)-dt;e.navT=Math.max(0,(e.navT||0)-dt);
     if(e.tq<=0){e.tq=.35+Math.random()*.2;var bd=1e9,bt=null;
       en.forEach(function(o){if(o.tm!==e.tm){var dd=Math.hypot(o.x-e.x,o.z-e.z);if(dd<bd&&dd<45&&los(e.x,e.z,o.x,o.z)){bd=dd;bt=o;}}});
       if(pl.tm!==e.tm&&!pl.dead){var d2=Math.hypot(pl.x-e.x,pl.z-e.z);if(d2<bd&&d2<45&&los(e.x,e.z,pl.x,pl.z)){bd=d2;bt=pl;}}
       e.tg=bt;e.lok=!!bt;
-      if(!bt&&isBombMode()){var objective=bombBotGoal(e);if(objective){e.wx=objective[0];e.wz=objective[1];}}
+      if(isBombMode()){var objective=bombBotGoal(e);if(objective){e.wx=objective[0];e.wz=objective[1];}}
       if(!bt&&!isBombMode()){var ob=null,od=1e9;en.concat(pl.dead?[]:[pl]).forEach(function(o){if(o.tm!==e.tm){var dd=Math.hypot(o.x-e.x,o.z-e.z);if(dd<od){od=dd;ob=o;}}});
         if(ob){e.wx=ob.x+(Math.random()-.5)*12;e.wz=ob.z+(Math.random()-.5)*12;}else{e.wx=(Math.random()-.5)*2*(A-8);e.wz=(Math.random()-.5)*2*(A-8);}}}
     t=e.tg;if(t&&(t.dead||(t===pl&&pl.dead)))t=e.tg=null;
+    // Bomb carriers and designated defusers prioritize the objective unless an enemy is close.
+    if(t&&bombBotWantsObjective(e,t))t=null;
     e.lt=(e.lt||0)-dt;if(t&&e.lt<=0){e.lt=.15;e.lok=los(e.x,e.z,t.x,t.z);}
     if(t){dx=t.x-e.x;dz=t.z-e.z;d=Math.hypot(dx,dz)||1;}
     combat=!!t&&e.lok&&e.navT<=0;
@@ -1470,14 +1663,28 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
       mvx=dx/d*fw+(dz/d)*st;mvz=dz/d*fw-(dx/d)*st;
       if(GB[gc(e.z+mvz*sp*dt*4)*GN+gc(e.x+mvx*sp*dt*4)]){e.sd=-(e.sd||1);mvx=dx/d*fw;mvz=dz/d*fw;}}
     else{gx=t?t.x:e.wx;gz=t?t.z:e.wz;e.pt=(e.pt||0)-dt;
-      if(!e.path||e.pt<=0||e.stk>.5){botPath(e,gx,gz);e.stk=0;}
+      if(!e.path||e.pt<=0||e.stk>.5||
+         (isBombMode()&&Math.hypot((e.goalX||0)-gx,(e.goalZ||0)-gz)>BOMB_AI.repathGoalDistance)){
+        botPath(e,gx,gz);e.stk=0;
+      }
       wp=e.path[e.pi];while(wp&&e.pi<e.path.length-1&&Math.hypot(wp[0]-e.x,wp[1]-e.z)<1.1){e.pi++;wp=e.path[e.pi];}
       if(wp){var wx=wp[0]-e.x,wz=wp[1]-e.z,wl=Math.hypot(wx,wz)||1;if(wl>.4){mvx=wx/wl;mvz=wz/wl;}}}
     if(isBombMode()&&e.bAction)mvx=mvz=0;
-    en.forEach(function(o){if(o!==e){var sx=e.x-o.x,sz=e.z-o.z,sq=Math.hypot(sx,sz);if(sq<1.8&&sq>.01){mvx+=sx/sq*.7;mvz+=sz/sq*.7;}}});
+    if(!e.bAction)en.forEach(function(o){if(o!==e&&!o.dead){
+      var sx=e.x-o.x,sz=e.z-o.z,sq=Math.hypot(sx,sz),space=isBombMode()?BOMB_AI.teammateSpacing:1.8;
+      if(sq<space&&sq>.01){mvx+=sx/sq*.75;mvz+=sz/sq*.75;}
+    }});
     ml=Math.hypot(mvx,mvz);if(ml>1){mvx/=ml;mvz/=ml;}if(cdn)mvx=mvz=0;
     f=(t&&e.lok)?Math.atan2(dx,dz):(mvx||mvz)?Math.atan2(mvx,mvz):e.g.rotation.y;
     e.x+=mvx*sp*dt;e.z+=mvz*sp*dt;resolve(e,.55);
+    if(isBombMode()&&!e.bAction&&(mvx||mvz)){
+      // If a narrow corner blocks movement, try sliding instead of oscillating into it.
+      var forward=Math.hypot(e.x-ox,e.z-oz);
+      if(forward<sp*dt*.2){
+        var side=e.idx%2?1:-1,tx=e.x+side*(-mvz)*sp*dt,tz=e.z+side*mvx*sp*dt;
+        if(!inObs(tx,tz,.65)){e.x=tx;e.z=tz;resolve(e,.55);}
+      }
+    }
     var dm=Math.hypot(e.x-ox,e.z-oz);
     if((mvx||mvz)&&dm<sp*dt*.3){e.stk=(e.stk||0)+dt;if(combat&&e.stk>.5){e.navT=1.2;e.sd=-(e.sd||1);e.stk=0;e.pt=0;}}else e.stk=0;
     e.g.rotation.y=f;e.cd-=dt;
@@ -1608,25 +1815,40 @@ function cfont(n){return "700 "+n+'px Rajdhani,"Trebuchet MS",sans-serif';}
 function rrect(X,x,y,w,h,r){X.beginPath();X.moveTo(x+r,y);X.arcTo(x+w,y,x+w,y+h,r);X.arcTo(x+w,y+h,x,y+h,r);X.arcTo(x,y+h,x,y,r);X.arcTo(x,y,x+w,y,r);X.closePath();}
 // radar(): draws the mini-map radar (player at center, rotates with facing; teammates blue, enemies red when visible).
 function radar(){
-  var X=mx2,f=pl.face,co=Math.cos(f),sn=Math.sin(f),k=RI/RWD,a=-k*co,b=-k*sn,c=k*sn,d=-k*co,now=performance.now()/1000,th=Math.PI-f,i,g,gx,gz;
+  var rp=isBombMode()&&pl.dead?bombSpectatorTarget()||pl:pl,originFace=rp===pl?pl.face:rp.g.rotation.y;
+  var range=isBombMode()?50:RWD;
+  var X=mx2,f=originFace,co=Math.cos(f),sn=Math.sin(f),k=RI/range,a=-k*co,b=-k*sn,c=k*sn,d=-k*co,now=performance.now()/1000,th=Math.PI-f,i,g,gx,gz;
   X.setTransform(1,0,0,1,0,0);X.clearRect(0,0,RS,RS);X.lineCap="round";
   // base disc
   g=X.createRadialGradient(RC,RC,10,RC,RC,RO);g.addColorStop(0,"rgba(16,30,46,.9)");g.addColorStop(1,"rgba(5,9,16,.95)");
   X.fillStyle=g;X.beginPath();X.arc(RC,RC,RO,0,6.2832);X.fill();
   // ---- map content (clipped to the inner circle) ----
   X.save();X.beginPath();X.arc(RC,RC,RI,0,6.2832);X.clip();
-  X.setTransform(a,b,c,d,RC-(a*pl.x+c*pl.z),RC-(b*pl.x+d*pl.z));
+  X.setTransform(a,b,c,d,RC-(a*rp.x+c*rp.z),RC-(b*rp.x+d*rp.z));
   X.strokeStyle="rgba(110,190,255,.10)";X.lineWidth=1/k;X.beginPath();
-  for(gx=Math.floor((pl.x-RWD)/8)*8;gx<=pl.x+RWD;gx+=8){X.moveTo(gx,pl.z-RWD);X.lineTo(gx,pl.z+RWD);}
-  for(gz=Math.floor((pl.z-RWD)/8)*8;gz<=pl.z+RWD;gz+=8){X.moveTo(pl.x-RWD,gz);X.lineTo(pl.x+RWD,gz);}
+  for(gx=Math.floor((rp.x-range)/8)*8;gx<=rp.x+range;gx+=8){X.moveTo(gx,rp.z-range);X.lineTo(gx,rp.z+range);}
+  for(gz=Math.floor((rp.z-range)/8)*8;gz<=rp.z+range;gz+=8){X.moveTo(rp.x-range,gz);X.lineTo(rp.x+range,gz);}
   X.stroke();
+  if(isBombMode()){
+    // Actual 160×160 indoor wall plan, using gameplay collision walls rather than decorative geometry.
+    X.fillStyle='rgba(164,187,204,.46)';X.strokeStyle='rgba(214,236,249,.65)';X.lineWidth=.75/k;
+    BOMB_NAV_WALLS.forEach(function(q){
+      if(Math.abs(q.x-rp.x)>range+q.hw||Math.abs(q.z-rp.z)>range+q.hd)return;
+      X.fillRect(q.x-q.hw,q.z-q.hd,q.hw*2,q.hd*2);
+    });
+    X.fillStyle='rgba(255,195,110,.65)';
+    OB.forEach(function(q){if(q.h>2||q.fl)return;
+      if(Math.abs(q.x-rp.x)<range&&Math.abs(q.z-rp.z)<range)
+        X.fillRect(q.x-q.hw,q.z-q.hd,q.hw*2,q.hd*2);
+    });
+  }
   X.fillStyle="rgba(120,160,200,.5)";X.strokeStyle="rgba(190,225,255,.8)";X.lineWidth=1.2/k;
-  BR.forEach(function(q){if(Math.abs(q.x-pl.x)<RWD+q.hw+4&&Math.abs(q.z-pl.z)<RWD+q.hd+4){X.fillRect(q.x-q.hw,q.z-q.hd,q.hw*2,q.hd*2);X.strokeRect(q.x-q.hw,q.z-q.hd,q.hw*2,q.hd*2);}});
+  BR.forEach(function(q){if(Math.abs(q.x-rp.x)<range+q.hw+4&&Math.abs(q.z-rp.z)<range+q.hd+4){X.fillRect(q.x-q.hw,q.z-q.hd,q.hw*2,q.hd*2);X.strokeRect(q.x-q.hw,q.z-q.hd,q.hw*2,q.hd*2);}});
   X.strokeStyle="rgba(255,110,50,.95)";X.lineWidth=2.5/k;X.strokeRect(-A,-A,2*A,2*A);
   X.fillStyle="#69db7c";X.shadowColor="#2fe06a";X.shadowBlur=8;
-  cr.forEach(function(q){if(q.ci===3&&q.land&&Math.hypot(q.x-pl.x,q.z-pl.z)<RWD*.95){var m=2.6/k;X.fillRect(q.x-m,q.z-m*.35,m*2,m*.7);X.fillRect(q.x-m*.35,q.z-m,m*.7,m*2);}});
-  if(isBombMode()){BOMB_SITES.forEach(function(site){X.fillStyle="#ffe066";X.shadowBlur=0;X.font=cfont(4);X.fillText(site.id,site.x,site.z);});if(bombMatch&&bombMatch.dropped){X.fillStyle="#ff5555";X.beginPath();X.arc(bombMatch.dropped.x,bombMatch.dropped.z,1.4,0,6.283);X.fill();}}
-  en.forEach(function(q){var al=q.tm===pl.tm;if(!al&&!(q.vis>0))return;var ddx=q.x-pl.x,ddz=q.z-pl.z,dl=Math.hypot(ddx,ddz),mxr=RWD*.93,px=q.x,pz=q.z;if(dl>mxr){px=pl.x+ddx/dl*mxr;pz=pl.z+ddz/dl*mxr;}X.shadowColor=al?"#4dabf7":"#ff4d4d";X.shadowBlur=al?10:0;X.fillStyle=al?"#4dabf7":"#ff4d4d";X.strokeStyle="#fff";X.lineWidth=2/k;X.beginPath();X.arc(px,pz,(al?8:6)/k,0,6.29);X.fill();X.stroke();});
+  cr.forEach(function(q){if(q.ci===3&&q.land&&Math.hypot(q.x-rp.x,q.z-rp.z)<range*.95){var m=2.6/k;X.fillRect(q.x-m,q.z-m*.35,m*2,m*.7);X.fillRect(q.x-m*.35,q.z-m,m*.7,m*2);}});
+  if(isBombMode()){BOMB_SITES.forEach(function(site){X.fillStyle="#ffe066";X.shadowBlur=0;X.font=cfont(12/k);X.textAlign="center";X.fillText(site.id,site.x,site.z);});if(bombMatch&&bombMatch.dropped){X.fillStyle="#ff5555";X.beginPath();X.arc(bombMatch.dropped.x,bombMatch.dropped.z,1.4,0,6.283);X.fill();}}
+  en.forEach(function(q){var al=q.tm===pl.tm;if(!al&&!(q.vis>0))return;var ddx=q.x-rp.x,ddz=q.z-rp.z,dl=Math.hypot(ddx,ddz),mxr=range*.93,px=q.x,pz=q.z;if(dl>mxr){px=rp.x+ddx/dl*mxr;pz=rp.z+ddz/dl*mxr;}X.shadowColor=al?"#4dabf7":"#ff4d4d";X.shadowBlur=al?10:0;X.fillStyle=al?"#4dabf7":"#ff4d4d";X.strokeStyle="#fff";X.lineWidth=2/k;X.beginPath();X.arc(px,pz,(al?8:6)/k,0,6.29);X.fill();X.stroke();});
   X.shadowBlur=0;X.setTransform(1,0,0,1,0,0);
   // range rings + cross lines
   X.strokeStyle="rgba(120,200,255,.2)";X.lineWidth=1.5;
@@ -1674,7 +1896,7 @@ function hud(){var w=WP[pl.w],hp=pl.hp;tmUpd();wselUpd();abUpd();scopedNow=pl.w=
 // applies recoil/shake/FOV, animates the viewmodel (animHands), and renders: world first, then the viewmodel on top with depth cleared.
 var last=performance.now();
 (function loop(now){var dt=Math.min((now-last)/1000,.05);last=now;if(run)update(pl.dead&&pl.dt<.8?dt*(.3+.7*pl.dt/.8):dt);
-  shakeT=Math.max(0,shakeT-dt);var sh=shakeT*.5;cs.s*=Math.max(0,1-dt*6);spr(cs,"k","kv",dt);spr(cs,"y","yv",dt);spr(cs,"r","rv",dt);var ft=70+(ADF[pl.w]-70)*adsT+6*sprT+Math.max(0,cs.k)*45*(1-.5*adsT);if(lob||mt.over){var la=performance.now()/9000;C.position.set(Math.sin(la)*34,13,Math.cos(la)*34);C.lookAt(0,2,0);ft=62;}else if(pl.dead&&isBombMode()){var target=bombSpectatorTarget();ft=70;if(target){C.position.set(target.x,1.55+(target.y||0),target.z);var f=target.g.rotation.y;C.lookAt(target.x+Math.sin(f)*5,1.4+(target.y||0),target.z+Math.cos(f)*5);}else{C.position.set(pl.x,2.5+pl.y,pl.z);C.lookAt(pl.x,1.0+pl.y,pl.z+3);}}else if(pl.dead){pl.rt+=dt;var u=Math.min(pl.rt,3.5),an=pl.face+2.4+pl.rt*.5,rd=3+u*1.1,hh=2.2+u*1.5;ft=62;C.position.set(Math.max(-A,Math.min(A,pl.x+Math.sin(an)*rd)),hh+pl.y,Math.max(-A,Math.min(A,pl.z+Math.cos(an)*rd)));C.lookAt(pl.x,.3+pl.y,pl.z);}
+  shakeT=Math.max(0,shakeT-dt);var sh=shakeT*.5;cs.s*=Math.max(0,1-dt*6);spr(cs,"k","kv",dt);spr(cs,"y","yv",dt);spr(cs,"r","rv",dt);var ft=70+(ADF[pl.w]-70)*adsT+6*sprT+Math.max(0,cs.k)*45*(1-.5*adsT);if(lob||mt.over){var la=performance.now()/9000;C.position.set(Math.sin(la)*34,13,Math.cos(la)*34);C.lookAt(0,2,0);ft=62;}else if(pl.dead&&isBombMode()){ft=SPECTATOR_CAMERA.fieldOfView;bombSpectatorCamera(dt);}else if(pl.dead){pl.rt+=dt;var u=Math.min(pl.rt,3.5),an=pl.face+2.4+pl.rt*.5,rd=3+u*1.1,hh=2.2+u*1.5;ft=62;C.position.set(Math.max(-A,Math.min(A,pl.x+Math.sin(an)*rd)),hh+pl.y,Math.max(-A,Math.min(A,pl.z+Math.cos(an)*rd)));C.lookAt(pl.x,.3+pl.y,pl.z);}
   else{var cb=mvAmt*wtT*(1-.75*adsT)*(pl.vy===0?1:0)*(1+.35*sprT),bY=-cb*.022*(.5-.5*Math.cos(2*bobP)),tr=cs.s*(1-.4*adsT),ta=tr*tr,nt=performance.now()/1000,sj=sh+ta*.06,ads2=1-.4*adsT,pp=pl.pitch+cs.k*(1-.35*adsT)+snz(nt,1)*ta*.05,fy=pl.face+cs.y*ads2+snz(nt,2)*ta*.05;C.position.set(pl.x+snz(nt,3)*sj,1.5+camY+bY+snz(nt,4)*sj-(isBombMode()&&pl.bAction?.55:0),pl.z+snz(nt,5)*sj);C.lookAt(pl.x+Math.sin(fy)*Math.cos(pp),1.5+camY+bY+Math.sin(pp)-(isBombMode()&&pl.bAction?.55:0),pl.z+Math.cos(fy)*Math.cos(pp));C.rotateZ(cs.r*ads2+snz(nt,6)*ta*.06+Math.sin(bobP)*.004*cb);}
   if(Math.abs(C.fov-ft)>.02){C.fov=ft;C.updateProjectionMatrix();}
   kick*=Math.max(0,1-dt*14);flashT-=dt;var dl=pl.w===7;mflash.visible=flashT>0&&run&&!(dl&&shotSide);mflash2.visible=flashT>0&&run&&dl&&!!shotSide;mflash.scale.setScalar(.7+Math.random()*.8);mflash2.scale.setScalar(.7+Math.random()*.8);mflash.position.set(0,.02,MZ[pl.w]);mflash2.position.set(-.52,.02,MZ[pl.w]);animHands();guns.forEach(function(g,i){g.visible=i===pl.w&&!(i===5&&pl.ghide>0);});sun.position.set(pl.x+14,30,pl.z+10);sun.target.position.set(pl.x,0,pl.z);sun.target.updateMatrixWorld();
