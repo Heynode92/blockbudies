@@ -1085,6 +1085,47 @@ function altBtn(){if(!run||pl.dead||mt.over)return;if(pl.w===8){if(mt.cd<=0&&pl.
 abEl.addEventListener("pointerdown",function(e){e.stopPropagation();e.preventDefault();altBtn();});
 // abUpd(): shows/updates the touch alt button text (SCOPE/UNSCOPE, DUAL/SINGLE).
 function abUpd(){var show=touch&&run&&!pl.dead&&!lob&&!mt.over&&(pl.w===6||pl.w===7||pl.w===8);abEl.style.display=show?"block":"none";if(show){var t=pl.w===8?(scopeOn?"UNSCOPE":"SCOPE"):(pl.w===6?"DUAL":"SINGLE");if(abEl.textContent!==t)abEl.textContent=t;}}
+// Global first-person camera input (shared by Deathmatch and Bomb Mission).
+// Browser pointer lock can emit discontinuous movementX/Y values. Reject anomalous
+// individual events instead of letting one bad event rotate the view backwards.
+var LOOK_CONFIG={
+  sensitivity:.003,             // Original desktop mouse sensitivity (unchanged).
+  sniperAdsReduction:.82,       // Original AWP ADS multiplier (unchanged).
+  otherAdsReduction:.5,        // Original non-AWP ADS multiplier (unchanged).
+  maxMouseDeltaPerEvent:200     // Pixels; discard impossible jumps, not normal aim.
+};
+var lookDragPoint=null,lookSkipLockedMove=false;
+function lookStartDrag(e){
+  if(e.pointerType!=="mouse"||document.pointerLockElement===R.domElement)return;
+  if(Number.isFinite(e.clientX)&&Number.isFinite(e.clientY))lookDragPoint={x:e.clientX,y:e.clientY};
+}
+function lookStopDrag(){lookDragPoint=null;}
+function lookLockChanged(){
+  lookStopDrag();
+  // The first relative movement can contain a cursor-warp delta after lock acquisition.
+  lookSkipLockedMove=document.pointerLockElement===R.domElement;
+}
+function lookMove(e){
+  if(e.pointerType!=="mouse"||!run||lob||mt.over||!pl||pl.dead)return;
+  var locked=document.pointerLockElement===R.domElement,dragging=!!(e.buttons&1),dx,dy;
+  if(!locked&&!dragging){lookStopDrag();return;}
+  if(locked){
+    if(lookSkipLockedMove){lookSkipLockedMove=false;return;}
+    dx=e.movementX;dy=e.movementY;
+  }else{
+    // Screen coordinates are stable during unlocked click-and-drag; movementX/Y
+    // can jump when the browser switches between locked and unlocked pointers.
+    if(!lookDragPoint){lookStartDrag(e);return;}
+    dx=e.clientX-lookDragPoint.x;dy=e.clientY-lookDragPoint.y;
+    lookStartDrag(e);
+  }
+  if(!Number.isFinite(dx)||!Number.isFinite(dy)||
+      Math.abs(dx)>LOOK_CONFIG.maxMouseDeltaPerEvent||
+      Math.abs(dy)>LOOK_CONFIG.maxMouseDeltaPerEvent)return;
+  var sn=LOOK_CONFIG.sensitivity*(1-(pl.w===8?LOOK_CONFIG.sniperAdsReduction:LOOK_CONFIG.otherAdsReduction)*adsT);
+  pl.face-=dx*sn;
+  pl.pitch=Math.max(-1.2,Math.min(1.2,pl.pitch-dy*sn));
+}
 // ---- INPUT ----
 // keys = pressed KeyboardEvent.code map, mouse = {down,right}, ST = touch sticks, fireHeld/jumpHeld = touch buttons.
 // input
@@ -1092,9 +1133,10 @@ var fireHeld=false,jumpHeld=false,keys={},mouse={x:innerWidth/2,y:0,down:false,r
 addEventListener("keydown",function(e){if(e.code==="Space")e.preventDefault();keys[e.code]=true;if(mt.over&&e.code==="Enter"&&document.getElementById("dv").classList.contains("show")){again();return;}if(e.code==="KeyR"&&!(isBombMode()&&pl.bAction))reload();if(e.code==="KeyV")toggleDual();if(run&&!pl.dead){var dm=/^(Digit|Numpad)([1-5])$/.exec(e.code);if(dm){if(mt.cd>0&&!mt.over)chooseWeapon(WSEL[+dm[2]-1]);else if(+dm[2]<=4)swSlot(+dm[2]-1);}}});
 document.getElementById("rl").addEventListener("pointerdown",function(e){e.stopPropagation();reload();});
 (function(){var jb=document.getElementById("jb");jb.addEventListener("pointerdown",function(e){e.stopPropagation();jb.setPointerCapture(e.pointerId);jumpHeld=true;});["pointerup","pointercancel"].forEach(function(t){jb.addEventListener(t,function(){jumpHeld=false;});});var b=document.getElementById("fb");b.addEventListener("pointerdown",function(e){e.stopPropagation();b.setPointerCapture(e.pointerId);fireHeld=true;});["pointerup","pointercancel"].forEach(function(t){b.addEventListener(t,function(){fireHeld=false;});});})();addEventListener("keyup",function(e){keys[e.code]=false;});
-R.domElement.addEventListener("pointermove",function(e){if(e.pointerType==="mouse"){mouse.down=!!(e.buttons&1);mouse.right=!!(e.buttons&2);}if(e.pointerType==="mouse"&&run&&!pl.dead&&(document.pointerLockElement===R.domElement||(e.buttons&1))){var sn=.003*(1-(pl.w===8?.82:.5)*adsT);pl.face-=(e.movementX||0)*sn;pl.pitch=Math.max(-1.2,Math.min(1.2,pl.pitch-(e.movementY||0)*sn));}});
-R.domElement.addEventListener("pointerdown",function(e){if(e.pointerType==="mouse"){if(e.button===2){mouse.right=true;e.preventDefault();if(run&&!pl.dead&&pl.w===8&&mt.cd<=0&&!mt.over)scopeOn=!scopeOn;}else if(e.button===0)mouse.down=true;if(run&&!pl.dead&&!document.pointerLockElement&&R.domElement.requestPointerLock){try{R.domElement.requestPointerLock();}catch(x){}}}});
-addEventListener("pointerup",function(e){if(e.pointerType==="mouse"){mouse.down=!!(e.buttons&1);mouse.right=!!(e.buttons&2);}});addEventListener("blur",function(){mouse.right=false;mouse.down=false;keys={};});
+R.domElement.addEventListener("pointermove",function(e){if(e.pointerType==="mouse"){mouse.down=!!(e.buttons&1);mouse.right=!!(e.buttons&2);lookMove(e);}});
+R.domElement.addEventListener("pointerdown",function(e){if(e.pointerType==="mouse"){lookStartDrag(e);if(e.button===2){mouse.right=true;e.preventDefault();if(run&&!pl.dead&&pl.w===8&&mt.cd<=0&&!mt.over)scopeOn=!scopeOn;}else if(e.button===0)mouse.down=true;if(run&&!pl.dead&&!document.pointerLockElement&&R.domElement.requestPointerLock){try{R.domElement.requestPointerLock();}catch(x){}}}});
+addEventListener("pointerup",function(e){if(e.pointerType==="mouse"){mouse.down=!!(e.buttons&1);mouse.right=!!(e.buttons&2);if(!mouse.down)lookStopDrag();}});addEventListener("blur",function(){mouse.right=false;mouse.down=false;keys={};lookStopDrag();});
+document.addEventListener("pointerlockchange",lookLockChanged);
 R.domElement.addEventListener("contextmenu",function(e){e.preventDefault();});
 // stick(): wires up a touch joystick element and stores its x/y in state st.
 function stick(el,st){var kn=el.firstChild,id=null;

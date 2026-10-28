@@ -12,6 +12,7 @@
     "src/game/65-audio.js",
     "src/game/70-kills-and-damage-hud.js",
     "src/game/75-weapon-controls.js",
+    "src/game/79-camera-look.js",
     "src/game/80-input.js",
     "src/game/85-lobby-and-match.js",
     "src/game/86-bomb-mission.js",

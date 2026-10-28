@@ -2,6 +2,29 @@
 
 Every update must record its date, scope, affected modules, user-visible strings, compatibility, and validation. Keep the original fixture immutable.
 
+## 2026-10-28 — Global camera reversal protection
+
+### Fixed
+- The shared desktop mouse-look path previously applied browser `movementX`/`movementY` unconditionally. A single anomalous pointer-lock movement event could turn the camera sharply, including an apparent 180-degree reversal.
+- Mouse look now rejects non-finite or unusually large relative motion events and ignores the first movement after pointer-lock acquisition.
+- Fallback mouse drag uses consecutive screen positions instead of untrusted relative movement, and drag state resets on mouse release, browser blur and pointer-lock transitions.
+- Input is ignored in lobby, completed matches and while dead. This is a shared control fix for both Team Deathmatch and Bomb Mission.
+
+### Configuration and strings
+- `LOOK_CONFIG` in `src/game/79-camera-look.js` centralizes original sensitivity and ADS multipliers plus the anomalous-delta threshold.
+- Existing English UI strings unchanged; no new user-visible strings.
+
+### Changed files
+- New: `src/game/79-camera-look.js`, `tests/camera-look.test.mjs`.
+- Updated: `src/game/80-input.js`, `tools/source-manifest.json`, `assets/game.js`, `CHANGELOG.md`.
+
+### Compatibility and validation
+- Weapons, bots, game rules, UI strings, rendering and Bomb Mission logic were not modified.
+- 9 targeted mouse-look tests and 13 existing tests passed (22/22 total).
+- `node --check assets/game.js` and `node tools/build.mjs --check`: passed.
+- No interactive browser end-to-end test was possible in this environment because the original Three.js CDN cannot be reached. The unbounded-delta vulnerability was confirmed by source inspection and regression tests, not by observing the user's exact browser event.
+
+
 ## 2026-10-28 — Bomb Mission 5v5 (local AI)
 
 ### Added
