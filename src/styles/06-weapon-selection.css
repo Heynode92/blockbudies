@@ -1,0 +1,23 @@
+/* --- primary weapon select (5 s), sniper scope, alt button --- */
+#wsel{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 100px);z-index:9;display:none;flex-direction:column;align-items:center;gap:8px;pointer-events:none;font-family:Rajdhani,sans-serif}
+#wsel.show{display:flex}
+#wsel .wt{font:900 20px Impact,sans-serif;letter-spacing:.14em;color:#fff;text-shadow:0 2px 0 #000}
+#wsel .wb{width:min(560px,82vw);height:6px;background:rgba(255,255,255,.25);border-radius:3px;overflow:hidden}
+#wsel .wb i{display:block;height:100%;background:var(--accent,#ffa94d)}
+#wsel .wc{display:flex;gap:8px;pointer-events:auto;flex-wrap:wrap;justify-content:center;padding:0 8px}
+.wcd{position:relative;width:112px;padding:14px 6px 8px;background:rgba(15,20,32,.84);border:2px solid transparent;border-radius:10px;color:#f1f3f8;text-align:center;cursor:pointer;transform:skewX(-6deg);user-select:none;-webkit-user-select:none}
+.wcd>*{transform:skewX(6deg)}
+.wcd.on{border-color:var(--accent,#ffa94d);background:rgba(40,48,70,.94)}
+.wcd .k{position:absolute;left:4px;top:3px;width:16px;height:16px;border-radius:4px;background:#fff;color:#111;font-size:11px;line-height:16px;font-weight:700}
+.wcd.on .k{background:var(--accent,#ffa94d)}
+.wcd svg{width:72px;height:28px;fill:currentColor;display:block;margin:0 auto 2px}
+.wcd b{display:block;font-size:14px;line-height:1.1}
+.wcd small{display:block;font-size:10.5px;opacity:.78;line-height:1.15;margin-top:2px}
+.touch .wcd{width:92px;padding:12px 4px 6px}.touch .wcd small{display:none}
+#scope{position:fixed;inset:0;z-index:6;display:none;pointer-events:none;background:radial-gradient(circle at 50% 50%,transparent 0,transparent 31vmin,#000 31.4vmin)}
+#scope i{position:absolute;background:#000}
+#scope i:nth-child(1){left:0;right:0;top:calc(50% - 1px);height:2px}
+#scope i:nth-child(2){top:0;bottom:0;left:calc(50% - 1px);width:2px}
+#scope::after{content:"";position:absolute;left:calc(50% - 2px);top:calc(50% - 2px);width:4px;height:4px;border-radius:50%;background:#ff3b3b}
+body.scoped #ch{display:none}
+#ab{display:none;position:fixed;right:34px;bottom:calc(env(safe-area-inset-bottom,0px) + 300px);margin:0;padding:10px 16px;background:#7048e8}
