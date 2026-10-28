@@ -267,3 +267,17 @@ test('production ceiling sweep stops projectiles passing through indoor roof',()
   ].join('\n'),c);
   assert.ok(c.sweepLT(0,5,0,0,6.5,0),'roof collision blocks vertical shots');
 });
+test('indoor architectural walls and framed passages have real physical anchors',()=>{
+  const c=makeContext();c.selectGameMap(true);
+  const framed=c.LT.filter(q=>q.y0>2&&q.y0<c.BOMB_RULES.ceilingHeight-0.5);
+  assert.ok(framed.length>15,'numerous industrial doorframes have a bullet-blocking lintel');
+  for(const lintel of framed){
+    assert.equal(c.inObs(lintel.x,lintel.z,.55),false,'walkable doorway center must be open');
+    const near=c.OB.filter(o=>Math.hypot(o.x-lintel.x,o.z-lintel.z)<6&&o.h>=c.BOMB_RULES.wallHeight-.1);
+    assert.ok(near.length>=2,'two physical side piers must support each overhead lintel');
+  }
+  const wallDetails=c.visualDetails.filter(q=>q.h>1&&q.h<c.BOMB_RULES.wallHeight);
+  assert.ok(wallDetails.length>200,'contrast panels and mullions exist on solid architectural walls');
+  const groundDetails=c.visualDetails.filter(q=>q.y-q.h/2<.02&&q.y-q.h/2>-.02);
+  assert.ok(groundDetails.length>0,'wall skirting and props are grounded');
+});

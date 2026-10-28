@@ -181,7 +181,8 @@ flushDeco();
 var BOMB_RULES=Object.freeze({teamSize:5,rounds:12,wins:7,roundSeconds:120,freezeSeconds:5,
   plantSeconds:5,defuseSeconds:7,fuseSeconds:40,roundBreakSeconds:3,
   siteRadius:3.1,interactRadius:2.45,pickupRadius:2,cellSize:10,cells:16,
-  wallHeight:5.75,ceilingHeight:5.7,ceilingThickness:.22,seed:73021,botUseRange:2.1});
+  wallHeight:5.75,ceilingHeight:5.7,ceilingThickness:.22,seed:73021,botUseRange:2.1,
+  plantHitRecoverySeconds:.9});
 var BOMB_TEXT=Object.freeze({
   plant:'Plant bomb here',defuse:'Defuse the bomb',planting:'PLANTING BOMB',defusing:'DEFUSING BOMB',
   planted:'BOMB PLANTED',dropped:'BOMB DROPPED',carrier:'YOU HAVE THE BOMB',picked:'BOMB PICKED UP',
@@ -236,21 +237,77 @@ function makeBombMap(){
   mk(step*n,.14,step*n,0x202b35,0,roofTop+.055,0).castShadow=false;
   BOMB_NAV_WALLS=[];
   var zones=[
-    {floor:0x344757,ceiling:0x303a45,wall:0x4f6779,accent:0x4dabf7,label:'SECURITY'},
-    {floor:0x474d50,ceiling:0x363a41,wall:0x66727a,accent:0xffa94d,label:'WAREHOUSE'},
-    {floor:0x3f4b46,ceiling:0x33413c,wall:0x5e7363,accent:0x69db7c,label:'REACTOR'},
-    {floor:0x494450,ceiling:0x383440,wall:0x776878,accent:0xb197fc,label:'LABORATORY'}
+    {floor:0x5b6772,ceiling:0x303a45,wall:0x293c50,accent:0x4dabf7,label:'SECURITY'},
+    {floor:0x64645f,ceiling:0x363a41,wall:0x414851,accent:0xffa94d,label:'WAREHOUSE'},
+    {floor:0x5c6861,ceiling:0x33413c,wall:0x304b40,accent:0x69db7c,label:'REACTOR'},
+    {floor:0x67616c,ceiling:0x383440,wall:0x45364f,accent:0xb197fc,label:'LABORATORY'}
   ];
   function visualBox(w,hh,d,col,x,y,z){var m=mk(w,hh,d,col,x,y,z);m.castShadow=false;return m;}
   // Thin details use the SAME batched decoration system as Deathmatch. This reduces
   // draw calls and keeps the gameplay collisions on the actual solid furniture bodies.
   function trim(w,hh,d,col,x,y,z){dk(w,hh,d,col,x,y,z);}
   function groundedDetail(w,hh,d,col,x,bottom,z){trim(w,hh,d,col,x,bottom+hh/2,z);}
-  function mapBarrier(x,z,w,d,hh,col){
+  // Wall panels are drawn ON solid wall faces (no fake walk-through meshes). A floor-to-
+  // ceiling silhouette, contrasting skirting and regularly spaced studs distinguish walls
+  // from desks, containers and other collision-enabled props.
+  function mapBarrier(x,z,w,d,hh,col,accent){
     wl(x,z,w,d,hh,col);BOMB_NAV_WALLS.push({x:x,z:z,hw:w/2,hd:d/2});
-    // Continuous skirting and wall-edge trim, not disconnected hovering panels.
-    groundedDetail(w+.04,.12,d+.04,0x263642,x,0,z);
-    trim(w+.025,.12,d+.025,0xa2acb2,x,hh-.16,z);
+    var longX=w>d,length=Math.max(w,d),face=longX?d/2+.025:w/2+.025;
+    groundedDetail(w+.045,.19,d+.045,0x121d29,x,0,z);
+    trim(w+.025,.16,d+.025,0xb3c0c9,x,hh-.18,z);
+    // Each wall has a readable BOTH-SIDED silhouette. The original wall mesh
+    // remains the collider and these thin details never protrude into walkways.
+    for(var side=-1;side<=1;side+=2){
+      var surface=side*face;
+      if(longX){
+        trim(w-.12,.22,.035,accent||0x849ba9,x,2.35,z+surface);
+        trim(w-.12,.12,.035,0x1c2a35,x,1.0,z+surface);
+      }else{
+        trim(.035,.22,d-.12,accent||0x849ba9,x+surface,2.35,z);
+        trim(.035,.12,d-.12,0x1c2a35,x+surface,1.0,z);
+      }
+      // Repeated inset wall plates plus continuous steel studs identify solid
+      // architecture even when approaching from the reverse side of the room.
+      for(var offset=-length/2+.4;offset<length/2-.4;offset+=2.6){
+        var section=Math.min(2.35,length/2-.4-offset);
+        if(section<=.5)continue;
+        if(longX){
+          trim(section,1.65,.025,0x3b5260,x+offset+section/2,3.72,z+surface);
+          trim(.11,hh-.45,.075,0x91a5b2,x+offset,hh/2,z+surface);
+        }else{
+          trim(.025,1.65,section,0x3b5260,x+surface,3.72,z+offset+section/2);
+          trim(.075,hh-.45,.11,0x91a5b2,x+surface,hh/2,z+offset);
+        }
+      }
+    }
+  }
+  // A framed industrial passage is still open through the center for A* and players.
+  // Side piers have real OB colliders; the lintel is a high LT bullet blocker only.
+  function mapPassage(x,z,longX,zone){
+    var total=step+.04,gap=5.4,pier=(total-gap)/2,wall=.52;
+    if(longX){
+      mapBarrier(x-(gap+pier)/2,z,pier,wall,h,zone.wall,zone.accent);
+      mapBarrier(x+(gap+pier)/2,z,pier,wall,h,zone.wall,zone.accent);
+    }else{
+      mapBarrier(x,z-(gap+pier)/2,wall,pier,h,zone.wall,zone.accent);
+      mapBarrier(x,z+(gap+pier)/2,wall,pier,h,zone.wall,zone.accent);
+    }
+    var lintelH=.6,lintelBottom=cfg.ceilingHeight-.88;
+    if(longX)trim(gap,lintelH,wall+.05,0x19252e,x,lintelBottom+lintelH/2,z);
+    else trim(wall+.05,lintelH,gap,0x19252e,x,lintelBottom+lintelH/2,z);
+    LT.push({x:x,z:z,hw:longX?gap/2:(wall+.05)/2,hd:longX?(wall+.05)/2:gap/2,
+      y0:lintelBottom,h:lintelBottom+lintelH,c:0x19252e});
+    // High-visibility doorway border, mounted to the supporting side piers.
+    if(longX){
+      trim(.16,3.2,.08,zone.accent,x-gap/2,1.6,z+wall/2+.05);
+      trim(.16,3.2,.08,zone.accent,x+gap/2,1.6,z+wall/2+.05);
+      trim(gap,.12,.08,zone.accent,x,lintelBottom-.1,z+wall/2+.05);
+    }else{
+      trim(.08,3.2,.16,zone.accent,x+wall/2+.05,1.6,z-gap/2);
+      trim(.08,3.2,.16,zone.accent,x+wall/2+.05,1.6,z+gap/2);
+      trim(.08,.12,gap,zone.accent,x+wall/2+.05,lintelBottom-.1,z);
+    }
+    trim(longX?gap:wall,.04,longX?wall:gap,0xcbd4d9,x,.04,z);
   }
   // No decorative body is allowed to be walk-through. Collision uses the same
   // wl()/OB convention as TDM, so physics, bullets and A* share the geometry.
@@ -319,13 +376,20 @@ function makeBombMap(){
     }
     if((i+j)%4===0){visualBox(.12,.035,step*.65,zone.accent,x-.9,.06,z);
       visualBox(.12,.035,step*.65,zone.accent,x+.9,.06,z);}
-    if(i===0)mapBarrier(x-step/2,z,.5,step+.15,h,zone.wall);
-    if(j===0)mapBarrier(x,z-step/2,step+.15,.5,h,zone.wall);
-    if(i===n-1)mapBarrier(x+step/2,z,.5,step+.15,h,zone.wall);
-    if(j===n-1)mapBarrier(x,z+step/2,step+.15,.5,h,zone.wall);
-    // Keep many broad openings, and a large number of secondary flanking paths.
-    if(i<n-1&&!linked(id,id+1)&&random()>.42)mapBarrier(x+step/2,z,.52,step+.03,h,zone.wall);
-    if(j<n-1&&!linked(id,id+n)&&random()>.42)mapBarrier(x,z+step/2,step+.03,.52,h,zone.wall);
+    if(i===0)mapBarrier(x-step/2,z,.5,step+.15,h,zone.wall,zone.accent);
+    if(j===0)mapBarrier(x,z-step/2,step+.15,.5,h,zone.wall,zone.accent);
+    if(i===n-1)mapBarrier(x+step/2,z,.5,step+.15,h,zone.wall,zone.accent);
+    if(j===n-1)mapBarrier(x,z+step/2,step+.15,.5,h,zone.wall,zone.accent);
+    // Preserve every spanning-tree connection. Some openings now have actual physical
+    // jambs and a supported lintel, making doorways recognizable in both 3D and radar.
+    if(i<n-1){
+      if(!linked(id,id+1)&&random()>.42)mapBarrier(x+step/2,z,.52,step+.03,h,zone.wall,zone.accent);
+      else if(linked(id,id+1)&&(i*5+j*3)%4===0)mapPassage(x+step/2,z,false,zone);
+    }
+    if(j<n-1){
+      if(!linked(id,id+n)&&random()>.42)mapBarrier(x,z+step/2,step+.03,.52,h,zone.wall,zone.accent);
+      else if(linked(id,id+n)&&(i*3+j*5)%4===0)mapPassage(x,z+step/2,true,zone);
+    }
     // Dress every sector differently. The props are decorative, never a hidden maze obstacle.
     var isSite=BOMB_SITES.some(function(q){return Math.hypot(q.x-x,q.z-z)<step*1.3;});
     if(!isSite&&i>0&&j>0&&i<n-1&&j<n-1)facilityProps(x,z,i,j,zone);
@@ -954,7 +1018,7 @@ function snz(t,k){return Math.sin(t*(31+k*7.3)+k*1.7)*.6+Math.sin(t*(53+k*3.1)+k
 // ck = kill-chain tracker {n kills in chain, t timer, hs headshot streak}. Other globals: dead = ragdoll list, shakeT = screen shake time, AC = AudioContext, grs = grenades.
 var ck={n:0,t:0,hs:0},hsF=false,dead=[],inBoom=false,boomN=0,shakeT=0,AC=null,boomLab="RPG",grs=[];
 // dmgE(): applies damage d to bot e (knock direction kx,kz). Handles invulnerability, hit flash and calls killE() at 0 HP.
-function dmgE(e,d,kx,kz,ex){if(e.inv>0||e.dead)return;e.hp-=d;e.fl=.14;e.hs=Math.random()<.5?-1:1;e.hv=(e.hv||0)+Math.min(9,3+d*.5);var hm=Math.hypot(kx||0,kz||0);if(hm>.01){e.hdx=kx/hm;e.hdz=kz/hm;}if(e.hp<=0)killE(e,kx||0,kz||0,ex);}
+function dmgE(e,d,kx,kz,ex){if(e.inv>0||e.dead)return;if(isBombMode())bombInterruptPlant(e);e.hp-=d;e.fl=.14;e.hs=Math.random()<.5?-1:1;e.hv=(e.hv||0)+Math.min(9,3+d*.5);var hm=Math.hypot(kx||0,kz||0);if(hm>.01){e.hdx=kx/hm;e.hdz=kz/hm;}if(e.hp<=0)killE(e,kx||0,kz||0,ex);}
 // hlms = flying helmets (popped by headshots). popHelm()/popPl() pop a bot/player helmet; updH() animates them.
 var hlms=[];
 function popHelm(e,vx,vz){var h=e.hm;if(!h||!e.helm)return;e.helm=false;h.updateMatrixWorld(true);
@@ -1072,7 +1136,7 @@ function hdUpd(dt){var R=Math.min(innerWidth,innerHeight)*.3,sf=Math.sin(pl.face
     var dx=h.x-pl.x,dz=h.z-pl.z,an=Math.atan2(-dx*cf+dz*sf,dx*sf+dz*cf);
     h.el.style.transform="translate(-50%,-50%) rotate("+an+"rad) translateY("+(-R)+"px)";h.el.style.opacity=Math.min(1,h.t/.6);}}
 // hurt(): damages the PLAYER by d (from position sx,sz). Ignored while dead or spawn-protected. Calls die() at 0 HP.
-function hurt(d,sx,sz){if(pl.dead||pl.inv>0)return;if(sx!==undefined&&Math.hypot(sx-pl.x,sz-pl.z)>.6)hdHit(sx,sz);pl.hp-=d;pm.fl=.1;cs.s=Math.max(cs.s,.55);var hs2=0;if(sx!==undefined){var ddx=sx-pl.x,ddz=sz-pl.z;hs2=Math.sign(-ddx*Math.cos(pl.face)+ddz*Math.sin(pl.face));}cs.kv+=.7;cs.yv+=hs2*1.5;cs.rv+=hs2*.5+(Math.random()-.5)*.4;document.getElementById("hit").style.opacity=1;if(pl.hp<=0){pl.hp=0;die();}}
+function hurt(d,sx,sz){if(pl.dead||pl.inv>0)return;if(isBombMode())bombInterruptPlant(pl);if(sx!==undefined&&Math.hypot(sx-pl.x,sz-pl.z)>.6)hdHit(sx,sz);pl.hp-=d;pm.fl=.1;cs.s=Math.max(cs.s,.55);var hs2=0;if(sx!==undefined){var ddx=sx-pl.x,ddz=sz-pl.z;hs2=Math.sign(-ddx*Math.cos(pl.face)+ddz*Math.sin(pl.face));}cs.kv+=.7;cs.yv+=hs2*1.5;cs.rv+=hs2*.5+(Math.random()-.5)*.4;document.getElementById("hit").style.opacity=1;if(pl.hp<=0){pl.hp=0;die();}}
 // die(): player death: starts the 5 s respawn timer, drops the gun, updates stats and the killer credit.
 function die(){pl.dead=true;pl.rsT=5;pl.st.d++;pl.kb=curK&&curK!==pl?curK.name:"";if(curK&&curK!==pl){curK.st.k++;if(!isBombMode())ts[curK.tm]++;}kFeed(curK,1,false,pl);mouse.right=false;mouse.down=false;fireHeld=false;kn.innerHTML="";pm.g.visible=true;if(pm.hg)pm.hg.visible=false;dropPlayerGun();if(isBombMode()){bombDrop(pl);document.body.classList.add("bomb-spectator");}else document.body.classList.add("dead");
   try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();tn(260,40,1.2,"sawtooth",.12);tn(120,30,1.6,"sine",.3);}catch(e){}}
@@ -1432,8 +1496,14 @@ function bombActionFor(e){
     return{type:'defuse',site:b.site};
   return null;
 }
+function bombInterruptPlant(e){
+  if(!isBombMode()||!e||!e.bAction||e.bAction.type!=='plant')return;
+  e.bAction=null;
+  e.bHitUntil=tt+BOMB_RULES.plantHitRecoverySeconds;
+}
 function bombAct(e,dt,enabled){
   var wanted=enabled?bombActionFor(e):null;
+  if(wanted&&wanted.type==='plant'&&tt<(e.bHitUntil||0))wanted=null;
   if(!wanted){e.bAction=null;return;}
   if(!e.bAction||e.bAction.type!==wanted.type||e.bAction.site!==wanted.site)e.bAction={type:wanted.type,site:wanted.site,t:0};
   // A character taking damage remains vulnerable and keeps working unless killed.
@@ -1540,16 +1610,43 @@ var BOMB_AI=Object.freeze({
   destinationRefresh:6,defuserReview:.75,defusePriorityRadius:4,
   teammateSpacing:2.5,repathGoalDistance:2.4,navSpeed:5.3,
   retakeThreatRadius:34,retakeSeekRadius:36,retakeSweepRadius:4,retakeSweepStep:3,
-  retakeCombatDistance:5
+  retakeCombatDistance:5,
+  soloDefuseThreatRadius:18,plantClearRadius:13,plantEngageRange:19,
+  huntedEnemyRange:160
 });
 function bombLiving(team){return en.filter(function(e){return e.tm===team&&!e.dead;}).concat(!pl.dead&&pl.tm===team?[pl]:[]);}
 function bombNearestOpponent(e){var foes=bombLiving(1-e.tm),best=null,dist=Infinity;
   foes.forEach(function(f){var d=Math.hypot(f.x-e.x,f.z-e.z);if(d<dist){dist=d;best=f;}});
   return best;
 }
+// Threat assessment uses living enemy positions but does not allow firing through
+// geometry: normal shooting remains protected by the original LOS check.
+function bombNearestThreat(team,x,z,radius){var best=null,distance=radius;
+  bombLiving(1-team).forEach(function(foe){var d=Math.hypot(foe.x-x,foe.z-z);
+    if(d<distance){best=foe;distance=d;}});
+  return best;
+}
+function bombSoloPoliceThreat(e){
+  if(!bombMatch||bombMatch.done||bombMatch.state!=='planted'||e.tm!==0||
+      bombLiving(0).length!==1)return null;
+  var p=bombMatch.device.position;
+  return bombNearestThreat(0,p.x,p.z,BOMB_AI.soloDefuseThreatRadius);
+}
+function bombPlantThreat(e){
+  if(!bombMatch||bombMatch.done||bombMatch.state!=='idle'||e.tm!==1)return null;
+  // Threats in the plant site or close enough to engage the carrier must be cleared.
+  var near=bombNearestThreat(1,e.x,e.z,BOMB_AI.plantEngageRange),site=bombArea(e);
+  if(site>=0){var s=BOMB_SITES[site],atSite=bombNearestThreat(1,s.x,s.z,BOMB_AI.plantClearRadius);
+    if(atSite)return atSite;}
+  return near;
+}
 function bombPickDefuser(){
   if(!bombMatch||bombMatch.done||bombMatch.state!=='planted')return null;
   var b=bombMatch,team=bombLiving(0),current=b.defuser;
+  // A sole surviving officer clears a nearby Terrorist before risking the 7s defuse.
+  if(team.length===1&&team[0]!==pl&&bombSoloPoliceThreat(team[0])){
+    b.defuser=null;return null;
+  }
   // A human who is merely standing near the bomb must not block bot defuse attempts.
   var humansDefusing=!pl.dead&&pl.tm===0&&pl.bAction&&pl.bAction.type==='defuse';
   if(humansDefusing){b.defuser=pl;return pl;}
@@ -1565,10 +1662,12 @@ function bombTacticalStage(e){
   var b=bombMatch;
   if(b.state==='planted'){
     if(e.tm===0)return bombPickDefuser()===e?'retake-defuse':'retake-assault';
+    // A lone survivor cannot simply camp a random cover point: find and fight CTs.
+    if(bombLiving(1).length===1)return 'hunt';
     return e.idx%3===0?'hold':'hunt';
   }
   if(e.tm===0)return e.idx%3===0?'patrol':'site-defense';
-  if(e===b.carrier)return 'plant';
+  if(e===b.carrier)return bombPlantThreat(e)?'clear':'plant';
   return e.idx%3===0?'hunt':'escort';
 }
 // Compute a reachable tactical candidate rather than stacking all bots on a single site.
@@ -1593,6 +1692,9 @@ function bombTacticalGoal(e){
     site=BOMB_SITES[b.site];
     if(stage==='retake-defuse')return bombSafeGoal(b.device.position.x,b.device.position.z,e);
     if(stage==='retake-assault'){
+      // When alone against a nearby defender, clear the threat before defusing.
+      foe=bombSoloPoliceThreat(e);
+      if(foe)return bombSafeGoal(foe.x,foe.z,e);
       // Every available officer retakes the PLANTED site; no guarding the other site
       // and no static camping at distant cover points while the fuse is ticking.
       foe=bombNearestOpponent(e);
@@ -1608,7 +1710,7 @@ function bombTacticalGoal(e){
     }
     if(stage==='hunt'){
       foe=bombNearestOpponent(e);
-      if(foe&&Math.hypot(foe.x-site.x,foe.z-site.z)<BOMB_AI.roamRadius)
+      if(foe&&(bombLiving(1).length===1||Math.hypot(foe.x-site.x,foe.z-site.z)<BOMB_AI.roamRadius))
         return bombSafeGoal(foe.x,foe.z,e);
       radius=11+idx%3*4;
     }else radius=5+idx%3*2;
@@ -1621,6 +1723,10 @@ function bombTacticalGoal(e){
       site=bombStrategicSite(e);
       // Enter the center of the site to trigger the actual planting interaction.
       return bombSafeGoal(site.x,site.z,e);
+    }
+    if(stage==='clear'){
+      foe=bombPlantThreat(e);
+      if(foe)return bombSafeGoal(foe.x,foe.z,e);
     }
     if(stage==='hunt'){
       foe=bombNearestOpponent(e);
@@ -1658,6 +1764,7 @@ function bombBotWantsObjective(e,t){
 function bombBotCanAct(e){
   var a=bombActionFor(e);if(!a)return false;
   if(a.type==='defuse'&&bombPickDefuser()!==e)return false;
+  if(a.type==='plant'&&(bombPlantThreat(e)||tt<(e.bHitUntil||0)))return false;
   if(e.tg&&e.lok&&Math.hypot(e.tg.x-e.x,e.tg.z-e.z)<BOMB_AI.defusePriorityRadius)return false;
   return true;
 }

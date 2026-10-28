@@ -66,8 +66,14 @@ function bombActionFor(e){
     return{type:'defuse',site:b.site};
   return null;
 }
+function bombInterruptPlant(e){
+  if(!isBombMode()||!e||!e.bAction||e.bAction.type!=='plant')return;
+  e.bAction=null;
+  e.bHitUntil=tt+BOMB_RULES.plantHitRecoverySeconds;
+}
 function bombAct(e,dt,enabled){
   var wanted=enabled?bombActionFor(e):null;
+  if(wanted&&wanted.type==='plant'&&tt<(e.bHitUntil||0))wanted=null;
   if(!wanted){e.bAction=null;return;}
   if(!e.bAction||e.bAction.type!==wanted.type||e.bAction.site!==wanted.site)e.bAction={type:wanted.type,site:wanted.site,t:0};
   // A character taking damage remains vulnerable and keeps working unless killed.

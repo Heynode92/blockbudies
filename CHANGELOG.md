@@ -2,6 +2,30 @@
 
 Every update must record its date, scope, affected modules, user-visible strings, compatibility, and validation. Keep the original fixture immutable.
 
+## 2026-10-28 — Bomb Mission tactical clearing and structural wall clarity
+
+### AI behavior (Bomb Mission only)
+- Sole surviving Police bot clears a living Terrorist within the planted bomb's 18-unit danger zone before attempting defuse; resumes defuse only when the nearby threat has been eliminated or moved away.
+- Sole surviving Terrorist actively hunts living Police after planting rather than choosing a passive hold role.
+- Bomb-carrying bot prioritizes clearing enemies near itself or the bomb site, and will not begin/continue planting while a nearby threat is present.
+- Taking actual HP damage while planting cancels progress immediately (human or bot) with a configurable 0.9-second retry delay. The existing 5-second plant and 7-second defuse durations remain unchanged.
+
+### Indoor visual structure
+- Map walls now have contrasting structural baseboards, reinforced full-height mullions, equipment rails and sector-colored horizontal bands.
+- Selected connected passages now have **real collidable side piers**, overhead lintels with projectile blocking and high-contrast doorway accents, preserving open center navigation.
+- Map remains 160x160 with the same bomb-site coordinates, old TDM map, spectator, minimap, weapons and gameplay unchanged.
+
+### Files
+- Updated: `src/game/11-bomb-map.js`, `src/game/86-bomb-mission.js`, `src/game/87-bomb-tactics.js`, `src/game/65-audio.js`, `src/game/70-kills-and-damage-hud.js`, `tests/bomb-mission.test.mjs`, `assets/game.js`, `CHANGELOG.md`.
+- New: `tests/bomb-tactical-hardening.test.mjs`.
+
+### Configuration and UI strings
+- `BOMB_AI` contains solo-threat and plant-clear radii; `BOMB_RULES` includes `plantHitRecoverySeconds`. No new or changed player-facing English UI strings.
+
+### Validation
+- `node --check assets/game.js`, `node tools/build.mjs --check`, `node --test tests/*.test.mjs`: 51/51 local static and logic checks passed. Tests include actual hit handlers, 1v1 tactical states, wall physical anchors and full 160x160 room connectivity.
+- No end-to-end interactive browser gameplay verification claimed; AI tuning and wall visibility still need user-side playtesting.
+
 ## 2026-10-28 — Planted bomb retake AI, spectator HUD and exact minimap beacon
 
 ### Fixed

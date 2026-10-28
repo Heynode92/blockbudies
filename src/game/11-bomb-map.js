@@ -2,7 +2,8 @@
 var BOMB_RULES=Object.freeze({teamSize:5,rounds:12,wins:7,roundSeconds:120,freezeSeconds:5,
   plantSeconds:5,defuseSeconds:7,fuseSeconds:40,roundBreakSeconds:3,
   siteRadius:3.1,interactRadius:2.45,pickupRadius:2,cellSize:10,cells:16,
-  wallHeight:5.75,ceilingHeight:5.7,ceilingThickness:.22,seed:73021,botUseRange:2.1});
+  wallHeight:5.75,ceilingHeight:5.7,ceilingThickness:.22,seed:73021,botUseRange:2.1,
+  plantHitRecoverySeconds:.9});
 var BOMB_TEXT=Object.freeze({
   plant:'Plant bomb here',defuse:'Defuse the bomb',planting:'PLANTING BOMB',defusing:'DEFUSING BOMB',
   planted:'BOMB PLANTED',dropped:'BOMB DROPPED',carrier:'YOU HAVE THE BOMB',picked:'BOMB PICKED UP',
@@ -57,21 +58,77 @@ function makeBombMap(){
   mk(step*n,.14,step*n,0x202b35,0,roofTop+.055,0).castShadow=false;
   BOMB_NAV_WALLS=[];
   var zones=[
-    {floor:0x344757,ceiling:0x303a45,wall:0x4f6779,accent:0x4dabf7,label:'SECURITY'},
-    {floor:0x474d50,ceiling:0x363a41,wall:0x66727a,accent:0xffa94d,label:'WAREHOUSE'},
-    {floor:0x3f4b46,ceiling:0x33413c,wall:0x5e7363,accent:0x69db7c,label:'REACTOR'},
-    {floor:0x494450,ceiling:0x383440,wall:0x776878,accent:0xb197fc,label:'LABORATORY'}
+    {floor:0x5b6772,ceiling:0x303a45,wall:0x293c50,accent:0x4dabf7,label:'SECURITY'},
+    {floor:0x64645f,ceiling:0x363a41,wall:0x414851,accent:0xffa94d,label:'WAREHOUSE'},
+    {floor:0x5c6861,ceiling:0x33413c,wall:0x304b40,accent:0x69db7c,label:'REACTOR'},
+    {floor:0x67616c,ceiling:0x383440,wall:0x45364f,accent:0xb197fc,label:'LABORATORY'}
   ];
   function visualBox(w,hh,d,col,x,y,z){var m=mk(w,hh,d,col,x,y,z);m.castShadow=false;return m;}
   // Thin details use the SAME batched decoration system as Deathmatch. This reduces
   // draw calls and keeps the gameplay collisions on the actual solid furniture bodies.
   function trim(w,hh,d,col,x,y,z){dk(w,hh,d,col,x,y,z);}
   function groundedDetail(w,hh,d,col,x,bottom,z){trim(w,hh,d,col,x,bottom+hh/2,z);}
-  function mapBarrier(x,z,w,d,hh,col){
+  // Wall panels are drawn ON solid wall faces (no fake walk-through meshes). A floor-to-
+  // ceiling silhouette, contrasting skirting and regularly spaced studs distinguish walls
+  // from desks, containers and other collision-enabled props.
+  function mapBarrier(x,z,w,d,hh,col,accent){
     wl(x,z,w,d,hh,col);BOMB_NAV_WALLS.push({x:x,z:z,hw:w/2,hd:d/2});
-    // Continuous skirting and wall-edge trim, not disconnected hovering panels.
-    groundedDetail(w+.04,.12,d+.04,0x263642,x,0,z);
-    trim(w+.025,.12,d+.025,0xa2acb2,x,hh-.16,z);
+    var longX=w>d,length=Math.max(w,d),face=longX?d/2+.025:w/2+.025;
+    groundedDetail(w+.045,.19,d+.045,0x121d29,x,0,z);
+    trim(w+.025,.16,d+.025,0xb3c0c9,x,hh-.18,z);
+    // Each wall has a readable BOTH-SIDED silhouette. The original wall mesh
+    // remains the collider and these thin details never protrude into walkways.
+    for(var side=-1;side<=1;side+=2){
+      var surface=side*face;
+      if(longX){
+        trim(w-.12,.22,.035,accent||0x849ba9,x,2.35,z+surface);
+        trim(w-.12,.12,.035,0x1c2a35,x,1.0,z+surface);
+      }else{
+        trim(.035,.22,d-.12,accent||0x849ba9,x+surface,2.35,z);
+        trim(.035,.12,d-.12,0x1c2a35,x+surface,1.0,z);
+      }
+      // Repeated inset wall plates plus continuous steel studs identify solid
+      // architecture even when approaching from the reverse side of the room.
+      for(var offset=-length/2+.4;offset<length/2-.4;offset+=2.6){
+        var section=Math.min(2.35,length/2-.4-offset);
+        if(section<=.5)continue;
+        if(longX){
+          trim(section,1.65,.025,0x3b5260,x+offset+section/2,3.72,z+surface);
+          trim(.11,hh-.45,.075,0x91a5b2,x+offset,hh/2,z+surface);
+        }else{
+          trim(.025,1.65,section,0x3b5260,x+surface,3.72,z+offset+section/2);
+          trim(.075,hh-.45,.11,0x91a5b2,x+surface,hh/2,z+offset);
+        }
+      }
+    }
+  }
+  // A framed industrial passage is still open through the center for A* and players.
+  // Side piers have real OB colliders; the lintel is a high LT bullet blocker only.
+  function mapPassage(x,z,longX,zone){
+    var total=step+.04,gap=5.4,pier=(total-gap)/2,wall=.52;
+    if(longX){
+      mapBarrier(x-(gap+pier)/2,z,pier,wall,h,zone.wall,zone.accent);
+      mapBarrier(x+(gap+pier)/2,z,pier,wall,h,zone.wall,zone.accent);
+    }else{
+      mapBarrier(x,z-(gap+pier)/2,wall,pier,h,zone.wall,zone.accent);
+      mapBarrier(x,z+(gap+pier)/2,wall,pier,h,zone.wall,zone.accent);
+    }
+    var lintelH=.6,lintelBottom=cfg.ceilingHeight-.88;
+    if(longX)trim(gap,lintelH,wall+.05,0x19252e,x,lintelBottom+lintelH/2,z);
+    else trim(wall+.05,lintelH,gap,0x19252e,x,lintelBottom+lintelH/2,z);
+    LT.push({x:x,z:z,hw:longX?gap/2:(wall+.05)/2,hd:longX?(wall+.05)/2:gap/2,
+      y0:lintelBottom,h:lintelBottom+lintelH,c:0x19252e});
+    // High-visibility doorway border, mounted to the supporting side piers.
+    if(longX){
+      trim(.16,3.2,.08,zone.accent,x-gap/2,1.6,z+wall/2+.05);
+      trim(.16,3.2,.08,zone.accent,x+gap/2,1.6,z+wall/2+.05);
+      trim(gap,.12,.08,zone.accent,x,lintelBottom-.1,z+wall/2+.05);
+    }else{
+      trim(.08,3.2,.16,zone.accent,x+wall/2+.05,1.6,z-gap/2);
+      trim(.08,3.2,.16,zone.accent,x+wall/2+.05,1.6,z+gap/2);
+      trim(.08,.12,gap,zone.accent,x+wall/2+.05,lintelBottom-.1,z);
+    }
+    trim(longX?gap:wall,.04,longX?wall:gap,0xcbd4d9,x,.04,z);
   }
   // No decorative body is allowed to be walk-through. Collision uses the same
   // wl()/OB convention as TDM, so physics, bullets and A* share the geometry.
@@ -140,13 +197,20 @@ function makeBombMap(){
     }
     if((i+j)%4===0){visualBox(.12,.035,step*.65,zone.accent,x-.9,.06,z);
       visualBox(.12,.035,step*.65,zone.accent,x+.9,.06,z);}
-    if(i===0)mapBarrier(x-step/2,z,.5,step+.15,h,zone.wall);
-    if(j===0)mapBarrier(x,z-step/2,step+.15,.5,h,zone.wall);
-    if(i===n-1)mapBarrier(x+step/2,z,.5,step+.15,h,zone.wall);
-    if(j===n-1)mapBarrier(x,z+step/2,step+.15,.5,h,zone.wall);
-    // Keep many broad openings, and a large number of secondary flanking paths.
-    if(i<n-1&&!linked(id,id+1)&&random()>.42)mapBarrier(x+step/2,z,.52,step+.03,h,zone.wall);
-    if(j<n-1&&!linked(id,id+n)&&random()>.42)mapBarrier(x,z+step/2,step+.03,.52,h,zone.wall);
+    if(i===0)mapBarrier(x-step/2,z,.5,step+.15,h,zone.wall,zone.accent);
+    if(j===0)mapBarrier(x,z-step/2,step+.15,.5,h,zone.wall,zone.accent);
+    if(i===n-1)mapBarrier(x+step/2,z,.5,step+.15,h,zone.wall,zone.accent);
+    if(j===n-1)mapBarrier(x,z+step/2,step+.15,.5,h,zone.wall,zone.accent);
+    // Preserve every spanning-tree connection. Some openings now have actual physical
+    // jambs and a supported lintel, making doorways recognizable in both 3D and radar.
+    if(i<n-1){
+      if(!linked(id,id+1)&&random()>.42)mapBarrier(x+step/2,z,.52,step+.03,h,zone.wall,zone.accent);
+      else if(linked(id,id+1)&&(i*5+j*3)%4===0)mapPassage(x+step/2,z,false,zone);
+    }
+    if(j<n-1){
+      if(!linked(id,id+n)&&random()>.42)mapBarrier(x,z+step/2,step+.03,.52,h,zone.wall,zone.accent);
+      else if(linked(id,id+n)&&(i*3+j*5)%4===0)mapPassage(x,z+step/2,true,zone);
+    }
     // Dress every sector differently. The props are decorative, never a hidden maze obstacle.
     var isSite=BOMB_SITES.some(function(q){return Math.hypot(q.x-x,q.z-z)<step*1.3;});
     if(!isSite&&i>0&&j>0&&i<n-1&&j<n-1)facilityProps(x,z,i,j,zone);

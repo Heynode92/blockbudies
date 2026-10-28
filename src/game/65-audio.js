@@ -25,7 +25,7 @@ function snz(t,k){return Math.sin(t*(31+k*7.3)+k*1.7)*.6+Math.sin(t*(53+k*3.1)+k
 // ck = kill-chain tracker {n kills in chain, t timer, hs headshot streak}. Other globals: dead = ragdoll list, shakeT = screen shake time, AC = AudioContext, grs = grenades.
 var ck={n:0,t:0,hs:0},hsF=false,dead=[],inBoom=false,boomN=0,shakeT=0,AC=null,boomLab="RPG",grs=[];
 // dmgE(): applies damage d to bot e (knock direction kx,kz). Handles invulnerability, hit flash and calls killE() at 0 HP.
-function dmgE(e,d,kx,kz,ex){if(e.inv>0||e.dead)return;e.hp-=d;e.fl=.14;e.hs=Math.random()<.5?-1:1;e.hv=(e.hv||0)+Math.min(9,3+d*.5);var hm=Math.hypot(kx||0,kz||0);if(hm>.01){e.hdx=kx/hm;e.hdz=kz/hm;}if(e.hp<=0)killE(e,kx||0,kz||0,ex);}
+function dmgE(e,d,kx,kz,ex){if(e.inv>0||e.dead)return;if(isBombMode())bombInterruptPlant(e);e.hp-=d;e.fl=.14;e.hs=Math.random()<.5?-1:1;e.hv=(e.hv||0)+Math.min(9,3+d*.5);var hm=Math.hypot(kx||0,kz||0);if(hm>.01){e.hdx=kx/hm;e.hdz=kz/hm;}if(e.hp<=0)killE(e,kx||0,kz||0,ex);}
 // hlms = flying helmets (popped by headshots). popHelm()/popPl() pop a bot/player helmet; updH() animates them.
 var hlms=[];
 function popHelm(e,vx,vz){var h=e.hm;if(!h||!e.helm)return;e.helm=false;h.updateMatrixWorld(true);
