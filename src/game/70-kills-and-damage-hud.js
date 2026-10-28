@@ -66,22 +66,22 @@ function hdUpd(dt){var R=Math.min(innerWidth,innerHeight)*.3,sf=Math.sin(pl.face
 // hurt(): damages the PLAYER by d (from position sx,sz). Ignored while dead or spawn-protected. Calls die() at 0 HP.
 function hurt(d,sx,sz){if(pl.dead||pl.inv>0)return;if(sx!==undefined&&Math.hypot(sx-pl.x,sz-pl.z)>.6)hdHit(sx,sz);pl.hp-=d;pm.fl=.1;cs.s=Math.max(cs.s,.55);var hs2=0;if(sx!==undefined){var ddx=sx-pl.x,ddz=sz-pl.z;hs2=Math.sign(-ddx*Math.cos(pl.face)+ddz*Math.sin(pl.face));}cs.kv+=.7;cs.yv+=hs2*1.5;cs.rv+=hs2*.5+(Math.random()-.5)*.4;document.getElementById("hit").style.opacity=1;if(pl.hp<=0){pl.hp=0;die();}}
 // die(): player death: starts the 5 s respawn timer, drops the gun, updates stats and the killer credit.
-function die(){pl.dead=true;pl.rsT=5;pl.st.d++;pl.kb=curK&&curK!==pl?curK.name:"";if(curK&&curK!==pl){curK.st.k++;ts[curK.tm]++;}kFeed(curK,1,false,pl);mouse.right=false;mouse.down=false;fireHeld=false;kn.innerHTML="";pm.g.visible=true;if(pm.hg)pm.hg.visible=false;dropPlayerGun();document.body.classList.add("dead");
+function die(){pl.dead=true;pl.rsT=5;pl.st.d++;pl.kb=curK&&curK!==pl?curK.name:"";if(curK&&curK!==pl){curK.st.k++;if(!isBombMode())ts[curK.tm]++;}kFeed(curK,1,false,pl);mouse.right=false;mouse.down=false;fireHeld=false;kn.innerHTML="";pm.g.visible=true;if(pm.hg)pm.hg.visible=false;dropPlayerGun();if(isBombMode()){bombDrop(pl);document.body.classList.add("bomb-spectator");}else document.body.classList.add("dead");
   try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();tn(260,40,1.2,"sawtooth",.12);tn(120,30,1.6,"sine",.3);}catch(e){}}
 // mmss(): formats seconds as m:ss.
 function mmss(t){t=Math.floor(t);return Math.floor(t/60)+":"+("0"+t%60).slice(-2);}
 // cnt(): animated count-up of a number in an element (end-of-match results).
 function cnt(el,to,fmt,dur,dl){var t0=performance.now()+dl;el.textContent=fmt(0);(function f(n){var k=Math.max(0,Math.min(1,(n-t0)/dur));el.textContent=fmt(Math.round(to*(1-Math.pow(1-k,3))));if(k<1)requestAnimationFrame(f);})(performance.now());}
 // begin(tm): starts a match as team tm (0 = Police, 1 = Terrorist): hides menus, resets the world, spawns bots, starts the countdown.
-function begin(tm){document.getElementById("tsel").style.display="none";lb.style.display="none";lob=false;document.body.classList.remove("lobby","over","dead");reset();startMatch(tm);ov.style.display="none";run=true;if(!touch){try{R.domElement.requestPointerLock();}catch(e){}}}
+function begin(tm){document.getElementById("tsel").style.display="none";lb.style.display="none";lob=false;document.body.classList.remove("lobby","over","dead");bombCleanup();reset();selectedGameMode=selM;selectGameMap(isBombMode());startMatch(tm);ov.style.display="none";run=true;if(!touch){try{R.domElement.requestPointerLock();}catch(e){}}}
 document.getElementById("tsP").onclick=function(){begin(0);};document.getElementById("tsT").onclick=function(){begin(1);};document.getElementById("tsX").onclick=function(){document.getElementById("tsel").style.display="none";};
 // endMatch(): ends the match: stops the simulation, releases the mouse, shows the results screen (stars, scores, best score).
-function endMatch(){escHide();mt.over=true;mt.t=0;run=false;if(document.exitPointerLock)document.exitPointerLock();mouse.down=mouse.right=false;fireHeld=false;kn.innerHTML="";document.body.classList.remove("dead");document.body.classList.add("over");pl.dui=true;
+function endMatch(){escHide();mt.over=true;mt.t=0;run=false;if(document.exitPointerLock)document.exitPointerLock();mouse.down=mouse.right=false;fireHeld=false;kn.innerHTML="";document.body.classList.remove("dead","bomb-spectator");document.body.classList.add("over");pl.dui=true;
   var $=function(i){return document.getElementById(i);},me=pl.tm,w=ts[me]>ts[1-me]?1:ts[me]<ts[1-me]?-1:0,st=pl.st,b=0,h2=document.querySelector("#dc h2"),ti=w>0?"VICTORY":w<0?"DEFEAT":"DRAW";
-  try{b=+localStorage.getItem("bbfps_tdm")||0;}catch(e){}var nb=st.k>b;if(nb){b=st.k;try{localStorage.setItem("bbfps_tdm",b);}catch(e){}}
-  $("dv").classList.add("tdm");h2.setAttribute("data-t",ti);h2.firstChild.textContent=ti;
+  try{b=+localStorage.getItem(isBombMode()?"bbfps_bomb":"bbfps_tdm")||0;}catch(e){}var nb=st.k>b;if(nb){b=st.k;try{localStorage.setItem(isBombMode()?"bbfps_bomb":"bbfps_tdm",b);}catch(e){}}
+  $("dv").classList.add("tdm");document.querySelector(".dhd").textContent=isBombMode()?"BOMB MISSION REPORT":"BATTLE REPORT";h2.setAttribute("data-t",ti);h2.firstChild.textContent=ti;
   document.querySelector(".dtag").lastChild.nodeValue="MATCH OVER // "+(w>0?"YOUR TEAM WINS":w<0?"ENEMY TEAM WINS":"NO WINNER");
-  $("dsub").textContent="POLICE "+ts[0]+"  \u2014  "+ts[1]+" TERRORIST";
+  $("dsub").textContent="POLICE "+ts[0]+"  \u2014  "+ts[1]+" TERRORIST"+(isBombMode()?" | BOMB MISSION":"");
   cnt($("dsc"),st.k,String,900,500);cnt($("dtm"),st.d,String,900,600);cnt($("dbs"),b,String,900,700);
   var th=[0,5,10,16],nm=["Recruit","Private","Veteran","Legend"],ri=st.k<5?0:st.k<10?1:st.k<16?2:3,pr=ri<3?(st.k-th[ri])/(th[ri+1]-th[ri]):1;
   $("drk").innerHTML='<div class="rbd"><div><small>RANK</small><b>'+nm[ri].toUpperCase()+'</b></div></div>'+(nb&&st.k>0?'<span class="nr">\u2605 NEW RECORD!</span>':'');

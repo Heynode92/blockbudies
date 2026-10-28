@@ -46,7 +46,7 @@ function popPl(){pl.helm=false;if(pm.hm)pm.hm.visible=false;var f=document.getEl
 // killE(): kills bot e: scoring, kill feed, ragdoll, gun drop, respawn timer. Credit goes to curK (the last damage dealer).
 function killE(e,kx,kz,ex){
   var K=curK,pk=K===pl;kFeed(K,killW,hsF,e);if(e.mk)e.mk.visible=false;if(e.nm)e.nm.visible=false;
-  en.splice(en.indexOf(e),1);e.dead=true;e.st.d++;rq.push({b:e,t:5});if(K){K.st.k++;ts[K.tm]++;}
+  en.splice(en.indexOf(e),1);e.dead=true;e.st.d++;if(!isBombMode())rq.push({b:e,t:5});bombDrop(e);if(K){K.st.k++;if(!isBombMode())ts[K.tm]++;}
   if(pk){score++;if(score%4===0)addGren();if(DM_RULES.crates)mkCrate(e.x,e.z,.45+gh(e.x,e.z,0),rci());starKill();}
   detachGun(e,kx,kz,ex);e.ms.forEach(function(m){m.emissive.setHex(0);});e.arms.forEach(function(q){q.rotation.set(0,0,0);q.scale.y=1;q.userData.fa.quaternion.set(0,0,0,1);});e.g.userData.gun.position.set(0,0,0);e.body.rotation.x=0;e.body.rotation.y=0;
   var m=Math.hypot(kx,kz);if(m<.01){kx=-Math.sin(e.g.rotation.y);kz=-Math.cos(e.g.rotation.y);m=1;}kx/=m;kz/=m;

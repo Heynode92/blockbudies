@@ -29,19 +29,21 @@ function gPath(x0,z0,x1,z1){if(!GB)gInit();var N=GN,s=gFree(gc(x0),gc(z0)),g=gFr
 function botPath(e,gx,gz){var p=gPath(e.x,e.z,gx,gz);e.path=p||[[gx,gz]];e.pi=0;e.pt=1.1+Math.random()*.8;}
 // botsUpd(dt): LIVE bot AI (movement along paths, target choice, line-of-sight, shooting with fire(..., "e")).
 function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
-  for(i=rq.length-1;i>=0;i--){var q=rq[i];q.t-=dt;if(q.t<=0&&!mt.over){var nb=newBot(q.b.tm,q.b.idx);nb.st=q.b.st;placeBot(nb);rq.splice(i,1);}}
+  for(i=rq.length-1;i>=0;i--){var q=rq[i];q.t-=dt;if(q.t<=0&&!mt.over&&!isBombMode()){var nb=newBot(q.b.tm,q.b.idx);nb.st=q.b.st;placeBot(nb);rq.splice(i,1);}}
   en.forEach(function(e){var t,dx=0,dz=0,d=99,f,mvx=0,mvz=0,sp=4.8,ox=e.x,oz=e.z,combat,gx,gz,wp,ml;
     e.inv=Math.max(0,(e.inv||0)-(cdn?0:dt));e.vis=Math.max(0,(e.vis||0)-dt);e.tq=(e.tq||0)-dt;e.navT=Math.max(0,(e.navT||0)-dt);
     if(e.tq<=0){e.tq=.35+Math.random()*.2;var bd=1e9,bt=null;
       en.forEach(function(o){if(o.tm!==e.tm){var dd=Math.hypot(o.x-e.x,o.z-e.z);if(dd<bd&&dd<45&&los(e.x,e.z,o.x,o.z)){bd=dd;bt=o;}}});
       if(pl.tm!==e.tm&&!pl.dead){var d2=Math.hypot(pl.x-e.x,pl.z-e.z);if(d2<bd&&d2<45&&los(e.x,e.z,pl.x,pl.z)){bd=d2;bt=pl;}}
       e.tg=bt;e.lok=!!bt;
-      if(!bt){var ob=null,od=1e9;en.concat(pl.dead?[]:[pl]).forEach(function(o){if(o.tm!==e.tm){var dd=Math.hypot(o.x-e.x,o.z-e.z);if(dd<od){od=dd;ob=o;}}});
+      if(!bt&&isBombMode()){var objective=bombBotGoal(e);if(objective){e.wx=objective[0];e.wz=objective[1];}}
+      if(!bt&&!isBombMode()){var ob=null,od=1e9;en.concat(pl.dead?[]:[pl]).forEach(function(o){if(o.tm!==e.tm){var dd=Math.hypot(o.x-e.x,o.z-e.z);if(dd<od){od=dd;ob=o;}}});
         if(ob){e.wx=ob.x+(Math.random()-.5)*12;e.wz=ob.z+(Math.random()-.5)*12;}else{e.wx=(Math.random()-.5)*2*(A-8);e.wz=(Math.random()-.5)*2*(A-8);}}}
     t=e.tg;if(t&&(t.dead||(t===pl&&pl.dead)))t=e.tg=null;
     e.lt=(e.lt||0)-dt;if(t&&e.lt<=0){e.lt=.15;e.lok=los(e.x,e.z,t.x,t.z);}
     if(t){dx=t.x-e.x;dz=t.z-e.z;d=Math.hypot(dx,dz)||1;}
     combat=!!t&&e.lok&&e.navT<=0;
+    if(isBombMode()&&e.bAction)combat=false;
     if(combat){var fw=d>16?1:d<7?-.6:0,st;e.bt=(e.bt||0)-dt;if(e.bt<=0){e.bt=.7+Math.random()*1.4;e.sd=[-1,0,1][(Math.random()*3)|0];}st=(e.sd||0)*.9;
       mvx=dx/d*fw+(dz/d)*st;mvz=dz/d*fw-(dx/d)*st;
       if(GB[gc(e.z+mvz*sp*dt*4)*GN+gc(e.x+mvx*sp*dt*4)]){e.sd=-(e.sd||1);mvx=dx/d*fw;mvz=dz/d*fw;}}
@@ -49,6 +51,7 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
       if(!e.path||e.pt<=0||e.stk>.5){botPath(e,gx,gz);e.stk=0;}
       wp=e.path[e.pi];while(wp&&e.pi<e.path.length-1&&Math.hypot(wp[0]-e.x,wp[1]-e.z)<1.1){e.pi++;wp=e.path[e.pi];}
       if(wp){var wx=wp[0]-e.x,wz=wp[1]-e.z,wl=Math.hypot(wx,wz)||1;if(wl>.4){mvx=wx/wl;mvz=wz/wl;}}}
+    if(isBombMode()&&e.bAction)mvx=mvz=0;
     en.forEach(function(o){if(o!==e){var sx=e.x-o.x,sz=e.z-o.z,sq=Math.hypot(sx,sz);if(sq<1.8&&sq>.01){mvx+=sx/sq*.7;mvz+=sz/sq*.7;}}});
     ml=Math.hypot(mvx,mvz);if(ml>1){mvx/=ml;mvz/=ml;}if(cdn)mvx=mvz=0;
     f=(t&&e.lok)?Math.atan2(dx,dz):(mvx||mvz)?Math.atan2(mvx,mvz):e.g.rotation.y;
@@ -56,10 +59,12 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
     var dm=Math.hypot(e.x-ox,e.z-oz);
     if((mvx||mvz)&&dm<sp*dt*.3){e.stk=(e.stk||0)+dt;if(combat&&e.stk>.5){e.navT=1.2;e.sd=-(e.sd||1);e.stk=0;e.pt=0;}}else e.stk=0;
     e.g.rotation.y=f;e.cd-=dt;
-    if(t&&e.lok&&!cdn&&e.cd<=0&&d<32){if(!(e.bn>0))e.bn=3+((Math.random()*4)|0);fire(e,f+(Math.random()-.5)*(.05+d*.0045),EW,"e",0);e.rc=1;e.vis=1.6;e.bn--;e.cd=e.bn>0?.11:.5+Math.random()*.6;}
+    if(t&&e.lok&&!cdn&&!(isBombMode()&&e.bAction)&&e.cd<=0&&d<32){if(!(e.bn>0))e.bn=3+((Math.random()*4)|0);fire(e,f+(Math.random()-.5)*(.05+d*.0045),EW,"e",0);e.rc=1;e.vis=1.6;e.bn--;e.cd=e.bn>0?.11:.5+Math.random()*.6;}
     e.y=(e.y||0)+(gh(e.x,e.z,0)-(e.y||0))*Math.min(1,dt*10);e.g.position.set(e.x,e.y,e.z);e.g.visible=e.inv>0?Math.floor(tt*12)%2===0:true;
     e.wp=(e.wp||0)+dm*2.4;var am=Math.min(1,dm/dt/2.2);e.legs[0].rotation.x=Math.sin(e.wp)*.8*am;e.legs[1].rotation.x=-e.legs[0].rotation.x;e.rc=Math.max(0,(e.rc||0)-dt*6);aimArms(e);
-    e.body.position.y=Math.abs(Math.sin(e.wp))*.07*am;e.body.rotation.z=Math.sin(e.wp)*.05*am;e.body.rotation.x=-.05*(e.rc||0);e.body.rotation.y=0;flash(e,dt);});}
+    e.body.position.y=Math.abs(Math.sin(e.wp))*.07*am;e.body.rotation.z=Math.sin(e.wp)*.05*am;e.body.rotation.x=-.05*(e.rc||0);e.body.rotation.y=0;flash(e,dt);
+    if(isBombMode()&&e.bAction){e.body.position.y=-.43;e.body.rotation.x=.23;e.legs[0].rotation.x=-.95;e.legs[1].rotation.x=-1.05;e.arms[1].rotation.z=-.7;e.arms[0].rotation.z=.7;}
+  });}
 // botsUpdOld(dt): UNUSED legacy AI kept for reference. Nothing calls it. Do not edit it expecting gameplay changes.
 function botsUpdOld(dt){var i,cdn=mt.cd>0;
   for(i=rq.length-1;i>=0;i--){var q=rq[i];q.t-=dt;if(q.t<=0&&!mt.over){var nb=newBot(q.b.tm,q.b.idx);nb.st=q.b.st;placeBot(nb);rq.splice(i,1);}}

@@ -27,6 +27,7 @@ function radar(){
   X.strokeStyle="rgba(255,110,50,.95)";X.lineWidth=2.5/k;X.strokeRect(-A,-A,2*A,2*A);
   X.fillStyle="#69db7c";X.shadowColor="#2fe06a";X.shadowBlur=8;
   cr.forEach(function(q){if(q.ci===3&&q.land&&Math.hypot(q.x-pl.x,q.z-pl.z)<RWD*.95){var m=2.6/k;X.fillRect(q.x-m,q.z-m*.35,m*2,m*.7);X.fillRect(q.x-m*.35,q.z-m,m*.7,m*2);}});
+  if(isBombMode()){BOMB_SITES.forEach(function(site){X.fillStyle="#ffe066";X.shadowBlur=0;X.font=cfont(4);X.fillText(site.id,site.x,site.z);});if(bombMatch&&bombMatch.dropped){X.fillStyle="#ff5555";X.beginPath();X.arc(bombMatch.dropped.x,bombMatch.dropped.z,1.4,0,6.283);X.fill();}}
   en.forEach(function(q){var al=q.tm===pl.tm;if(!al&&!(q.vis>0))return;var ddx=q.x-pl.x,ddz=q.z-pl.z,dl=Math.hypot(ddx,ddz),mxr=RWD*.93,px=q.x,pz=q.z;if(dl>mxr){px=pl.x+ddx/dl*mxr;pz=pl.z+ddz/dl*mxr;}X.shadowColor=al?"#4dabf7":"#ff4d4d";X.shadowBlur=al?10:0;X.fillStyle=al?"#4dabf7":"#ff4d4d";X.strokeStyle="#fff";X.lineWidth=2/k;X.beginPath();X.arc(px,pz,(al?8:6)/k,0,6.29);X.fill();X.stroke();});
   X.shadowBlur=0;X.setTransform(1,0,0,1,0,0);
   // range rings + cross lines
@@ -64,9 +65,9 @@ function radar(){
   X.shadowColor="#ffd23f";X.shadowBlur=12;X.lineWidth=7;X.strokeStyle="#ffd23f";X.beginPath();X.arc(RC,RC,RO,-Math.PI/2-.2,-Math.PI/2+.2);X.stroke();X.shadowBlur=0;}
 // hud(): updates all HUD pieces every frame: timer, HP, ammo, crosshair spread, reload bar, scope overlay (scopedNow when AWP aim blend > .92),
 // hides the gun model while scoped, kill banners, radar.
-function hud(){var w=WP[pl.w],hp=pl.hp;tmUpd();wselUpd();abUpd();scopedNow=pl.w===8&&adsT>.92&&!pl.dead&&!lob&&!mt.over;scopeEl.style.display=scopedNow?"block":"none";document.body.classList.toggle("scoped",scopedNow);hold.visible=!scopedNow;
+function hud(){var w=WP[pl.w],hp=pl.hp;tmUpd();wselUpd();abUpd();scopedNow=pl.w===8&&adsT>.92&&!pl.dead&&!lob&&!mt.over;scopeEl.style.display=scopedNow?"block":"none";document.body.classList.toggle("scoped",scopedNow);hold.visible=!scopedNow&&!(isBombMode()&&pl.bAction);
   E.hpf.style.width=hp+"%";E.hpf.style.background=hp>60?"linear-gradient(90deg,#2f9e44,#69db7c)":hp>30?"linear-gradient(90deg,#f08c00,#ffd43b)":"linear-gradient(90deg,#c92a2a,#ff6b6b)";
   E.hpt.textContent=Math.ceil(hp);E.sc.textContent=score;E.wn.textContent=w.n;
   E.mg.textContent=pl.mag;E.mg.style.color=pl.mag<=w.mag*.25?"#ff6b6b":"";
   E.rs.textContent="/ "+(pl.res===Infinity?"\u221e":pl.res);
-  slotUI(w);if(wiK!==pl.w){wiK=pl.w;E.wi.innerHTML=SV[pl.w];}hhi.className=hp>0&&hp<=30?"low":"";chE.style.setProperty("--g",((6+mvAmt*4+sprT*8+kick*30)*(1-.6*adsT))+"px");rbEl.style.opacity=pl.rl>0?1:0;E.rbf.style.width=pl.rl>0?(100*(1-pl.rl/w.rt))+"%":"0";radar();}
+  slotUI(w);if(wiK!==pl.w){wiK=pl.w;E.wi.innerHTML=SV[pl.w];}hhi.className=hp>0&&hp<=30?"low":"";chE.style.setProperty("--g",((6+mvAmt*4+sprT*8+kick*30)*(1-.6*adsT))+"px");rbEl.style.opacity=pl.rl>0?1:0;E.rbf.style.width=pl.rl>0?(100*(1-pl.rl/w.rt))+"%":"0";radar();bombHudUpdate();}

@@ -2,6 +2,7 @@
   "parts": [
     "src/game/00-bootstrap.js",
     "src/game/10-world.js",
+    "src/game/11-bomb-map.js",
     "src/game/20-sky-and-physics.js",
     "src/game/30-characters.js",
     "src/game/40-weapons-and-viewmodels.js",
@@ -13,6 +14,7 @@
     "src/game/75-weapon-controls.js",
     "src/game/80-input.js",
     "src/game/85-lobby-and-match.js",
+    "src/game/86-bomb-mission.js",
     "src/game/90-bot-ai.js",
     "src/game/95-simulation.js",
     "src/game/96-hud-and-radar.js",
@@ -24,6 +26,7 @@
     "src/styles/03-controls-and-death.css",
     "src/styles/04-lobby.css",
     "src/styles/05-match.css",
-    "src/styles/06-weapon-selection.css"
+    "src/styles/06-weapon-selection.css",
+    "src/styles/07-bomb-mission.css"
   ]
 }

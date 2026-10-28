@@ -1,47 +1,21 @@
-# Architecture: source of truth and build discipline
+# Blok Buddies architecture and development rules
 
-## Baseline
+## Source of truth
 
-Source of truth: uploaded `Blok_Buddies_FPS_fixed (7).html`. Its exact contents are archived at `tests/fixtures/source-original.html`. The original HTML, CSS and JavaScript are reconstructed byte-for-byte from the project in the parity tests.
+`tests/fixtures/source-original.html` retains the original browser game. Existing Team Deathmatch logic, weapons, GUI strings and visual effects must not change without explicit approval. `index.html` retains the lobby and original Three.js/Google Fonts external dependencies.
 
-## Runtime
+All JavaScript feature fragments are assembled in the explicit order in `tools/source-manifest.json` to produce a single original-style IIFE bundle at `assets/game.js`. This maintains the shared lexical state while logically separating responsibilities. The committed bundle is generated, never hand-edited. Browser-only users just pull and open the file.
 
-The browser loads the original Three.js r128 URL, the ordered stylesheets, and `assets/game.js`. The bundle is the original single IIFE with unchanged statement order and shared variables. The source files are logical editing boundaries **not independent ES modules**. A deterministic, dependency-free Node tool assembles them. The output is committed so users only need `git pull`.
+## Modes
 
-## Ownership
+Team Deathmatch uses the original map (`BOMB_CITY` mesh and collision snapshots). Bomb Mission's indoor map generator stores its own `BOMB_WORLD`, `BOMB_OB`, `BOMB_BR` and `BOMB_LT` and restores the originals when returning to TDM. The AI pathfinding grid `GB` is invalidated whenever the active map changes. Game mode is set by `selectedGameMode`; the `isBombMode()` guard isolates objective-specific behavior.
 
-| Fragment | Responsibility |
-|---|---|
-| 00-bootstrap | Three.js renderer and scene setup |
-| 10-world | Map, buildings, objects and obstacles |
-| 20-sky-and-physics | Sky animation and world collisions |
-| 30-characters | Character models, helmets and movement animation |
-| 40-weapons-and-viewmodels | Weapon stats, meshes, FPS gun/hand animations |
-| 45-combat | Projectile firing, reset and explosions |
-| 50-items-and-drops | Airdrops, shell casings and dropped items |
-| 60-impact-effects | Bullet decals, damage marks and smoke |
-| 65-audio | WebAudio effects |
-| 70-kills-and-damage-hud | Kill feedback and damage direction |
-| 75-weapon-controls | Weapon slots, loadout and sniper scope |
-| 80-input | Mouse/keyboard and touchscreen |
-| 85-lobby-and-match | Lobby UI and match lifecycle |
-| 90-bot-ai | Bot pathfinding and behaviors |
-| 95-simulation | Simulation update loop |
-| 96-hud-and-radar | Player HUD and minimap |
-| 99-render-loop | Animation frame and viewmodel/world render passes |
+`src/game/11-bomb-map.js` provides immutable `BOMB_RULES` and `BOMB_TEXT` configuration plus map generation and site markers. `src/game/86-bomb-mission.js` owns the bomb lifecycle, interaction progress, dropped device state, AI objective goals, spectator targeting, round rules and Bomb HUD. Combat uses the original projectile system; `killE()` and `die()` trigger `bombDrop()` and suppress TDM respawn/kill-scoring when Bomb Mission is active. `update()` calls `bombUpdate()` to resolve the round and the render loop follows living teammates after player death.
 
-Stylesheets retain original CSS ordering through numeric prefixes and manifest.
+## Anti-regression
 
-## Multiplayer boundary
+For every update, regenerate `assets/game.js`, then run syntax, bundle-sync and logic regression tests. Preserve the original fixture. Record changes in `CHANGELOG.md`, including affected modules, UI strings and validation. Never silently add networking, accounts, tracking or third-party dependencies.
 
-Movement, health, scoring and shots are currently simulated in the browser. They must be validated by a server-authoritative game engine before online PvP. This migration adds **no server, database, networking, matchmaking or anti-cheat**.
+## Security / online readiness
 
-## Future changes
-
-1. Identify the original source-of-truth behavior and relevant feature files.
-2. Keep existing gameplay/UI strings unless explicitly changing them.
-3. Update source and run `node tools/build.mjs`.
-4. Run syntax, build-sync and regression tests. Intentional game changes require new behavioral tests; keep the original fixture intact.
-5. Append a dated entry to `CHANGELOG.md` and commit source and generated bundle together.
-
-Do not add runtime dependencies or move functions around without specific regression coverage.
+This remains an **offline client-simulated game**. Client-supplied position, health, damage, bomb state and round results are untrusted for real PvP. Before multiplayer, movement, collision, shots, bomb actions, round results and spectator visibility must be handled by a server-authoritative engine; these file boundaries are only a foundation, not anti-cheat.

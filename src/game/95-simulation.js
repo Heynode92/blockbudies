@@ -4,20 +4,20 @@
 // update
 function update(dt){
   tt+=dt;sndN=0;if(mt.cd<=0)pl.inv=Math.max(0,(pl.inv||0)-dt);
-  if(mt.cd>0)mt.cd-=dt;else if(!mt.over){mt.t-=dt;if(mt.t<=0){endMatch();return;}}
+  if(mt.cd>0)mt.cd-=dt;else if(!mt.over){mt.t-=dt;if(mt.t<=0&&!isBombMode()){endMatch();return;}}
   var mx=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0)+ST.l.x,mz=(keys.KeyS||keys.ArrowDown?1:0)-(keys.KeyW||keys.ArrowUp?1:0)+ST.l.y,ml=Math.hypot(mx,mz);
-  if(pl.dead||mt.cd>0){mx=mz=ml=0;}if(ml>1){mx/=ml;mz/=ml;ml=1;}
-  var shoot=!pl.dead&&mt.cd<=0&&(!!keys.KeyF||fireHeld||(mouse.down&&document.pointerLockElement===R.domElement));
+  if(pl.dead||mt.cd>0||(isBombMode()&&pl.bAction)){mx=mz=ml=0;}if(ml>1){mx/=ml;mz/=ml;ml=1;}
+  var shoot=!pl.dead&&mt.cd<=0&&!(isBombMode()&&pl.bAction)&&(!!keys.KeyF||fireHeld||(mouse.down&&document.pointerLockElement===R.domElement));
   var pb0=pl.bolt||0;pl.bolt=Math.max(0,pb0-dt);if(pl.w!==8||pl.dead)pl.bolt=0;if(pb0>0&&pl.bolt===0&&pl.w===8&&!pl.dead&&pl.mag<=0)reload();
   if(pl.w!==8||pl.dead||pl.rl>0||pl.bolt>0)scopeOn=false;
   var wA=!pl.dead&&(pl.w===8?scopeOn:mouse.right)&&canAds(pl.w)&&pl.rl<=0&&pl.sw<=0&&pl.thr<=0&&pl.stab<=0,wS=!pl.dead&&(keys.ShiftLeft||keys.ShiftRight)&&-mz>.25&&!wA&&!shoot;
   adsT+=((wA?1:0)-adsT)*Math.min(1,dt*12);sprT+=((wS?1:0)-sprT)*Math.min(1,dt*9);
-  if(!pl.dead)pl.life+=dt;else{pl.dt+=dt;pl.rsT-=dt;if(pl.rsT<=0&&!mt.over)respawnPl();}
+  if(!pl.dead)pl.life+=dt;else{pl.dt+=dt;pl.rsT-=dt;if(pl.rsT<=0&&!mt.over&&!isBombMode())respawnPl();}
   var spd=6.5*(1+.62*sprT)*(1-.38*adsT)*(1-.12*wtT);
   mvAmt+=(ml-mvAmt)*Math.min(1,dt*8);wtT+=((pl.w>=1&&pl.w<=3||pl.w===6||pl.w===8?1:0)-wtT)*Math.min(1,dt*6);
   var fw=-mz,sf=Math.sin(pl.face),cf=Math.cos(pl.face);pl.x+=(fw*sf-mx*cf)*spd*dt;pl.z+=(fw*cf+mx*sf)*spd*dt;resolve(pl,.55);
   var py=pl.y,gy=gh(pl.x,pl.z,py);
-  if(!pl.dead&&(keys.Space||jumpHeld)&&pl.y<=gy+.001)pl.vy=9;
+  if(!pl.dead&&!(isBombMode()&&pl.bAction)&&(keys.Space||jumpHeld)&&pl.y<=gy+.001)pl.vy=9;
   pl.vy-=28*dt;pl.y+=pl.vy*dt;gy=gh(pl.x,pl.z,py);
   if(pl.y<=gy){pl.y=gy;pl.vy=0;}
   if(pl.vy===0&&Math.abs(pl.y-camY)<1.2)camY+=(pl.y-camY)*Math.min(1,dt*16);else camY=pl.y;
@@ -65,6 +65,8 @@ function update(dt){
   updCl(dt);updSm(dt);
   for(i=fx.length-1;i>=0;i--){var f2=fx[i];f2.t+=dt*3;f2.m.scale.setScalar(.5+f2.t*4);f2.m.material.opacity=Math.max(0,.7-f2.t*.7);if(f2.t>=1){S.remove(f2.m);fx.splice(i,1);}}
   pm.g.position.set(pl.x,pl.y,pl.z);pm.g.rotation.y=pl.face;pm.legs[0].rotation.x=Math.sin(tt*10)*.6*ml;pm.legs[1].rotation.x=-pm.legs[0].rotation.x;pm.body.rotation.y=0;flash(pm,dt);if(pl.dead){var dp=Math.min(1,pl.dt/.6),ds=dp*dp*(3-2*dp),an=-Math.PI/2*ds;pm.body.rotation.set(an,0,0);pm.body.position.y=.3*Math.abs(Math.sin(an));pm.arms[0].rotation.z=-1.1*ds;pm.arms[1].rotation.z=1.1*ds;pm.legs[0].rotation.z=-.3*ds;pm.legs[1].rotation.z=.3*ds;}
+  // Bomb objective and round resolution run after damage so an eliminated actor cannot finish an action.
+  if(isBombMode())bombUpdate(dt);
   // HUD
   hud();hdUpd(dt);kfUpd(dt);
   if(toastT>0&&(toastT-=dt)<=0)document.getElementById("toast").style.opacity=0;var ht=document.getElementById("hit");ht.style.opacity=Math.max(0,ht.style.opacity-dt*2);

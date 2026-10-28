@@ -1,0 +1,123 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {runInNewContext} from 'node:vm';
+import {resolve} from 'node:path';
+const root = resolve(import.meta.dirname, '..');
+const mapSource=readFileSync(resolve(root,'src/game/11-bomb-map.js'),'utf8');
+const missionSource=readFileSync(resolve(root,'src/game/86-bomb-mission.js'),'utf8');
+function fakeThree(){
+  class Position { constructor(){this.x=0;this.y=0;this.z=0;} set(x,y,z){this.x=x;this.y=y;this.z=z;return this;} }
+  class Group{constructor(){this.children=[];this.position=new Position();this.scale=new Position();this.rotation={x:0,y:0,z:0};this.userData={};this.visible=true;}add(...items){this.children.push(...items);} }
+  class Mesh extends Group{constructor(){super();this.isMesh=true;}}
+  class Sprite extends Group{}
+  class Material{constructor(props){Object.assign(this,props);}}
+  class Geometry{constructor(){}}
+  class Color{constructor(color){this.value=color;}}
+  return {Group,Mesh,Sprite,Color,Fog:class{},MeshBasicMaterial:Material,MeshLambertMaterial:Material,SpriteMaterial:Material,BoxGeometry:Geometry,CylinderGeometry:Geometry,SphereGeometry:Geometry,CircleGeometry:Geometry,RingGeometry:Geometry,CanvasTexture:class{}};
+}
+function makeContext(){
+  const T=fakeThree();
+  const dom={};for(const id of ['bombInfo','bombStatus','bombActionLabel','bombActionBar','bombTouch','bombSpec','bombNext']){
+    dom[id]={style:{},textContent:'',addEventListener(){},setPointerCapture(){},userData:{}};
+  }
+  const fakeCanvas={width:0,height:0,getContext(){return {fillRect(){},fillText(){},fillStyle:'',font:'',textAlign:''};}};
+  const S=new T.Group();S.fog=null;S.background=null;
+  const C={};
+  const ctx={
+    Math,Object,Array,Uint8Array,Date,console,T,S,VS:new T.Group(),OB:[],BR:[],LT:[],GB:null,
+    pl:{x:0,z:0,tm:1,dead:false,name:'You'},en:[],ts:[0,0],
+    mt:{cd:0,t:120,over:false},tt:10,run:true,lob:false,touch:false,keys:{KeyE:true},
+    SPH:[[],[]],A:60,
+    document:{getElementById(id){return dom[id];},createElement(){return fakeCanvas;},body:{classList:{remove(){},add(){}}}},
+    addEventListener(){},toast(){},mmss(t){return String(t);},
+    mk(w,h,d,col,x,y,z){const m=new T.Mesh();m.position.set(x,y,z);S.add(m);return m;},
+    wl(x,z,w,d,h,col){ctx.OB.push({x,z,hw:w/2,hd:d/2,h,c:col});return ctx.mk(w,h,d,col,x,h/2,z);},
+    inObs(x,z,m){return ctx.OB.some(o=>Math.abs(x-o.x)<o.hw+(m||0)&&Math.abs(z-o.z)<o.hd+(m||0));},
+    reset(){},startMatch(){},endMatch(){ctx.mt.over=true;}
+  };
+  runInNewContext(mapSource+'\n'+missionSource,ctx);
+  ctx.selectedGameMode=1;
+  return ctx;
+}
+function init(c){
+  c.pl.dead=false;c.pl.tm=1;c.pl.x=-21;c.pl.z=-7;
+  c.bombMatch={state:'idle',carrier:c.pl,dropped:null,device:{visible:false,position:{x:0,y:0,z:0,set(x,y,z){this.x=x;this.y=y;this.z=z;}},userData:{led:{visible:true}}},site:-1,done:false,round:1,fuseLeft:40};
+  c.mt={cd:0,t:100,over:false};c.ts=[0,0];c.run=true;c.bombHold=false;
+}
+test('indoor map switches geometry and restores Team Deathmatch unchanged',()=>{
+  const c=makeContext();const city=[...c.OB];
+  c.selectGameMap(true);
+  assert.ok(c.OB.length>100,'maze walls and crates created');
+  assert.equal(c.BOMB_SITES.length,2);
+  for(const q of c.BOMB_SITES)assert.equal(c.inObs(q.x,q.z,1),false,'bomb sites are accessible');
+  assert.ok(c.bombSpawnPt(0)[1]>0);assert.ok(c.bombSpawnPt(1)[1]<0);
+  c.selectGameMap(false);
+  assert.deepEqual(c.OB,city);
+});
+test('plant requires full five seconds and bombs are dropped on carrier death',()=>{
+  const c=makeContext();init(c);
+  for(let i=0;i<4;i++)c.bombAct(c.pl,1,true);
+  assert.equal(c.bombMatch.state,'idle');
+  c.bombAct(c.pl,1,true);
+  assert.equal(c.bombMatch.state,'planted');assert.equal(c.bombMatch.site,0);
+  init(c);c.bombDrop(c.pl);
+  assert.equal(c.bombMatch.carrier,null);assert.equal(c.bombMatch.dropped.x,-21);
+});
+test('plant progress cancels on key release, movement out of site, or death',()=>{
+  const c=makeContext();init(c);
+  c.bombAct(c.pl,2,true);assert.equal(c.pl.bAction.t,2);
+  c.bombAct(c.pl,.1,false);assert.equal(c.pl.bAction,null);
+  c.bombAct(c.pl,1,true);c.pl.x=10;c.bombAct(c.pl,1,true);assert.equal(c.pl.bAction,null);
+  c.pl.x=-21;c.bombAct(c.pl,1,true);c.pl.dead=true;c.bombAct(c.pl,1,true);assert.equal(c.pl.bAction,null);
+});
+test('defuse takes seven seconds and awards one Police round point',()=>{
+  const c=makeContext();init(c);c.pl.tm=0;c.bombMatch.state='planted';c.bombMatch.site=0;
+  c.bombMatch.device.position.set(-21,0,-7);
+  for(let i=0;i<6;i++)c.bombAct(c.pl,1,true);
+  assert.equal(c.ts[0],0);assert.equal(c.bombMatch.done,false);
+  c.bombAct(c.pl,1,true);
+  assert.equal(c.bombMatch.done,true);assert.equal(c.ts[0],1);assert.equal(c.ts[1],0);
+});
+test('terrorist automatically recovers dropped bomb in pickup radius',()=>{
+  const c=makeContext();init(c);c.bombDrop(c.pl);c.bombMatch.device.visible=true;
+  c.pl.x=20;c.pl.z=20;
+  const buddy={x:-21,z:-7,tm:1,dead:false,idx:1,name:'Razor',bAction:null};c.en=[buddy];
+  c.bombUpdate(.1);
+  assert.equal(c.bombMatch.carrier,buddy);assert.equal(c.bombMatch.dropped,null);assert.equal(c.bombMatch.device.visible,false);
+});
+test('bomb detonation and unplanted round timeout award correct rounds',()=>{
+  const c=makeContext();init(c);
+  c.bombMatch.state='planted';c.bombMatch.site=0;c.mt.t=0;
+  c.bombUpdate(.1);assert.equal(c.bombMatch.done,true);assert.equal(c.ts[1],1);
+  init(c);c.mt.t=0;c.bombUpdate(.1);assert.equal(c.bombMatch.done,true);assert.equal(c.ts[0],1);
+});
+test('generated maze keeps all 121 rooms connected by real corridors',()=>{
+  const c=makeContext();c.selectGameMap(true);
+  const step=c.BOMB_RULES.cellSize,half=(c.BOMB_RULES.cells-1)/2,n=c.BOMB_RULES.cells;
+  const seen=new Set(['0:0']),q=[[0,0]];
+  while(q.length){const [x,z]=q.shift();for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){
+    const nx=x+dx,nz=z+dz,key=nx+':'+nz;
+    if(nx<0||nz<0||nx>=n||nz>=n||seen.has(key))continue;
+    const px=(x-half)*step,pz=(z-half)*step;
+    if(c.inObs(px+dx*step/2,pz+dz*step/2,.2))continue;
+    seen.add(key);q.push([nx,nz]);
+  }}
+  assert.equal(seen.size,n*n);
+});
+test('bot goal changes between bomb carrying, dropped device, and planted defuse',()=>{
+  const c=makeContext();init(c);
+  const bot={tm:1,idx:2,dead:false,x:0,z:-35,siteChoice:0};c.en=[bot];c.bombMatch.carrier=bot;
+  assert.equal(c.bombBotGoal(bot)[0],-21);
+  c.bombMatch.carrier=null;c.bombMatch.dropped={x:12,z:3};
+  assert.equal(c.bombBotGoal(bot)[0],12);
+  c.bombMatch.dropped=null;c.bombMatch.state='planted';c.bombMatch.device.position.set(21,0,7);
+  const cop={tm:0,idx:0,x:0,z:35};
+  assert.equal(c.bombBotGoal(cop)[0],21);
+});
+test('spectator only selects living teammates, never enemies',()=>{
+  const c=makeContext();init(c);c.pl.dead=true;
+  c.en=[{tm:0,name:'Police',dead:false},{tm:1,name:'Living',dead:false},{tm:1,name:'Dead',dead:true}];
+  assert.equal(c.bombSpectatorTarget().name,'Living');
+  c.en[1].dead=true;assert.equal(c.bombSpectatorTarget(),null);
+});
