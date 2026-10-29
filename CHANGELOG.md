@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-10-29 — Inventory v2: animated grip and real 3D colored thumbnails
+
+### Fixed
+- Inventory avatar now uses the game's production two-bone IK (`aimA()`) to position both arms around the held weapon, with weapon-kind-specific ready poses, breathing, sway, and maintained drag-to-rotate preview.
+- Gun models now occupy a chest-height combat-ready stance instead of relying on the static bot gun mount. Rifle, shotgun, sniper, RPG, pistol, knife and grenade have distinct handling configurations.
+- Removed the redundant Dual Kriss ownership card. **Kriss** is the single inventory item and its **V = Dual Mode** gameplay interaction is preserved; preexisting localStorage equipment value `7` migrates to Kriss (`6`).
+- Replaced monochrome white SVG icons in inventory weapon cards with one-time PNG thumbnails rendered from the same colored/material `mkGun()` models. Renderer resources are released after capture.
+- If the browser cannot render a thumbnail, the card reports an unavailable preview instead of showing a misleading white silhouette.
+
+### Compatibility and strings
+- No change to actual weapon profiles, bot tactics, movement, damage, game rules, or round selection. The original primary selection before each Deathmatch/Bomb round is retained.
+- UI copy update: Kriss description now mentions **Press V in a match to switch**. Thumbnail error fallback is **3D PREVIEW UNAVAILABLE**; all text remains English.
+- Updated modular source, committed runtime bundle, CSS, and targeted regression tests. Browser visual inspection remains required for final animation polish.
+
+
 ## 2026-10-29 — Inventory lobby with real 3D loadout preview
 
 ### Added
