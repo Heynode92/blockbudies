@@ -2,6 +2,30 @@
 
 Every update must record its date, scope, affected modules, user-visible strings, compatibility, and validation. Keep the original fixture immutable.
 
+## 2026-10-29 — Shared 100 HP + ballistic vest and weapon-profiled bots
+
+### Combat / armor
+- Player and every bot spawn with **100 HP**, **50 vest durability** and a helmet. Respawning in Deathmatch and spawning a new Bomb Mission round restores these values.
+- The shared `DEFENSE_RULES` reduces bullet damage to the torso by **20%** while the vest has durability; the amount absorbed consumes equal vest durability. If a hit depletes the vest, any remaining damage is applied normally.
+- Knife, grenade/RPG explosions and headshots bypass vest damage reduction. First helmet headshot pops the helmet and deals base bullet damage; later headshots use the same **3×** multiplier for player and bot.
+- Player HUD now displays the new English string **`VEST 50`**, updated as durability decreases; the existing HP and helmet indicators remain.
+
+### Bot loadouts and ballistics
+- All 5v5 AI actors receive a weighted-random primary from the existing `WEAPON_PROFILES` table, a finite-ammo pistol, knife, and grenades. No backend database or third-party weapon source was added.
+- Bot bullets now use the same profile damage, pellets, range, cadence and ammunition rules as player weapons; AI-only aim error and loadout selection remain separately configurable in `BOT_WEAPONS`.
+- Bots use their real selected weapon model, magazine and reserve counts, profile reload duration, RPG distance safety, close-range knife and optionally throw grenades.
+- Projectile impact uses shared helmet/headshot/vest resolution regardless of shooter team. Explosion damage bypasses vest, preserves team-friendly-fire protections, and attributes kills to the correct bot or player.
+
+### Scope and files
+- Added `src/game/39-defense.js`, `src/game/41-bot-weapons.js`, `src/game/42-projectile-defense.js`, `src/styles/08-defense.css`, and `tests/defense-bot-weapons.test.mjs`.
+- Updated `index.html`, weapon/combat modules, bot AI, spawn/reset routines, game HUD, source manifest, generated `assets/game.js`, and this changelog.
+- Original English interface, Deathmatch respawn timer, Bomb Mission plant/defuse timing and spectator behavior retained.
+
+### Validation / limitations
+- Local Node.js automated tests: **69/69 passed**, including new armor and bot-loadout tests.
+- `node --check assets/game.js` and `node tools/build.mjs --check`: **passed**.
+- Full interactive browser and FPS-performance smoke tests are not yet verified. Real-match lethality and tactical bot performance still require playtesting.
+
 ## 2026-10-29 — Weapon balance profiles (user-provided Point Blank-style ratings)
 
 ### Changed

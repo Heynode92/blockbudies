@@ -545,6 +545,21 @@ function aimA(q,px,py,tx,ty,tz,sd){var L1=.4,L2=.46;va.set(tx-px,ty-py,tz);var d
 function aimArms(e){var r=e.rc||0,ce=0,ph=tt*7+e.ph,gx0=Math.sin(tt*1.1+e.ph)*.015,gy0=.05*r+Math.sin(tt*1.7+e.ph)*.012,gx=gx0+ce*(.3+Math.sin(ph*.5)*.05),gy=gy0+ce*(.9+Math.abs(Math.sin(ph))*.1),gz=-.14*r;e.g.userData.gun.position.set(-.15+gx,gy,-.1+gz);aimA(e.arms[1],.55,1.3,.05+gx,.85+gy,.24+gz,1);aimA(e.arms[0],-.55,1.3,(.05+gx0)*(1-ce)-.6*ce,(.98+gy0)*(1-ce)+(2.25+Math.abs(Math.sin(ph+1))*.15)*ce,(.5+gz)*(1-ce)+.05*ce,-1);}
 // flash(): hit-flash/knockback wobble of a bot after it takes damage (e.fl timer, e.hv/e.hx wobble).
 function flash(e,dt){e.fl=Math.max(0,e.fl-dt);if(e.tm===undefined)return;e.hv=e.hv||0;e.hx=e.hx||0;e.hv+=(-e.hx*170-e.hv*13)*dt;e.hx+=e.hv*dt;var h=Math.max(-.5,Math.min(.9,e.hx));e.body.rotation.x-=h*.75;e.body.rotation.y+=h*(e.hs||1)*.35;e.body.position.y-=Math.abs(h)*.06;e.g.position.x+=(e.hdx||0)*h*.3;e.g.position.z+=(e.hdz||0)*h*.3;}
+// Common damage rules for human and AI characters. Armor is restored on every spawn/round.
+var DEFENSE_RULES=Object.freeze({maxHp:100,vestMax:50,bodyReduction:.20,headshotMultiplier:3});
+function defenseSpawn(actor){actor.hp=DEFENSE_RULES.maxHp;actor.vest=DEFENSE_RULES.vestMax;actor.helm=true;}
+// Vest only mitigates body bullet damage. Damage absorbed consumes equal durability.
+// If the vest runs out mid-hit, any leftover damage lands at full strength.
+function defenseDamage(actor,raw,kind){
+  var damage=Math.max(0,Number.isFinite(raw)?raw:0);
+  if(kind==='bullet-body'&&actor.vest>0){
+    var absorbed=Math.min(actor.vest,damage*DEFENSE_RULES.bodyReduction);
+    actor.vest=Math.max(0,actor.vest-absorbed);damage-=absorbed;
+  }
+  return damage;
+}
+// Headshot after helmet removal is identical for bots and player.
+function defenseHeadshotDamage(base){return base*DEFENSE_RULES.headshotMultiplier;}
 // ---- WEAPON DATA: Single source of truth for user-provided Point Blank-style ratings ----
 // Display ratings (0..100) are NOT real-world rounds/minute, meters/second or recoil angles.
 // Actual gameplay fire intervals/accuracy/movement are derived explicitly below.
@@ -594,8 +609,7 @@ function weaponProfile(p){var t=WEAPON_TUNING[p.kind],pel=t.pellets||1;
   return w;
 }
 var WP=WEAPON_PROFILES.map(weaponProfile);
-// EW: stats used for bot (enemy) bullets. Bots do not use the WP table.
-var EW={dmg:7,spd:100,life:.55,pel:1,spr:0};
+// EW: stats used for bot (enemy) bullets are retired; bots now use WP / WEAPON_PROFILES.
 // CC: crate colors by contents (index = weapon crate type, see mkCrate/rci).
 var CC=[0xffd23f,0x51cf66,0xb197fc];
 // Shared geometries/materials for bullets and rockets (created once, reused).
@@ -735,6 +749,108 @@ function animHands(){
     else bh8.position.set(.07,.03,-.08);}
   aim(armR,[handR.position.x,handR.position.y,handR.position.z],SHR);aim(armL,[lx,ly,lz],SHL);handL.visible=armL.visible=(w<4||w>5);
 }
+// AI weapons share exactly the same WP profiles, ballistics, ammo and reload as players.
+// Only accuracy and loadout selection are AI-specific, not bullet damage.
+var BOT_WEAPONS=Object.freeze({
+  primaries:[1,1,1,2,2,6,6,6,7,8,3],
+  sidearm:0,knife:4,grenade:5,
+  meleeRange:1.7,grenadeMinDistance:9,grenadeMaxDistance:18,grenadeChance:.035,
+  grenadeCooldown:12,aimNoise:.08,noisePerUnit:.006,
+  safeRocketDistance:7
+});
+function botVisualWeapon(e,id){
+  if(e.visualWeapon===id)return;
+  var group=e.g&&e.g.userData&&e.g.userData.gun;
+  if(group){
+    var old=e.g.userData.rg;if(old)group.remove(old);
+    var model=mkGun(id);model.rotation.y=Math.PI;model.scale.setScalar(1.2);
+    model.position.set(.2,1.05,-.16);group.add(model);e.g.userData.rg=model;
+    model.traverse(function(m){if(m.material&&e.ms)e.ms.push(m.material);});
+  }
+  e.visualWeapon=id;
+}
+function botInitialLoadout(e){
+  var pool=BOT_WEAPONS.primaries,primary=pool[(Math.random()*pool.length)|0];
+  e.primary=primary;e.weapon=primary;e.visualWeapon=-1;e.ammo={};
+  [primary,BOT_WEAPONS.sidearm,BOT_WEAPONS.grenade].forEach(function(id){
+    e.ammo[id]={mag:WP[id].mag,res:WP[id].res};
+  });
+  e.reloadId=null;e.reloadLeft=0;e.grenadeAt=0;
+  botVisualWeapon(e,primary);
+}
+function botUpdateReload(e,dt){
+  if(e.reloadId===null||e.reloadId===undefined)return;
+  e.reloadLeft=Math.max(0,e.reloadLeft-dt);
+  if(e.reloadLeft>0)return;
+  var id=e.reloadId,a=e.ammo[id],w=WP[id];
+  if(a){var n=Math.min(w.mag-a.mag,a.res);a.mag+=n;a.res-=n;}
+  e.reloadId=null;
+}
+function botStartReload(e,id){
+  var a=e.ammo[id];if(!a||a.mag>0||a.res<=0||e.reloadId!==null)return false;
+  e.reloadId=id;e.reloadLeft=WP[id].rt;return true;
+}
+function botChooseWeapon(e,d){
+  if(d<=BOT_WEAPONS.meleeRange)return BOT_WEAPONS.knife;
+  var p=e.primary,primary=e.ammo[p],secondary=e.ammo[BOT_WEAPONS.sidearm];
+  if(primary&&primary.mag>0&&!(p===3&&d<BOT_WEAPONS.safeRocketDistance))return p;
+  if(primary&&primary.res>0&&primary.mag<=0)botStartReload(e,p);
+  if(secondary&&secondary.mag>0)return BOT_WEAPONS.sidearm;
+  if(secondary&&secondary.res>0&&secondary.mag<=0)botStartReload(e,BOT_WEAPONS.sidearm);
+  return null;
+}
+function botThrowGrenade(e,face){
+  var a=e.ammo[BOT_WEAPONS.grenade];if(!a||!a.mag||e.reloadId!==null)return false;
+  a.mag--;e.grenadeAt=tt+BOT_WEAPONS.grenadeCooldown;
+  var sp=16;grs.push({m:mkGren(),by:e,x:e.x+Math.sin(face)*.6,z:e.z+Math.cos(face)*.6,
+    y:1.3+(e.y||0),vx:Math.sin(face)*sp,vz:Math.cos(face)*sp,vy:5.5,t:1.7});
+  if(a.mag===0)botStartReload(e,BOT_WEAPONS.grenade);
+  return true;
+}
+function botAttack(e,target,face,d){
+  if(e.reloadId!==null)return false;
+  var id=botChooseWeapon(e,d);
+  if(id===null)return false;
+  var w=WP[id];
+  if(id!==BOT_WEAPONS.knife&&d>w.range)return false;
+  if(id===BOT_WEAPONS.knife){
+    if(!clearTo(e.x,e.z,target.x,target.z,0))return false;
+    curK=e;killW=id;hsF=false;
+    if(target===pl)hurt(w.dmg,e.x,e.z,'melee');
+    else dmgE(target,w.dmg,Math.sin(face),Math.cos(face),0,'melee');
+  }else{
+    var ammo=e.ammo[id];if(!ammo||ammo.mag<=0)return false;
+    ammo.mag--;
+    var inaccuracy=(Math.random()-.5)*2*(BOT_WEAPONS.aimNoise+d*BOT_WEAPONS.noisePerUnit);
+    fire(e,face+inaccuracy,w,'e',0);
+  }
+  e.weapon=id;botVisualWeapon(e,id);e.cd=w.cd;e.rc=1;e.vis=1.6;
+  return true;
+}
+function botNeedsMelee(e){var a=e.ammo||{},p=a[e.primary],s=a[BOT_WEAPONS.sidearm];return (!p||p.mag+p.res===0)&&(!s||s.mag+s.res===0);}
+function botCombatTick(e,target,face,d){
+  if(!target||target.dead)return;
+  if(d>=BOT_WEAPONS.grenadeMinDistance&&d<=BOT_WEAPONS.grenadeMaxDistance&&
+     tt>=e.grenadeAt&&e.ammo&&e.ammo[5]&&e.ammo[5].mag>0&&
+     Math.random()<BOT_WEAPONS.grenadeChance&&clearTo(e.x,e.z,target.x,target.z,0)){
+    if(botThrowGrenade(e,face))return;
+  }
+  botAttack(e,target,face,d);
+}
+// Unified bullet impact resolution for bot and human targets.
+// The armor/headshot rules are identical, independent of who fired.
+function projectileHitCharacter(b,target,head){
+  var damage=b.dmg*(b.fo?fall(b,b.m.position):1),source=b.by;
+  if(head){
+    if(target.helm){
+      if(target===pl)popPl();else popHelm(target,b.vx,b.vz);
+    }else damage=defenseHeadshotDamage(damage);
+  }
+  curK=source;killW=b.wid>=0?b.wid:1;hsF=!!head;
+  if(target===pl)hurt(damage,b.sx,b.sz,head?'head':'bullet-body');
+  else dmgE(target,damage,b.vx,b.vz,0,head?'head':'bullet-body');
+  hsF=false;
+}
 // BOLT_T = AWP bolt-action cycle length in seconds (must stay <= the AWP fire cooldown so the next shot is possible when it ends).
 // MZ = per-weapon muzzle z offset in viewmodel space (where bullets and muzzle flash start). kick = recoil offset. flashT = muzzle flash time left.
 var BOLT_T=1.1,MZ=[-.7,-1,-1.15,-1.2,-.9,-.3,-.9,-.9,-1.62],kick=0,flashT=0;
@@ -765,7 +881,7 @@ function spark(x,y,z,col,n,sp,sz){var m0=spM[col]||(spM[col]=new T.MeshBasicMate
 // reset(): clears the whole world state (bullets, bots, particles, decals) and re-creates the player object `pl` for a fresh match.
 function reset(){
   [].concat(en||[],bl||[],cr||[],fx||[],sk||[],dead||[],grs||[],dg||[],chutes||[]).forEach(function(o){S.remove(o.g||o.m);});document.getElementById("kn").innerHTML="";DC.forEach(function(m){S.remove(m);});DC=[];CH.forEach(function(c){S.remove(c.m);});CH=[];cs.k=cs.s=cs.kv=cs.y=cs.yv=cs.r=cs.rv=0;clrSm();clrFD();mzf.forEach(function(q){S.remove(q.m);});mzf=[];
-  pl={helm:true,dead:false,dt:0,rt:0,life:0,x:0,z:10,hp:100,w:1,mag:30,res:90,rl:0,cd:0,face:Math.PI,pitch:0,y:0,vy:0,slot:0,prim:1,sw:0,stab:0,sth:false,thr:0,pend:false,ghide:0,ammo:(function(){var o={};WP.forEach(function(w,i){o[i]={mag:w.mag,res:w.res};});return o;})()};en=[];bl=[];cr=[];fx=[];sk=[];dead=[];dg=[];grs=[];chutes=[];ck={n:0,t:0,hs:0};shakeT=0;score=0;spawnT=1;crateT=.5;adsT=sprT=0;resetPm();hlms.forEach(function(h){S.remove(h.m);});hlms=[];setHm();document.body.classList.remove("dead");
+  pl={helm:true,vest:DEFENSE_RULES.vestMax,dead:false,dt:0,rt:0,life:0,x:0,z:10,hp:DEFENSE_RULES.maxHp,w:1,mag:30,res:90,rl:0,cd:0,face:Math.PI,pitch:0,y:0,vy:0,slot:0,prim:1,sw:0,stab:0,sth:false,thr:0,pend:false,ghide:0,ammo:(function(){var o={};WP.forEach(function(w,i){o[i]={mag:w.mag,res:w.res};});return o;})()};en=[];bl=[];cr=[];fx=[];sk=[];dead=[];dg=[];grs=[];chutes=[];ck={n:0,t:0,hs:0};shakeT=0;score=0;spawnT=1;crateT=.5;adsT=sprT=0;resetPm();hlms.forEach(function(h){S.remove(h.m);});hlms=[];setHm();document.body.classList.remove("dead");
 }
 // toast(): shows a short message in the middle of the screen (toastT = time left).
 function toast(t){var e=document.getElementById("toast");e.textContent=t;e.style.opacity=1;toastT=1.4;}
@@ -783,12 +899,13 @@ function fire(o,face,w,own,adv){var D=w.snp?90:w.dual?45:20;
     bl.push({m:g,vx:Math.sin(a)*w.spd,vy:vy0,vz:Math.cos(a)*w.spd,life:w.life,ad:ad,dmg:w.dmg,own:own,tm:o.tm,by:o,rk:w.rk,sx:o.x,sz:o.z,wid:WP.indexOf(w),fo:w.r1?[w.r0,w.r1,w.rm]:null});if(own==="e"&&i===0)enemyShotFx(o,mx0,my0,mz0);if(w.rk&&own==="p")smoke(mx0,my0,mz0,6,1.4,.3,1.3,.25,0);}
 }
 // boom(): explosion (rocket or grenade) at (x,z): splash damage with line-of-sight check, scorch decal, particles, camera shake. lab = kill-feed label.
-function boom(x,z,dmg,lab,by){curK=pl;boomLab=lab||"RPG";killW=boomLab==="GRENADE"?5:3;if((by===undefined||by<1.1)&&Math.abs(x)<A&&Math.abs(z)<A)gDecal(TXS,x,z,3.2+Math.random()*.6);
+function boom(x,z,dmg,lab,by,shooter){var attacker=shooter||pl;curK=attacker;boomLab=lab||"RPG";killW=boomLab==="GRENADE"?5:3;if((by===undefined||by<1.1)&&Math.abs(x)<A&&Math.abs(z)<A)gDecal(TXS,x,z,3.2+Math.random()*.6);
   var m=new T.Mesh(new T.SphereGeometry(1,14,14),new T.MeshBasicMaterial({color:0xffa94d,transparent:true,opacity:.7}));
   m.position.set(x,Math.max(.3,Math.min(1.5,by||1)),z);S.add(m);fx.push({m:m,t:0});spark(x,1,z,0xffa94d,26,9,.28);spark(x,1,z,0xfff3bf,10,5,.2);var sy=Math.max(.3,Math.min(1.5,by||1));smoke(x,sy,z,8,3.2,1,2.4,1.2,1);smoke(x,.35,z,10,4.5,.9,2.2,.25,0);smoke(x,sy+.4,z,5,1.2,1.2,3,1.6,1);
   boomN=0;inBoom=true;
-  en.slice().forEach(function(e){if(e.tm===pl.tm)return;var dd=Math.hypot(e.x-x,e.z-z);if(dd<4.2&&clearTo(x,z,e.x,e.z,.45)){var k=dd||1;dmgE(e,dmg,(e.x-x)/k,(e.z-z)/k,1);}});
-  inBoom=false;var pd=Math.hypot(pl.x-x,pl.z-z);if(pd<4.2&&clearTo(x,z,pl.x,pl.z,.45))hurt(Math.ceil(dmg*(1-pd/4.2*.8)),x,z);shakeT=Math.max(shakeT,.35);if(boomN>0)killNotify(boomN>2);
+  en.slice().forEach(function(e){if(e.tm===attacker.tm||e.dead)return;var dd=Math.hypot(e.x-x,e.z-z);if(dd<4.2&&clearTo(x,z,e.x,e.z,.45)){var k=dd||1;dmgE(e,dmg,(e.x-x)/k,(e.z-z)/k,1,"explosive");}});
+  if(attacker!==pl&&!attacker.dead){var selfDistance=Math.hypot(attacker.x-x,attacker.z-z);if(selfDistance<4.2&&clearTo(x,z,attacker.x,attacker.z,.45))dmgE(attacker,Math.ceil(dmg*(1-selfDistance/4.2*.8)),0,0,1,"explosive");}
+  inBoom=false;var pd=Math.hypot(pl.x-x,pl.z-z);if((pl.tm!==attacker.tm||attacker===pl)&&pd<4.2&&clearTo(x,z,pl.x,pl.z,.45))hurt(Math.ceil(dmg*(1-pd/4.2*.8)),x,z,"explosive");shakeT=Math.max(shakeT,.35);if(boomN>0)killNotify(boomN>2);
 }
 // Parachute system for airdrop crates: mkChute builds one, updChutes animates the fall, dropChute detaches it on landing.
 var chutes=[],CHC=[0xf08c00,0x1c7ed6,0x7048e8,0xe03131];
@@ -1035,7 +1152,7 @@ function gunSfx(k,vol){if(!SND||vol<=.02)return;try{AC=AC||new(window.AudioConte
   o.type="sine";o.frequency.setValueAtTime(k.t,t);o.frequency.exponentialRampToValueAtTime(40,t+k.d);g2.gain.setValueAtTime(v*.9,t);g2.gain.exponentialRampToValueAtTime(.0001,t+k.d);o.connect(g2);g2.connect(AC.destination);o.start(t);o.stop(t+k.d+.02);}catch(e){}}
 // enemyShotFx(): muzzle flash and sound for a bot shot (volume depends on distance to the player).
 function enemyShotFx(o,x,y,z){var m=new T.Mesh(spG,mzfM);m.position.set(x,y,z);m.scale.setScalar(.14+Math.random()*.1);S.add(m);mzf.push({m:m,t:.05});
-  if(sndN<3){sndN++;gunSfx(GS[1],.45*Math.max(0,1-Math.hypot(pl.x-o.x,pl.z-o.z)/20));}}
+  if(sndN<3){sndN++;gunSfx(GS[SFXI[o.weapon]||1],.45*Math.max(0,1-Math.hypot(pl.x-o.x,pl.z-o.z)/20));}}
 // gImpact(): bullet impact on the ground at point p (small decal + dust).
 function gImpact(p){if(Math.abs(p.x)>A||Math.abs(p.z)>A)return;gDecal(TXH[(Math.random()*3)|0],p.x,p.z,.38*rr(.85,1.15));spark(p.x,.08,p.z,0xd9d0bb,3,1.6,.1);}
 // Camera recoil per weapon id: CKV = pitch kick, CKS = shake strength, CKY = random yaw kick, CKR = random roll kick (camShot() applies them, reduced while aiming).
@@ -1052,7 +1169,7 @@ function snz(t,k){return Math.sin(t*(31+k*7.3)+k*1.7)*.6+Math.sin(t*(53+k*3.1)+k
 // ck = kill-chain tracker {n kills in chain, t timer, hs headshot streak}. Other globals: dead = ragdoll list, shakeT = screen shake time, AC = AudioContext, grs = grenades.
 var ck={n:0,t:0,hs:0},hsF=false,dead=[],inBoom=false,boomN=0,shakeT=0,AC=null,boomLab="RPG",grs=[];
 // dmgE(): applies damage d to bot e (knock direction kx,kz). Handles invulnerability, hit flash and calls killE() at 0 HP.
-function dmgE(e,d,kx,kz,ex){if(e.inv>0||e.dead)return;if(isBombMode())bombInterruptPlant(e);e.hp-=d;e.fl=.14;e.hs=Math.random()<.5?-1:1;e.hv=(e.hv||0)+Math.min(9,3+d*.5);var hm=Math.hypot(kx||0,kz||0);if(hm>.01){e.hdx=kx/hm;e.hdz=kz/hm;}if(e.hp<=0)killE(e,kx||0,kz||0,ex);}
+function dmgE(e,d,kx,kz,ex,kind){if(e.inv>0||e.dead)return;if(isBombMode())bombInterruptPlant(e);d=defenseDamage(e,d,kind||"bullet-body");e.hp-=d;e.fl=.14;e.hs=Math.random()<.5?-1:1;e.hv=(e.hv||0)+Math.min(9,3+d*.5);var hm=Math.hypot(kx||0,kz||0);if(hm>.01){e.hdx=kx/hm;e.hdz=kz/hm;}if(e.hp<=0)killE(e,kx||0,kz||0,ex);}
 // hlms = flying helmets (popped by headshots). popHelm()/popPl() pop a bot/player helmet; updH() animates them.
 var hlms=[];
 function popHelm(e,vx,vz){var h=e.hm;if(!h||!e.helm)return;e.helm=false;h.updateMatrixWorld(true);
@@ -1170,7 +1287,7 @@ function hdUpd(dt){var R=Math.min(innerWidth,innerHeight)*.3,sf=Math.sin(pl.face
     var dx=h.x-pl.x,dz=h.z-pl.z,an=Math.atan2(-dx*cf+dz*sf,dx*sf+dz*cf);
     h.el.style.transform="translate(-50%,-50%) rotate("+an+"rad) translateY("+(-R)+"px)";h.el.style.opacity=Math.min(1,h.t/.6);}}
 // hurt(): damages the PLAYER by d (from position sx,sz). Ignored while dead or spawn-protected. Calls die() at 0 HP.
-function hurt(d,sx,sz){if(pl.dead||pl.inv>0)return;if(isBombMode())bombInterruptPlant(pl);if(sx!==undefined&&Math.hypot(sx-pl.x,sz-pl.z)>.6)hdHit(sx,sz);pl.hp-=d;pm.fl=.1;cs.s=Math.max(cs.s,.55);var hs2=0;if(sx!==undefined){var ddx=sx-pl.x,ddz=sz-pl.z;hs2=Math.sign(-ddx*Math.cos(pl.face)+ddz*Math.sin(pl.face));}cs.kv+=.7;cs.yv+=hs2*1.5;cs.rv+=hs2*.5+(Math.random()-.5)*.4;document.getElementById("hit").style.opacity=1;if(pl.hp<=0){pl.hp=0;die();}}
+function hurt(d,sx,sz,kind){if(pl.dead||pl.inv>0)return;if(isBombMode())bombInterruptPlant(pl);d=defenseDamage(pl,d,kind||"bullet-body");if(sx!==undefined&&Math.hypot(sx-pl.x,sz-pl.z)>.6)hdHit(sx,sz);pl.hp-=d;pm.fl=.1;cs.s=Math.max(cs.s,.55);var hs2=0;if(sx!==undefined){var ddx=sx-pl.x,ddz=sz-pl.z;hs2=Math.sign(-ddx*Math.cos(pl.face)+ddz*Math.sin(pl.face));}cs.kv+=.7;cs.yv+=hs2*1.5;cs.rv+=hs2*.5+(Math.random()-.5)*.4;document.getElementById("hit").style.opacity=1;if(pl.hp<=0){pl.hp=0;die();}}
 // die(): player death: starts the 5 s respawn timer, drops the gun, updates stats and the killer credit.
 function die(){pl.dead=true;pl.rsT=5;pl.st.d++;pl.kb=curK&&curK!==pl?curK.name:"";if(curK&&curK!==pl){curK.st.k++;if(!isBombMode())ts[curK.tm]++;}kFeed(curK,1,false,pl);mouse.right=false;mouse.down=false;fireHeld=false;kn.innerHTML="";pm.g.visible=true;if(pm.hg)pm.hg.visible=false;dropPlayerGun();if(isBombMode()){bombDrop(pl);document.body.classList.add("bomb-spectator");}else document.body.classList.add("dead");
   try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();tn(260,40,1.2,"sawtooth",.12);tn(120,30,1.6,"sine",.3);}catch(e){}}
@@ -1228,7 +1345,7 @@ function swSlot(s){var id=[pl.prim,0,4,5][s],a=amo(id);
 function addGren(){var a=amo(5),w=WP[5];if(a.mag+a.res<w.mag+w.res){a.res++;toast("Grenade +1");}}
 // doStab(): knife attack: damages enemies in a short cone in front of the player.
 function doStab(){killW=4;curK=pl;var w=WP[4],fx=Math.sin(pl.face),fz=Math.cos(pl.face),hit=0;
-  en.slice().forEach(function(e){if(e.tm===pl.tm)return;var dx=e.x-pl.x,dz=e.z-pl.z,d=Math.hypot(dx,dz)||1;if(d<WP[4].range+.8&&(dx*fx+dz*fz)/d>.3&&clearTo(pl.x,pl.z,e.x,e.z,0)){dmgE(e,w.dmg,fx,fz);hit++;}});
+  en.slice().forEach(function(e){if(e.tm===pl.tm)return;var dx=e.x-pl.x,dz=e.z-pl.z,d=Math.hypot(dx,dz)||1;if(d<WP[4].range+.8&&(dx*fx+dz*fz)/d>.3&&clearTo(pl.x,pl.z,e.x,e.z,0)){dmgE(e,w.dmg,fx,fz,0,"melee");hit++;}});
   spark(pl.x+fx*1.3,1.2+pl.y,pl.z+fz*1.3,hit?0xff6b6b:0xffffff,hit?8:4,3,.07);
   var sh=document.getElementById("slh");sh.className="";void sh.offsetWidth;sh.className="go";}
 // mkGren(): builds a grenade mesh.
@@ -1248,7 +1365,7 @@ function updG(dt){
     if(g.y<fl){g.y=fl;if(g.vy<-1.5)spark(g.x,fl,g.z,0xcfcfcf,2,1.5,.06);g.vy=-g.vy*.4;g.vx*=.72;g.vz*=.72;if(Math.abs(g.vy)<1)g.vy=0;}
     g.m.position.set(g.x,g.y,g.z);g.m.rotation.x+=dt*(Math.abs(g.vx)+Math.abs(g.vz)+1)*1.2;
     g.m.children[0].material.emissive.setHex(g.t<.8&&Math.floor(g.t*10)%2?0x771111:0);
-    if(g.t<=0){S.remove(g.m);grs.splice(gi,1);boom(g.x,g.z,WP[5].dmg,"GRENADE");}
+    if(g.t<=0){S.remove(g.m);grs.splice(gi,1);if(g.by)boom(g.x,g.z,WP[5].dmg,"GRENADE",undefined,g.by);else boom(g.x,g.z,WP[5].dmg,"GRENADE");}
   }
 }
 // SV: inline SVG icons of each weapon id for the HUD.
@@ -1450,14 +1567,14 @@ function newBot(tm,i){var b=terro(tm);b.tm=tm;b.idx=i;b.name=BN[tm][i];b.ph=Math
   var cv=document.createElement("canvas");cv.width=256;cv.height=64;var cx=cv.getContext("2d"),nt=b.name.toUpperCase();cx.font='700 40px Rajdhani,"Trebuchet MS",sans-serif';cx.textAlign="center";cx.textBaseline="middle";cx.lineWidth=7;cx.strokeStyle="rgba(0,0,0,.85)";cx.strokeText(nt,128,34);cx.fillStyle=tm?"#ff8a65":"#74c0fc";cx.fillText(nt,128,34);
   var sp=new T.Sprite(new T.SpriteMaterial({map:new T.CanvasTexture(cv),depthTest:false,transparent:true,fog:false}));sp.scale.set(3,.75,1);sp.position.set(0,2.75,0);sp.renderOrder=1000;sp.visible=tm===pl.tm;b.g.add(sp);b.nm=sp;return b;}
 // placeBot(b): (re)spawns bot b at a spawn point with full HP and short invulnerability.
-function placeBot(b){var s=spawnPt(b.tm);b.x=s[0];b.z=s[1];b.y=0;b.hp=100;b.inv=2;b.cd=1+Math.random();b.dead=false;b.tg=null;b.bn=0;b.wx=b.x;b.wz=b.z;b.stk=0;b.g.rotation.y=b.tm?0:Math.PI;en.push(b);}
+function placeBot(b){var s=spawnPt(b.tm);b.x=s[0];b.z=s[1];b.y=0;defenseSpawn(b);if(b.hm)b.hm.visible=true;b.inv=2;b.cd=1+Math.random();b.dead=false;b.tg=null;b.bn=0;b.wx=b.x;b.wz=b.z;b.stk=0;b.g.rotation.y=b.tm?0:Math.PI;botInitialLoadout(b);en.push(b);}
 // startMatch(tm): sets up scores, timer (60 s) and the countdown, spawns the player and 4+5 bots, resets weapons to the chosen primary.
 function startMatch(tm){starsReset();SPH=[[],[]];var s=spawnPt(tm);pl.tm=tm;pl.x=s[0];pl.z=s[1];pl.face=tm?0:Math.PI;pl.inv=2;ts=[0,0];rq=[];mt={t:60,cd:5,over:false};pl.prim=favPrim;pl.w=favPrim;pl.mag=WP[favPrim].mag;pl.res=WP[favPrim].res;scopeOn=false;ROS=[];pl.st={name:"You",tm:tm,k:0,d:0};ROS.push(pl.st);
   S.remove(pm.g);pm=mkPm(tm);pm.g.visible=false;[armR,armL].forEach(function(ar){ar.children[0].material.color.setHex(tm?0x4b5320:0x1c4a8a);ar.children[1].material.color.setHex(tm?0x23272b:0x142a52);});
   [0,1].forEach(function(t){for(var i=0;i<(isBombMode()?BOMB_RULES.teamSize-(t===tm?1:0):(t===tm?4:5));i++){var b=newBot(t,i);b.st={name:b.name,tm:t,k:0,d:0};ROS.push(b.st);placeBot(b);}});
   if(isBombMode())bombStartMatch();toast("YOU ARE "+(tm?"TERRORIST":"POLICE"));}
 // respawnPl(): respawns the player after the 5 s death timer with full ammo and spawn shield.
-function respawnPl(){var s=spawnPt(pl.tm);pl.dead=false;pl.dt=pl.rt=pl.rl=pl.cd=pl.sw=pl.stab=pl.thr=0;pl.pend=pl.sth=false;pl.ghide=0;pl.hp=100;pl.helm=true;pl.x=s[0];pl.z=s[1];pl.y=pl.vy=0;pl.face=pl.tm?0:Math.PI;pl.pitch=0;pl.inv=2;pl.prim=favPrim;
+function respawnPl(){var s=spawnPt(pl.tm);pl.dead=false;pl.dt=pl.rt=pl.rl=pl.cd=pl.sw=pl.stab=pl.thr=0;pl.pend=pl.sth=false;pl.ghide=0;defenseSpawn(pl);pl.x=s[0];pl.z=s[1];pl.y=pl.vy=0;pl.face=pl.tm?0:Math.PI;pl.pitch=0;pl.inv=2;pl.prim=favPrim;
   pl.ammo={};WP.forEach(function(w,i){pl.ammo[i]={mag:w.mag,res:w.res};});pl.w=favPrim;pl.mag=WP[favPrim].mag;pl.res=WP[favPrim].res;pl.slot=0;camY=0;scopeOn=false;resetPm();setHm();document.body.classList.remove("dead");toast("RESPAWNED");}
 // tmUpd(): updates the top HUD (timer, scores, respawn text, spawn-shield text).
 function tmUpd(){var g=function(i){return document.getElementById(i);},r=g("rsp");g("imm").style.display=(pl.inv>0&&!pl.dead&&!mt.over)?"block":"none";var sp0=g("tp"),sq0=g("tq");if(sp0.textContent!=ts[0]){sp0.textContent=ts[0];sp0.classList.remove("pop");void sp0.offsetWidth;sp0.classList.add("pop");}if(sq0.textContent!=ts[1]){sq0.textContent=ts[1];sq0.classList.remove("pop");void sq0.offsetWidth;sq0.classList.add("pop");}g("tt").textContent=mmss(Math.max(0,Math.ceil(mt.t)));g("tbf").style.width=Math.max(0,Math.min(100,mt.t/(isBombMode()?(bombMatch&&bombMatch.state==="planted"?BOMB_RULES.fuseSeconds:BOMB_RULES.roundSeconds):60)*100))+"%";g("tm").classList.toggle("lo",mt.t<=10&&mt.cd<=0&&!mt.over);g("tmP").classList.toggle("you",pl.tm===0);g("tmT").classList.toggle("you",pl.tm===1);
@@ -1864,7 +1981,7 @@ function botPath(e,gx,gz){var p=gPath(e.x,e.z,gx,gz);
 function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
   for(i=rq.length-1;i>=0;i--){var q=rq[i];q.t-=dt;if(q.t<=0&&!mt.over&&!isBombMode()){var nb=newBot(q.b.tm,q.b.idx);nb.st=q.b.st;placeBot(nb);rq.splice(i,1);}}
   en.forEach(function(e){var t,dx=0,dz=0,d=99,f,mvx=0,mvz=0,sp=isBombMode()?BOMB_AI.navSpeed:4.8,ox=e.x,oz=e.z,combat,gx,gz,wp,ml;
-    e.inv=Math.max(0,(e.inv||0)-(cdn?0:dt));e.vis=Math.max(0,(e.vis||0)-dt);e.tq=(e.tq||0)-dt;e.navT=Math.max(0,(e.navT||0)-dt);
+    botUpdateReload(e,dt);e.inv=Math.max(0,(e.inv||0)-(cdn?0:dt));e.vis=Math.max(0,(e.vis||0)-dt);e.tq=(e.tq||0)-dt;e.navT=Math.max(0,(e.navT||0)-dt);
     if(e.tq<=0){e.tq=.35+Math.random()*.2;var bd=1e9,bt=null;
       en.forEach(function(o){if(o.tm!==e.tm){var dd=Math.hypot(o.x-e.x,o.z-e.z);if(dd<bd&&dd<45&&los(e.x,e.z,o.x,o.z)){bd=dd;bt=o;}}});
       if(pl.tm!==e.tm&&!pl.dead){var d2=Math.hypot(pl.x-e.x,pl.z-e.z);if(d2<bd&&d2<45&&los(e.x,e.z,pl.x,pl.z)){bd=d2;bt=pl;}}
@@ -1879,7 +1996,7 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
     if(t){dx=t.x-e.x;dz=t.z-e.z;d=Math.hypot(dx,dz)||1;}
     combat=!!t&&e.lok&&e.navT<=0;
     if(isBombMode()&&e.bAction)combat=false;
-    if(combat){var fw=(isBombMode()&&bombMatch&&bombMatch.state==='planted'&&e.tm===0)?
+    if(combat){var fw=botNeedsMelee(e)?1:(isBombMode()&&bombMatch&&bombMatch.state==='planted'&&e.tm===0)?
       (d>BOMB_AI.retakeCombatDistance?1:-.3):(d>16?1:d<7?-.6:0),st;e.bt=(e.bt||0)-dt;if(e.bt<=0){e.bt=.7+Math.random()*1.4;e.sd=[-1,0,1][(Math.random()*3)|0];}st=(e.sd||0)*.9;
       mvx=dx/d*fw+(dz/d)*st;mvz=dz/d*fw-(dx/d)*st;
       if(GB[gc(e.z+mvz*sp*dt*4)*GN+gc(e.x+mvx*sp*dt*4)]){e.sd=-(e.sd||1);mvx=dx/d*fw;mvz=dz/d*fw;}}
@@ -1909,7 +2026,7 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
     var dm=Math.hypot(e.x-ox,e.z-oz);
     if((mvx||mvz)&&dm<sp*dt*.3){e.stk=(e.stk||0)+dt;if(combat&&e.stk>.5){e.navT=1.2;e.sd=-(e.sd||1);e.stk=0;e.pt=0;}}else e.stk=0;
     e.g.rotation.y=f;e.cd-=dt;
-    if(t&&e.lok&&!cdn&&!(isBombMode()&&e.bAction)&&e.cd<=0&&d<32){if(!(e.bn>0))e.bn=3+((Math.random()*4)|0);fire(e,f+(Math.random()-.5)*(.05+d*.0045),EW,"e",0);e.rc=1;e.vis=1.6;e.bn--;e.cd=e.bn>0?.11:.5+Math.random()*.6;}
+    if(t&&e.lok&&!cdn&&!(isBombMode()&&e.bAction)&&e.cd<=0){botCombatTick(e,t,f,d);}
     e.y=(e.y||0)+(gh(e.x,e.z,0)-(e.y||0))*Math.min(1,dt*10);e.g.position.set(e.x,e.y,e.z);e.g.visible=e.inv>0?Math.floor(tt*12)%2===0:true;
     e.wp=(e.wp||0)+dm*2.4;var am=Math.min(1,dm/dt/2.2);e.legs[0].rotation.x=Math.sin(e.wp)*.8*am;e.legs[1].rotation.x=-e.legs[0].rotation.x;e.rc=Math.max(0,(e.rc||0)-dt*6);aimArms(e);
     e.body.position.y=Math.abs(Math.sin(e.wp))*.07*am;e.body.rotation.z=Math.sin(e.wp)*.05*am;e.body.rotation.x=-.05*(e.rc||0);e.body.rotation.y=0;flash(e,dt);
@@ -2008,13 +2125,11 @@ function update(dt){
       hit=b2.life<=0||p.y<gh(p.x,p.z,p.y)+.03||Math.abs(p.x)>A+1||Math.abs(p.z)>A+1||!!ho;
       if(!hit){var bt=b2.tm;
         for(var j=0;j<en.length;j++){var EE=en[j];if(EE.tm===bt||EE.inv>0)continue;if(Math.hypot(EE.x-p.x,EE.z-p.z)<.85&&p.y-(EE.y||0)<2.1){
-          if(!b2.rk){curK=b2.by;var hd=p.y-(EE.y||0)>=1.38;
-            if(b2.own==="p"){killW=b2.wid;var fm=fall(b2,p);if(hd&&EE.helm){popHelm(EE,b2.vx,b2.vz);dmgE(EE,b2.dmg*fm,b2.vx,b2.vz);}else{hsF=hd;dmgE(EE,b2.dmg*fm*(hd?3:1),b2.vx,b2.vz);hsF=false;}}
-            else{killW=1;dmgE(EE,b2.dmg*(hd?3:1),b2.vx,b2.vz);}}
+          if(!b2.rk){projectileHitCharacter(b2,EE,p.y-(EE.y||0)>=1.38);}
           hit=true;break;}}
-        if(!hit&&pl.tm!==bt&&!pl.dead&&pl.inv<=0&&Math.hypot(pl.x-p.x,pl.z-p.z)<.7&&Math.abs(p.y-(pl.y+1))<1.1){curK=b2.by;var phd=p.y>=pl.y+1.38;if(phd&&pl.helm){popPl();hurt(b2.dmg,b2.sx,b2.sz);}else hurt(b2.dmg*(phd?2:1),b2.sx,b2.sz);hit=true;}}
+        if(!hit&&pl.tm!==bt&&!pl.dead&&pl.inv<=0&&Math.hypot(pl.x-p.x,pl.z-p.z)<.7&&Math.abs(p.y-(pl.y+1))<1.1){projectileHitCharacter(b2,pl,p.y>=pl.y+1.38);hit=true;}}
     }
-    if(hit){if(hn)impact(ho,hn,b2);else if(p.y<gh(p.x,p.z,p.y)+.03)gImpact(p);if(b2.rk)boom(p.x,p.z,b2.dmg,0,p.y);else spark(p.x,p.y,p.z,b2.own==="p"?0xffd54a:0xff5c5c,7,5,.07);S.remove(b2.m);bl.splice(i,1);}}
+    if(hit){if(hn)impact(ho,hn,b2);else if(p.y<gh(p.x,p.z,p.y)+.03)gImpact(p);if(b2.rk)boom(p.x,p.z,b2.dmg,0,p.y,b2.by);else spark(p.x,p.y,p.z,b2.own==="p"?0xffd54a:0xff5c5c,7,5,.07);S.remove(b2.m);bl.splice(i,1);}}
   for(i=sk.length-1;i>=0;i--){var q=sk[i];q.t+=dt;q.m.position.x+=q.vx*dt;q.m.position.y+=q.vy*dt;q.m.position.z+=q.vz*dt;q.vy-=9*dt;q.m.scale.setScalar(Math.max(.001,q.sz*(1-q.t/q.l)));if(q.t>=q.l){S.remove(q.m);sk.splice(i,1);}}
   for(i=mzf.length-1;i>=0;i--){mzf[i].t-=dt;if(mzf[i].t<=0){S.remove(mzf[i].m);mzf.splice(i,1);}}
   updCl(dt);updSm(dt);
@@ -2131,7 +2246,7 @@ function radar(){
 // hides the gun model while scoped, kill banners, radar.
 function hud(){var w=WP[pl.w],hp=pl.hp;tmUpd();wselUpd();abUpd();scopedNow=pl.w===8&&adsT>.92&&!pl.dead&&!lob&&!mt.over;scopeEl.style.display=scopedNow?"block":"none";document.body.classList.toggle("scoped",scopedNow);hold.visible=!scopedNow&&!(isBombMode()&&pl.bAction);
   E.hpf.style.width=hp+"%";E.hpf.style.background=hp>60?"linear-gradient(90deg,#2f9e44,#69db7c)":hp>30?"linear-gradient(90deg,#f08c00,#ffd43b)":"linear-gradient(90deg,#c92a2a,#ff6b6b)";
-  E.hpt.textContent=Math.ceil(hp);E.sc.textContent=score;E.wn.textContent=w.n;
+  E.hpt.textContent=Math.ceil(hp);var vestEl=document.getElementById("vestHud");if(vestEl){vestEl.textContent="VEST "+Math.ceil(pl.vest);vestEl.classList.toggle("empty",pl.vest<=0);}E.sc.textContent=score;E.wn.textContent=w.n;
   E.mg.textContent=pl.mag;E.mg.style.color=pl.mag<=w.mag*.25?"#ff6b6b":"";
   E.rs.textContent="/ "+(pl.res===Infinity?"\u221e":pl.res);
   slotUI(w);if(wiK!==pl.w){wiK=pl.w;E.wi.innerHTML=SV[pl.w];}hhi.className=hp>0&&hp<=30?"low":"";chE.style.setProperty("--g",((6+mvAmt*4+sprT*8+kick*30)*(1-.6*adsT))+"px");rbEl.style.opacity=pl.rl>0?1:0;E.rbf.style.width=pl.rl>0?(100*(1-pl.rl/w.rt))+"%":"0";radar();bombHudUpdate();}

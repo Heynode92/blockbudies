@@ -1,0 +1,5 @@
+/* Small, unobtrusive protection indicator next to HP; original HUD remains intact. */
+#vestHud{font:700 13px "Rajdhani","Trebuchet MS",sans-serif;color:#82caff;
+  white-space:nowrap;letter-spacing:.06em;min-width:53px;text-align:center}
+#vestHud.empty{opacity:.5;color:#9ba0ac}
+.touch #vestHud{font-size:11px;min-width:44px}

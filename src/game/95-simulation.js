@@ -55,13 +55,11 @@ function update(dt){
       hit=b2.life<=0||p.y<gh(p.x,p.z,p.y)+.03||Math.abs(p.x)>A+1||Math.abs(p.z)>A+1||!!ho;
       if(!hit){var bt=b2.tm;
         for(var j=0;j<en.length;j++){var EE=en[j];if(EE.tm===bt||EE.inv>0)continue;if(Math.hypot(EE.x-p.x,EE.z-p.z)<.85&&p.y-(EE.y||0)<2.1){
-          if(!b2.rk){curK=b2.by;var hd=p.y-(EE.y||0)>=1.38;
-            if(b2.own==="p"){killW=b2.wid;var fm=fall(b2,p);if(hd&&EE.helm){popHelm(EE,b2.vx,b2.vz);dmgE(EE,b2.dmg*fm,b2.vx,b2.vz);}else{hsF=hd;dmgE(EE,b2.dmg*fm*(hd?3:1),b2.vx,b2.vz);hsF=false;}}
-            else{killW=1;dmgE(EE,b2.dmg*(hd?3:1),b2.vx,b2.vz);}}
+          if(!b2.rk){projectileHitCharacter(b2,EE,p.y-(EE.y||0)>=1.38);}
           hit=true;break;}}
-        if(!hit&&pl.tm!==bt&&!pl.dead&&pl.inv<=0&&Math.hypot(pl.x-p.x,pl.z-p.z)<.7&&Math.abs(p.y-(pl.y+1))<1.1){curK=b2.by;var phd=p.y>=pl.y+1.38;if(phd&&pl.helm){popPl();hurt(b2.dmg,b2.sx,b2.sz);}else hurt(b2.dmg*(phd?2:1),b2.sx,b2.sz);hit=true;}}
+        if(!hit&&pl.tm!==bt&&!pl.dead&&pl.inv<=0&&Math.hypot(pl.x-p.x,pl.z-p.z)<.7&&Math.abs(p.y-(pl.y+1))<1.1){projectileHitCharacter(b2,pl,p.y>=pl.y+1.38);hit=true;}}
     }
-    if(hit){if(hn)impact(ho,hn,b2);else if(p.y<gh(p.x,p.z,p.y)+.03)gImpact(p);if(b2.rk)boom(p.x,p.z,b2.dmg,0,p.y);else spark(p.x,p.y,p.z,b2.own==="p"?0xffd54a:0xff5c5c,7,5,.07);S.remove(b2.m);bl.splice(i,1);}}
+    if(hit){if(hn)impact(ho,hn,b2);else if(p.y<gh(p.x,p.z,p.y)+.03)gImpact(p);if(b2.rk)boom(p.x,p.z,b2.dmg,0,p.y,b2.by);else spark(p.x,p.y,p.z,b2.own==="p"?0xffd54a:0xff5c5c,7,5,.07);S.remove(b2.m);bl.splice(i,1);}}
   for(i=sk.length-1;i>=0;i--){var q=sk[i];q.t+=dt;q.m.position.x+=q.vx*dt;q.m.position.y+=q.vy*dt;q.m.position.z+=q.vz*dt;q.vy-=9*dt;q.m.scale.setScalar(Math.max(.001,q.sz*(1-q.t/q.l)));if(q.t>=q.l){S.remove(q.m);sk.splice(i,1);}}
   for(i=mzf.length-1;i>=0;i--){mzf[i].t-=dt;if(mzf[i].t<=0){S.remove(mzf[i].m);mzf.splice(i,1);}}
   updCl(dt);updSm(dt);

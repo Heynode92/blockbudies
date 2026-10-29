@@ -25,7 +25,10 @@ Next time, use `git pull` and open `index.html` again. You **do not need a runne
 | Path | Responsibility |
 |---|---|
 | `index.html` | Original lobby/HUD markup, plus Bomb Mission interaction HUD |
-| `src/styles/` | Seven ordered CSS fragments |
+| `src/styles/` | Eight ordered CSS fragments |
+| `src/game/39-defense.js` | Centralized 100 HP, vest 50, 20% body damage reduction, uniform headshot rules |
+| `src/game/41-bot-weapons.js` | Weapon-profiled AI loadouts, ammo, reload and attack choices |
+| `src/game/42-projectile-defense.js` | Shared bullet impact and helmet/vest logic |
 | `src/game/11-bomb-map.js` | `BOMB_RULES`, `BOMB_TEXT`, indoor maze and map switching |
 | `src/game/86-bomb-mission.js` | Bomb lifecycle, AI objective helpers, action animations, spectator and rounds |
 | `src/game/` | Other original game mechanics, weapons, AI, effects and rendering |
@@ -54,3 +57,7 @@ Automated source and isolated mode-logic tests are included. Full interactive br
 ## Bomb Mission map and bots (2026-10-28)
 
 Bomb Mission uses a dedicated **160×160** indoor arena (16×16 cells) with four themed industrial sectors, actual walls on the radar, two central bomb sites and 5v5 role-based bots. On death, follow a full teammate model from behind; use Left/Right arrows to change teammate. Bots independently guard sites, escort and plant the bomb, chase threats, retake and defuse. Plant/defuse mechanics and existing English strings remain unchanged. Player runs the committed bundle without a build. See `CHANGELOG.md` for test coverage and limitations.
+
+## Combat balance (2026-10-29)
+
+Player and bots spawn with **100 HP + 50 vest durability + a helmet**. Vest reduces torso bullet damage by **20%** until depleted; headshots, knife and explosives bypass the vest. Helmet protects against the first headshot bonus, then headshots deal 3× base bullet damage to both. The HUD shows `VEST 50` at full durability. AI bots now select from the same `WEAPON_PROFILES` as the player with appropriate damage, fire interval, ammo, reload, and ranges; the bot aim behavior is deliberately AI-specific. All weapon data is in local JavaScript (there is no separate backend weapon database). See `CHANGELOG.md` for the update log.

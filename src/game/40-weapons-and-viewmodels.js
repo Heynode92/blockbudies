@@ -47,8 +47,7 @@ function weaponProfile(p){var t=WEAPON_TUNING[p.kind],pel=t.pellets||1;
   return w;
 }
 var WP=WEAPON_PROFILES.map(weaponProfile);
-// EW: stats used for bot (enemy) bullets. Bots do not use the WP table.
-var EW={dmg:7,spd:100,life:.55,pel:1,spr:0};
+// EW: stats used for bot (enemy) bullets are retired; bots now use WP / WEAPON_PROFILES.
 // CC: crate colors by contents (index = weapon crate type, see mkCrate/rci).
 var CC=[0xffd23f,0x51cf66,0xb197fc];
 // Shared geometries/materials for bullets and rockets (created once, reused).

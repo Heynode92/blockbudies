@@ -14,7 +14,7 @@ function swSlot(s){var id=[pl.prim,0,4,5][s],a=amo(id);
 function addGren(){var a=amo(5),w=WP[5];if(a.mag+a.res<w.mag+w.res){a.res++;toast("Grenade +1");}}
 // doStab(): knife attack: damages enemies in a short cone in front of the player.
 function doStab(){killW=4;curK=pl;var w=WP[4],fx=Math.sin(pl.face),fz=Math.cos(pl.face),hit=0;
-  en.slice().forEach(function(e){if(e.tm===pl.tm)return;var dx=e.x-pl.x,dz=e.z-pl.z,d=Math.hypot(dx,dz)||1;if(d<WP[4].range+.8&&(dx*fx+dz*fz)/d>.3&&clearTo(pl.x,pl.z,e.x,e.z,0)){dmgE(e,w.dmg,fx,fz);hit++;}});
+  en.slice().forEach(function(e){if(e.tm===pl.tm)return;var dx=e.x-pl.x,dz=e.z-pl.z,d=Math.hypot(dx,dz)||1;if(d<WP[4].range+.8&&(dx*fx+dz*fz)/d>.3&&clearTo(pl.x,pl.z,e.x,e.z,0)){dmgE(e,w.dmg,fx,fz,0,"melee");hit++;}});
   spark(pl.x+fx*1.3,1.2+pl.y,pl.z+fz*1.3,hit?0xff6b6b:0xffffff,hit?8:4,3,.07);
   var sh=document.getElementById("slh");sh.className="";void sh.offsetWidth;sh.className="go";}
 // mkGren(): builds a grenade mesh.
@@ -34,7 +34,7 @@ function updG(dt){
     if(g.y<fl){g.y=fl;if(g.vy<-1.5)spark(g.x,fl,g.z,0xcfcfcf,2,1.5,.06);g.vy=-g.vy*.4;g.vx*=.72;g.vz*=.72;if(Math.abs(g.vy)<1)g.vy=0;}
     g.m.position.set(g.x,g.y,g.z);g.m.rotation.x+=dt*(Math.abs(g.vx)+Math.abs(g.vz)+1)*1.2;
     g.m.children[0].material.emissive.setHex(g.t<.8&&Math.floor(g.t*10)%2?0x771111:0);
-    if(g.t<=0){S.remove(g.m);grs.splice(gi,1);boom(g.x,g.z,WP[5].dmg,"GRENADE");}
+    if(g.t<=0){S.remove(g.m);grs.splice(gi,1);if(g.by)boom(g.x,g.z,WP[5].dmg,"GRENADE",undefined,g.by);else boom(g.x,g.z,WP[5].dmg,"GRENADE");}
   }
 }
 // SV: inline SVG icons of each weapon id for the HUD.

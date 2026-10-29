@@ -5,7 +5,10 @@
     "src/game/11-bomb-map.js",
     "src/game/20-sky-and-physics.js",
     "src/game/30-characters.js",
+    "src/game/39-defense.js",
     "src/game/40-weapons-and-viewmodels.js",
+    "src/game/41-bot-weapons.js",
+    "src/game/42-projectile-defense.js",
     "src/game/45-combat.js",
     "src/game/50-items-and-drops.js",
     "src/game/60-impact-effects.js",
@@ -30,6 +33,7 @@
     "src/styles/04-lobby.css",
     "src/styles/05-match.css",
     "src/styles/06-weapon-selection.css",
-    "src/styles/07-bomb-mission.css"
+    "src/styles/07-bomb-mission.css",
+    "src/styles/08-defense.css"
   ]
 }
