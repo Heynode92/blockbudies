@@ -234,9 +234,7 @@ function inventoryBuildThumbnails(){
  }
 }
 function inventoryValue(v){return v===null||v===undefined?"—":v===Infinity?"∞":String(v);}
-function inventoryWeaponRole(kind){
- return {rifle:"ASSAULT RIFLE",shotgun:"SHOTGUN",rocket:"LAUNCHER",smg:"SUBMACHINE GUN",sniper:"SNIPER RIFLE",pistol:"HANDGUN",knife:"MELEE",grenade:"GRENADE"}[kind]||"WEAPON";
-}
+function inventoryWeaponRole(kind){return WEAPON_CLASS_LABELS[kind]||"WEAPON";}
 var INVENTORY_CRATE_SVG='<svg viewBox="0 0 220 160" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'+
  '<path d="M37 45h146l18 26v63H19V71z" fill="#182d45" stroke="#ffae58" stroke-width="4"/>'+
  '<path d="M37 45h146l-20 28H57z" fill="#38546a" stroke="#a8c8d5" stroke-width="3"/>'+
@@ -293,7 +291,8 @@ function inventoryRender(){
  // scroll offset after re-rendering so browsing large collections doesn't jump.
  cards.scrollTop=inventoryScroll[inventoryTab]||0;
  document.querySelector("#lbiv .ivhint").textContent=INVENTORY_HINTS[inventoryTab];
- document.getElementById("ivcategory").textContent=INVENTORY_TABS.filter(function(c){return c.key===inventoryTab;})[0].label;
+ document.getElementById("ivcategory").textContent=selected!==null&&!inventoryGear(selected)?
+    inventoryWeaponRole(WP[selected].stats.kind):INVENTORY_TABS.filter(function(c){return c.key===inventoryTab;})[0].label;
  var gear=inventoryGear(selected);
  document.getElementById("ivname").textContent=gear?gear.name:selected===null?"TACTICAL GEAR":WP[selected].n;
  document.getElementById("ivstatus").textContent=gear?"DEFAULT":selected===null?"COMING SOON":selected===equipped?"IN USE":"OWNED";

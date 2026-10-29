@@ -1,8 +1,8 @@
 // =====================================================================================
-// BLOK BUDDIES FPS - SINGLE-FILE GAME (HTML + CSS + JS, Three.js r128 loaded from cdnjs)
+// BLOCK BUDDIES FPS - modular source, bundled browser IIFE (Three.js r128)
 // =====================================================================================
 // READ THIS FIRST (notes for humans and for future AI edits). Everything below is ONE IIFE.
-// Do not invent APIs: only Three.js r128 and plain browser APIs exist. No build step, no modules.
+// Do not invent APIs: browser runtime uses Three.js r128 + native APIs; ordered sources are bundled with tools/build.mjs.
 //
 // COORDINATES
 //  - World: x/z are the ground plane, y is up. The arena spans x,z in [-A, A] with A = 60.
@@ -17,11 +17,12 @@
 //    It is rendered AFTER the world with the depth buffer cleared, so the gun never clips into walls.
 //
 // WEAPON IDS (index into WP and into many parallel arrays)
-//  0 Pistol, 1 Rifle, 2 Shotgun, 3 Rocket, 4 Knife, 5 Grenade, 6 Kriss, 7 Dual Kriss, 8 AWP (sniper).
+//  0 Handgun, 1 AK-47 (assault), 2 Shotgun, 3 RPG, 4 Knife, 5 Grenade,
+ //  6 Kriss, 7 Dual Kriss, 8 AWP (sniper), 9 K2 (starter assault), 10 MP7, 11 P90, 12 AK SOPMOD.
 //  Parallel arrays indexed by weapon id: WP, guns, MZ, ADF, AP, RG, RL, PT, MODE, NC, GSC, GH,
 //  CKV, CKS, CKY, CKR, SFXI, SV. If you add a weapon you must extend ALL of them.
 //  Weapon slots (swSlot): 0 = primary (pl.prim), 1 = pistol (0), 2 = knife (4), 3 = grenade (5).
-//  Primary choices during the 5 s pre-match countdown: WSEL = [1, 2, 3, 6, 8].
+//  Pre-match choices: WSEL is dynamically built from owned primary weapons; new players start with K2.
 //
 // PLAYER STATE `pl` (created in reset())
 //  mag/res = magazine and reserve ammo of the CURRENT weapon only. swW() stores them into
@@ -51,7 +52,7 @@
 //  - Comments that start with "FIX" mark old bug fixes. Do not revert them.
 //  - botsUpd() is the live bot AI (grid path-finding). botsUpdOld() is UNUSED legacy code.
 //  - All sound is synthesised with WebAudio (no audio files). `AC` is created lazily.
-//  - Only localStorage use: best score, key "bbfps_best", always wrapped in try/catch.
+//  - localStorage stores best score plus browser-local inventory ownership/equipped IDs; always handle unavailable storage.
 //  - Never use fetch/network for gameplay. Fonts and three.js are the only external requests.
 // =====================================================================================
 

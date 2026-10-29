@@ -19,7 +19,7 @@ test('Weapon cards show 3D image, name, equip state but no raw stat telemetry',(
  assert.match(inv,/renderer\.domElement\.toDataURL\("image\/png"\)/);
 });
 test('Pistol weapon renamed Handgun without changes to combat identity or damage',()=>{
- const weapons=read('src/game/40-weapons-and-viewmodels.js');
+ const weapons=read('src/game/weapon/01-handgun.js');
  assert.match(weapons,/name:"Handgun",damage:26/);
  assert.match(html,/<span id="wn">Handgun<\/span>/);
  assert.match(read('src/game/75-weapon-controls.js'),/\["","Handgun","Knife","Grenade"\]/);

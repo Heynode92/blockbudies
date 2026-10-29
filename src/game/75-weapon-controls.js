@@ -73,7 +73,7 @@ var WSEL=[],WDESC={1:"Balanced · mid range",2:"Close range · high burst",3:"Ex
 // The per-weapon optic map lives in src/game/76-tactical-optics.js.
 function canAds(w){return w<4||w===6||w===8||w===WEAPON_STARTER_ID||!!tacticalOpticConfig(w);}
 // fall(b,p): damage falloff multiplier (0..1) for bullet b at hit point p from its start (sx,sz), using the weapon's r0/r1/rm.
-function fall(b,p){var f=b.fo;if(!f)return 1;var d=Math.hypot(p.x-b.sx,p.z-b.sz);if(d<=f[0])return 1;if(d>=f[1])return f[2];return 1-(1-f[2])*(d-f[0])/(f[1]-f[0]);}
+function fall(b,p){var f=b.fo;if(!f)return 1;var d=Math.max(0,Math.hypot(p.x-b.sx,p.z-b.sz));return Math.pow(f[0],d/f[1]);}
 // DOM references for the weapon-select screen, the scope overlay and the alt (V / scope) touch button.
 var wsEl=document.getElementById("wsel"),scopeEl=document.getElementById("scope"),abEl=document.getElementById("ab"),wsOn=false,wsCards=[],wsBar,wsT;
 (function(){wsEl.innerHTML='<div class="wt"></div><div class="wb"><i></i></div><div class="wc"></div>';wsT=wsEl.children[0];wsBar=wsEl.children[1].firstChild;})();
@@ -84,7 +84,7 @@ function refreshWeaponSelection(){
   var box=wsEl.children[2];box.textContent="";wsCards=[];
   WSEL.forEach(function(id,i){
     var d=document.createElement("div");d.className="wcd";
-    d.innerHTML='<b class="k">'+(i<5?i+1:"•")+'</b>'+SV[id]+'<b>'+WP[id].n+'</b><small>'+(WDESC[id]||"Ready for battle")+'</small>';
+    d.innerHTML='<b class="k">'+(i<5?i+1:"•")+'</b>'+SV[id]+'<b>'+WP[id].n+'</b><small>'+WEAPON_CLASS_LABELS[WP[id].stats.kind]+" · "+(WDESC[id]||"Ready for battle")+'</small>';
     d.addEventListener("pointerdown",function(e){e.stopPropagation();e.preventDefault();chooseWeapon(id);});
     box.appendChild(d);wsCards.push(d);
   });

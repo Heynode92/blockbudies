@@ -6,14 +6,14 @@ import {resolve,dirname} from "node:path";
 import {fileURLToPath} from "node:url";
 const root=resolve(dirname(fileURLToPath(import.meta.url)),"..");
 const read=path=>readFileSync(resolve(root,path),"utf8");
-const weapon=read("src/game/40-weapons-and-viewmodels.js");
+const weapon=JSON.parse(read("tools/source-manifest.json")).parts.filter(p=>p.startsWith("src/game/weapon/")&&!p.endsWith("30-viewmodels.js")).map(read).join("");
 const inventory=read("src/game/89-inventory.js");
 const bot=read("src/game/41-bot-weapons.js");
 const controls=read("src/game/75-weapon-controls.js");
 const shop=read("src/game/89-shop.js");
 function profileContext(){
  const ctx={Math};
- runInNewContext(weapon.slice(weapon.indexOf("var WEAPON_PROFILES="),weapon.indexOf("// EW:")),ctx);
+ runInNewContext(weapon,ctx);
  return ctx;
 }
 function state(saved=null){
@@ -41,8 +41,8 @@ test("K2 is id 9 with exact user stats, own real model and rifle tuning",()=>{
  assert.equal(x.WP[9].dmg,36);
  assert.equal(x.WP[9].moveMult,.79);
  assert.ok(Math.abs(x.WP[9].life*x.WP[9].spd-120)<1e-9);
- assert.match(weapon,/else if\(i===9\)/);
- assert.match(weapon,/receiver/);
+ assert.match(read("src/game/weapon/10-k2.js"),/WEAPON_MODEL_BUILDERS\[9\]/);
+ assert.match(read("src/game/weapon/10-k2.js"),/receiver/);
  assert.match(controls,/9:'<svg/);
 });
 test("New player only owns K2 as primary but always has the usual sidearm and utility",()=>{
@@ -103,11 +103,11 @@ test("All 13 weapon IDs have viewmodels and gun effects, including K2",()=>{
  const combat=read("src/game/45-combat.js");
  const audio=read("src/game/65-audio.js");
  const drops=read("src/game/50-items-and-drops.js");
- assert.match(weapon,/guns=WEAPON_PROFILES\.map/);
+ assert.match(read("src/game/weapon/30-viewmodels.js"),/guns=WEAPON_PROFILES\.map/);
  assert.match(combat,/MZ=\[[^\]]+,-1\.38\]/);
  assert.match(audio,/SFXI=\[[^\]]+,1\]/);
  assert.match(drops,/GSC=\[[^\]]+,1\.23\],GH=\[[^\]]+,\.09\]/);
- assert.match(weapon,/MODE=\[[^\]]+,0\],NC=\[[^\]]+,1\]/);
+ assert.match(read("src/game/weapon/30-viewmodels.js"),/MODE=\[[^\]]+,0\],NC=\[[^\]]+,1\]/);
 });
 test("Compiled game bundle is exactly the ordered source parts",()=>{
  const m=JSON.parse(read("tools/source-manifest.json"));

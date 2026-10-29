@@ -7,8 +7,7 @@ import { runInNewContext } from 'node:vm';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const src = p => readFileSync(resolve(root,p),'utf8');
 function setup() {
-  const table=src('src/game/40-weapons-and-viewmodels.js');
-  const profiles=table.slice(table.indexOf('var WEAPON_PROFILES='),table.indexOf('// EW:'));
+  const profiles=JSON.parse(src('tools/source-manifest.json')).parts.filter(p=>p.startsWith('src/game/weapon/')&&!p.endsWith('30-viewmodels.js')).map(src).join('');
   const ctx={Math,Number,tt:0,grs:[],fireCalls:[],impactCalls:[],pl:{tm:0},
     mkGren(){return {tag:'grenade'};},
     clearTo(){return true;},

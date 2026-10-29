@@ -22,10 +22,12 @@ test('the original game is retained verbatim as an immutable regression fixture'
   assert.ok(original.includes('var WP=['));
   assert.ok(original.includes('BOMB MODE'));
 });
-test('Team Deathmatch weapon stat table is unchanged',()=>{
+test('Historical weapon table fixture remains unchanged and new weapon modules retain original IDs',()=>{
   const orig=original.match(/var WP=\[[\s\S]*?\];\n\/\/ EW:/)?.[0];
   assert.ok(orig);
-  assert.ok(bundle.includes(orig));
+  assert.ok(m.parts.includes('src/game/weapon/00-registry.js'));
+  assert.ok(m.parts.includes('src/game/weapon/30-viewmodels.js'));
+  assert.ok(bundle.includes('WEAPON_PROFILES[1]=Object.freeze('));
   assert.ok(bundle.includes('function botsUpdOld(dt)'));
 });
 test('index references every ordered CSS module, game bundle, and original CDN',()=>{

@@ -7,8 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const read=p=>readFileSync(resolve(root,p),'utf8');
-const weaponSource=read('src/game/40-weapons-and-viewmodels.js');
-const profiles=weaponSource.slice(weaponSource.indexOf('var WEAPON_PROFILES='),weaponSource.indexOf('// EW:'));
+const profiles=JSON.parse(read('tools/source-manifest.json')).parts.filter(p=>p.startsWith('src/game/weapon/')&&!p.endsWith('30-viewmodels.js')).map(read).join('');
 const mobility=read('src/game/43-movement.js');
 const sim=read('src/game/95-simulation.js');
 function setup(){
@@ -55,6 +54,6 @@ test('main simulation uses shared movement calculation without heavy-weapon or d
   assert.match(sim,/var spd=weaponMovementSpeed\(pl\.w,sprT,adsT\)/);
   assert.doesNotMatch(sim,/\.62\*sprT|\.12\*wtT|\.75\+\.003\*/);
   const manifest=JSON.parse(read('tools/source-manifest.json'));
-  assert.ok(manifest.parts.indexOf('src/game/43-movement.js')>manifest.parts.indexOf('src/game/40-weapons-and-viewmodels.js'));
+  assert.ok(manifest.parts.indexOf('src/game/43-movement.js')>manifest.parts.indexOf('src/game/weapon/30-viewmodels.js'));
   assert.ok(manifest.parts.indexOf('src/game/43-movement.js')<manifest.parts.indexOf('src/game/95-simulation.js'));
 });

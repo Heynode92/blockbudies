@@ -25,8 +25,10 @@ Next time, use `git pull` and open `index.html` again. You **do not need a runne
 | Path | Responsibility |
 |---|---|
 | `index.html` | Original lobby/HUD markup, plus Bomb Mission interaction HUD |
-| `src/styles/` | Eight ordered CSS fragments |
+| `src/styles/` | Ordered CSS fragments for game, lobby, inventory, Shop and tactical optics |
 | `src/game/39-defense.js` | Centralized 100 HP, vest 50, 20% body damage reduction, uniform headshot rules |
+| `src/game/weapon/` | One file per weapon, shared CS-style falloff configuration, ballistics and Three.js viewmodels |
+| `tools/damage-sim.mjs` | Range, body/vest/head/helmet bullets-to-kill and ideal TTK simulator |
 | `src/game/41-bot-weapons.js` | Weapon-profiled AI loadouts, ammo, reload and attack choices |
 | `src/game/42-projectile-defense.js` | Shared bullet impact and helmet/vest logic |
 | `src/game/11-bomb-map.js` | `BOMB_RULES`, `BOMB_TEXT`, indoor maze and map switching |
@@ -60,4 +62,8 @@ Bomb Mission uses a dedicated **160×160** indoor arena (16×16 cells) with four
 
 ## Combat balance (2026-10-29)
 
-Player and bots spawn with **100 HP + 50 vest durability + a helmet**. Vest reduces torso bullet damage by **20%** until depleted; headshots, knife and explosives bypass the vest. Helmet protects against the first headshot bonus, then headshots deal 3× base bullet damage to both. The HUD shows `VEST 50` at full durability. AI bots now select from the same `WEAPON_PROFILES` as the player with appropriate damage, fire interval, ammo, reload, and ranges; the bot aim behavior is deliberately AI-specific. All weapon data is in local JavaScript (there is no separate backend weapon database). See `CHANGELOG.md` for the update log.
+Player and bots spawn with **100 HP + 50 vest durability + a helmet**. Vest reduces torso bullet damage by **20%** until depleted; headshots, knife and explosives bypass the vest. Helmet protects against the first headshot bonus, then headshots deal 3× base bullet damage to both. The HUD shows `VEST 50` at full durability. AI bots select from the same `WEAPON_PROFILES` as players; bot weapon choices, aim AI and loadouts remain separate. Base damage, ammo, recoil and hard maximum range ratings are unchanged. Damage now decays continuously before armor and headshot calculations using a Counter-Strike-inspired per-weapon exponential range modifier, normalized to BLOCK BUDDIES world units (20 world units per modifier interval rather than 500 Counter-Strike units). Rifle modifiers are around 0.97–0.98, SMGs 0.83–0.86, AWP 0.99, and shotgun 0.70 per pellet. RPG, Knife and Grenade do not use bullet falloff. The player still starts with K2, while other primaries unlock through Shop.
+
+**Weapon maintenance:** All weapons are separated in `src/game/weapon/<NN>-<name>.js`. The frozen `WEAPON_CLASS_LABELS` distinguishes **ASSAULT RIFLE** (AK-47, K2, AK SOPMOD), **SUBMACHINE GUN** (Kriss, Dual Kriss, MP7, P90), **SNIPER RIFLE** (AWP), **SHOTGUN**, **HANDGUN**, **LAUNCHER**, **MELEE** and **THROWABLE**. The shared damage mapping is in `weapon/00-registry.js`; derived runtime stats in `weapon/20-ballistics.js`; animations/dispatcher in `weapon/30-viewmodels.js`. For harder/easier damage over distance edit each weapon's `WEAPON_RANGE_MODIFIERS[id]` value (closer to 1 means **more damage at range**), or the central `DAMAGE_FALLOFF.referenceUnits` (larger means **slower drop**). For HP, armor and headshots see `DEFENSE_RULES` in `src/game/39-defense.js`, unchanged here.
+
+**Balance diagnostics:** Run `node tools/damage-sim.mjs` for all weapons at 5/10/20/40/60 units, including helmet/vest variants. It assumes every shot/pellet hits and omits reload and misses. See `src/game/weapon/README.md` for the full file ownership map and formula. See `CHANGELOG.md` for update history.

@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-10-29 — CS-style distance damage and per-weapon source layout
+
+### Damage: Counter-Strike-inspired exponential falloff
+- Activated distance-based bullet damage falloff in **both Deathmatch and Bomb Mission**, for player and BOT shots through the shared projectile pipeline. Formula: `damage = baseDamage × rangeModifier^(distance / 20 world units)`. Based on the CS:GO/CS2 range modifier model, but **20 BLOCK BUDDIES units represent one falloff interval**, not the native Counter-Strike 500 game units.
+- Weapon modifiers are configurable in **each weapon's own file**: AK-47 **0.98**, K2 **0.98**, AK SOPMOD **0.97**; Kriss & Dual Kriss **0.83**, MP7 **0.85**, P90 **0.86**; AWP **0.99**; Handgun **0.91**; Shotgun **0.70 per pellet**. Rocket, Knife and Grenade have no bullet falloff.
+- Damage decays smoothly and never increases as distance grows. Projectile lifetime and original Range ratings remain **hard maximum ranges**; the previous bug where fo was never populated is resolved.
+- Falloff is applied **before** hit-location multiplier, helmet and vest damage absorption. Body armor remains **50 vest durability / 20% torso reduction**, HP **100**, and headshot multiplier **3×**; there is no simultaneous defense rebalance.
+- Added `tools/damage-sim.mjs` for hits-to-kill and ideal TTK, with/without vest and helmet, at 5, 10, 20, 40 and 60 world units. Sim assumes all rounds/pellets connect, and excludes missed bullets, reload and movement.
+
+### Refactored weapon maintenance
+- Reorganized the old `src/game/40-weapons-and-viewmodels.js` into `src/game/weapon/`: **one module per weapon** (13 files with stable ID, rating, falloff modifier and reference-based 3D mesh builder), plus `00-registry.js`, `20-ballistics.js` and `30-viewmodels.js`. The former filename now holds a migration note and is not bundled.
+- Unified UI weapon classes via frozen `WEAPON_CLASS_LABELS`: **ASSAULT RIFLE** (AK-47, K2, AK SOPMOD), **SUBMACHINE GUN** (Kriss, Dual, MP7, P90), **SNIPER RIFLE** (AWP), **SHOTGUN**, **HANDGUN**, **LAUNCHER**, **MELEE**, **THROWABLE**. Shop/Inventory and pre-match selection share these labels.
+- `tools/source-manifest.json` now lists the 16 ordered weapon modules; committed `assets/game.js` is regenerated from their source (not hand-authored). Added `src/game/weapon/README.md` with ID mapping and editable balance settings.
+- Updated older tests to load modular weapon profiles and added range/helmet/vest/shotgun regression tests in `tests/damage-range.test.mjs`. Existing weapon IDs, **all 13 weapon rating numbers**, ammo, movement, fire rates, recoil, Shop ownership, K2 starter weapon, Kriss dual mode, BOT loadout and Bomb rules remain unchanged.
+
+### Testing
+- In-source JavaScript parsing and focused behavior checks cover the new registry, class labels, range modifiers and projectile damage formulas.
+- Live browser playtesting and full local Node suite are not claimed here unless independently executed.
+
+
 ## 2026-10-29 — MP7, P90 and AK SOPMOD tactical Shop weapons
 
 ### Three new Shop primaries

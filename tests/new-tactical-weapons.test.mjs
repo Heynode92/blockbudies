@@ -6,11 +6,12 @@ import {fileURLToPath} from 'node:url';
 import {dirname,resolve} from 'node:path';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const read=p=>readFileSync(resolve(root,p),'utf8');
-const weapon=read('src/game/40-weapons-and-viewmodels.js'),control=read('src/game/75-weapon-controls.js'),optic=read('src/game/76-tactical-optics.js');
+const weapon=JSON.parse(read('tools/source-manifest.json')).parts.filter(p=>p.startsWith('src/game/weapon/')&&!p.endsWith('30-viewmodels.js')).map(read).join(''),control=read('src/game/75-weapon-controls.js'),optic=read('src/game/76-tactical-optics.js');
+const viewmodels=read('src/game/weapon/30-viewmodels.js');
 const shop=read('src/game/89-shop.js'),inventory=read('src/game/89-inventory.js'),sim=read('src/game/95-simulation.js');
 const bots=read('src/game/41-bot-weapons.js');
 function loadProfiles(){
- const ctx={Math};runInNewContext(weapon.slice(weapon.indexOf('var WEAPON_PROFILES='),weapon.indexOf('// EW:')),ctx);
+ const ctx={Math};runInNewContext(weapon,ctx);
  return ctx;
 }
 test('MP7, P90 and AK SOPMOD exactly match requested ratings and ammo',()=>{
@@ -30,9 +31,10 @@ test('MP7, P90 and AK SOPMOD exactly match requested ratings and ammo',()=>{
  assert.equal(WEAPON_PROFILES[9].name,'K2');
 });
 test('Dedicated weapon meshes have correct reference-driven silhouettes, textures and mechanisms',()=>{
- for(const n of [10,11,12])assert.match(weapon,new RegExp('else if\\(i==='+n+'\\)'));
- for(const token of ['MP7: compact black','P90: distinctive bullpup','AK SOPMOD: black carbine','curved magazine','vertical foregrip'])assert.ok(weapon.includes(token));
- assert.match(weapon,/guns=WEAPON_PROFILES\.map/);
+ for(const [n,path] of [[10,'11-mp7.js'],[11,'12-p90.js'],[12,'13-ak-sopmod.js']])assert.match(read('src/game/weapon/'+path),new RegExp('WEAPON_MODEL_BUILDERS\\['+n+'\\]'));
+ const allModels=['11-mp7.js','12-p90.js','13-ak-sopmod.js'].map(p=>read('src/game/weapon/'+p)).join('');
+ for(const token of ['MP7: compact black','P90: distinctive bullpup','AK SOPMOD: black carbine','curved magazine','vertical foregrip'])assert.ok(allModels.includes(token));
+ assert.match(viewmodels,/guns=WEAPON_PROFILES\.map/);
  const src=read('src/game/50-items-and-drops.js');
  assert.match(src,/kind==="smg"/);assert.match(src,/kind==="rifle"/);
 });
@@ -63,7 +65,7 @@ test('Tactical aim has three distinct visual profiles and uses RMB hold, AWP sco
  assert.match(control,/!!tacticalOpticConfig\(w\)/);
  assert.match(read('src/styles/11-tactical-optics.css'),/\.tactical-aim-sopmod/);
  assert.match(read('index.html'),/id="tacticalAim"/);
- assert.match(weapon,/ADF=\[[^\]]+,42,44,36\]/);
+ assert.match(viewmodels,/ADF=\[[^\]]+,42,44,36\]/);
 });
 test('All dependent arrays extend for new IDs without shifting original id indexes',()=>{
  for(const expr of [/MZ=\[[^\]]+,-1\.04,-1\.00,-1\.38\]/,/SFXI=\[[^\]]+,1,1,1\]/]){
@@ -71,7 +73,7 @@ test('All dependent arrays extend for new IDs without shifting original id index
  }
  const drops=read('src/game/50-items-and-drops.js');
  assert.match(drops,/GSC=\[[^\]]+,1\.2,1\.18,1\.23\],GH=/);
- assert.match(weapon,/MODE=\[[^\]]+,0,0,0\],NC=/);
+ assert.match(viewmodels,/MODE=\[[^\]]+,0,0,0\],NC=/);
  assert.match(control,/10:'<svg/);assert.match(control,/11:'<svg/);assert.match(control,/12:'<svg/);
 });
 test('Compiled runtime matches all source modules including tactical optic module',()=>{

@@ -7,8 +7,7 @@ import { dirname, resolve } from 'node:path';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const read=name=>readFileSync(resolve(root,name),'utf8');
-const moduleText=read('src/game/40-weapons-and-viewmodels.js');
-const weaponTable=moduleText.slice(moduleText.indexOf('var WEAPON_PROFILES='),moduleText.indexOf('// EW: stats used for bot'));
+const weaponTable=JSON.parse(read('tools/source-manifest.json')).parts.filter(p=>p.startsWith('src/game/weapon/')&&!p.endsWith('30-viewmodels.js')).map(read).join('');
 function load(){const sandbox={Math};runInNewContext(weaponTable+'\nthis.profiles=WEAPON_PROFILES;this.weapons=WP;this.tuning=WEAPON_TUNING;',sandbox);return sandbox;}
 const expected=[
  ['Handgun',26,84,87,93,61,61,13,52,45],
@@ -88,7 +87,7 @@ test('pistol ammo is finite and empty fallback uses knife instead of infinite pi
 });
 test('generated gameplay bundle contains the same updated feature modules and parses',()=>{
  const bundle=read('assets/game.js');
- for(const p of ['src/game/40-weapons-and-viewmodels.js','src/game/65-audio.js','src/game/70-kills-and-damage-hud.js','src/game/75-weapon-controls.js','src/game/95-simulation.js']){
+ for(const p of ['src/game/weapon/20-ballistics.js','src/game/weapon/30-viewmodels.js','src/game/65-audio.js','src/game/70-kills-and-damage-hud.js','src/game/75-weapon-controls.js','src/game/95-simulation.js']){
   assert.ok(bundle.includes(read(p)),`${p} is contained in bundle`);
  }
  assert.ok(bundle.includes('AK-47'));

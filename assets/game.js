@@ -1,9 +1,9 @@
 (function(){
 // =====================================================================================
-// BLOK BUDDIES FPS - SINGLE-FILE GAME (HTML + CSS + JS, Three.js r128 loaded from cdnjs)
+// BLOCK BUDDIES FPS - modular source, bundled browser IIFE (Three.js r128)
 // =====================================================================================
 // READ THIS FIRST (notes for humans and for future AI edits). Everything below is ONE IIFE.
-// Do not invent APIs: only Three.js r128 and plain browser APIs exist. No build step, no modules.
+// Do not invent APIs: browser runtime uses Three.js r128 + native APIs; ordered sources are bundled with tools/build.mjs.
 //
 // COORDINATES
 //  - World: x/z are the ground plane, y is up. The arena spans x,z in [-A, A] with A = 60.
@@ -18,11 +18,12 @@
 //    It is rendered AFTER the world with the depth buffer cleared, so the gun never clips into walls.
 //
 // WEAPON IDS (index into WP and into many parallel arrays)
-//  0 Pistol, 1 Rifle, 2 Shotgun, 3 Rocket, 4 Knife, 5 Grenade, 6 Kriss, 7 Dual Kriss, 8 AWP (sniper).
+//  0 Handgun, 1 AK-47 (assault), 2 Shotgun, 3 RPG, 4 Knife, 5 Grenade,
+ //  6 Kriss, 7 Dual Kriss, 8 AWP (sniper), 9 K2 (starter assault), 10 MP7, 11 P90, 12 AK SOPMOD.
 //  Parallel arrays indexed by weapon id: WP, guns, MZ, ADF, AP, RG, RL, PT, MODE, NC, GSC, GH,
 //  CKV, CKS, CKY, CKR, SFXI, SV. If you add a weapon you must extend ALL of them.
 //  Weapon slots (swSlot): 0 = primary (pl.prim), 1 = pistol (0), 2 = knife (4), 3 = grenade (5).
-//  Primary choices during the 5 s pre-match countdown: WSEL = [1, 2, 3, 6, 8].
+//  Pre-match choices: WSEL is dynamically built from owned primary weapons; new players start with K2.
 //
 // PLAYER STATE `pl` (created in reset())
 //  mag/res = magazine and reserve ammo of the CURRENT weapon only. swW() stores them into
@@ -52,7 +53,7 @@
 //  - Comments that start with "FIX" mark old bug fixes. Do not revert them.
 //  - botsUpd() is the live bot AI (grid path-finding). botsUpdOld() is UNUSED legacy code.
 //  - All sound is synthesised with WebAudio (no audio files). `AC` is created lazily.
-//  - Only localStorage use: best score, key "bbfps_best", always wrapped in try/catch.
+//  - localStorage stores best score plus browser-local inventory ownership/equipped IDs; always handle unavailable storage.
 //  - Never use fetch/network for gameplay. Fonts and three.js are the only external requests.
 // =====================================================================================
 
@@ -560,30 +561,225 @@ function defenseDamage(actor,raw,kind){
 }
 // Headshot after helmet removal is identical for bots and player.
 function defenseHeadshotDamage(base){return base*DEFENSE_RULES.headshotMultiplier;}
-// ---- WEAPON DATA: Single source of truth for user-provided Point Blank-style ratings ----
-// Display ratings (0..100) are NOT real-world rounds/minute, meters/second or recoil angles.
-// Speed is the percentage of baseline movement reached when sprinting at full input.
-// Actual gameplay fire intervals/accuracy/movement are derived explicitly below.
-// damage = per-shot damage; for shotguns the damage is SPLIT across six pellets.
-// range = maximum bullet travel in world units (not meters or an infinite visual tracer).
-var WEAPON_PROFILES=[
- {name:"Handgun",damage:26,rpm:84,control:87,speed:93,vRecoil:61,hRecoil:61,mag:13,res:52,range:45,kind:"pistol"},
- {name:"AK-47",damage:33,rpm:88,control:44,speed:74,vRecoil:69,hRecoil:62,mag:30,res:90,range:140,kind:"rifle"},
- {name:"Shotgun",damage:168,rpm:48,control:58,speed:79,vRecoil:100,hRecoil:78,mag:6,res:30,range:70,kind:"shotgun"},
- // RPG is a project-specific value; user permitted its tuning rather than supplying PB ratings.
- {name:"RPG",damage:85,rpm:35,control:25,speed:48,vRecoil:100,hRecoil:85,mag:1,res:6,range:65,kind:"rocket"},
- {name:"Knife",damage:60,rpm:null,control:100,speed:98,vRecoil:null,hRecoil:null,mag:1,res:Infinity,range:1,kind:"knife"},
- {name:"Grenade",damage:40,rpm:null,control:null,speed:98,vRecoil:null,hRecoil:null,mag:2,res:2,range:null,kind:"grenade"},
- {name:"Kriss",damage:21,rpm:93,control:59,speed:90,vRecoil:48,hRecoil:48,mag:30,res:210,range:60,kind:"smg"},
- {name:"Dual Kriss",damage:18,rpm:93,control:59,speed:90,vRecoil:48,hRecoil:48,mag:125,res:0,range:60,kind:"dual"},
- {name:"AWP",damage:81,rpm:39,control:66,speed:69,vRecoil:60,hRecoil:60,mag:5,res:64,range:180,kind:"sniper"},
- {name:"K2",damage:36,rpm:96,control:75,speed:79,vRecoil:66,hRecoil:33,mag:40,res:200,range:120,kind:"rifle"},
- {name:"MP7",damage:21,rpm:93,control:60,speed:88,vRecoil:45,hRecoil:54,mag:30,res:200,range:60,kind:"smg"},
- {name:"P90",damage:24,rpm:92,control:54,speed:88,vRecoil:45,hRecoil:48,mag:50,res:200,range:65,kind:"smg"},
- {name:"AK SOPMOD",damage:33,rpm:90,control:50,speed:74,vRecoil:64,hRecoil:60,mag:30,res:150,range:160,kind:"rifle"}
-];
-// Weapon IDs remain stable so existing bot loadouts and inventory saves do not shift.
+// ---- WEAPON REGISTRY: stable IDs for save files, bot loadouts and all weapon arrays ----
+var WEAPON_PROFILES=[],WEAPON_MODEL_BUILDERS=[],WEAPON_RANGE_MODIFIERS=[];
 var WEAPON_STARTER_ID=9;
+// CS:GO damage falloff is damage*modifier^(distance/500 CS units).
+// For BLOCK BUDDIES, 20 world units are one falloff interval; the two unit systems differ.
+var DAMAGE_FALLOFF=Object.freeze({referenceUnits:20,defaultModifiers:Object.freeze({pistol:.91,rifle:.98,smg:.85,dual:.85,shotgun:.70,sniper:.99})});
+var WEAPON_CLASS_LABELS=Object.freeze({pistol:"HANDGUN",rifle:"ASSAULT RIFLE",shotgun:"SHOTGUN",rocket:"LAUNCHER",knife:"MELEE",grenade:"THROWABLE",smg:"SUBMACHINE GUN",dual:"SUBMACHINE GUN",sniper:"SNIPER RIFLE"});
+// Handgun: stable weapon ID 0 (pistol). Profile ratings and range modifier are weapon-local.
+WEAPON_PROFILES[0]=Object.freeze({name:"Handgun",damage:26,rpm:84,control:87,speed:93,vRecoil:61,hRecoil:61,mag:13,res:52,range:45,kind:"pistol"});
+WEAPON_RANGE_MODIFIERS[0]=0.91;
+WEAPON_MODEL_BUILDERS[0]=function(g,a){
+ a(bx(.09,.1,.45,0x9aa1ad,0,0,-.3),bx(.07,.06,.3,0x2b2f3d,0,-.07,-.3),bx(.08,.22,.1,0x2b2f3d,0,-.15,-.12,.25),cy(.028,.028,.12,0x1d2129,0,.01,-.58));
+};
+// AK-47: stable weapon ID 1 (rifle). Profile ratings and range modifier are weapon-local.
+WEAPON_PROFILES[1]=Object.freeze({name:"AK-47",damage:33,rpm:88,control:44,speed:74,vRecoil:69,hRecoil:62,mag:30,res:90,range:140,kind:"rifle"});
+WEAPON_RANGE_MODIFIERS[1]=0.98;
+WEAPON_MODEL_BUILDERS[1]=function(g,a){
+ a(bx(.1,.12,.7,0x3b4252,0,0,-.35),cy(.025,.025,.5,0x1d2129,0,.02,-.9),bx(.12,.1,.3,0x6b4f3a,0,-.01,-.65),bx(.07,.22,.1,0x1d2129,0,-.17,-.4,.2),bx(.08,.14,.3,0x6b4f3a,0,-.02,.05),bx(.04,.05,.1,0x111111,0,.09,-.4),bx(.07,.16,.08,0x2b2f3d,0,-.13,-.15,.2));
+};
+// Shotgun: stable weapon ID 2 (shotgun). Profile ratings and range modifier are weapon-local.
+WEAPON_PROFILES[2]=Object.freeze({name:"Shotgun",damage:168,rpm:48,control:58,speed:79,vRecoil:100,hRecoil:78,mag:6,res:30,range:70,kind:"shotgun"});
+WEAPON_RANGE_MODIFIERS[2]=0.7;
+WEAPON_MODEL_BUILDERS[2]=function(g,a){
+ a(cy(.035,.035,.9,0x4a4f5a,0,.03,-.55),cy(.03,.03,.7,0x333b48,0,-.03,-.5),bx(.1,.08,.22,0x8a5a2b,0,-.04,-.6),bx(.1,.12,.35,0x3b4252,0,0,-.1),bx(.08,.14,.4,0x8a5a2b,0,-.03,.2));
+};
+// RPG: stable weapon ID 3 (rocket). Profile ratings and range modifier are weapon-local.
+WEAPON_PROFILES[3]=Object.freeze({name:"RPG",damage:85,rpm:35,control:25,speed:48,vRecoil:100,hRecoil:85,mag:1,res:6,range:65,kind:"rocket"});
+WEAPON_RANGE_MODIFIERS[3]=null;
+WEAPON_MODEL_BUILDERS[3]=function(g,a){
+ a(cy(.1,.1,1.1,0x5c6b3c,0,.03,-.4),cy(.1,.17,.2,0x3b4a2a,0,.03,-1),cy(.09,0,.28,0xe03131,0,.03,-1.2),bx(.07,.16,.08,0x2b2f3d,0,-.12,-.2,.2),bx(.04,.06,.1,0x111111,0,.12,-.3));
+};
+// Knife: stable weapon ID 4 (knife). Profile ratings and range modifier are weapon-local.
+WEAPON_PROFILES[4]=Object.freeze({name:"Knife",damage:60,rpm:null,control:100,speed:98,vRecoil:null,hRecoil:null,mag:1,res:Infinity,range:1,kind:"knife"});
+WEAPON_RANGE_MODIFIERS[4]=null;
+WEAPON_MODEL_BUILDERS[4]=function(g,a){
+ {var ks=new T.Shape();ks.moveTo(0,-.045);ks.lineTo(.3,-.045);ks.lineTo(.44,-.02);ks.lineTo(.34,.035);ks.lineTo(.2,.047);ks.lineTo(0,.047);ks.closePath();
+    var kg=new T.ExtrudeGeometry(ks,{depth:.016,bevelEnabled:false});kg.translate(0,0,-.008);kg.rotateX(-Math.PI/2);kg.rotateY(Math.PI/2);
+    var kb=new T.Mesh(kg,new T.MeshLambertMaterial({color:0xdfe6ee}));kb.position.set(0,0,-.22);kb.castShadow=true;
+    var pv2=new T.Group();pv2.add(kb,bx(.016,.006,.26,0x8f9aa8,0,.011,-.36),bx(.15,.03,.035,0x7a828f,0,0,-.215),bx(.05,.06,.2,0x2b2f3d,0,0,-.1),bx(.056,.064,.02,0x555c68,0,0,-.06),bx(.056,.064,.02,0x555c68,0,0,-.11),bx(.056,.064,.02,0x555c68,0,0,-.16),bx(.065,.07,.035,0x7a828f,0,0,.01));
+    pv2.rotation.set(.55,0,.3);g.add(pv2);}
+};
+// Grenade: stable weapon ID 5 (grenade). Profile ratings and range modifier are weapon-local.
+WEAPON_PROFILES[5]=Object.freeze({name:"Grenade",damage:40,rpm:null,control:null,speed:98,vRecoil:null,hRecoil:null,mag:2,res:2,range:null,kind:"grenade"});
+WEAPON_RANGE_MODIFIERS[5]=null;
+WEAPON_MODEL_BUILDERS[5]=function(g,a){
+ a(bx(.15,.15,.15,0x4a5a2a,0,0,-.3),bx(.16,.03,.16,0x3a4620,0,.03,-.3),bx(.06,.05,.06,0x888e98,0,.1,-.3),bx(.04,.03,.14,0xaab0b9,0,.13,-.27),bx(.1,.02,.02,0xd4a017,.06,.1,-.36));
+};
+// Kriss: stable weapon ID 6 (smg). Profile ratings and range modifier are weapon-local.
+WEAPON_PROFILES[6]=Object.freeze({name:"Kriss",damage:21,rpm:93,control:59,speed:90,vRecoil:48,hRecoil:48,mag:30,res:210,range:60,kind:"smg"});
+WEAPON_RANGE_MODIFIERS[6]=0.83;
+WEAPON_MODEL_BUILDERS[6]=function(g,a){
+ a(
+    bx(.085,.1,.52,0x9c8b5e,0,.03,-.28),                       // upper receiver (FDE tan)
+    bx(.08,.07,.34,0x2b2f3d,0,-.04,-.2),                        // lower receiver (dark polymer)
+    bx(.09,.1,.2,0x8f7f55,0,.025,-.62),                         // barrel shroud
+    bx(.092,.035,.03,0x111111,0,.03,-.56),bx(.092,.035,.03,0x111111,0,.03,-.62),bx(.092,.035,.03,0x111111,0,.03,-.68), // shroud vents
+    cy(.017,.017,.14,0x1d2129,0,.03,-.79),cy(.026,.026,.05,0x111111,0,.03,-.87), // barrel + flash hider
+    bx(.04,.022,.42,0x111111,0,.087,-.26),                      // top rail
+    bx(.088,.03,.1,0x555c68,0,.05,-.12),                        // ejection port / bolt cover
+    bx(.05,.02,.12,0x1d2129,0,.108,-.2),                        // red-dot base
+    bx(.008,.05,.012,0x111111,-.026,.13,-.15),bx(.008,.05,.012,0x111111,.026,.13,-.15),bx(.06,.008,.012,0x111111,0,.158,-.15), // sight rear frame
+    bx(.008,.05,.012,0x111111,-.026,.13,-.25),bx(.008,.05,.012,0x111111,.026,.13,-.25),bx(.06,.008,.012,0x111111,0,.158,-.25), // sight front frame
+    bx(.007,.007,.004,0xff2a2a,0,.13,-.256),                    // red dot
+    bx(.07,.26,.095,0x1d2129,0,-.17,-.12,-.3),                  // grip + magazine (angled back, Vector style)
+    bx(.02,.025,.1,0x2b2f3d,0,-.09,-.22),                       // trigger guard
+    bx(.05,.06,.035,0x2b2f3d,0,.03,0),bx(.06,.1,.03,0x1d2129,0,.0,.03)); // short folded stock + pad (kept tiny)
+};
+// Dual Kriss: stable weapon ID 7 (dual). Profile ratings and range modifier are weapon-local.
+WEAPON_PROFILES[7]=Object.freeze({name:"Dual Kriss",damage:18,rpm:93,control:59,speed:90,vRecoil:48,hRecoil:48,mag:125,res:0,range:60,kind:"dual"});
+WEAPON_RANGE_MODIFIERS[7]=0.83;
+WEAPON_MODEL_BUILDERS[7]=function(g,a){
+ {var kr=mkGun(6),kl=mkGun(6);kl.position.x=-.52;a(kr,kl);}
+};
+// AWP: stable weapon ID 8 (sniper). Profile ratings and range modifier are weapon-local.
+WEAPON_PROFILES[8]=Object.freeze({name:"AWP",damage:81,rpm:39,control:66,speed:69,vRecoil:60,hRecoil:60,mag:5,res:64,range:180,kind:"sniper"});
+WEAPON_RANGE_MODIFIERS[8]=0.99;
+WEAPON_MODEL_BUILDERS[8]=function(g,a){
+ {var bh=bx(.1,.025,.03,0x888e98,.07,.03,-.08);g.userData.bolt=bh;a(bx(.09,.13,.6,0x3b4a2a,0,0,-.1),cy(.018,.018,1,0x1d2129,0,.025,-.95),cy(.03,.03,.16,0x2b2f3d,0,.025,-1.5),bx(.085,.17,.45,0x3b4a2a,0,-.02,.4),bx(.09,.06,.18,0x2b2f3d,0,.07,.18),cy(.04,.04,.34,0x111111,0,.13,-.2),cy(.05,.05,.07,0x111111,0,.13,-.4),cy(.045,.045,.06,0x111111,0,.13,.0),bx(.03,.05,.04,0x333333,0,.09,-.3),bx(.07,.2,.09,0x2b2f3d,0,-.15,-.05,.2),bx(.06,.14,.1,0x2b2f3d,0,-.12,-.3),bh);}
+};
+// K2: stable weapon ID 9 (rifle). Profile ratings and range modifier are weapon-local.
+WEAPON_PROFILES[9]=Object.freeze({name:"K2",damage:36,rpm:96,control:75,speed:79,vRecoil:66,hRecoil:33,mag:40,res:200,range:120,kind:"rifle"});
+WEAPON_RANGE_MODIFIERS[9]=0.98;
+WEAPON_MODEL_BUILDERS[9]=function(g,a){
+ {
+    // K2: silver rifle receiver with black rail, polymer telescopic stock,
+    // ventilated handguard, 40-round curved magazine and compact sight.
+    // The provided reference informs this dedicated low-poly mesh.
+    a(
+      bx(.105,.12,.48,0x969f9e,0,0,-.23),      // receiver
+      bx(.109,.046,.43,0x5f6c6e,0,.076,-.23),  // upper rail mount
+      bx(.11,.07,.38,0x536265,0,-.005,-.65),   // handguard
+      bx(.118,.024,.37,0x242a2e,0,.077,-.66), // top accessory rail
+      cy(.022,.022,.40,0x20272b,0,.005,-1.03),// long exposed barrel
+      cy(.031,.031,.10,0x101719,0,.005,-1.27),// muzzle
+      bx(.08,.045,.19,0x343b40,0,-.015,-1.01),// gas block
+      bx(.095,.035,.14,0x303c40,0,.09,-.24),  // sight mount
+      bx(.055,.045,.075,0x1a2024,0,.138,-.24),// reflex sight
+      bx(.07,.014,.10,0x525e61,0,.158,-.25),  // sight top
+      bx(.07,.08,.12,0x30373b,0,-.17,-.19,.26), // grip
+      bx(.082,.20,.10,0x1e2428,0,-.22,-.46,-.22),// curved magazine
+      bx(.084,.045,.1,0x424d50,0,-.32,-.50,-.3), // magazine base
+      bx(.025,.018,.08,0x1d2428,0,-.09,-.23), // trigger guard
+      bx(.05,.05,.33,0x242b2f,0,-.003,.31),   // stock beam
+      bx(.09,.125,.28,0x20272b,0,-.02,.48),  // adjustable rear stock
+      bx(.11,.17,.035,0x111719,0,-.02,.67),  // rubber butt plate
+      bx(.14,.018,.13,0xb2bdb6,0,.066,-.50) // handguard metal strap
+    );
+    for(var k2v=0;k2v<5;k2v++){
+      a(bx(.016,.013,.034,0x171d20,.054,.058,-.82+k2v*.071));
+      a(bx(.016,.013,.034,0x171d20,-.054,.058,-.82+k2v*.071));
+    }
+    for(var k2m=0;k2m<4;k2m++){
+      a(bx(.087,.009,.014,0x707d72,0,-.16-k2m*.038,-.46-k2m*.008));
+    }
+  }
+};
+// MP7: stable weapon ID 10 (smg). Profile ratings and range modifier are weapon-local.
+WEAPON_PROFILES[10]=Object.freeze({name:"MP7",damage:21,rpm:93,control:60,speed:88,vRecoil:45,hRecoil:54,mag:30,res:200,range:60,kind:"smg"});
+WEAPON_RANGE_MODIFIERS[10]=0.85;
+WEAPON_MODEL_BUILDERS[10]=function(g,a){
+ {
+    // MP7: compact black receiver, foregrip, curved 30-round magazine,
+    // collapsing wire stock and rail optic. Reference: supplied mp7.png.
+    a(
+      bx(.105,.15,.69,0x222829,0,0,-.24),bx(.110,.075,.62,0x111719,0,.086,-.23),
+      bx(.116,.025,.58,0x3b4243,0,.127,-.26), // Picatinny top rail
+      bx(.101,.115,.20,0x303739,0,-.012,-.67), // forward barrel shroud
+      cy(.023,.023,.24,0x121618,0,.018,-.86),cy(.031,.031,.055,0x444e50,0,.018,-1.015),
+      bx(.062,.2,.10,0x1b2023,0,-.21,-.48,.07), // vertical front grip
+      bx(.073,.24,.105,0x171b1d,0,-.19,-.08,-.22), // pistol grip
+      bx(.075,.22,.087,0x252a2d,0,-.22,-.33,-.16), // detachable magazine
+      bx(.08,.035,.06,0x475053,0,-.36,-.40),
+      bx(.026,.028,.47,0x181e21,0,.014,.34), // folding stock beam
+      bx(.10,.23,.028,0x191f21,0,-.025,.61), // buttpad
+      bx(.07,.014,.18,0x596062,0,.145,-.24), // optic rail base
+      bx(.055,.015,.16,0x101819,0,.203,-.27), // holo upper
+      bx(.013,.084,.018,0x0d1517,-.045,.174,-.28),bx(.013,.084,.018,0x0d1517,.045,.174,-.28),
+      bx(.080,.016,.016,0x0c1418,0,.220,-.28),
+      bx(.065,.025,.10,0x495457,0,-.036,-.05), // ejection panel
+      bx(.12,.033,.08,0x111517,0,-.07,-.42)  // trigger guard
+    );
+    for(var mp=0;mp<6;mp++){
+      a(bx(.014,.013,.035,0x495054,-.059,.123,-.50+mp*.075));
+      a(bx(.014,.013,.035,0x495054,.059,.123,-.50+mp*.075));
+    }
+    for(var mr=0;mr<4;mr++){
+      a(bx(.083,.010,.013,0x626b6e,0,-.18-mr*.045,-.31-mr*.013));
+    }
+  }
+};
+// P90: stable weapon ID 11 (smg). Profile ratings and range modifier are weapon-local.
+WEAPON_PROFILES[11]=Object.freeze({name:"P90",damage:24,rpm:92,control:54,speed:88,vRecoil:45,hRecoil:48,mag:50,res:200,range:65,kind:"smg"});
+WEAPON_RANGE_MODIFIERS[11]=0.86;
+WEAPON_MODEL_BUILDERS[11]=function(g,a){
+ {
+    // P90: distinctive bullpup thumb-hole stock, broad olive-grey shell,
+    // horizontal top magazine and integrated optic. Reference: p90.png.
+    var body=bx(.16,.205,.78,0x777b70,0,-.012,-.10);a(body);
+    a(
+      bx(.17,.08,.31,0x333a3b,0,.119,-.22), // receiver optic housing
+      bx(.175,.057,.62,0x535d5a,0,.139,-.19), // top-mounted magazine
+      bx(.166,.016,.53,0x1a2123,0,.181,-.23), // rail top
+      bx(.20,.076,.25,0x666d65,0,-.002,-.60), // front barrel housing
+      cy(.031,.031,.29,0x1c2427,0,.025,-.79),
+      cy(.040,.040,.06,0x32383b,0,.025,-.98),
+      bx(.165,.235,.39,0x7b7d71,0,-.045,.39), // long rear buttstock
+      bx(.19,.265,.075,0x6d7169,0,-.056,.60),
+      bx(.14,.039,.28,0x1c2628,0,-.146,.26), // grip undercut bridge
+      bx(.080,.19,.08,0x4a4e45,0,-.20,-.10,-.20), // forward handle
+      bx(.078,.13,.11,0x51554e,0,-.23,-.29,.15),
+      bx(.11,.04,.21,0x454c48,0,.204,-.16), // optic bracket
+      bx(.055,.045,.21,0x182224,0,.253,-.16),
+      bx(.074,.018,.06,0x8f9996,0,.289,-.22),
+      bx(.035,.028,.04,0x111a1d,0,.245,-.34)
+    );
+    // Cutout is visual rather than actual CSG; dark inset and perimeter
+    // reproduces the P90's iconic large thumb-hole grip in low-poly style.
+    a(bx(.172,.118,.23,0x131a1d,0,-.184,.25));
+    a(bx(.164,.024,.26,0x8b8d80,0,-.120,.24));
+    a(bx(.164,.023,.27,0x777b70,0,-.241,.25));
+    for(var ps=0;ps<5;ps++)a(bx(.173,.011,.015,0x353d40,0,.173,-.43+ps*.095));
+  }
+};
+// AK SOPMOD: stable weapon ID 12 (rifle). Profile ratings and range modifier are weapon-local.
+WEAPON_PROFILES[12]=Object.freeze({name:"AK SOPMOD",damage:33,rpm:90,control:50,speed:74,vRecoil:64,hRecoil:60,mag:30,res:150,range:160,kind:"rifle"});
+WEAPON_RANGE_MODIFIERS[12]=0.97;
+WEAPON_MODEL_BUILDERS[12]=function(g,a){
+ {
+    // AK SOPMOD: black carbine body, curved magazine, tactical forward
+    // rail + vertical grip, red-dot optic and folding stock. ak-sopmod.png.
+    a(
+      bx(.12,.146,.60,0x161b1f,0,0,-.25), // core receiver
+      bx(.116,.055,.44,0x2e353a,0,.084,-.30), // upper receiver
+      bx(.138,.1,.49,0x1d2427,0,.015,-.69), // long modular handguard
+      bx(.145,.026,.59,0x343c41,0,.104,-.62), // full-length top rail
+      cy(.023,.023,.43,0x22292d,0,.013,-1.13),
+      cy(.032,.032,.085,0x515b5f,0,.013,-1.36), // muzzle device
+      bx(.080,.28,.095,0x141a1d,0,-.185,-.13,-.25), // grip
+      bx(.090,.28,.105,0x23282b,0,-.219,-.41,-.28), // curved magazine
+      bx(.095,.040,.09,0x4b5558,0,-.350,-.49,-.25),
+      bx(.064,.22,.10,0x181d1f,0,-.202,-.78), // vertical foregrip
+      bx(.040,.018,.25,0x555d63,0,.024,.27), // stock tube
+      bx(.115,.112,.27,0x1e2529,0,-.032,.46), // adjustable stock
+      bx(.130,.17,.031,0x151a1d,0,-.034,.65), // buttstock
+      bx(.08,.027,.21,0x59666a,0,.149,-.26),
+      bx(.065,.02,.125,0x161c20,0,.210,-.26), // optic roof
+      bx(.014,.09,.015,0x151b1e,-.043,.183,-.27),
+      bx(.014,.09,.015,0x151b1e,.043,.183,-.27),
+      bx(.080,.014,.015,0x303d42,0,.232,-.27),
+      bx(.055,.065,.13,0x31383a,0,-.018,-.38), // receiver controls
+      bx(.070,.023,.13,0x5d6260,0,-.02,-.16) // ejection cover
+    );
+    for(var sr=0;sr<8;sr++){
+      a(bx(.018,.019,.026,0x596468,-.076,.096,-.88+sr*.070));
+      a(bx(.018,.019,.026,0x596468,.076,.096,-.88+sr*.070));
+    }
+    for(var sm=0;sm<5;sm++)a(bx(.093,.009,.016,0x7e8580,0,-.18-sm*.045,-.37-sm*.018));
+  }
+};
 // The score->engine conversion is game balancing, NOT an unofficial Point Blank formula.
 // min/max are real rounds-per-minute bounds for each archetype; spread is angular.
 var WEAPON_TUNING={
@@ -597,7 +793,9 @@ var WEAPON_TUNING={
  dual:{rpmMin:850,rpmMax:1250,spread:.095,bulletSpeed:170,reload:2.4,viewKick:.55,recoilScale:.4},
  sniper:{rpmMin:30,rpmMax:65,spread:.21,bulletSpeed:420,reload:2.6,viewKick:2.8,recoilScale:1.5}
 };
-function weaponProfile(p){var t=WEAPON_TUNING[p.kind],pel=t.pellets||1;
+function weaponProfile(p,id){var t=WEAPON_TUNING[p.kind],pel=t.pellets||1;
+  var rangeModifier=WEAPON_RANGE_MODIFIERS[id];
+  if(rangeModifier===undefined)rangeModifier=DAMAGE_FALLOFF.defaultModifiers[p.kind]||null;
   var realRpm=p.rpm===null?null:t.rpmMin+(t.rpmMax-t.rpmMin)*p.rpm/100;
   var speed=t.bulletSpeed||0;
   var w={n:p.name,stats:p,cd:realRpm===null?t.cooldown:60/realRpm,
@@ -606,6 +804,7 @@ function weaponProfile(p){var t=WEAPON_TUNING[p.kind],pel=t.pellets||1;
     spr:p.control===null?0:(t.spread||0)*(100-p.control)/100,
     mag:p.mag,res:p.res,rt:t.reload,
     range:p.range,moveMult:p.speed/100,
+    rangeModifier:rangeModifier,rangeUnit:rangeModifier?DAMAGE_FALLOFF.referenceUnits:null,
     viewKick:t.viewKick?Math.min(.26,(.015+.001*p.vRecoil)*t.viewKick):0,
     recoilScale:t.recoilScale||0};
   if(p.kind==='rocket')w.rk=1;
@@ -641,155 +840,8 @@ function cy(r1,r2,l,c,x,y,z){var m=new T.Mesh(new T.CylinderGeometry(r1,r2,l,12)
 // Dual Kriss (7) = two Kriss models: right one at x=0, left one at x=-0.52.
 // The AWP (8) stores its bolt handle in group.userData.bolt so animHands() can move it during the bolt cycle.
 function mkGun(i){var g=new T.Group(),a=function(){for(var k=0;k<arguments.length;k++)g.add(arguments[k]);};
-  if(i===0)a(bx(.09,.1,.45,0x9aa1ad,0,0,-.3),bx(.07,.06,.3,0x2b2f3d,0,-.07,-.3),bx(.08,.22,.1,0x2b2f3d,0,-.15,-.12,.25),cy(.028,.028,.12,0x1d2129,0,.01,-.58));
-  else if(i===1)a(bx(.1,.12,.7,0x3b4252,0,0,-.35),cy(.025,.025,.5,0x1d2129,0,.02,-.9),bx(.12,.1,.3,0x6b4f3a,0,-.01,-.65),bx(.07,.22,.1,0x1d2129,0,-.17,-.4,.2),bx(.08,.14,.3,0x6b4f3a,0,-.02,.05),bx(.04,.05,.1,0x111111,0,.09,-.4),bx(.07,.16,.08,0x2b2f3d,0,-.13,-.15,.2));
-  else if(i===2)a(cy(.035,.035,.9,0x4a4f5a,0,.03,-.55),cy(.03,.03,.7,0x333b48,0,-.03,-.5),bx(.1,.08,.22,0x8a5a2b,0,-.04,-.6),bx(.1,.12,.35,0x3b4252,0,0,-.1),bx(.08,.14,.4,0x8a5a2b,0,-.03,.2));
-  else if(i===4){var ks=new T.Shape();ks.moveTo(0,-.045);ks.lineTo(.3,-.045);ks.lineTo(.44,-.02);ks.lineTo(.34,.035);ks.lineTo(.2,.047);ks.lineTo(0,.047);ks.closePath();
-    var kg=new T.ExtrudeGeometry(ks,{depth:.016,bevelEnabled:false});kg.translate(0,0,-.008);kg.rotateX(-Math.PI/2);kg.rotateY(Math.PI/2);
-    var kb=new T.Mesh(kg,new T.MeshLambertMaterial({color:0xdfe6ee}));kb.position.set(0,0,-.22);kb.castShadow=true;
-    var pv2=new T.Group();pv2.add(kb,bx(.016,.006,.26,0x8f9aa8,0,.011,-.36),bx(.15,.03,.035,0x7a828f,0,0,-.215),bx(.05,.06,.2,0x2b2f3d,0,0,-.1),bx(.056,.064,.02,0x555c68,0,0,-.06),bx(.056,.064,.02,0x555c68,0,0,-.11),bx(.056,.064,.02,0x555c68,0,0,-.16),bx(.065,.07,.035,0x7a828f,0,0,.01));
-    pv2.rotation.set(.55,0,.3);g.add(pv2);}
-  else if(i===6)a(
-    bx(.085,.1,.52,0x9c8b5e,0,.03,-.28),                       // upper receiver (FDE tan)
-    bx(.08,.07,.34,0x2b2f3d,0,-.04,-.2),                        // lower receiver (dark polymer)
-    bx(.09,.1,.2,0x8f7f55,0,.025,-.62),                         // barrel shroud
-    bx(.092,.035,.03,0x111111,0,.03,-.56),bx(.092,.035,.03,0x111111,0,.03,-.62),bx(.092,.035,.03,0x111111,0,.03,-.68), // shroud vents
-    cy(.017,.017,.14,0x1d2129,0,.03,-.79),cy(.026,.026,.05,0x111111,0,.03,-.87), // barrel + flash hider
-    bx(.04,.022,.42,0x111111,0,.087,-.26),                      // top rail
-    bx(.088,.03,.1,0x555c68,0,.05,-.12),                        // ejection port / bolt cover
-    bx(.05,.02,.12,0x1d2129,0,.108,-.2),                        // red-dot base
-    bx(.008,.05,.012,0x111111,-.026,.13,-.15),bx(.008,.05,.012,0x111111,.026,.13,-.15),bx(.06,.008,.012,0x111111,0,.158,-.15), // sight rear frame
-    bx(.008,.05,.012,0x111111,-.026,.13,-.25),bx(.008,.05,.012,0x111111,.026,.13,-.25),bx(.06,.008,.012,0x111111,0,.158,-.25), // sight front frame
-    bx(.007,.007,.004,0xff2a2a,0,.13,-.256),                    // red dot
-    bx(.07,.26,.095,0x1d2129,0,-.17,-.12,-.3),                  // grip + magazine (angled back, Vector style)
-    bx(.02,.025,.1,0x2b2f3d,0,-.09,-.22),                       // trigger guard
-    bx(.05,.06,.035,0x2b2f3d,0,.03,0),bx(.06,.1,.03,0x1d2129,0,.0,.03)); // short folded stock + pad (kept tiny)
-  else if(i===7){var kr=mkGun(6),kl=mkGun(6);kl.position.x=-.52;a(kr,kl);}
-  else if(i===8){var bh=bx(.1,.025,.03,0x888e98,.07,.03,-.08);g.userData.bolt=bh;a(bx(.09,.13,.6,0x3b4a2a,0,0,-.1),cy(.018,.018,1,0x1d2129,0,.025,-.95),cy(.03,.03,.16,0x2b2f3d,0,.025,-1.5),bx(.085,.17,.45,0x3b4a2a,0,-.02,.4),bx(.09,.06,.18,0x2b2f3d,0,.07,.18),cy(.04,.04,.34,0x111111,0,.13,-.2),cy(.05,.05,.07,0x111111,0,.13,-.4),cy(.045,.045,.06,0x111111,0,.13,.0),bx(.03,.05,.04,0x333333,0,.09,-.3),bx(.07,.2,.09,0x2b2f3d,0,-.15,-.05,.2),bx(.06,.14,.1,0x2b2f3d,0,-.12,-.3),bh);}
-  else if(i===9){
-    // K2: silver rifle receiver with black rail, polymer telescopic stock,
-    // ventilated handguard, 40-round curved magazine and compact sight.
-    // The provided reference informs this dedicated low-poly mesh.
-    a(
-      bx(.105,.12,.48,0x969f9e,0,0,-.23),      // receiver
-      bx(.109,.046,.43,0x5f6c6e,0,.076,-.23),  // upper rail mount
-      bx(.11,.07,.38,0x536265,0,-.005,-.65),   // handguard
-      bx(.118,.024,.37,0x242a2e,0,.077,-.66), // top accessory rail
-      cy(.022,.022,.40,0x20272b,0,.005,-1.03),// long exposed barrel
-      cy(.031,.031,.10,0x101719,0,.005,-1.27),// muzzle
-      bx(.08,.045,.19,0x343b40,0,-.015,-1.01),// gas block
-      bx(.095,.035,.14,0x303c40,0,.09,-.24),  // sight mount
-      bx(.055,.045,.075,0x1a2024,0,.138,-.24),// reflex sight
-      bx(.07,.014,.10,0x525e61,0,.158,-.25),  // sight top
-      bx(.07,.08,.12,0x30373b,0,-.17,-.19,.26), // grip
-      bx(.082,.20,.10,0x1e2428,0,-.22,-.46,-.22),// curved magazine
-      bx(.084,.045,.1,0x424d50,0,-.32,-.50,-.3), // magazine base
-      bx(.025,.018,.08,0x1d2428,0,-.09,-.23), // trigger guard
-      bx(.05,.05,.33,0x242b2f,0,-.003,.31),   // stock beam
-      bx(.09,.125,.28,0x20272b,0,-.02,.48),  // adjustable rear stock
-      bx(.11,.17,.035,0x111719,0,-.02,.67),  // rubber butt plate
-      bx(.14,.018,.13,0xb2bdb6,0,.066,-.50) // handguard metal strap
-    );
-    for(var k2v=0;k2v<5;k2v++){
-      a(bx(.016,.013,.034,0x171d20,.054,.058,-.82+k2v*.071));
-      a(bx(.016,.013,.034,0x171d20,-.054,.058,-.82+k2v*.071));
-    }
-    for(var k2m=0;k2m<4;k2m++){
-      a(bx(.087,.009,.014,0x707d72,0,-.16-k2m*.038,-.46-k2m*.008));
-    }
-  }
-
-  else if(i===10){
-    // MP7: compact black receiver, foregrip, curved 30-round magazine,
-    // collapsing wire stock and rail optic. Reference: supplied mp7.png.
-    a(
-      bx(.105,.15,.69,0x222829,0,0,-.24),bx(.110,.075,.62,0x111719,0,.086,-.23),
-      bx(.116,.025,.58,0x3b4243,0,.127,-.26), // Picatinny top rail
-      bx(.101,.115,.20,0x303739,0,-.012,-.67), // forward barrel shroud
-      cy(.023,.023,.24,0x121618,0,.018,-.86),cy(.031,.031,.055,0x444e50,0,.018,-1.015),
-      bx(.062,.2,.10,0x1b2023,0,-.21,-.48,.07), // vertical front grip
-      bx(.073,.24,.105,0x171b1d,0,-.19,-.08,-.22), // pistol grip
-      bx(.075,.22,.087,0x252a2d,0,-.22,-.33,-.16), // detachable magazine
-      bx(.08,.035,.06,0x475053,0,-.36,-.40),
-      bx(.026,.028,.47,0x181e21,0,.014,.34), // folding stock beam
-      bx(.10,.23,.028,0x191f21,0,-.025,.61), // buttpad
-      bx(.07,.014,.18,0x596062,0,.145,-.24), // optic rail base
-      bx(.055,.015,.16,0x101819,0,.203,-.27), // holo upper
-      bx(.013,.084,.018,0x0d1517,-.045,.174,-.28),bx(.013,.084,.018,0x0d1517,.045,.174,-.28),
-      bx(.080,.016,.016,0x0c1418,0,.220,-.28),
-      bx(.065,.025,.10,0x495457,0,-.036,-.05), // ejection panel
-      bx(.12,.033,.08,0x111517,0,-.07,-.42)  // trigger guard
-    );
-    for(var mp=0;mp<6;mp++){
-      a(bx(.014,.013,.035,0x495054,-.059,.123,-.50+mp*.075));
-      a(bx(.014,.013,.035,0x495054,.059,.123,-.50+mp*.075));
-    }
-    for(var mr=0;mr<4;mr++){
-      a(bx(.083,.010,.013,0x626b6e,0,-.18-mr*.045,-.31-mr*.013));
-    }
-  }
-  else if(i===11){
-    // P90: distinctive bullpup thumb-hole stock, broad olive-grey shell,
-    // horizontal top magazine and integrated optic. Reference: p90.png.
-    var body=bx(.16,.205,.78,0x777b70,0,-.012,-.10);a(body);
-    a(
-      bx(.17,.08,.31,0x333a3b,0,.119,-.22), // receiver optic housing
-      bx(.175,.057,.62,0x535d5a,0,.139,-.19), // top-mounted magazine
-      bx(.166,.016,.53,0x1a2123,0,.181,-.23), // rail top
-      bx(.20,.076,.25,0x666d65,0,-.002,-.60), // front barrel housing
-      cy(.031,.031,.29,0x1c2427,0,.025,-.79),
-      cy(.040,.040,.06,0x32383b,0,.025,-.98),
-      bx(.165,.235,.39,0x7b7d71,0,-.045,.39), // long rear buttstock
-      bx(.19,.265,.075,0x6d7169,0,-.056,.60),
-      bx(.14,.039,.28,0x1c2628,0,-.146,.26), // grip undercut bridge
-      bx(.080,.19,.08,0x4a4e45,0,-.20,-.10,-.20), // forward handle
-      bx(.078,.13,.11,0x51554e,0,-.23,-.29,.15),
-      bx(.11,.04,.21,0x454c48,0,.204,-.16), // optic bracket
-      bx(.055,.045,.21,0x182224,0,.253,-.16),
-      bx(.074,.018,.06,0x8f9996,0,.289,-.22),
-      bx(.035,.028,.04,0x111a1d,0,.245,-.34)
-    );
-    // Cutout is visual rather than actual CSG; dark inset and perimeter
-    // reproduces the P90's iconic large thumb-hole grip in low-poly style.
-    a(bx(.172,.118,.23,0x131a1d,0,-.184,.25));
-    a(bx(.164,.024,.26,0x8b8d80,0,-.120,.24));
-    a(bx(.164,.023,.27,0x777b70,0,-.241,.25));
-    for(var ps=0;ps<5;ps++)a(bx(.173,.011,.015,0x353d40,0,.173,-.43+ps*.095));
-  }
-  else if(i===12){
-    // AK SOPMOD: black carbine body, curved magazine, tactical forward
-    // rail + vertical grip, red-dot optic and folding stock. ak-sopmod.png.
-    a(
-      bx(.12,.146,.60,0x161b1f,0,0,-.25), // core receiver
-      bx(.116,.055,.44,0x2e353a,0,.084,-.30), // upper receiver
-      bx(.138,.1,.49,0x1d2427,0,.015,-.69), // long modular handguard
-      bx(.145,.026,.59,0x343c41,0,.104,-.62), // full-length top rail
-      cy(.023,.023,.43,0x22292d,0,.013,-1.13),
-      cy(.032,.032,.085,0x515b5f,0,.013,-1.36), // muzzle device
-      bx(.080,.28,.095,0x141a1d,0,-.185,-.13,-.25), // grip
-      bx(.090,.28,.105,0x23282b,0,-.219,-.41,-.28), // curved magazine
-      bx(.095,.040,.09,0x4b5558,0,-.350,-.49,-.25),
-      bx(.064,.22,.10,0x181d1f,0,-.202,-.78), // vertical foregrip
-      bx(.040,.018,.25,0x555d63,0,.024,.27), // stock tube
-      bx(.115,.112,.27,0x1e2529,0,-.032,.46), // adjustable stock
-      bx(.130,.17,.031,0x151a1d,0,-.034,.65), // buttstock
-      bx(.08,.027,.21,0x59666a,0,.149,-.26),
-      bx(.065,.02,.125,0x161c20,0,.210,-.26), // optic roof
-      bx(.014,.09,.015,0x151b1e,-.043,.183,-.27),
-      bx(.014,.09,.015,0x151b1e,.043,.183,-.27),
-      bx(.080,.014,.015,0x303d42,0,.232,-.27),
-      bx(.055,.065,.13,0x31383a,0,-.018,-.38), // receiver controls
-      bx(.070,.023,.13,0x5d6260,0,-.02,-.16) // ejection cover
-    );
-    for(var sr=0;sr<8;sr++){
-      a(bx(.018,.019,.026,0x596468,-.076,.096,-.88+sr*.070));
-      a(bx(.018,.019,.026,0x596468,.076,.096,-.88+sr*.070));
-    }
-    for(var sm=0;sm<5;sm++)a(bx(.093,.009,.016,0x7e8580,0,-.18-sm*.045,-.37-sm*.018));
-  }
-  else if(i===5)a(bx(.15,.15,.15,0x4a5a2a,0,0,-.3),bx(.16,.03,.16,0x3a4620,0,.03,-.3),bx(.06,.05,.06,0x888e98,0,.1,-.3),bx(.04,.03,.14,0xaab0b9,0,.13,-.27),bx(.1,.02,.02,0xd4a017,.06,.1,-.36));
-  else a(cy(.1,.1,1.1,0x5c6b3c,0,.03,-.4),cy(.1,.17,.2,0x3b4a2a,0,.03,-1),cy(.09,0,.28,0xe03131,0,.03,-1.2),bx(.07,.16,.08,0x2b2f3d,0,-.12,-.2,.2),bx(.04,.06,.1,0x111111,0,.12,-.3));
-  return g;}
+  var build=WEAPON_MODEL_BUILDERS[i];if(!build)throw Error("Unknown weapon model "+i);
+  build(g,a);return g;}
 // hold = the first-person gun group (child of VS). guns[i] = model of weapon i; only guns[pl.w] is visible (set in loop()).
 // mflash/mflash2 = muzzle flash spheres (mflash2 is the LEFT gun flash for Dual Kriss at x=-0.52).
 var hold=new T.Group(),guns=WEAPON_PROFILES.map(function(p,i){return mkGun(i);});guns[3].scale.setScalar(.8);guns.forEach(function(g){hold.add(g);});
@@ -1041,7 +1093,7 @@ function fire(o,face,w,own,adv){var D=w.snp?90:w.dual?45:20;
     var vy0=own==="p"?w.spd*(1.5+(o.y||0)+D*Math.tan(pl.pitch)-my0)/D:0;o.tc=(o.tc||0)+1;g.visible=!!(w.rk||w.pel>1||w.snp||o.tc%3===1);g.rotation.order="YXZ";g.rotation.set(-Math.atan2(vy0,w.spd||1),a,0);if(Math.abs(mx0)>=A||Math.abs(mz0)>=A||sweepObs(o.x,my0,o.z,mx0,my0,mz0)||sweepLT(o.x,my0,o.z,mx0,my0,mz0)||obsAt(mx0,mz0,my0)){mx0=o.x;mz0=o.z;}
     g.position.set(mx0,my0,mz0);S.add(g);
     var ad=adv||0;
-    bl.push({m:g,vx:Math.sin(a)*w.spd,vy:vy0,vz:Math.cos(a)*w.spd,life:w.life,ad:ad,dmg:w.dmg,own:own,tm:o.tm,by:o,rk:w.rk,sx:o.x,sz:o.z,wid:WP.indexOf(w),fo:w.r1?[w.r0,w.r1,w.rm]:null});if(own==="e"&&i===0)enemyShotFx(o,mx0,my0,mz0);if(w.rk&&own==="p")smoke(mx0,my0,mz0,6,1.4,.3,1.3,.25,0);}
+    bl.push({m:g,vx:Math.sin(a)*w.spd,vy:vy0,vz:Math.cos(a)*w.spd,life:w.life,ad:ad,dmg:w.dmg,own:own,tm:o.tm,by:o,rk:w.rk,sx:o.x,sz:o.z,wid:WP.indexOf(w),fo:w.rangeModifier?[w.rangeModifier,w.rangeUnit]:null});if(own==="e"&&i===0)enemyShotFx(o,mx0,my0,mz0);if(w.rk&&own==="p")smoke(mx0,my0,mz0,6,1.4,.3,1.3,.25,0);}
 }
 // boom(): explosion (rocket or grenade) at (x,z): splash damage with line-of-sight check, scorch decal, particles, camera shake. lab = kill-feed label.
 function boom(x,z,dmg,lab,by,shooter){var attacker=shooter||pl;curK=attacker;boomLab=lab||"RPG";killW=boomLab==="GRENADE"?5:3;if((by===undefined||by<1.1)&&Math.abs(x)<A&&Math.abs(z)<A)gDecal(TXS,x,z,3.2+Math.random()*.6);
@@ -1551,7 +1603,7 @@ var WSEL=[],WDESC={1:"Balanced · mid range",2:"Close range · high burst",3:"Ex
 // The per-weapon optic map lives in src/game/76-tactical-optics.js.
 function canAds(w){return w<4||w===6||w===8||w===WEAPON_STARTER_ID||!!tacticalOpticConfig(w);}
 // fall(b,p): damage falloff multiplier (0..1) for bullet b at hit point p from its start (sx,sz), using the weapon's r0/r1/rm.
-function fall(b,p){var f=b.fo;if(!f)return 1;var d=Math.hypot(p.x-b.sx,p.z-b.sz);if(d<=f[0])return 1;if(d>=f[1])return f[2];return 1-(1-f[2])*(d-f[0])/(f[1]-f[0]);}
+function fall(b,p){var f=b.fo;if(!f)return 1;var d=Math.max(0,Math.hypot(p.x-b.sx,p.z-b.sz));return Math.pow(f[0],d/f[1]);}
 // DOM references for the weapon-select screen, the scope overlay and the alt (V / scope) touch button.
 var wsEl=document.getElementById("wsel"),scopeEl=document.getElementById("scope"),abEl=document.getElementById("ab"),wsOn=false,wsCards=[],wsBar,wsT;
 (function(){wsEl.innerHTML='<div class="wt"></div><div class="wb"><i></i></div><div class="wc"></div>';wsT=wsEl.children[0];wsBar=wsEl.children[1].firstChild;})();
@@ -1562,7 +1614,7 @@ function refreshWeaponSelection(){
   var box=wsEl.children[2];box.textContent="";wsCards=[];
   WSEL.forEach(function(id,i){
     var d=document.createElement("div");d.className="wcd";
-    d.innerHTML='<b class="k">'+(i<5?i+1:"•")+'</b>'+SV[id]+'<b>'+WP[id].n+'</b><small>'+(WDESC[id]||"Ready for battle")+'</small>';
+    d.innerHTML='<b class="k">'+(i<5?i+1:"•")+'</b>'+SV[id]+'<b>'+WP[id].n+'</b><small>'+WEAPON_CLASS_LABELS[WP[id].stats.kind]+" · "+(WDESC[id]||"Ready for battle")+'</small>';
     d.addEventListener("pointerdown",function(e){e.stopPropagation();e.preventDefault();chooseWeapon(id);});
     box.appendChild(d);wsCards.push(d);
   });
@@ -2426,9 +2478,7 @@ function inventoryBuildThumbnails(){
  }
 }
 function inventoryValue(v){return v===null||v===undefined?"—":v===Infinity?"∞":String(v);}
-function inventoryWeaponRole(kind){
- return {rifle:"ASSAULT RIFLE",shotgun:"SHOTGUN",rocket:"LAUNCHER",smg:"SUBMACHINE GUN",sniper:"SNIPER RIFLE",pistol:"HANDGUN",knife:"MELEE",grenade:"GRENADE"}[kind]||"WEAPON";
-}
+function inventoryWeaponRole(kind){return WEAPON_CLASS_LABELS[kind]||"WEAPON";}
 var INVENTORY_CRATE_SVG='<svg viewBox="0 0 220 160" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'+
  '<path d="M37 45h146l18 26v63H19V71z" fill="#182d45" stroke="#ffae58" stroke-width="4"/>'+
  '<path d="M37 45h146l-20 28H57z" fill="#38546a" stroke="#a8c8d5" stroke-width="3"/>'+
@@ -2485,7 +2535,8 @@ function inventoryRender(){
  // scroll offset after re-rendering so browsing large collections doesn't jump.
  cards.scrollTop=inventoryScroll[inventoryTab]||0;
  document.querySelector("#lbiv .ivhint").textContent=INVENTORY_HINTS[inventoryTab];
- document.getElementById("ivcategory").textContent=INVENTORY_TABS.filter(function(c){return c.key===inventoryTab;})[0].label;
+ document.getElementById("ivcategory").textContent=selected!==null&&!inventoryGear(selected)?
+    inventoryWeaponRole(WP[selected].stats.kind):INVENTORY_TABS.filter(function(c){return c.key===inventoryTab;})[0].label;
  var gear=inventoryGear(selected);
  document.getElementById("ivname").textContent=gear?gear.name:selected===null?"TACTICAL GEAR":WP[selected].n;
  document.getElementById("ivstatus").textContent=gear?"DEFAULT":selected===null?"COMING SOON":selected===equipped?"IN USE":"OWNED";
