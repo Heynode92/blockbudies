@@ -2,6 +2,19 @@
 
 Every update must record its date, scope, affected modules, user-visible strings, compatibility, and validation. Keep the original fixture immutable.
 
+## 2026-10-29 — Weapon-rated sprint movement (15% run bonus)
+
+### Movement rules
+- Weapon **Speed Rating** now directly defines maximum sprint as a percentage of baseline speed 6.5 world units/second; e.g. Knife 98 = 98%, AK-47 74 = 74% and AWP 69 = 69% when fully sprinting.
+- Walking speed equals the weapon sprint speed divided by 1.15, so Shift sprint adds exactly **15%** relative to walking (instead of the old 62% sprint bonus).
+- Removed the prior `.75 + .003 * speed` conversion and extra 12% heavy-weapon speed penalty; the `wtT` animation still drives weapon sway/bobbing only.
+- Existing ADS slowdown (38%) and sprint restrictions (moving forward, not shooting or ADS) remain unchanged; mouse input, jump, damage, ammunition, bot AI navigation, Deathmatch and Bomb Mission rules are untouched.
+
+### Configuration and validation
+- `MOVEMENT_RULES` in new `src/game/43-movement.js` centralizes `baseSpeed`, `sprintBonus` and `adsSlowdown`; the preexisting source manifest loads it after weapon profiles.
+- No user-visible UI strings added or changed. Tests include exact Knife/AK-47/AWP sprint ratios, full 9-weapon ratings, 15% sprint/walk consistency, ADS, interpolated input and avoidance of additional hidden heavy penalties.
+- Automated tests, `node --check assets/game.js`, and `node tools/build.mjs --check` required before publish. Full browser playtest remains unverified.
+
 ## 2026-10-29 — Shared 100 HP + ballistic vest and weapon-profiled bots
 
 ### Combat / armor

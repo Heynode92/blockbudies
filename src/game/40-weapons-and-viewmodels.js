@@ -1,5 +1,6 @@
 // ---- WEAPON DATA: Single source of truth for user-provided Point Blank-style ratings ----
 // Display ratings (0..100) are NOT real-world rounds/minute, meters/second or recoil angles.
+// Speed is the percentage of baseline movement reached when sprinting at full input.
 // Actual gameplay fire intervals/accuracy/movement are derived explicitly below.
 // damage = per-shot damage; for shotguns the damage is SPLIT across six pellets.
 // range = maximum bullet travel in world units (not meters or an infinite visual tracer).
@@ -36,7 +37,7 @@ function weaponProfile(p){var t=WEAPON_TUNING[p.kind],pel=t.pellets||1;
     pel:p.kind==='knife'||p.kind==='grenade'?0:pel,
     spr:p.control===null?0:(t.spread||0)*(100-p.control)/100,
     mag:p.mag,res:p.res,rt:t.reload,
-    range:p.range,moveMult:.75+.003*p.speed,
+    range:p.range,moveMult:p.speed/100,
     viewKick:t.viewKick?Math.min(.26,(.015+.001*p.vRecoil)*t.viewKick):0,
     recoilScale:t.recoilScale||0};
   if(p.kind==='rocket')w.rk=1;

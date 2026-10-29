@@ -562,6 +562,7 @@ function defenseDamage(actor,raw,kind){
 function defenseHeadshotDamage(base){return base*DEFENSE_RULES.headshotMultiplier;}
 // ---- WEAPON DATA: Single source of truth for user-provided Point Blank-style ratings ----
 // Display ratings (0..100) are NOT real-world rounds/minute, meters/second or recoil angles.
+// Speed is the percentage of baseline movement reached when sprinting at full input.
 // Actual gameplay fire intervals/accuracy/movement are derived explicitly below.
 // damage = per-shot damage; for shotguns the damage is SPLIT across six pellets.
 // range = maximum bullet travel in world units (not meters or an infinite visual tracer).
@@ -598,7 +599,7 @@ function weaponProfile(p){var t=WEAPON_TUNING[p.kind],pel=t.pellets||1;
     pel:p.kind==='knife'||p.kind==='grenade'?0:pel,
     spr:p.control===null?0:(t.spread||0)*(100-p.control)/100,
     mag:p.mag,res:p.res,rt:t.reload,
-    range:p.range,moveMult:.75+.003*p.speed,
+    range:p.range,moveMult:p.speed/100,
     viewKick:t.viewKick?Math.min(.26,(.015+.001*p.vRecoil)*t.viewKick):0,
     recoilScale:t.recoilScale||0};
   if(p.kind==='rocket')w.rk=1;
@@ -850,6 +851,23 @@ function projectileHitCharacter(b,target,head){
   if(target===pl)hurt(damage,b.sx,b.sz,head?'head':'bullet-body');
   else dmgE(target,damage,b.vx,b.vz,0,head?'head':'bullet-body');
   hsF=false;
+}
+// Global movement rules: speed rating is maximum sprint as a percentage of baseline.
+// 100 rating = 100% of baseSpeed when sprinting. Walking is 15% slower
+// relative to the sprint speed, so sprint is exactly 15% faster than walk.
+// These are project mechanics (not a reverse-engineered Point Blank formula).
+var MOVEMENT_RULES=Object.freeze({
+  baseSpeed:6.5,
+  sprintBonus:.15,
+  adsSlowdown:.38
+});
+// sprintBlend/adsBlend are interpolated 0..1 by the existing input system.
+// The heavy-weapon wtT animation is visual only and does not alter speed.
+function weaponMovementSpeed(weaponId,sprintBlend,adsBlend){
+  var r=MOVEMENT_RULES;
+  var speedRatio=WP[weaponId].moveMult;
+  var walk=r.baseSpeed*speedRatio/(1+r.sprintBonus);
+  return walk*(1+r.sprintBonus*sprintBlend)*(1-r.adsSlowdown*adsBlend);
 }
 // BOLT_T = AWP bolt-action cycle length in seconds (must stay <= the AWP fire cooldown so the next shot is possible when it ends).
 // MZ = per-weapon muzzle z offset in viewmodel space (where bullets and muzzle flash start). kick = recoil offset. flashT = muzzle flash time left.
@@ -2083,7 +2101,7 @@ function update(dt){
   var wA=!pl.dead&&(pl.w===8?scopeOn:mouse.right)&&canAds(pl.w)&&pl.rl<=0&&pl.sw<=0&&pl.thr<=0&&pl.stab<=0,wS=!pl.dead&&(keys.ShiftLeft||keys.ShiftRight)&&-mz>.25&&!wA&&!shoot;
   adsT+=((wA?1:0)-adsT)*Math.min(1,dt*12);sprT+=((wS?1:0)-sprT)*Math.min(1,dt*9);
   if(!pl.dead)pl.life+=dt;else{pl.dt+=dt;pl.rsT-=dt;if(pl.rsT<=0&&!mt.over&&!isBombMode())respawnPl();}
-  var spd=6.5*(1+.62*sprT)*(1-.38*adsT)*(1-.12*wtT)*WP[pl.w].moveMult;
+  var spd=weaponMovementSpeed(pl.w,sprT,adsT);
   mvAmt+=(ml-mvAmt)*Math.min(1,dt*8);wtT+=((pl.w>=1&&pl.w<=3||pl.w===6||pl.w===8?1:0)-wtT)*Math.min(1,dt*6);
   var fw=-mz,sf=Math.sin(pl.face),cf=Math.cos(pl.face);pl.x+=(fw*sf-mx*cf)*spd*dt;pl.z+=(fw*cf+mx*sf)*spd*dt;resolve(pl,.55);
   var py=pl.y,gy=gh(pl.x,pl.z,py);
