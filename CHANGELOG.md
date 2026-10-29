@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-10-29 — Inventory layout stability and scalable weapon collection
+
+### Fixed layout
+- Corrected Inventory grid sizing: the lobby had been applying centered grid-item alignment and `35% + 65%` columns **plus a gap**, causing panels to change vertical position/overflow based on category item count.
+- Inventory now has a single stable two-column, full-height shell on desktop. The soldier panel and collection panel remain aligned top-to-bottom in every category, including Secondary/MELE/Explosive with only one weapon.
+- The collection panel is a consistent four-row grid (heading, tabs, short hint, scrollable items). The collection region alone scrolls vertically; cards use fixed-height top-aligned rows instead of `grid-auto-rows:minmax(...,1fr)` that stretched one-item categories.
+- Kept responsive small-screen stacking; the collection list retains its own bounded scrollbar even on tablet/mobile. Desktop short-height adjustments use fixed-height smaller cards, not content-stretching.
+- Inventory remembers scroll position independently per tab and preserves the viewed section when a weapon is selected/equipped. Tab-specific short hints avoid showing primary-weapon instructions under Secondary, MELE, Explosive or Item.
+
+### Compatibility
+- **No changes** to saved equipment, weapon profiles, third-person character animation, thumbnail generation, Damage/HP/Armor, Deathmatch, Bomb Mission or AI.
+- All new hint strings remain player-facing English. CSS/source changes are mirrored into committed `assets/game.js` and covered by targeted layout regression tests.
+- Manual browser visual verification of multiple screen sizes remains pending.
+
+
 ## 2026-10-29 — Bomb Mission uncontested defuse and enemy spectator
 
 ### Critical Bomb Mode fixes

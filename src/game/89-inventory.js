@@ -8,13 +8,20 @@ var INVENTORY_TABS=[
  {key:"explosive",label:"EXPLOSIVE",kinds:["grenade"]},
  {key:"item",label:"ITEM",kinds:[]}
 ];
+var INVENTORY_HINTS={
+ main:"Pick your favorite. You can still change your main weapon before the round starts.",
+ secondary:"Your sidearm is always ready when you need it.",
+ mele:"Keep your knife close for a quick finish.",
+ explosive:"Pick the gear you want to bring into battle.",
+ item:"New gear will appear here when you get it."
+};
 var INVENTORY_DESCRIPTIONS={
  rifle:"A dependable pick for every firefight.",shotgun:"Make every close-range shot count.",
  rocket:"Bring heavy firepower to the fight.",smg:"Fast and agile. Press V in a match to switch to Dual Kriss.",
  sniper:"Stay sharp and own the long sightlines.",pistol:"Your trusty backup when the fight gets close.",
  knife:"Move fast and finish the fight up close.",grenade:"Clear a path when the enemy has cover."
 };
-var inventoryTab="main",inventoryPick={},inventoryState={equipped:{}};
+var inventoryTab="main",inventoryPick={},inventoryScroll={},inventoryState={equipped:{}};
 function inventoryOwned(cat){
  var c=INVENTORY_TABS.filter(function(t){return t.key===cat;})[0],ids=[];
  if(!c)return ids;
@@ -182,7 +189,7 @@ function inventoryRender(){
    var b=document.createElement("button");b.type="button";b.textContent=c.label;
    b.className=c.key===inventoryTab?"on":"";
    b.setAttribute("aria-pressed",c.key===inventoryTab?"true":"false");
-   b.onclick=function(){inventoryTab=c.key;inventoryRender();};tabs.appendChild(b);
+   b.onclick=function(){inventoryScroll[inventoryTab]=cards.scrollTop;inventoryTab=c.key;inventoryRender();};tabs.appendChild(b);
  });
  cards.textContent="";
  if(!ids.length){var empty=document.createElement("p");empty.className="ivempty";empty.textContent="YOUR BAG IS EMPTY";cards.appendChild(empty);}
@@ -194,9 +201,13 @@ function inventoryRender(){
      '<span class="ivthumb-fallback">3D PREVIEW UNAVAILABLE</span>';
    item.innerHTML='<span class="ivweaponicon">'+image+'</span><span class="ivweaponinfo"><strong>'+
      WP[id].n+'</strong></span><span class="ivmark">'+(id===equipped?"IN USE":"")+'</span>';
-   item.onclick=function(){inventoryPick[inventoryTab]=id;inventoryRender();};
+   item.onclick=function(){inventoryScroll[inventoryTab]=cards.scrollTop;inventoryPick[inventoryTab]=id;inventoryRender();};
    cards.appendChild(item);
  });
+ // Card layouts never expand to fill the collection panel. Restore each tab's
+ // scroll offset after re-rendering so browsing large collections doesn't jump.
+ cards.scrollTop=inventoryScroll[inventoryTab]||0;
+ document.querySelector("#lbiv .ivhint").textContent=INVENTORY_HINTS[inventoryTab];
  document.getElementById("ivcategory").textContent=INVENTORY_TABS.filter(function(c){return c.key===inventoryTab;})[0].label;
  document.getElementById("ivname").textContent=selected===null?"NO ITEM":WP[selected].n;
  document.getElementById("ivstatus").textContent=selected===null?"EMPTY":selected===equipped?"IN USE":"OWNED";
@@ -223,5 +234,8 @@ function inventoryOpen(){
  inventoryPreviewInit();inventoryBuildThumbnails();inventoryRender();inventoryStartPreview();
 }
 inventoryLoad();
+document.getElementById("ivcards").addEventListener("scroll",function(){
+ inventoryScroll[inventoryTab]=this.scrollTop;
+},{passive:true});
 document.getElementById("lbin").addEventListener("click",inventoryOpen);
 document.getElementById("ivback").addEventListener("click",function(){lobP("lbs");});
