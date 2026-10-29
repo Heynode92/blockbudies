@@ -22,6 +22,7 @@
     "src/game/86-bomb-mission.js",
     "src/game/87-bomb-tactics.js",
     "src/game/88-spectator-camera.js",
+    "src/game/89-inventory.js",
     "src/game/90-bot-ai.js",
     "src/game/95-simulation.js",
     "src/game/96-hud-and-radar.js",
@@ -35,6 +36,7 @@
     "src/styles/05-match.css",
     "src/styles/06-weapon-selection.css",
     "src/styles/07-bomb-mission.css",
-    "src/styles/08-defense.css"
+    "src/styles/08-defense.css",
+    "src/styles/09-inventory.css"
   ]
 }

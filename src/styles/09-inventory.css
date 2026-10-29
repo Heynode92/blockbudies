@@ -1,0 +1,41 @@
+/* Inventory: 3D in-game character/weapon preview and equipped collection. */
+#lbiv.on{position:absolute;inset:0;box-sizing:border-box;display:grid;grid-template-columns:minmax(300px,34%) minmax(0,1fr);gap:clamp(14px,3vw,42px);padding:clamp(18px,3vw,36px) 5.5vw;align-items:stretch;text-align:left;overflow:auto;background:linear-gradient(110deg,rgba(9,13,25,.96),rgba(13,20,33,.86) 60%,rgba(9,13,25,.96))}
+.ivleft,.ivright{position:relative;min-width:0;background:linear-gradient(145deg,rgba(28,40,64,.97),rgba(11,17,30,.97));border:1px solid rgba(255,255,255,.15);box-shadow:0 18px 48px rgba(0,0,0,.4);padding:clamp(14px,2vw,26px)}
+.ivleft{border-top:4px solid #ff922b;display:flex;flex-direction:column;gap:12px}
+.ivcap{display:flex;justify-content:space-between;gap:8px;color:#ffb266;font:700 13px Rajdhani,sans-serif;letter-spacing:.14em}.ivcap b{color:white}
+.ivpreview{height:clamp(250px,40vh,405px);min-height:240px;position:relative;background:radial-gradient(ellipse at center,rgba(65,97,142,.3),rgba(6,11,20,.85));border:1px solid rgba(255,255,255,.1)}
+.ivpreview span{position:absolute;right:12px;bottom:10px;pointer-events:none;font:700 11px Rajdhani,sans-serif;letter-spacing:.2em;color:#bac7d9;z-index:1}
+.ivcanvas{display:block;width:100%;height:100%;cursor:grab;touch-action:none}.ivcanvas:active{cursor:grabbing}
+.ivname{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.ivname strong{font:italic 900 clamp(27px,3vw,44px) Impact,sans-serif;letter-spacing:.06em}
+.ivname em{font:800 12px Rajdhani,sans-serif;letter-spacing:.13em;color:#d3f9d8;background:rgba(47,158,68,.2);padding:6px;font-style:normal}
+#ivdescription{margin:0;font-size:15px;color:#d7deec;line-height:1.3}
+.ivstats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.ivstats>div{background:rgba(255,255,255,.06);border-left:2px solid #ff922b;padding:8px}
+.ivstats span{display:block;color:#b4bdd0;font:700 10px Rajdhani,sans-serif;letter-spacing:.15em}
+.ivstats strong{display:block;margin-top:4px;font:900 19px Impact,sans-serif}
+#ivuse{border:0;margin-top:auto;padding:13px;color:white;background:linear-gradient(180deg,#ff922b,#e8590c);font:900 25px Impact,sans-serif;letter-spacing:.16em;cursor:pointer;clip-path:polygon(16px 0,100% 0,calc(100% - 16px) 100%,0 100%)}
+#ivuse:disabled{cursor:default;background:#344054;color:#ced4da}
+.ivright{display:flex;flex-direction:column;gap:15px;min-height:0;overflow:hidden}
+.ivright header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.ivright h2{font:italic 900 clamp(36px,4.4vw,62px) Impact,sans-serif;letter-spacing:.06em;margin:0;color:#ffaf6c;text-shadow:0 3px 0 #000}
+.ivright header span{color:#ffd4a1;font:700 13px Rajdhani,sans-serif;letter-spacing:.2em}
+#ivback{margin:0;padding:8px 14px;white-space:nowrap}
+#ivtabs{display:flex;flex-wrap:wrap;gap:7px}
+#ivtabs button{border:1px solid rgba(255,255,255,.15);background:#23314a;color:#e8edf5;padding:10px 12px;font:800 13px Rajdhani,sans-serif;letter-spacing:.1em;cursor:pointer;clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%)}
+#ivtabs button.on{background:linear-gradient(110deg,#e8590c,#ff922b);border-color:#ffa94d;color:#fff}
+.ivhint{margin:0;border-left:3px solid #ff922b;background:rgba(255,255,255,.06);padding:10px;font:700 13px/1.3 Rajdhani,sans-serif;letter-spacing:.07em;color:#c8d0db}
+#ivcards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;overflow:auto;align-content:start;min-height:80px;padding:2px 3px}
+.ivcard{position:relative;display:flex;align-items:center;gap:9px;min-width:0;min-height:100px;background:#202c43;border:1px solid rgba(255,255,255,.1);color:white;padding:11px 9px;text-align:left;cursor:pointer}
+.ivcard.selected{border-color:#ff922b;background:#44362e}.ivcard.equipped:before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:#51cf66}
+.ivcard:hover{filter:brightness(1.17)}
+.ivweaponicon{width:92px;height:52px;flex:none;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.25)}
+.ivweaponicon svg{width:84px;height:40px;fill:currentColor}
+.ivweaponinfo{min-width:0;display:flex;flex-direction:column;gap:6px}
+.ivweaponinfo strong{font:italic 900 23px Impact,sans-serif;letter-spacing:.06em}
+.ivweaponinfo small{font:700 12px/1.3 Rajdhani,sans-serif;color:#bbc6d6}
+.ivmark{position:absolute;top:6px;right:6px;color:#ffd6a7;font:800 10px Rajdhani,sans-serif;letter-spacing:.1em}
+.ivcard.equipped .ivmark{color:#8ce99a}
+.ivempty{grid-column:1/-1;text-align:center;padding:40px 15px;border:1px dashed rgba(255,255,255,.25);color:#c6ced9;letter-spacing:.1em}
+@media(max-width:980px){#lbiv.on{grid-template-columns:1fr;align-content:start;padding:14px}.ivright{overflow:visible}#ivcards{overflow:visible}}
+@media(max-width:650px){#ivcards{grid-template-columns:1fr}#ivtabs{flex-wrap:nowrap;overflow-x:auto}#ivtabs button{white-space:nowrap}.ivright h2{font-size:40px}.ivpreview{height:280px}}

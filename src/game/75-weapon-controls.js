@@ -6,7 +6,7 @@ function amo(id){return id===pl.w?pl:pl.ammo[id];}
 // swW(i): switches to weapon i, saving the current weapon's ammo into pl.ammo and loading the new one. Cancels reload.
 function swW(i){pl.ammo[pl.w]={mag:pl.mag,res:pl.res};pl.w=i;var a=pl.ammo[i];pl.mag=a.mag;pl.res=a.res;pl.rl=0;pl.sw=.28;pl.thr=0;pl.pend=false;pl.sth=false;pl.stab=0;pl.ghide=0;pl.cd=Math.max(pl.cd,.2);}
 // swSlot(s): switches to slot s (0 primary, 1 pistol, 2 knife, 3 grenade) with the switch animation.
-function swSlot(s){var id=[pl.prim,0,4,5][s],a=amo(id);
+function swSlot(s){var id=[pl.prim,inventoryEquipped("secondary"),inventoryEquipped("mele"),inventoryEquipped("explosive")][s],a=amo(id);
   if(id===pl.w){pl.slot=s;return;}
   if((id===5&&a.mag+a.res<=0)||(id===pl.prim&&a.mag+a.res<=0)){toast(id===5?"Out of grenades":"Out of ammo");return;}
   pl.slot=s;swW(id);if(id===5&&pl.mag===0&&pl.res>0)reload();}
@@ -52,7 +52,7 @@ var slEls=[],slKey=[];
 (function(){var el=document.getElementById("wsb");for(var s=0;s<4;s++){(function(s){var d=document.createElement("div");d.className="sl";d.innerHTML='<b class="k">'+(s+1)+'</b><span class="ic"></span><span class="nm"></span><span class="sa"></span>';d.addEventListener("pointerdown",function(e){e.stopPropagation();e.preventDefault();if(run&&!pl.dead)swSlot(s);});el.appendChild(d);slEls.push(d);})(s);}})();
 // slotUI(w): updates the bottom weapon-slot bar.
 function slotUI(w){
-  var ids=[pl.prim,0,4,5],i,id,a,el,txt,em,on,key;
+  var ids=[pl.prim,inventoryEquipped("secondary"),inventoryEquipped("mele"),inventoryEquipped("explosive")],i,id,a,el,txt,em,on,key;
   for(i=0;i<4;i++){id=ids[i];a=amo(id);
     txt=id===4?"\u221e":a.mag+"/"+(a.res===Infinity?"\u221e":a.res);
     em=id===4?false:a.mag+a.res<=0;on=id===pl.w;

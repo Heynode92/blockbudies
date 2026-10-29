@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-10-29 — Inventory lobby with real 3D loadout preview
+
+### Added
+- A new **INVENTORY** button on the main menu, opening a character preview (left) and owned weapon list (right).
+- Five tabs: **MAIN WEAPON**, **SECONDARY**, **MELE**, **EXPLOSIVE**, **ITEM**. All existing defined weapons show as owned; ITEM is an empty state until items are added.
+- Actual existing in-game 3D `terro()` player model and `mkGun()` weapon models in a drag-to-rotate preview; list icons use gameplay `SV` art, not mismatched external images.
+- One saved **USE** choice per category in localStorage (`bbfps_inventory_v1`); equipped main weapon becomes the default when a new match starts. Existing 5-second primary selection in Deathmatch and Bomb Mode is unchanged.
+- Secondary, melee and explosive HUD and slot switching read the saved loadout instead of hardcoded IDs.
+- Inventory module (`src/game/89-inventory.js`), inventory stylesheet (`src/styles/09-inventory.css`), manifest entry and automated contract tests.
+
+### Compatibility and UI copy
+- No change to 100 HP, 50 vest, weapon damage, movement, ammo, bot tactics, map, bomb rules or scoring.
+- All new user-visible strings are English, including INVENTORY, USE, IN USE, EMPTY and tab names.
+- This version has client-side ownership only; shop/unlock/backend inventory is **not** implemented. Browser visual gameplay was not exercised in this session.
+
+
 Every update must record its date, scope, affected modules, user-visible strings, compatibility, and validation. Keep the original fixture immutable.
 
 ## 2026-10-29 — Weapon-rated sprint movement (15% run bonus)
