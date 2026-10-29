@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-10-29 — Tactical armory UI and player-facing weapon labels
+
+### Visual design
+- Reworked Inventory into a **BLOCK BUDDIES tactical armory** over the existing 3D arena backdrop with translucent layered panels, a cool-blue equipment scanner, orange team accents, hazard-strip trim and combat-inspired weapon cards.
+- Enlarged colored 3D weapon thumbnails, moved names to a clean card footer, replaced the desktop nested page scrolling with a single controlled weapon-grid scrollbar; mobile layouts remain scrollable.
+- Preserved the original draggable 3D soldier, animated two-hand weapon poses, all five Inventory tabs and one-equipped-per-slot rules.
+
+### Player-facing copy
+- Removed raw **DMG / SPD / RANGE** diagnostic-style text from weapon-list cards. Weapon ratings remain visible only when selecting a weapon in the left details panel.
+- Replaced technical instruction copy with short player-friendly language: **YOUR SOLDIER**, **CHOOSE YOUR GEAR**, **Pick your favorite**, **YOUR BAG IS EMPTY**, **OWNED** and **USE THIS WEAPON**.
+- Renamed the player-facing **Pistol** weapon to **Handgun** (same ID, damage 26, 13/52 ammo and all other existing stats). Secondary remains the loadout category; the in-match HUD label is also Handgun.
+- Kept **Kriss** as a single inventory item with the existing V-key Dual Kriss gameplay mode, and kept pre-round weapon selection in Deathmatch and Bomb Mode.
+
+### Scope
+- Updated Inventory markup/style/module, Handgun name and slot HUD string, committed `assets/game.js`, targeted regression test, weapon-label test fixture and this changelog. No network dependency or new asset files.
+- Combat damage, firing/reload behavior, armor, AI, movement, round rules and maps are unchanged. Visual browser playtesting has not been completed.
+
+
 ## 2026-10-29 — Inventory v2: animated grip and real 3D colored thumbnails
 
 ### Fixed

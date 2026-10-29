@@ -11,7 +11,7 @@ const moduleText=read('src/game/40-weapons-and-viewmodels.js');
 const weaponTable=moduleText.slice(moduleText.indexOf('var WEAPON_PROFILES='),moduleText.indexOf('// EW: stats used for bot'));
 function load(){const sandbox={Math};runInNewContext(weaponTable+'\nthis.profiles=WEAPON_PROFILES;this.weapons=WP;this.tuning=WEAPON_TUNING;',sandbox);return sandbox;}
 const expected=[
- ['Pistol',26,84,87,93,61,61,13,52,45],
+ ['Handgun',26,84,87,93,61,61,13,52,45],
  ['AK-47',33,88,44,74,69,62,30,90,140],
  ['Shotgun',168,48,58,79,100,78,6,30,70],
  ['RPG',85,35,25,48,100,85,1,6,65],

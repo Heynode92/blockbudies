@@ -58,7 +58,7 @@ function slotUI(w){
     em=id===4?false:a.mag+a.res<=0;on=id===pl.w;
     key=id+"|"+on+"|"+em+"|"+txt;
     if(slKey[i]!==key){slKey[i]=key;el=slEls[i];el.className="sl"+(on?" on":"")+(em?" em":"");
-      el.children[1].innerHTML=SV[id];el.children[2].textContent=i===0?WP[id].n:["","Pistol","Knife","Grenade"][i];el.children[3].textContent=txt;}}
+      el.children[1].innerHTML=SV[id];el.children[2].textContent=i===0?WP[id].n:["","Handgun","Knife","Grenade"][i];el.children[3].textContent=txt;}}
   if(w.melee){E.mg.textContent="\u221e";E.rs.textContent="";}
 }
 // ===== PRIMARY WEAPON SELECT / KRISS <-> DUAL / AWP SCOPE =====

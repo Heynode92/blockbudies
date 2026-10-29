@@ -9,10 +9,10 @@ var INVENTORY_TABS=[
  {key:"item",label:"ITEM",kinds:[]}
 ];
 var INVENTORY_DESCRIPTIONS={
- rifle:"Reliable mid-range automatic rifle.",shotgun:"Heavy close-range damage.",
- rocket:"Explosive projectile launcher.",smg:"Kriss includes Dual Mode. Press V in a match to switch.",
- sniper:"Precision rifle with a scope.",pistol:"Secondary weapon assigned automatically.",
- knife:"Melee weapon assigned automatically.",grenade:"Explosive slot automatically equipped."
+ rifle:"A dependable pick for every firefight.",shotgun:"Make every close-range shot count.",
+ rocket:"Bring heavy firepower to the fight.",smg:"Fast and agile. Press V in a match to switch to Dual Kriss.",
+ sniper:"Stay sharp and own the long sightlines.",pistol:"Your trusty backup when the fight gets close.",
+ knife:"Move fast and finish the fight up close.",grenade:"Clear a path when the enemy has cover."
 };
 var inventoryTab="main",inventoryPick={},inventoryState={equipped:{}};
 function inventoryOwned(cat){
@@ -168,6 +168,9 @@ function inventoryBuildThumbnails(){
  }
 }
 function inventoryValue(v){return v===null||v===undefined?"—":v===Infinity?"∞":String(v);}
+function inventoryWeaponRole(kind){
+ return {rifle:"ASSAULT RIFLE",shotgun:"SHOTGUN",rocket:"LAUNCHER",smg:"SUBMACHINE GUN",sniper:"SNIPER RIFLE",pistol:"HANDGUN",knife:"MELEE",grenade:"GRENADE"}[kind]||"WEAPON";
+}
 function inventoryRender(){
  var ids=inventoryOwned(inventoryTab),equipped=inventoryEquipped(inventoryTab),
  selected=inventoryPick[inventoryTab];
@@ -182,7 +185,7 @@ function inventoryRender(){
    b.onclick=function(){inventoryTab=c.key;inventoryRender();};tabs.appendChild(b);
  });
  cards.textContent="";
- if(!ids.length){var empty=document.createElement("p");empty.className="ivempty";empty.textContent="NO ITEMS OWNED YET";cards.appendChild(empty);}
+ if(!ids.length){var empty=document.createElement("p");empty.className="ivempty";empty.textContent="YOUR BAG IS EMPTY";cards.appendChild(empty);}
  ids.forEach(function(id){
    var item=document.createElement("button"),p=WP[id].stats;item.type="button";
    item.className="ivcard"+(id===selected?" selected":"")+(id===equipped?" equipped":"");
@@ -190,21 +193,20 @@ function inventoryRender(){
      '<img class="ivthumb" src="'+INVENTORY_THUMBS[id]+'" alt="'+WP[id].n+' 3D weapon preview">':
      '<span class="ivthumb-fallback">3D PREVIEW UNAVAILABLE</span>';
    item.innerHTML='<span class="ivweaponicon">'+image+'</span><span class="ivweaponinfo"><strong>'+
-     WP[id].n+'</strong><small>DMG '+p.damage+' · SPD '+p.speed+' · RANGE '+inventoryValue(p.range)+
-     '</small></span><span class="ivmark">'+(id===equipped?"IN USE":"VIEW")+'</span>';
+     WP[id].n+'</strong></span><span class="ivmark">'+(id===equipped?"IN USE":"")+'</span>';
    item.onclick=function(){inventoryPick[inventoryTab]=id;inventoryRender();};
    cards.appendChild(item);
  });
  document.getElementById("ivcategory").textContent=INVENTORY_TABS.filter(function(c){return c.key===inventoryTab;})[0].label;
  document.getElementById("ivname").textContent=selected===null?"NO ITEM":WP[selected].n;
- document.getElementById("ivstatus").textContent=selected===null?"EMPTY":selected===equipped?"EQUIPPED":"AVAILABLE";
- document.getElementById("ivdescription").textContent=selected===null?"Items you obtain will appear here.":
+ document.getElementById("ivstatus").textContent=selected===null?"EMPTY":selected===equipped?"IN USE":"OWNED";
+ document.getElementById("ivdescription").textContent=selected===null?"Nothing here yet.":
    (INVENTORY_DESCRIPTIONS[WP[selected].stats.kind]||"Ready for your loadout.");
  stats.textContent="";
  if(selected!==null){
    var st=WP[selected].stats;
    [["DAMAGE",st.damage],["SPEED",st.speed],["CONTROL",st.control],
-    ["RANGE",st.range],["BULLETS",st.mag+"/"+inventoryValue(st.res)],["RPM",st.rpm]].forEach(function(pair){
+    ["RANGE",st.range],["AMMO",st.mag+"/"+inventoryValue(st.res)],["FIRE RATE",st.rpm]].forEach(function(pair){
      var node=document.createElement("div"),label=document.createElement("span"),value=document.createElement("strong");
      label.textContent=pair[0];value.textContent=inventoryValue(pair[1]);
      node.appendChild(label);node.appendChild(value);stats.appendChild(node);
@@ -212,7 +214,7 @@ function inventoryRender(){
  }
  var use=document.getElementById("ivuse");
  use.disabled=selected===null||selected===equipped;
- use.textContent=selected===null?"NO ITEM":selected===equipped?"IN USE":"USE";
+ use.textContent=selected===null?"NO GEAR":selected===equipped?"EQUIPPED":"USE THIS WEAPON";
  use.onclick=function(){if(selected!==null)inventoryEquip(inventoryTab,selected);};
  inventoryShowModel(selected);
 }

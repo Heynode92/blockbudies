@@ -5,7 +5,7 @@
 // damage = per-shot damage; for shotguns the damage is SPLIT across six pellets.
 // range = maximum bullet travel in world units (not meters or an infinite visual tracer).
 var WEAPON_PROFILES=[
- {name:"Pistol",damage:26,rpm:84,control:87,speed:93,vRecoil:61,hRecoil:61,mag:13,res:52,range:45,kind:"pistol"},
+ {name:"Handgun",damage:26,rpm:84,control:87,speed:93,vRecoil:61,hRecoil:61,mag:13,res:52,range:45,kind:"pistol"},
  {name:"AK-47",damage:33,rpm:88,control:44,speed:74,vRecoil:69,hRecoil:62,mag:30,res:90,range:140,kind:"rifle"},
  {name:"Shotgun",damage:168,rpm:48,control:58,speed:79,vRecoil:100,hRecoil:78,mag:6,res:30,range:70,kind:"shotgun"},
  // RPG is a project-specific value; user permitted its tuning rather than supplying PB ratings.
