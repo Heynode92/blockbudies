@@ -2031,14 +2031,26 @@ var INVENTORY_TABS=[
  {key:"secondary",label:"SECONDARY",kinds:["pistol"]},
  {key:"mele",label:"MELE",kinds:["knife"]},
  {key:"explosive",label:"EXPLOSIVE",kinds:["grenade"]},
+ {key:"helm",label:"HELM",kinds:[]},
  {key:"item",label:"ITEM",kinds:[]}
 ];
+// Helmets are gear, not weapon profiles. Add future cosmetic helmets here.
+var INVENTORY_GEAR={
+ helm:[{id:"standard_helmet",name:"Standard Helmet",
+ description:"Every soldier starts with a Standard Helmet. Custom helmets will arrive in future updates."}]
+};
+function inventoryGear(id){
+ var gear=null;Object.keys(INVENTORY_GEAR).forEach(function(key){
+  INVENTORY_GEAR[key].forEach(function(g){if(g.id===id)gear=g;});
+ });return gear;
+}
 var INVENTORY_HINTS={
  main:"Pick your favorite. You can still change your main weapon before the round starts.",
  secondary:"Your sidearm is always ready when you need it.",
  mele:"Keep your knife close for a quick finish.",
  explosive:"Pick the gear you want to bring into battle.",
- item:"New gear will appear here when you get it."
+ helm:"Every soldier has a Standard Helmet. Custom helmets are coming soon.",
+ item:"New tactical gear will be available in future updates."
 };
 var INVENTORY_DESCRIPTIONS={
  rifle:"A dependable pick for every firefight.",shotgun:"Make every close-range shot count.",
@@ -2050,6 +2062,7 @@ var inventoryTab="main",inventoryPick={},inventoryScroll={},inventoryState={equi
 function inventoryOwned(cat){
  var c=INVENTORY_TABS.filter(function(t){return t.key===cat;})[0],ids=[];
  if(!c)return ids;
+ if(INVENTORY_GEAR[cat])return INVENTORY_GEAR[cat].map(function(gear){return gear.id;});
  WP.forEach(function(w,id){if(c.kinds.indexOf(w.stats.kind)>=0)ids.push(id);});
  return ids;
 }
@@ -2133,6 +2146,14 @@ function inventoryPoseFrame(p,now){
  a.body.rotation.set(-.018+breath*.008,sway*.012,Math.sin(t*.7)*.010);
  a.legs[0].rotation.x=-.025+sway*.018;
  a.legs[1].rotation.x=.025-sway*.018;
+ if(typeof id!=="number"){
+  // No invisible rifle in the helm or utility preview.
+  p.mount.visible=false;
+  aimA(a.arms[1],.55,1.3,.62,.69,.10,1);
+  aimA(a.arms[0],-.55,1.3,-.62,.69,.10,-1);
+  return;
+ }
+ p.mount.visible=true;
  p.mount.position.set(pose.gun[0]+sway*.008,pose.gun[1]+breath*.014,pose.gun[2]);
  p.mount.rotation.set(0,0,0);
  // mkGun points toward -z, so rotate it toward the character's forward (+z).
@@ -2154,6 +2175,13 @@ function inventoryPreviewFrame(now){
    p.renderer.setSize(w,h,false);p.camera.aspect=w/h;p.camera.updateProjectionMatrix();
  }
  inventoryPoseFrame(p,now);
+ if(inventoryTab==="helm"){
+  p.camera.position.set(1.35,2.05,2.35);
+  p.camera.lookAt(0,1.68,0);
+ }else{
+  p.camera.position.set(2.45,2.30,3.8);
+  p.camera.lookAt(0,1.22,0);
+ }
  p.renderer.render(p.scene,p.camera);
  requestAnimationFrame(inventoryPreviewFrame);
 }
@@ -2179,8 +2207,12 @@ function inventoryBuildThumbnails(){
    camera.position.set(0,.32,6);camera.lookAt(0,0,0);
    var ids=[];INVENTORY_TABS.forEach(function(tab){inventoryOwned(tab.key).forEach(function(id){if(ids.indexOf(id)<0)ids.push(id);});});
    ids.forEach(function(id){
-     var gun=mkGun(id);scene.add(gun);
-     gun.rotation.set(-.13,Math.PI/2+.12,0);
+     // Use the same real helmet geometry as the live Police character.
+     var helm=!!inventoryGear(id);
+     var gun=helm?mkHelm(0x1c3d7a):mkGun(id);
+     if(helm)gun.position.set(0,0,0);
+     scene.add(gun);
+     gun.rotation.set(-.13,helm?.42:Math.PI/2+.12,0);
      gun.updateMatrixWorld(true);
      var box=new T.Box3().setFromObject(gun),size=box.getSize(new T.Vector3()),center=box.getCenter(new T.Vector3());
      gun.position.sub(center);
@@ -2203,6 +2235,14 @@ function inventoryValue(v){return v===null||v===undefined?"â€”":v===Infinity?"âˆ
 function inventoryWeaponRole(kind){
  return {rifle:"ASSAULT RIFLE",shotgun:"SHOTGUN",rocket:"LAUNCHER",smg:"SUBMACHINE GUN",sniper:"SNIPER RIFLE",pistol:"HANDGUN",knife:"MELEE",grenade:"GRENADE"}[kind]||"WEAPON";
 }
+var INVENTORY_CRATE_SVG='<svg viewBox="0 0 220 160" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'+
+ '<path d="M37 45h146l18 26v63H19V71z" fill="#182d45" stroke="#ffae58" stroke-width="4"/>'+
+ '<path d="M37 45h146l-20 28H57z" fill="#38546a" stroke="#a8c8d5" stroke-width="3"/>'+
+ '<path d="M19 72h182M65 72v62m90-62v62" stroke="#46677f" stroke-width="4"/>'+
+ '<path d="M95 88h30v29H95z" fill="#e87b20"/><path d="M104 94h12m-6-6v18" stroke="#fff3ca" stroke-width="3"/>'+
+ '<path d="M19 125h34m114 0h34" stroke="#ffae58" stroke-width="5"/>'+
+ '<path d="M30 37h160" stroke="#7fc2e4" stroke-width="2" stroke-dasharray="8 7"/>'+
+ '</svg>';
 function inventoryRender(){
  var ids=inventoryOwned(inventoryTab),equipped=inventoryEquipped(inventoryTab),
  selected=inventoryPick[inventoryTab];
@@ -2217,40 +2257,63 @@ function inventoryRender(){
    b.onclick=function(){inventoryScroll[inventoryTab]=cards.scrollTop;inventoryTab=c.key;inventoryRender();};tabs.appendChild(b);
  });
  cards.textContent="";
- if(!ids.length){var empty=document.createElement("p");empty.className="ivempty";empty.textContent="YOUR BAG IS EMPTY";cards.appendChild(empty);}
+ cards.classList.toggle("ivcards-empty",!ids.length);
+ var root=document.getElementById("lbiv");
+ root.classList.toggle("iv-helm",inventoryTab==="helm");
+ root.classList.toggle("iv-item",inventoryTab==="item");
+ if(!ids.length){
+  var empty=document.createElement("div");empty.className="ivempty ivempty-gear";
+  empty.innerHTML='<span class="ivempty-kicker">TACTICAL SUPPLIES</span>'+
+   '<div class="ivempty-image">'+INVENTORY_CRATE_SVG+'</div>'+
+   '<span class="ivempty-pill">COMING SOON</span>'+
+   '<strong>NO TACTICAL ITEM YET</strong>'+
+   '<p>New utility gear will be available in future updates.</p>';
+  cards.appendChild(empty);
+ }
  ids.forEach(function(id){
-   var item=document.createElement("button"),p=WP[id].stats;item.type="button";
-   item.className="ivcard"+(id===selected?" selected":"")+(id===equipped?" equipped":"");
+   var item=document.createElement("button"),gear=inventoryGear(id),name=gear?gear.name:WP[id].n;item.type="button";
+   item.className="ivcard"+(gear?" ivcard-helm":"")+(id===selected?" selected":"")+(id===equipped?" equipped":"");
    var image=INVENTORY_THUMBS[id]?
-     '<img class="ivthumb" src="'+INVENTORY_THUMBS[id]+'" alt="'+WP[id].n+' 3D weapon preview">':
+     '<img class="ivthumb" src="'+INVENTORY_THUMBS[id]+'" alt="'+name+' 3D gear preview">':
      '<span class="ivthumb-fallback">3D PREVIEW UNAVAILABLE</span>';
    item.innerHTML='<span class="ivweaponicon">'+image+'</span><span class="ivweaponinfo"><strong>'+
-     WP[id].n+'</strong></span><span class="ivmark">'+(id===equipped?"IN USE":"")+'</span>';
+     name+'</strong></span><span class="ivmark">'+(gear?"DEFAULT":id===equipped?"IN USE":"")+'</span>';
    item.onclick=function(){inventoryScroll[inventoryTab]=cards.scrollTop;inventoryPick[inventoryTab]=id;inventoryRender();};
    cards.appendChild(item);
  });
+ if(inventoryTab==="helm"&&ids.length===1){
+  var coming=document.createElement("div");coming.className="ivfuture";
+  coming.innerHTML='<span>COMING SOON</span><strong>CUSTOM HELMETS</strong>'+
+   '<p>New looks for your soldier are on the way.</p>';
+  cards.appendChild(coming);
+ }
  // Card layouts never expand to fill the collection panel. Restore each tab's
  // scroll offset after re-rendering so browsing large collections doesn't jump.
  cards.scrollTop=inventoryScroll[inventoryTab]||0;
  document.querySelector("#lbiv .ivhint").textContent=INVENTORY_HINTS[inventoryTab];
  document.getElementById("ivcategory").textContent=INVENTORY_TABS.filter(function(c){return c.key===inventoryTab;})[0].label;
- document.getElementById("ivname").textContent=selected===null?"NO ITEM":WP[selected].n;
- document.getElementById("ivstatus").textContent=selected===null?"EMPTY":selected===equipped?"IN USE":"OWNED";
- document.getElementById("ivdescription").textContent=selected===null?"Nothing here yet.":
+ var gear=inventoryGear(selected);
+ document.getElementById("ivname").textContent=gear?gear.name:selected===null?"TACTICAL GEAR":WP[selected].n;
+ document.getElementById("ivstatus").textContent=gear?"DEFAULT":selected===null?"COMING SOON":selected===equipped?"IN USE":"OWNED";
+ document.getElementById("ivdescription").textContent=gear?gear.description:selected===null?
+   "New utility gear will be available in future updates.":
    (INVENTORY_DESCRIPTIONS[WP[selected].stats.kind]||"Ready for your loadout.");
  stats.textContent="";
- if(selected!==null){
-   var st=WP[selected].stats;
-   [["DAMAGE",st.damage],["SPEED",st.speed],["CONTROL",st.control],
-    ["RANGE",st.range],["AMMO",st.mag+"/"+inventoryValue(st.res)],["FIRE RATE",st.rpm]].forEach(function(pair){
+ var rows=[];
+ if(gear)rows=[["SLOT","HEAD"],["TYPE","STANDARD"],["STATUS","EQUIPPED"]];
+ else if(selected!==null){
+  var st=WP[selected].stats;
+  rows=[["DAMAGE",st.damage],["SPEED",st.speed],["CONTROL",st.control],
+    ["RANGE",st.range],["AMMO",st.mag+"/"+inventoryValue(st.res)],["FIRE RATE",st.rpm]];
+ }
+ rows.forEach(function(pair){
      var node=document.createElement("div"),label=document.createElement("span"),value=document.createElement("strong");
      label.textContent=pair[0];value.textContent=inventoryValue(pair[1]);
      node.appendChild(label);node.appendChild(value);stats.appendChild(node);
-   });
- }
+ });
  var use=document.getElementById("ivuse");
  use.disabled=selected===null||selected===equipped;
- use.textContent=selected===null?"NO GEAR":selected===equipped?"EQUIPPED":"USE THIS WEAPON";
+ use.textContent=selected===null?"COMING SOON":gear?"EQUIPPED":selected===equipped?"EQUIPPED":"USE THIS WEAPON";
  use.onclick=function(){if(selected!==null)inventoryEquip(inventoryTab,selected);};
  inventoryShowModel(selected);
 }

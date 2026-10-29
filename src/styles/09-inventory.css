@@ -148,3 +148,31 @@ body.lobby:has(#lbiv.on) #gl{filter:brightness(.83) saturate(1.1)}
  .ivright h2{font-size:42px}
 }
 @media(prefers-reduced-motion:reduce){.ivcard,.ivthumb,#ivuse{transition:none}}
+
+
+/* Tactical gear screens: immersive supply crate, real helmet preview, no blank admin panel. */
+#lbiv.iv-helm .ivpreview{background:radial-gradient(circle at 53% 36%,rgba(255,172,53,.23),transparent 53%),linear-gradient(180deg,#142b41,#06111e)}
+#lbiv.iv-helm .ivpreview::before{border-color:rgba(255,164,55,.62);box-shadow:0 0 0 46px rgba(255,131,32,.06),0 0 38px rgba(255,153,35,.25)}
+#lbiv.iv-helm .ivcard-helm{border-color:rgba(113,230,169,.6);background:radial-gradient(circle at 45% 12%,rgba(46,158,92,.25),transparent 75%),linear-gradient(135deg,#273c44,#101c28)}
+#lbiv.iv-helm .ivcard-helm .ivthumb{transform:scale(.95)}
+#lbiv.iv-helm .ivcard-helm .ivmark{color:#a2f4be}
+#lbiv.iv-helm .ivcard-helm .ivweaponinfo strong{font-size:clamp(18px,1.45vw,26px)}
+#lbiv.iv-item .ivpreview{background:radial-gradient(circle at 50% 45%,rgba(41,122,180,.17),transparent 53%),linear-gradient(160deg,#10243a,#07101e)}
+#lbiv.iv-item .ivname strong{font-size:clamp(26px,2.4vw,39px)}
+#ivcards.ivcards-empty{display:flex;align-items:stretch;justify-content:stretch}
+#ivcards .ivempty-gear{position:relative;flex:1;min-width:0;min-height:0;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(8px,1.7vh,17px);margin:0;padding:clamp(16px,3vw,40px);border:1px solid rgba(117,182,226,.37);background:radial-gradient(ellipse at 50% 40%,rgba(27,106,157,.24),transparent 56%),linear-gradient(140deg,rgba(23,46,69,.86),rgba(6,16,28,.88));overflow:hidden}
+#ivcards .ivempty-gear::before{content:"";position:absolute;inset:13px;pointer-events:none;border:1px dashed rgba(109,171,209,.22)}
+#ivcards .ivempty-gear::after{content:"";position:absolute;left:0;right:0;bottom:0;height:7px;pointer-events:none;background:repeating-linear-gradient(120deg,#ef872c 0 16px,#253142 16px 28px)}
+.ivempty-kicker{z-index:1;font:800 12px Rajdhani,sans-serif;letter-spacing:.30em;color:#8bc9e7}
+.ivempty-image{z-index:1;position:relative;width:clamp(135px,20vw,230px);max-width:60%;height:auto;aspect-ratio:1.35;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 16px 20px rgba(0,0,0,.48))}
+.ivempty-image::before{content:"";position:absolute;left:5%;right:5%;top:27%;bottom:0;border-radius:50%;background:radial-gradient(circle,rgba(235,134,43,.16),transparent 70%);filter:blur(10px)}
+.ivempty-image svg{width:100%;height:100%;position:relative}
+.ivempty-pill{z-index:1;border:1px solid rgba(255,168,87,.67);padding:6px 16px;background:rgba(205,91,21,.23);color:#ffd3a0;font:800 12px Rajdhani,sans-serif;letter-spacing:.2em}
+#ivcards .ivempty-gear strong{z-index:1;font:italic 900 clamp(23px,2.1vw,37px) Impact,"Arial Black",sans-serif;letter-spacing:.08em;color:#fff;text-shadow:0 3px 0 #000}
+#ivcards .ivempty-gear p{z-index:1;margin:0;max-width:360px;font:700 clamp(13px,1.05vw,17px)/1.45 Rajdhani,sans-serif;letter-spacing:.025em;color:#c6d8e8;text-align:center}
+.ivfuture{position:relative;min-height:0;height:142px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:8px;border:1px dashed rgba(110,158,199,.45);background:repeating-linear-gradient(135deg,rgba(36,56,76,.55) 0 10px,rgba(16,32,49,.65) 10px 20px);text-align:center;overflow:hidden}
+.ivfuture span{font:900 11px Rajdhani,sans-serif;letter-spacing:.25em;color:#ffc78e}
+.ivfuture strong{font:italic 900 clamp(17px,1.35vw,24px) Impact,"Arial Black",sans-serif;letter-spacing:.07em}
+.ivfuture p{margin:0 10px;font:700 12px/1.3 Rajdhani,sans-serif;color:#b9cbd9}
+@media(max-height:770px) and (min-width:981px){.ivfuture{height:112px}}
+@media(max-width:980px){#ivcards .ivempty-gear{min-height:clamp(260px,47vh,470px)}}

@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-10-29 — Standard Helmet and tactical equipment Inventory
+
+### New gear
+- Added a **HELM** tab and always-equipped **Standard Helmet** as protective gear, separate from weapon profiles. Helmet data lives in `INVENTORY_GEAR`, with automatic default selection and compatibility with existing saved loadouts.
+- Helmet uses the actual in-game `mkHelm()` mesh for its 3D thumbnail. Selecting HELM zooms the existing soldier preview to the head, while hiding the weapon and relaxing both arms.
+- **Standard Helmet** is default equipment for every soldier, with an explicit message that **custom helmets will arrive in future updates**, plus a separate non-interactive future helmet card.
+- Helmet protection in matches remains governed by the existing `defenseSpawn()` / headshot rules; no combat stats or game rules have changed.
+
+### Tactical UI
+- Replaced the empty ITEM tab with a full-size tactical supplies card including a supply crate illustration, armory lighting, **COMING SOON**, **NO TACTICAL ITEM YET**, and helpful copy.
+- The left character preview now shows an unarmed neutral pose for ITEM rather than a floating invisible rifle.
+- Preserved desktop panel alignment and category scrolling, card artwork, existing equipped weapon choices, and match weapon selection.
+
+### Files and language
+- Updated modular Inventory JS, dedicated Inventory CSS, committed game bundle, new helmet regression tests, and changelog. All new player-facing text is English. Live browser visual QA remains pending.
+
+
 ## 2026-10-29 — Inventory layout stability and scalable weapon collection
 
 ### Fixed layout

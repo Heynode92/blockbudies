@@ -8,7 +8,7 @@ const html=read('index.html'),inv=read('src/game/89-inventory.js'),css=read('src
 test('Main armory uses player-friendly copy, not internal implementation language',()=>{
  assert.match(html,/CHOOSE YOUR GEAR/);assert.match(html,/Pick your favorite/);
  assert.doesNotMatch(html,/EQUIP ONE PER CATEGORY|YOUR OWNED WEAPONS|CHARACTER LOADOUT/);
- assert.match(inv,/YOUR BAG IS EMPTY/);
+ assert.match(inv,/NO TACTICAL ITEM YET/);
  assert.match(inv,/USE THIS WEAPON/);
 });
 test('Weapon cards show 3D image, name, equip state but no raw stat telemetry',()=>{
