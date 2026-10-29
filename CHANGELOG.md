@@ -1,5 +1,29 @@
 # Changelog
 
+## 2026-10-29 — MP7, P90 and AK SOPMOD tactical Shop weapons
+
+### Three new Shop primaries
+- Added **MP7** (ID 10): Damage **21**, RPM rating **93**, Control **60**, Speed **88**, Vertical Recoil **45**, Horizontal Recoil **54**, **30/200** ammunition and Range **60**. Classified as SMG.
+- Added **P90** (ID 11): Damage **24**, RPM rating **92**, Control **54**, Speed **88**, Vertical Recoil **45**, Horizontal Recoil **48**, **50/200** ammunition and Range **65**. Classified as SMG.
+- Added **AK SOPMOD** (ID 12): Damage **33**, RPM rating **90**, Control **50**, Speed **74**, Vertical Recoil **64**, Horizontal Recoil **60**, **30/150** ammunition and Range **160**. Classified as rifle.
+- The three weapons are unlockable through the existing **Shop → UNLOCK FREE → Inventory → USE** workflow; a brand-new player still starts with **K2**. Shop pricing/currency remains intentionally unimplemented, so no fabricated purchase prices appear. Browser-local ownership remains persistent.
+- Dedicated 3D low-poly meshes are modeled after the **three weapon reference images provided by the user** (`mp7.png`, `p90.png`, `ak-sopmod.png`): MP7 compact black body with optic, collapsible stock and front grip; P90 bullpup body, top magazine and integrated sight; AK SOPMOD black modular rifle with tactical grip, optic, rail and curved magazine.
+- The existing Shop and Inventory **render their preview thumbnails from those actual in-game 3D models**, not the user's reference raster image files. The separate user-provided PNG files are not embedded in the repository.
+- Original weapon IDs **0–9** and all BOT_WEAPONS assignment arrays stay unchanged; bots continue using exactly their existing weapon set. Updated muzzle, first-person hand poses, reload style, magazine/reserve, bullet and recoil tuning, shell casings, sound, drop-physics and HUD silhouettes for all 13 weapons.
+
+### Right-click tactical sights
+- **MP7, P90 and AK SOPMOD** support **hold right mouse button** for a tactical aim view with individual optics:
+  - **MP7** micro red-dot with a small red aiming ring (ADS FOV **42**);
+  - **P90** green integrated ring optic with a broader housing (ADS FOV **44**);
+  - **AK SOPMOD** amber carbine holographic framing with more focused ADS (ADS FOV **36**).
+- These sights use an independent non-obscuring overlay and keep the in-game weapon model visible while aiming, instead of copying the AWP full black sniper scope. Existing AWP scope behavior and Kriss V-key Dual Mode remain unchanged.
+- Added isolated `src/game/76-tactical-optics.js`, `src/styles/11-tactical-optics.css` and register both in `tools/source-manifest.json`; the committed offline `assets/game.js` includes all updated modules. The new UI copy is English.
+
+### Regression coverage
+- Updated weapon count/recoil and K2-specific assertions for thirteen weapon IDs, plus a new regression suite checking exact requested ratings, K2 starter/Shop locking, bot loadout isolation, three distinct optics and module/bundle parity.
+- Static/runtime in-process verification of weapon profiles and derived arrays passed; full Node test suite and live 3D browser playtesting are not claimed.
+
+
 ## 2026-10-29 — K2 starter weapon, weapon ownership and playable Shop
 
 ### New K2

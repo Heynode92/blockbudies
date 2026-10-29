@@ -35,7 +35,7 @@ function mkCasing(w){var g=new T.Group();function c(a,b,l,m,y){var q=new T.Mesh(
 // ejectShell(w, side): throws a spent casing from the gun port. Supports weapons 0-2, Kriss (6), Dual Kriss (7) and AWP (8).
 //  side = +1 throws to the player's RIGHT, -1 to the LEFT. Single guns always use +1. Dual Kriss uses -1 for the left gun (shotSide = 1).
 //  The AWP casing is thrown from the bolt (called mid bolt-cycle from animHands(), not from the shot itself).
-function ejectShell(w,side){var sm=(w===6||w===7);if(w>2&&!sm&&w!==8&&w!==WEAPON_STARTER_ID)return;side=side||1;var cw=sm?0:(w===8?1:w===WEAPON_STARTER_ID?1:w);
+function ejectShell(w,side){var kind=WP[w]&&WP[w].stats.kind,sm=kind==="smg"||kind==="dual";if(["rifle","smg","dual","sniper","shotgun","pistol"].indexOf(kind)<0)return;side=side||1;var cw=sm?0:(kind==="sniper"||kind==="rifle"?1:w);
   var v=new T.Vector3(CSP[cw][0],CSP[cw][1],CSP[cw][2]);if(sm){v.x=side<0?-.52-CSP[0][0]:CSP[0][0];}if(w===8)v.set(.09,.06,-.08);hold.localToWorld(v);
   var k=Math.tan(35*Math.PI/180)/Math.tan(C.fov*Math.PI/360);v.x*=k;v.y*=k;C.localToWorld(v);
   var d=new T.Vector3((2.5+Math.random()*.4)*side,1.1+Math.random()*.25,.02+Math.random()*.06).applyQuaternion(C.quaternion);
@@ -45,7 +45,7 @@ function ejectShell(w,side){var sm=(w===6||w===7);if(w>2&&!sm&&w!==8&&w!==WEAPON
   m.traverse(function(o){o.castShadow=false;});
   var n=0;for(var i=dg.length-1;i>=0;i--)if(dg[i].cs&&++n>20){S.remove(dg[i].m);dg.splice(i,1);}}
 // GSC = size of a dropped gun model per weapon id, GH = rest height of a dropped gun per weapon id.
-var GSC=[1.5,1.2,1.2,1,2,2,1.2,1,1.2,1.2],GH=[.07,.09,.09,.17,.03,.1,.09,.09,.09,.09];
+var GSC=[1.5,1.2,1.2,1,2,2,1.2,1,1.2,1.2,1.2,1.18,1.23],GH=[.07,.09,.09,.17,.03,.1,.09,.09,.09,.09,.08,.08,.09];
 // dropPlayerGun(): when the player dies, throws the current weapon model onto the ground.
 function dropPlayerGun(){var w=pl.w,g=mkGun(w),f=pl.face,s=Math.sin(f),c=Math.cos(f);
   g.scale.setScalar(GSC[w]);g.rotation.order="YXZ";g.rotation.y=f+Math.PI;

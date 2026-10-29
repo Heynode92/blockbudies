@@ -16,6 +16,7 @@
     "src/game/65-audio.js",
     "src/game/70-kills-and-damage-hud.js",
     "src/game/75-weapon-controls.js",
+    "src/game/76-tactical-optics.js",
     "src/game/79-camera-look.js",
     "src/game/80-input.js",
     "src/game/85-lobby-and-match.js",
@@ -39,6 +40,7 @@
     "src/styles/07-bomb-mission.css",
     "src/styles/08-defense.css",
     "src/styles/09-inventory.css",
-    "src/styles/10-shop.css"
+    "src/styles/10-shop.css",
+    "src/styles/11-tactical-optics.css"
   ]
 }

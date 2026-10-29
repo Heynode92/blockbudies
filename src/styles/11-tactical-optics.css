@@ -1,0 +1,37 @@
+/* Tactical optic overlays for MP7/P90/SOPMOD — never use the AWP black scope. */
+.tactical-aim{position:fixed;inset:0;z-index:6;display:none;pointer-events:none;
+ transition:opacity .08s linear;color:#d4e4ec}
+.tactical-aim::before{content:"";position:absolute;inset:0;
+ background:radial-gradient(ellipse at 50% 50%,transparent 0,transparent 24vmin,rgba(4,11,18,.08) 40vmin,rgba(3,10,18,.24) 100%);}
+.tactical-aim .ta-frame{position:absolute;left:50%;top:50%;width:var(--ta-size);height:var(--ta-size);
+ transform:translate(-50%,-50%);border-radius:var(--ta-radius,50%);
+ border:3px solid rgba(36,45,47,.92);box-shadow:0 0 0 3px rgba(101,116,121,.75),
+ inset 0 0 12px rgba(0,0,0,.55),0 6px 18px rgba(0,0,0,.5);
+ background:radial-gradient(circle,rgba(13,34,40,.07),rgba(15,31,34,.13) 70%,rgba(5,13,16,.30));}
+.tactical-aim .ta-frame::before{content:"";position:absolute;inset:7px;border:1px solid rgba(150,174,176,.22);border-radius:inherit;}
+.tactical-aim .ta-frame::after{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+ width:var(--ta-dot,4px);height:var(--ta-dot,4px);border-radius:50%;background:var(--ta-color,#ff5946);
+ box-shadow:0 0 8px var(--ta-color,#ff5946),0 0 18px var(--ta-color,#ff5946);}
+.tactical-aim .ta-cross{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+ width:var(--ta-cross-size,24px);height:var(--ta-cross-size,24px);border:1px solid var(--ta-color,#ff5946);
+ border-radius:50%;opacity:.6;}
+.tactical-aim .ta-cross::before,.tactical-aim .ta-cross::after{content:"";position:absolute;background:var(--ta-color,#ff5946);}
+.tactical-aim .ta-cross::before{width:1px;left:50%;height:7px;top:-8px;}
+.tactical-aim .ta-cross::after{height:1px;top:50%;width:7px;right:-8px;}
+.tactical-aim .ta-label{position:absolute;left:50%;top:calc(50% + var(--ta-label-offset,80px));
+ transform:translateX(-50%);font:800 11px Rajdhani,sans-serif;letter-spacing:.19em;white-space:nowrap;
+ color:#a9cbd4;text-shadow:0 1px 5px #000;opacity:.78}
+.tactical-aim-mp7{--ta-size:106px;--ta-cross-size:17px;--ta-color:#fa4136;--ta-dot:4px;--ta-label-offset:72px;}
+.tactical-aim-mp7 .ta-frame{border-width:4px;box-shadow:0 0 0 2px #42555b,0 0 0 8px rgba(13,24,30,.52),inset 0 0 12px rgba(0,0,0,.4);}
+.tactical-aim-p90{--ta-size:150px;--ta-cross-size:33px;--ta-color:#83e8c9;--ta-dot:3px;--ta-label-offset:95px;}
+.tactical-aim-p90 .ta-frame{border-radius:36%;border-color:#73776e;box-shadow:0 0 0 7px rgba(52,62,58,.8),inset 0 0 13px rgba(0,0,0,.45);}
+.tactical-aim-p90 .ta-cross{border-width:2px;border-style:dashed;opacity:.75;}
+.tactical-aim-sopmod{--ta-size:122px;--ta-cross-size:41px;--ta-color:#f4b769;--ta-dot:3px;--ta-label-offset:85px;}
+.tactical-aim-sopmod .ta-frame{border-radius:18%;border-color:#2e363b;box-shadow:0 0 0 4px rgba(82,91,94,.85),0 0 0 10px rgba(15,21,25,.5),inset 0 0 10px rgba(0,0,0,.55);}
+.tactical-aim-sopmod .ta-cross{border-radius:0;width:29px;height:29px;border:0;opacity:.85;
+ background:linear-gradient(var(--ta-color),var(--ta-color)) center top/1px 10px no-repeat,
+ linear-gradient(var(--ta-color),var(--ta-color)) center bottom/1px 10px no-repeat,
+ linear-gradient(90deg,var(--ta-color),var(--ta-color)) left center/10px 1px no-repeat,
+ linear-gradient(90deg,var(--ta-color),var(--ta-color)) right center/10px 1px no-repeat;}
+body.tactical-ads #ch{opacity:0}
+@media(max-width:650px){.tactical-aim .ta-label{display:none}.tactical-aim{transform:scale(.8)}}

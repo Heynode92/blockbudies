@@ -34,7 +34,7 @@ function state(saved=null){
 test("K2 is id 9 with exact user stats, own real model and rifle tuning",()=>{
  const x=profileContext();
  assert.equal(x.WEAPON_STARTER_ID,9);
- assert.equal(x.WEAPON_PROFILES.length,10);
+ assert.equal(x.WEAPON_PROFILES.length,13);
  const p=x.WEAPON_PROFILES[9];
  for(const [k,v] of Object.entries({name:"K2",damage:36,rpm:96,control:75,speed:79,
    vRecoil:66,hRecoil:33,mag:40,res:200,range:120,kind:"rifle"}))assert.equal(p[k],v,k);
@@ -99,14 +99,14 @@ test("AI keeps its original rifle/SMG/shotgun/RPG/sniper loadout, without K2",()
  assert.doesNotMatch(bot,/WEAPON_STARTER_ID/);
  assert.match(bot,/BOT_WEAPONS\.primaries/);
 });
-test("All 10 weapon IDs have viewmodels and gun effects, including K2",()=>{
+test("All 13 weapon IDs have viewmodels and gun effects, including K2",()=>{
  const combat=read("src/game/45-combat.js");
  const audio=read("src/game/65-audio.js");
  const drops=read("src/game/50-items-and-drops.js");
  assert.match(weapon,/guns=WEAPON_PROFILES\.map/);
- assert.match(combat,/MZ=\[[^\]]+,-1\.3\]/);
+ assert.match(combat,/MZ=\[[^\]]+,-1\.38\]/);
  assert.match(audio,/SFXI=\[[^\]]+,1\]/);
- assert.match(drops,/GSC=\[[^\]]+,1\.2\],GH=\[[^\]]+,\.09\]/);
+ assert.match(drops,/GSC=\[[^\]]+,1\.23\],GH=\[[^\]]+,\.09\]/);
  assert.match(weapon,/MODE=\[[^\]]+,0\],NC=\[[^\]]+,1\]/);
 });
 test("Compiled game bundle is exactly the ordered source parts",()=>{

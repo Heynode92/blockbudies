@@ -15,7 +15,10 @@ var WEAPON_PROFILES=[
  {name:"Kriss",damage:21,rpm:93,control:59,speed:90,vRecoil:48,hRecoil:48,mag:30,res:210,range:60,kind:"smg"},
  {name:"Dual Kriss",damage:18,rpm:93,control:59,speed:90,vRecoil:48,hRecoil:48,mag:125,res:0,range:60,kind:"dual"},
  {name:"AWP",damage:81,rpm:39,control:66,speed:69,vRecoil:60,hRecoil:60,mag:5,res:64,range:180,kind:"sniper"},
- {name:"K2",damage:36,rpm:96,control:75,speed:79,vRecoil:66,hRecoil:33,mag:40,res:200,range:120,kind:"rifle"}
+ {name:"K2",damage:36,rpm:96,control:75,speed:79,vRecoil:66,hRecoil:33,mag:40,res:200,range:120,kind:"rifle"},
+ {name:"MP7",damage:21,rpm:93,control:60,speed:88,vRecoil:45,hRecoil:54,mag:30,res:200,range:60,kind:"smg"},
+ {name:"P90",damage:24,rpm:92,control:54,speed:88,vRecoil:45,hRecoil:48,mag:50,res:200,range:65,kind:"smg"},
+ {name:"AK SOPMOD",damage:33,rpm:90,control:50,speed:74,vRecoil:64,hRecoil:60,mag:30,res:150,range:160,kind:"rifle"}
 ];
 // Weapon IDs remain stable so existing bot loadouts and inventory saves do not shift.
 var WEAPON_STARTER_ID=9;
@@ -65,7 +68,7 @@ var bG=new T.SphereGeometry(.15,8,8),rG=new T.SphereGeometry(.3,10,10),
 // The flag guards BOTH crate sources: the random airdrop in update() and the loot crate dropped where a bot dies (killE).
 // (Dead characters still toss their gun model as a visual effect, but it can NOT be picked up.)
 var DM_RULES={crates:false};
-var mt={t:60,cd:0,over:true},ts=[0,0],rq=[],ROS=[],curK=null,pl,en,bl,cr,fx,sk,score,run=false,spawnT,crateT,tt=0,toastT=0,adsT=0,sprT=0,ADF=[56,44,58,50,70,70,50,70,14,44],AP=[[0,-.066,-.5],[0,-.125,-.5],[0,-.078,-.5],[0,-.16,-.5],[0,-.1,-.5],[0,-.1,-.5],[0,-.13,-.5],[0,-.13,-.5],[0,-.14,-.5],[0,-.125,-.5]],bobP=0,bobL=performance.now(),lob=true;
+var mt={t:60,cd:0,over:true},ts=[0,0],rq=[],ROS=[],curK=null,pl,en,bl,cr,fx,sk,score,run=false,spawnT,crateT,tt=0,toastT=0,adsT=0,sprT=0,ADF=[56,44,58,50,70,70,50,70,14,44,42,44,36],AP=[[0,-.066,-.5],[0,-.125,-.5],[0,-.078,-.5],[0,-.16,-.5],[0,-.1,-.5],[0,-.1,-.5],[0,-.13,-.5],[0,-.13,-.5],[0,-.14,-.5],[0,-.125,-.5],[0,-.115,-.58],[0,-.125,-.56],[0,-.115,-.64]],bobP=0,bobL=performance.now(),lob=true;
 // mkPm()/pm: the visible body of the player (seen when dead/spectating). Its gun is hidden because the viewmodel is used instead.
 function mkPm(tm){var m=terro(tm);if(m.g.userData.gun)m.g.userData.gun.visible=false;return m;}
 var pm=mkPm(0);pm.g.visible=false;function resetPm(){pm.g.visible=false;if(pm.hm)pm.hm.visible=true;if(pm.hg)pm.hg.visible=true;if(pm.body){pm.body.rotation.set(0,0,0);pm.body.position.y=0;}(pm.arms||[]).concat(pm.legs||[]).forEach(function(q){q.rotation.z=0;});}
@@ -133,6 +136,95 @@ function mkGun(i){var g=new T.Group(),a=function(){for(var k=0;k<arguments.lengt
       a(bx(.087,.009,.014,0x707d72,0,-.16-k2m*.038,-.46-k2m*.008));
     }
   }
+
+  else if(i===10){
+    // MP7: compact black receiver, foregrip, curved 30-round magazine,
+    // collapsing wire stock and rail optic. Reference: supplied mp7.png.
+    a(
+      bx(.105,.15,.69,0x222829,0,0,-.24),bx(.110,.075,.62,0x111719,0,.086,-.23),
+      bx(.116,.025,.58,0x3b4243,0,.127,-.26), // Picatinny top rail
+      bx(.101,.115,.20,0x303739,0,-.012,-.67), // forward barrel shroud
+      cy(.023,.023,.24,0x121618,0,.018,-.86),cy(.031,.031,.055,0x444e50,0,.018,-1.015),
+      bx(.062,.2,.10,0x1b2023,0,-.21,-.48,.07), // vertical front grip
+      bx(.073,.24,.105,0x171b1d,0,-.19,-.08,-.22), // pistol grip
+      bx(.075,.22,.087,0x252a2d,0,-.22,-.33,-.16), // detachable magazine
+      bx(.08,.035,.06,0x475053,0,-.36,-.40),
+      bx(.026,.028,.47,0x181e21,0,.014,.34), // folding stock beam
+      bx(.10,.23,.028,0x191f21,0,-.025,.61), // buttpad
+      bx(.07,.014,.18,0x596062,0,.145,-.24), // optic rail base
+      bx(.055,.015,.16,0x101819,0,.203,-.27), // holo upper
+      bx(.013,.084,.018,0x0d1517,-.045,.174,-.28),bx(.013,.084,.018,0x0d1517,.045,.174,-.28),
+      bx(.080,.016,.016,0x0c1418,0,.220,-.28),
+      bx(.065,.025,.10,0x495457,0,-.036,-.05), // ejection panel
+      bx(.12,.033,.08,0x111517,0,-.07,-.42)  // trigger guard
+    );
+    for(var mp=0;mp<6;mp++){
+      a(bx(.014,.013,.035,0x495054,-.059,.123,-.50+mp*.075));
+      a(bx(.014,.013,.035,0x495054,.059,.123,-.50+mp*.075));
+    }
+    for(var mr=0;mr<4;mr++){
+      a(bx(.083,.010,.013,0x626b6e,0,-.18-mr*.045,-.31-mr*.013));
+    }
+  }
+  else if(i===11){
+    // P90: distinctive bullpup thumb-hole stock, broad olive-grey shell,
+    // horizontal top magazine and integrated optic. Reference: p90.png.
+    var body=bx(.16,.205,.78,0x777b70,0,-.012,-.10);a(body);
+    a(
+      bx(.17,.08,.31,0x333a3b,0,.119,-.22), // receiver optic housing
+      bx(.175,.057,.62,0x535d5a,0,.139,-.19), // top-mounted magazine
+      bx(.166,.016,.53,0x1a2123,0,.181,-.23), // rail top
+      bx(.20,.076,.25,0x666d65,0,-.002,-.60), // front barrel housing
+      cy(.031,.031,.29,0x1c2427,0,.025,-.79),
+      cy(.040,.040,.06,0x32383b,0,.025,-.98),
+      bx(.165,.235,.39,0x7b7d71,0,-.045,.39), // long rear buttstock
+      bx(.19,.265,.075,0x6d7169,0,-.056,.60),
+      bx(.14,.039,.28,0x1c2628,0,-.146,.26), // grip undercut bridge
+      bx(.080,.19,.08,0x4a4e45,0,-.20,-.10,-.20), // forward handle
+      bx(.078,.13,.11,0x51554e,0,-.23,-.29,.15),
+      bx(.11,.04,.21,0x454c48,0,.204,-.16), // optic bracket
+      bx(.055,.045,.21,0x182224,0,.253,-.16),
+      bx(.074,.018,.06,0x8f9996,0,.289,-.22),
+      bx(.035,.028,.04,0x111a1d,0,.245,-.34)
+    );
+    // Cutout is visual rather than actual CSG; dark inset and perimeter
+    // reproduces the P90's iconic large thumb-hole grip in low-poly style.
+    a(bx(.172,.118,.23,0x131a1d,0,-.184,.25));
+    a(bx(.164,.024,.26,0x8b8d80,0,-.120,.24));
+    a(bx(.164,.023,.27,0x777b70,0,-.241,.25));
+    for(var ps=0;ps<5;ps++)a(bx(.173,.011,.015,0x353d40,0,.173,-.43+ps*.095));
+  }
+  else if(i===12){
+    // AK SOPMOD: black carbine body, curved magazine, tactical forward
+    // rail + vertical grip, red-dot optic and folding stock. ak-sopmod.png.
+    a(
+      bx(.12,.146,.60,0x161b1f,0,0,-.25), // core receiver
+      bx(.116,.055,.44,0x2e353a,0,.084,-.30), // upper receiver
+      bx(.138,.1,.49,0x1d2427,0,.015,-.69), // long modular handguard
+      bx(.145,.026,.59,0x343c41,0,.104,-.62), // full-length top rail
+      cy(.023,.023,.43,0x22292d,0,.013,-1.13),
+      cy(.032,.032,.085,0x515b5f,0,.013,-1.36), // muzzle device
+      bx(.080,.28,.095,0x141a1d,0,-.185,-.13,-.25), // grip
+      bx(.090,.28,.105,0x23282b,0,-.219,-.41,-.28), // curved magazine
+      bx(.095,.040,.09,0x4b5558,0,-.350,-.49,-.25),
+      bx(.064,.22,.10,0x181d1f,0,-.202,-.78), // vertical foregrip
+      bx(.040,.018,.25,0x555d63,0,.024,.27), // stock tube
+      bx(.115,.112,.27,0x1e2529,0,-.032,.46), // adjustable stock
+      bx(.130,.17,.031,0x151a1d,0,-.034,.65), // buttstock
+      bx(.08,.027,.21,0x59666a,0,.149,-.26),
+      bx(.065,.02,.125,0x161c20,0,.210,-.26), // optic roof
+      bx(.014,.09,.015,0x151b1e,-.043,.183,-.27),
+      bx(.014,.09,.015,0x151b1e,.043,.183,-.27),
+      bx(.080,.014,.015,0x303d42,0,.232,-.27),
+      bx(.055,.065,.13,0x31383a,0,-.018,-.38), // receiver controls
+      bx(.070,.023,.13,0x5d6260,0,-.02,-.16) // ejection cover
+    );
+    for(var sr=0;sr<8;sr++){
+      a(bx(.018,.019,.026,0x596468,-.076,.096,-.88+sr*.070));
+      a(bx(.018,.019,.026,0x596468,.076,.096,-.88+sr*.070));
+    }
+    for(var sm=0;sm<5;sm++)a(bx(.093,.009,.016,0x7e8580,0,-.18-sm*.045,-.37-sm*.018));
+  }
   else if(i===5)a(bx(.15,.15,.15,0x4a5a2a,0,0,-.3),bx(.16,.03,.16,0x3a4620,0,.03,-.3),bx(.06,.05,.06,0x888e98,0,.1,-.3),bx(.04,.03,.14,0xaab0b9,0,.13,-.27),bx(.1,.02,.02,0xd4a017,.06,.1,-.36));
   else a(cy(.1,.1,1.1,0x5c6b3c,0,.03,-.4),cy(.1,.17,.2,0x3b4a2a,0,.03,-1),cy(.09,0,.28,0xe03131,0,.03,-1.2),bx(.07,.16,.08,0x2b2f3d,0,-.12,-.2,.2),bx(.04,.06,.1,0x111111,0,.12,-.3));
   return g;}
@@ -163,10 +255,10 @@ handL.add(magP,shP,rkP);hold.add(handR,handL,armR,armL);
 // Hand/anim tables, indexed by weapon id: RG = right-hand grip position, RL = left-hand rest position,
 // PT = left-hand "port" position for the reload animation, MODE = reload style (0 = mag swap, 1 = loop-load shells/rocket),
 // NC = number of loop cycles in a loop reload, DD = left-hand "drop" position (below the gun) used in reload animations.
-var RG=[[0,-.2,-.1],[0,-.2,-.15],[0,-.13,-.08],[0,-.14,-.2],[0,.02,-.09],[0,-.1,-.3],[0,-.22,-.1],[0,-.22,-.1],[0,-.19,-.06],[0,-.2,-.19]],
- RL=[[-.03,-.22,-.22],[0,-.09,-.62],[0,-.1,-.58],[0,-.1,-.7],[-.3,-.5,-.1],[-.3,-.5,-.1],[0,-.09,-.5],[-.52,-.22,-.1],[0,-.1,-.62],[0,-.09,-.72]],
- PT=[[0,-.2,-.28],[0,-.24,-.4],[0,-.12,-.2],[0,.02,-.95],[0,0,0],[0,0,0],[0,-.24,-.35],[0,0,0],[0,-.24,-.42],[0,-.24,-.43]],
- MODE=[0,0,1,1,0,0,0,0,0,0],NC=[1,1,3,1,1,1,1,1,1,1],DD=[-.1,-.34,-.28];
+var RG=[[0,-.2,-.1],[0,-.2,-.15],[0,-.13,-.08],[0,-.14,-.2],[0,.02,-.09],[0,-.1,-.3],[0,-.22,-.1],[0,-.22,-.1],[0,-.19,-.06],[0,-.2,-.19],[0,-.22,-.10],[0,-.24,-.10],[0,-.205,-.15]],
+ RL=[[-.03,-.22,-.22],[0,-.09,-.62],[0,-.1,-.58],[0,-.1,-.7],[-.3,-.5,-.1],[-.3,-.5,-.1],[0,-.09,-.5],[-.52,-.22,-.1],[0,-.1,-.62],[0,-.09,-.72],[0,-.16,-.54],[0,-.15,-.56],[0,-.18,-.84]],
+ PT=[[0,-.2,-.28],[0,-.24,-.4],[0,-.12,-.2],[0,.02,-.95],[0,0,0],[0,0,0],[0,-.24,-.35],[0,0,0],[0,-.24,-.42],[0,-.24,-.43],[0,-.32,-.30],[0,-.23,-.42],[0,-.31,-.45]],
+ MODE=[0,0,1,1,0,0,0,0,0,0,0,0,0],NC=[1,1,3,1,1,1,1,1,1,1,1,1,1],DD=[-.1,-.34,-.28];
 // xp(w): extra viewmodel offsets [x,y,z,rotX,rotY,rotZ] for weapon switch, knife stab and grenade throw animations.
 function xp(w){var r=[0,0,0,0,0,0],u,p,s,q,b,f;
   if(pl.sw>0){u=pl.sw/.28;u=u*u;r[1]-=u*.55;r[3]+=u*.7;r[4]+=u*.3;}
