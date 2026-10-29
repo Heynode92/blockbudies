@@ -1,5 +1,5 @@
 // BOMB MISSION match state (isolated from Team Deathmatch logic).
-var bombMatch=null,bombHold=false,bombSpectatorIndex=0;
+var bombMatch=null,bombHold=false,bombSpectatorIndex=0,bombSpectatorView='team';
 var bombInfo=document.getElementById('bombInfo'),bombStatus=document.getElementById('bombStatus'),
   bombActionLabel=document.getElementById('bombActionLabel'),bombActionBar=document.getElementById('bombActionBar'),
   bombTouch=document.getElementById('bombTouch'),bombSpec=document.getElementById('bombSpec');
@@ -47,7 +47,7 @@ function bombStartMatch(){
   var options=bombCandidates();bombMatch.carrier=options[(Math.random()*options.length)|0]||null;
   en.concat([pl]).forEach(function(e){e.bAction=null;});
   if(bombMatch.carrier===pl)toast(BOMB_TEXT.carrier);
-  bombSpectatorIndex=0;bombResetSpectatorCamera();document.body.classList.remove('bomb-spectator');
+  bombSpectatorIndex=0;bombSpectatorView='team';bombResetSpectatorCamera();document.body.classList.remove('bomb-spectator');
 }
 function bombDrop(holder){
   if(!isBombMode()||!bombMatch||bombMatch.state!=='idle')return;
@@ -106,6 +106,21 @@ function bombBotGoal(e){return bombTacticalGoal(e);}
 function bombSpectatorTarget(){
   if(!isBombMode()||!pl.dead||!bombMatch||mt.over)return null;
   var living=en.filter(function(e){return e.tm===pl.tm&&!e.dead;});
+  var enemyView=false;
+  // A wiped Terrorist team may watch the Police retake their planted bomb.
+  // Teammates ALWAYS take precedence while any of them are alive.
+  if(!living.length&&pl.tm===1&&bombMatch.state==='planted'&&!bombMatch.done){
+    living=en.filter(function(e){return e.tm===0&&!e.dead;});
+    enemyView=living.length>0;
+    if(enemyView){
+      var defuser=bombPickDefuser();
+      living.sort(function(a,b){return a===defuser?-1:b===defuser?1:(a.idx||0)-(b.idx||0);});
+    }
+  }
+  var view=enemyView?'police':'team';
+  if(view!==bombSpectatorView){
+    bombSpectatorView=view;bombSpectatorIndex=0;bombResetSpectatorCamera();
+  }
   if(!living.length)return null;
   bombSpectatorIndex=((bombSpectatorIndex%living.length)+living.length)%living.length;
   return living[bombSpectatorIndex];
@@ -148,7 +163,19 @@ function bombHudUpdate(){
   bombInfo.textContent=roundLabel+(b.state==='planted'?'  |  '+BOMB_TEXT.planted+' '+BOMB_SITES[b.site].id:'');
   var action=!pl.dead?bombActionFor(pl):null;
   var label='',progress=0;
-  if(pl.dead){var target=bombSpectatorTarget();bombSpec.style.display='block';bombSpec.textContent=target?BOMB_TEXT.spectating+': '+target.name+' | '+BOMB_TEXT.switchView:BOMB_TEXT.noTeam;}
+  if(pl.dead){
+    var target=bombSpectatorTarget(),enemyTarget=target&&target.tm!==pl.tm;
+    bombSpec.style.display='block';
+    bombSpec.textContent=target?
+      (enemyTarget?BOMB_TEXT.spectatingPolice:BOMB_TEXT.spectating)+': '+target.name+
+      ' | '+(enemyTarget?BOMB_TEXT.switchPolice:BOMB_TEXT.switchView):BOMB_TEXT.noTeam;
+    var nextButton=document.getElementById('bombNext');
+    if(nextButton)nextButton.textContent=enemyTarget?'NEXT POLICE':'NEXT TEAMMATE';
+    if(enemyTarget&&target.bAction&&target.bAction.type==='defuse'){
+      label=BOMB_TEXT.defusing+' '+Math.min(100,Math.floor(target.bAction.t/BOMB_RULES.defuseSeconds*100))+'%';
+      progress=target.bAction.t/BOMB_RULES.defuseSeconds;
+    }
+  }
   else if(pl.bAction){var time=pl.bAction.type==='plant'?BOMB_RULES.plantSeconds:BOMB_RULES.defuseSeconds;
     label=(pl.bAction.type==='plant'?BOMB_TEXT.planting:BOMB_TEXT.defusing)+' '+Math.min(100,Math.floor(pl.bAction.t/time*100))+'%';progress=pl.bAction.t/time;
     bombHands.visible=true;

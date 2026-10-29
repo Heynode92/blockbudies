@@ -33,7 +33,7 @@ function botPath(e,gx,gz){var p=gPath(e.x,e.z,gx,gz);
 // botsUpd(dt): LIVE bot AI (movement along paths, target choice, line-of-sight, shooting with fire(..., "e")).
 function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
   for(i=rq.length-1;i>=0;i--){var q=rq[i];q.t-=dt;if(q.t<=0&&!mt.over&&!isBombMode()){var nb=newBot(q.b.tm,q.b.idx);nb.st=q.b.st;placeBot(nb);rq.splice(i,1);}}
-  en.forEach(function(e){var t,dx=0,dz=0,d=99,f,mvx=0,mvz=0,sp=isBombMode()?BOMB_AI.navSpeed:4.8,ox=e.x,oz=e.z,combat,gx,gz,wp,ml;
+  en.forEach(function(e){var t,dx=0,dz=0,d=99,f,mvx=0,mvz=0,sp=isBombMode()?BOMB_AI.navSpeed*(e.tm===0&&bombUncontestedRetake()?BOMB_AI.clearSiteSpeedMultiplier:1):4.8,ox=e.x,oz=e.z,combat,gx,gz,wp,ml;
     botUpdateReload(e,dt);e.inv=Math.max(0,(e.inv||0)-(cdn?0:dt));e.vis=Math.max(0,(e.vis||0)-dt);e.tq=(e.tq||0)-dt;e.navT=Math.max(0,(e.navT||0)-dt);
     if(e.tq<=0){e.tq=.35+Math.random()*.2;var bd=1e9,bt=null;
       en.forEach(function(o){if(o.tm!==e.tm){var dd=Math.hypot(o.x-e.x,o.z-e.z);if(dd<bd&&dd<45&&los(e.x,e.z,o.x,o.z)){bd=dd;bt=o;}}});
@@ -61,7 +61,7 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
       wp=e.path[e.pi];while(wp&&e.pi<e.path.length-1&&Math.hypot(wp[0]-e.x,wp[1]-e.z)<1.1){e.pi++;wp=e.path[e.pi];}
       if(wp){var wx=wp[0]-e.x,wz=wp[1]-e.z,wl=Math.hypot(wx,wz)||1;if(wl>.4){mvx=wx/wl;mvz=wz/wl;}}}
     if(isBombMode()&&e.bAction)mvx=mvz=0;
-    if(!e.bAction)en.forEach(function(o){if(o!==e&&!o.dead){
+    if(!e.bAction&&!(isBombMode()&&e.tm===0&&bombUncontestedRetake()&&bombPickDefuser()===e))en.forEach(function(o){if(o!==e&&!o.dead){
       var sx=e.x-o.x,sz=e.z-o.z,sq=Math.hypot(sx,sz),space=isBombMode()?BOMB_AI.teammateSpacing:1.8;
       if(sq<space&&sq>.01){mvx+=sx/sq*.75;mvz+=sz/sq*.75;}
     }});

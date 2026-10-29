@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-10-29 — Bomb Mission uncontested defuse and enemy spectator
+
+### Critical Bomb Mode fixes
+- When all Terrorists are eliminated **after planting**, living Police immediately switch to a clear-site retake. The closest eligible officer is assigned to defuse; teammates converge near the actual device instead of continuing distant site-defense or unrelated sweeps.
+- The assigned defuser gets a faster clear-site navigation pace, no crowd-avoidance shove from teammates, and can begin or continue a 7-second defuse even if a stale enemy target remains in bot memory. Defuse assignment transfers to an officer who can arrive significantly sooner, but never interrupts a defuse already in progress.
+- Preserved earlier solo-officer threat-clearing behavior whenever any Terrorist is still alive. **Team Deathmatch** movement, combat and respawn are unchanged.
+
+### Spectator
+- After the player's Terrorist team is wiped while its bomb remains planted, third-person spectator follows the Police retake/defuser instead of staring at an empty location with **NO TEAMMATES ALIVE**.
+- Living teammates always take priority over opponents. Left/right camera switching cycles the surviving Police when the friendly team is wiped.
+- Spectator UI displays **SPECTATING POLICE**, **LEFT / RIGHT to switch player**, **NEXT POLICE**, and the observed officer's **DEFUSING BOMB** progress when appropriate.
+- Updated the centralized Bomb Mode UI text, regression test and compiled `assets/game.js`. No new game assets or backend needed. Browser visual playtest remains unverified.
+
+
 ## 2026-10-29 — Tactical armory UI and player-facing weapon labels
 
 ### Visual design

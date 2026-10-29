@@ -7,7 +7,7 @@ var BOMB_RULES=Object.freeze({teamSize:5,rounds:12,wins:7,roundSeconds:120,freez
 var BOMB_TEXT=Object.freeze({
   plant:'Plant bomb here',defuse:'Defuse the bomb',planting:'PLANTING BOMB',defusing:'DEFUSING BOMB',
   planted:'BOMB PLANTED',dropped:'BOMB DROPPED',carrier:'YOU HAVE THE BOMB',picked:'BOMB PICKED UP',
-  spectating:'SPECTATING',switchView:'LEFT / RIGHT to switch teammate',noTeam:'NO TEAMMATES ALIVE',
+  spectating:'SPECTATING',spectatingPolice:'SPECTATING POLICE',switchView:'LEFT / RIGHT to switch teammate',switchPolice:'LEFT / RIGHT to switch player',noTeam:'NO TEAMMATES ALIVE',
   policeWin:'POLICE WIN THE ROUND',terrorWin:'TERRORISTS WIN THE ROUND',
   explosion:'BOMB DETONATED',defused:'BOMB DEFUSED',round:'ROUND',hold:'HOLD E',
   elimination:'TEAM ELIMINATED',timeout:'TIME EXPIRED',site:'BOMB SITE'});

@@ -6,7 +6,8 @@ var BOMB_AI=Object.freeze({
   retakeThreatRadius:34,retakeSeekRadius:36,retakeSweepRadius:4,retakeSweepStep:3,
   retakeCombatDistance:5,
   soloDefuseThreatRadius:18,plantClearRadius:13,plantEngageRange:19,
-  huntedEnemyRange:160
+  huntedEnemyRange:160,
+  clearSiteSpeedMultiplier:1.4,clearSiteSupportRadius:1.35,defuserSwapMargin:1.2
 });
 function bombLiving(team){return en.filter(function(e){return e.tm===team&&!e.dead;}).concat(!pl.dead&&pl.tm===team?[pl]:[]);}
 function bombNearestOpponent(e){var foes=bombLiving(1-e.tm),best=null,dist=Infinity;
@@ -34,6 +35,10 @@ function bombPlantThreat(e){
     if(atSite)return atSite;}
   return near;
 }
+// Once the bomb is planted and no Terrorists survive, retake is purely a race to defuse.
+function bombUncontestedRetake(){
+  return !!(bombMatch&&!bombMatch.done&&bombMatch.state==='planted'&&bombLiving(1).length===0);
+}
 function bombPickDefuser(){
   if(!bombMatch||bombMatch.done||bombMatch.state!=='planted')return null;
   var b=bombMatch,team=bombLiving(0),current=b.defuser;
@@ -46,6 +51,24 @@ function bombPickDefuser(){
   if(humansDefusing){b.defuser=pl;return pl;}
   var botOptions=team.filter(function(e){return e!==pl;});
   if(botOptions.length)team=botOptions;
+  if(bombUncontestedRetake()&&botOptions.length){
+    // In an uncontested retake, use whichever officer can defuse soonest.
+    // A bot already defusing must finish; otherwise reassign if a closer officer arrives.
+    var target=b.device.position,best=null,bestDist=Infinity;
+    botOptions.forEach(function(e){
+      var dist=Math.hypot(e.x-target.x,e.z-target.z);
+      if(dist<bestDist){bestDist=dist;best=e;}
+    });
+    var active=current&&!current.dead&&botOptions.indexOf(current)>=0?current:null;
+    if(active&&active.bAction&&active.bAction.type==='defuse')return active;
+    var activeDist=active?Math.hypot(active.x-target.x,active.z-target.z):Infinity;
+    if(!active||best!==active&&(
+        bestDist+BOMB_AI.defuserSwapMargin<activeDist||
+        bestDist<=BOMB_RULES.interactRadius&&activeDist>BOMB_RULES.interactRadius)){
+      b.defuser=best;
+    }else b.defuser=active;
+    return b.defuser;
+  }
   if(current&&!current.dead&&team.indexOf(current)>=0)return current;
   var target=b.device.position;
   team.sort(function(a,c){return Math.hypot(a.x-target.x,a.z-target.z)-Math.hypot(c.x-target.x,c.z-target.z);});
@@ -55,7 +78,10 @@ function bombTacticalStage(e){
   if(!bombMatch||bombMatch.done)return 'none';
   var b=bombMatch;
   if(b.state==='planted'){
-    if(e.tm===0)return bombPickDefuser()===e?'retake-defuse':'retake-assault';
+    if(e.tm===0){
+      if(bombUncontestedRetake())return bombPickDefuser()===e?'retake-defuse':'retake-support';
+      return bombPickDefuser()===e?'retake-defuse':'retake-assault';
+    }
     // A lone survivor cannot simply camp a random cover point: find and fight CTs.
     if(bombLiving(1).length===1)return 'hunt';
     return e.idx%3===0?'hold':'hunt';
@@ -85,6 +111,12 @@ function bombTacticalGoal(e){
   if(b.state==='planted'){
     site=BOMB_SITES[b.site];
     if(stage==='retake-defuse')return bombSafeGoal(b.device.position.x,b.device.position.z,e);
+    if(stage==='retake-support'){
+      // Do not camp the other bomb site. Keep a replacement officer at defuse range.
+      angle=(idx*2+Math.floor(tt/BOMB_AI.retakeSweepStep))*Math.PI/4;
+      return bombSafeGoal(b.device.position.x+Math.cos(angle)*BOMB_AI.clearSiteSupportRadius,
+        b.device.position.z+Math.sin(angle)*BOMB_AI.clearSiteSupportRadius,e);
+    }
     if(stage==='retake-assault'){
       // When alone against a nearby defender, clear the threat before defusing.
       foe=bombSoloPoliceThreat(e);
@@ -149,7 +181,7 @@ function bombBotWantsObjective(e,t){
   if(!isBombMode()||!bombMatch||bombMatch.done)return false;
   if(e.bAction)return true;
   var role=bombTacticalStage(e);
-  if(role==='retake-defuse'||role==='plant'){
+  if(role==='retake-defuse'||role==='retake-support'||role==='plant'){
     // Do not abandon the objective for distant gunfire; fight close threats normally.
     return !t||Math.hypot(t.x-e.x,t.z-e.z)>BOMB_AI.urgentThreatRange;
   }
@@ -158,6 +190,7 @@ function bombBotWantsObjective(e,t){
 function bombBotCanAct(e){
   var a=bombActionFor(e);if(!a)return false;
   if(a.type==='defuse'&&bombPickDefuser()!==e)return false;
+  if(a.type==='defuse'&&bombUncontestedRetake())return true;
   if(a.type==='plant'&&(bombPlantThreat(e)||tt<(e.bHitUntil||0)))return false;
   if(e.tg&&e.lok&&Math.hypot(e.tg.x-e.x,e.tg.z-e.z)<BOMB_AI.defusePriorityRadius)return false;
   return true;
