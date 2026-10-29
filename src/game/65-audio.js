@@ -25,8 +25,10 @@ function camShot(w){if(w===4||w===5)return;var a=1-.45*adsT;cs.kv+=CKV[w]*a;if(c
 function spr(o,a,b,dt){o[b]+=(-o[a]*150-o[b]*15)*dt;o[a]+=o[b]*dt;if(o[a]>.16)o[a]=.16;else if(o[a]<-.16)o[a]=-.16;}
 // snz(): cheap smooth pseudo-noise in about [-1,1] for camera shake (t = time, k = channel seed).
 function snz(t,k){return Math.sin(t*(31+k*7.3)+k*1.7)*.6+Math.sin(t*(53+k*3.1)+k*4.3)*.4;}
-// ck = kill-chain tracker {n kills in chain, t timer, hs headshot streak}. Other globals: dead = ragdoll list, shakeT = screen shake time, AC = AudioContext, grs = grenades.
-var ck={n:0,t:0,hs:0},hsF=false,dead=[],inBoom=false,boomN=0,shakeT=0,AC=null,boomLab="RPG",grs=[];
+// ck = kill tracker {n kills this life, hs headshot kills this life}; death, not time, resets it. Other globals: dead = ragdoll list, shakeT = screen shake time, AC = AudioContext, grs = grenades.
+var ck={n:0,hs:0},hsF=false,dead=[],inBoom=false,boomN=0,shakeT=0,AC=null,boomLab="RPG",grs=[];
+function resetKillStreak(){ck.n=0;ck.hs=0;}
+function registerPlayerKill(headshot){ck.n++;if(headshot)ck.hs++;}
 // dmgE(): applies damage d to bot e (knock direction kx,kz). Handles invulnerability, hit flash and calls killE() at 0 HP.
 function dmgE(e,d,kx,kz,ex,kind){if(e.inv>0||e.dead)return;if(isBombMode())bombInterruptPlant(e);d=defenseDamage(e,d,kind||"bullet-body");e.hp-=d;e.fl=.14;e.hs=Math.random()<.5?-1:1;e.hv=(e.hv||0)+Math.min(9,3+d*.5);var hm=Math.hypot(kx||0,kz||0);if(hm>.01){e.hdx=kx/hm;e.hdz=kz/hm;}if(e.hp<=0)killE(e,kx||0,kz||0,ex);}
 // hlms = flying helmets (popped by headshots). popHelm()/popPl() pop a bot/player helmet; updH() animates them.
@@ -56,13 +58,13 @@ function killE(e,kx,kz,ex){
   e.g.rotation.y=Math.atan2(-kx,-kz);
   dead.push({g:e.g,body:e.body,legs:e.legs,arms:e.arms,x:e.x,z:e.z,y:e.y||0,by:e.y||0,vx:kx*(ex?7:2.6),vz:kz*(ex?7:2.6),vy:ex?8:0,t:0,T:ex?.73:.55,flip:ex?1:0,w:0,land:false});
   spark(e.x,1.2,e.z,0xff6b6b,8,4,.1);
-  if(pk){if(ck.t<=0){ck.n=0;ck.hs=0;}ck.t=4;ck.n++;if(hsF)ck.hs++;
+  if(pk){registerPlayerKill(hsF);
   if(inBoom)boomN++;else killNotify(false);}
 }
 // updDead(dt): animates ragdolls/corpses and respawns bots after their timer.
 function updDead(dt){
   updH(dt);
-  ck.t=Math.max(0,ck.t-dt);updG(dt);updDrops(dt);updCh(dt);
+  updG(dt);updDrops(dt);updCh(dt);
   for(var di=dead.length-1;di>=0;di--){var d=dead[di];d.t+=dt;
     var p=Math.min(1,d.t/d.T),s=p*p*(3-2*p),ang=-(Math.PI/2+d.flip*Math.PI*2)*s;
     if(!d.land){

@@ -899,7 +899,7 @@ function spark(x,y,z,col,n,sp,sz){var m0=spM[col]||(spM[col]=new T.MeshBasicMate
 // reset(): clears the whole world state (bullets, bots, particles, decals) and re-creates the player object `pl` for a fresh match.
 function reset(){
   [].concat(en||[],bl||[],cr||[],fx||[],sk||[],dead||[],grs||[],dg||[],chutes||[]).forEach(function(o){S.remove(o.g||o.m);});document.getElementById("kn").innerHTML="";DC.forEach(function(m){S.remove(m);});DC=[];CH.forEach(function(c){S.remove(c.m);});CH=[];cs.k=cs.s=cs.kv=cs.y=cs.yv=cs.r=cs.rv=0;clrSm();clrFD();mzf.forEach(function(q){S.remove(q.m);});mzf=[];
-  pl={helm:true,vest:DEFENSE_RULES.vestMax,dead:false,dt:0,rt:0,life:0,x:0,z:10,hp:DEFENSE_RULES.maxHp,w:1,mag:30,res:90,rl:0,cd:0,face:Math.PI,pitch:0,y:0,vy:0,slot:0,prim:1,sw:0,stab:0,sth:false,thr:0,pend:false,ghide:0,ammo:(function(){var o={};WP.forEach(function(w,i){o[i]={mag:w.mag,res:w.res};});return o;})()};en=[];bl=[];cr=[];fx=[];sk=[];dead=[];dg=[];grs=[];chutes=[];ck={n:0,t:0,hs:0};shakeT=0;score=0;spawnT=1;crateT=.5;adsT=sprT=0;resetPm();hlms.forEach(function(h){S.remove(h.m);});hlms=[];setHm();document.body.classList.remove("dead");
+  pl={helm:true,vest:DEFENSE_RULES.vestMax,dead:false,dt:0,rt:0,life:0,x:0,z:10,hp:DEFENSE_RULES.maxHp,w:1,mag:30,res:90,rl:0,cd:0,face:Math.PI,pitch:0,y:0,vy:0,slot:0,prim:1,sw:0,stab:0,sth:false,thr:0,pend:false,ghide:0,ammo:(function(){var o={};WP.forEach(function(w,i){o[i]={mag:w.mag,res:w.res};});return o;})()};en=[];bl=[];cr=[];fx=[];sk=[];dead=[];dg=[];grs=[];chutes=[];resetKillStreak();shakeT=0;score=0;spawnT=1;crateT=.5;adsT=sprT=0;resetPm();hlms.forEach(function(h){S.remove(h.m);});hlms=[];setHm();document.body.classList.remove("dead");
 }
 // toast(): shows a short message in the middle of the screen (toastT = time left).
 function toast(t){var e=document.getElementById("toast");e.textContent=t;e.style.opacity=1;toastT=1.4;}
@@ -1184,8 +1184,10 @@ function camShot(w){if(w===4||w===5)return;var a=1-.45*adsT;cs.kv+=CKV[w]*a;if(c
 function spr(o,a,b,dt){o[b]+=(-o[a]*150-o[b]*15)*dt;o[a]+=o[b]*dt;if(o[a]>.16)o[a]=.16;else if(o[a]<-.16)o[a]=-.16;}
 // snz(): cheap smooth pseudo-noise in about [-1,1] for camera shake (t = time, k = channel seed).
 function snz(t,k){return Math.sin(t*(31+k*7.3)+k*1.7)*.6+Math.sin(t*(53+k*3.1)+k*4.3)*.4;}
-// ck = kill-chain tracker {n kills in chain, t timer, hs headshot streak}. Other globals: dead = ragdoll list, shakeT = screen shake time, AC = AudioContext, grs = grenades.
-var ck={n:0,t:0,hs:0},hsF=false,dead=[],inBoom=false,boomN=0,shakeT=0,AC=null,boomLab="RPG",grs=[];
+// ck = kill tracker {n kills this life, hs headshot kills this life}; death, not time, resets it. Other globals: dead = ragdoll list, shakeT = screen shake time, AC = AudioContext, grs = grenades.
+var ck={n:0,hs:0},hsF=false,dead=[],inBoom=false,boomN=0,shakeT=0,AC=null,boomLab="RPG",grs=[];
+function resetKillStreak(){ck.n=0;ck.hs=0;}
+function registerPlayerKill(headshot){ck.n++;if(headshot)ck.hs++;}
 // dmgE(): applies damage d to bot e (knock direction kx,kz). Handles invulnerability, hit flash and calls killE() at 0 HP.
 function dmgE(e,d,kx,kz,ex,kind){if(e.inv>0||e.dead)return;if(isBombMode())bombInterruptPlant(e);d=defenseDamage(e,d,kind||"bullet-body");e.hp-=d;e.fl=.14;e.hs=Math.random()<.5?-1:1;e.hv=(e.hv||0)+Math.min(9,3+d*.5);var hm=Math.hypot(kx||0,kz||0);if(hm>.01){e.hdx=kx/hm;e.hdz=kz/hm;}if(e.hp<=0)killE(e,kx||0,kz||0,ex);}
 // hlms = flying helmets (popped by headshots). popHelm()/popPl() pop a bot/player helmet; updH() animates them.
@@ -1215,13 +1217,13 @@ function killE(e,kx,kz,ex){
   e.g.rotation.y=Math.atan2(-kx,-kz);
   dead.push({g:e.g,body:e.body,legs:e.legs,arms:e.arms,x:e.x,z:e.z,y:e.y||0,by:e.y||0,vx:kx*(ex?7:2.6),vz:kz*(ex?7:2.6),vy:ex?8:0,t:0,T:ex?.73:.55,flip:ex?1:0,w:0,land:false});
   spark(e.x,1.2,e.z,0xff6b6b,8,4,.1);
-  if(pk){if(ck.t<=0){ck.n=0;ck.hs=0;}ck.t=4;ck.n++;if(hsF)ck.hs++;
+  if(pk){registerPlayerKill(hsF);
   if(inBoom)boomN++;else killNotify(false);}
 }
 // updDead(dt): animates ragdolls/corpses and respawns bots after their timer.
 function updDead(dt){
   updH(dt);
-  ck.t=Math.max(0,ck.t-dt);updG(dt);updDrops(dt);updCh(dt);
+  updG(dt);updDrops(dt);updCh(dt);
   for(var di=dead.length-1;di>=0;di--){var d=dead[di];d.t+=dt;
     var p=Math.min(1,d.t/d.T),s=p*p*(3-2*p),ang=-(Math.PI/2+d.flip*Math.PI*2)*s;
     if(!d.land){
@@ -1270,10 +1272,10 @@ function showKill(txt,n,cls,sub){
   kf.className="";void kf.offsetWidth;kf.className="kfl "+cls;
   shakeT=Math.max(shakeT,cls==="mass"?.7:.12);killSfx(cls);
 }
-// killNotify(): decides which banner/sound to show from the current chain ck (normal, headshot, multi-kill). mass = many kills at once (explosion).
+// killNotify(): life streak controls milestones; the latest headshot overrides its banner, not the streak. mass = several explosion kills.
 function killNotify(mass){var n=ck.n;
   if(mass)showKill("MASS KILL",boomN,"mass",boomN+" DOWN WITH 1 "+boomLab);
-  else if(ck.hs===n)showKill(n>1?"CHAIN HEADSHOT":"HEADSHOT",n,"hs",n>1?n+" HEADSHOT STREAK":"LIGHTS OUT");
+  else if(hsF)showKill("HEADSHOT",n,"hs","LIGHTS OUT");
   else if(n===2)showKill("DOUBLE KILL",2,"dk","2 DOWN");
   else if(n===3)showKill("TRIPLE KILL",3,"tk","3 DOWN");
   else if(n>=4)showKill("CHAIN KILLER",n,"chain","x"+n+" STREAK");}
@@ -1307,7 +1309,7 @@ function hdUpd(dt){var R=Math.min(innerWidth,innerHeight)*.3,sf=Math.sin(pl.face
 // hurt(): damages the PLAYER by d (from position sx,sz). Ignored while dead or spawn-protected. Calls die() at 0 HP.
 function hurt(d,sx,sz,kind){if(pl.dead||pl.inv>0)return;if(isBombMode())bombInterruptPlant(pl);d=defenseDamage(pl,d,kind||"bullet-body");if(sx!==undefined&&Math.hypot(sx-pl.x,sz-pl.z)>.6)hdHit(sx,sz);pl.hp-=d;pm.fl=.1;cs.s=Math.max(cs.s,.55);var hs2=0;if(sx!==undefined){var ddx=sx-pl.x,ddz=sz-pl.z;hs2=Math.sign(-ddx*Math.cos(pl.face)+ddz*Math.sin(pl.face));}cs.kv+=.7;cs.yv+=hs2*1.5;cs.rv+=hs2*.5+(Math.random()-.5)*.4;document.getElementById("hit").style.opacity=1;if(pl.hp<=0){pl.hp=0;die();}}
 // die(): player death: starts the 5 s respawn timer, drops the gun, updates stats and the killer credit.
-function die(){pl.dead=true;pl.rsT=5;pl.st.d++;pl.kb=curK&&curK!==pl?curK.name:"";if(curK&&curK!==pl){curK.st.k++;if(!isBombMode())ts[curK.tm]++;}kFeed(curK,1,false,pl);mouse.right=false;mouse.down=false;fireHeld=false;kn.innerHTML="";pm.g.visible=true;if(pm.hg)pm.hg.visible=false;dropPlayerGun();if(isBombMode()){bombDrop(pl);document.body.classList.add("bomb-spectator");}else document.body.classList.add("dead");
+function die(){pl.dead=true;resetKillStreak();pl.rsT=5;pl.st.d++;pl.kb=curK&&curK!==pl?curK.name:"";if(curK&&curK!==pl){curK.st.k++;if(!isBombMode())ts[curK.tm]++;}kFeed(curK,1,false,pl);mouse.right=false;mouse.down=false;fireHeld=false;kn.innerHTML="";pm.g.visible=true;if(pm.hg)pm.hg.visible=false;dropPlayerGun();if(isBombMode()){bombDrop(pl);document.body.classList.add("bomb-spectator");}else document.body.classList.add("dead");
   try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();tn(260,40,1.2,"sawtooth",.12);tn(120,30,1.6,"sine",.3);}catch(e){}}
 // mmss(): formats seconds as m:ss.
 function mmss(t){t=Math.floor(t);return Math.floor(t/60)+":"+("0"+t%60).slice(-2);}
@@ -1695,9 +1697,12 @@ function bombFinish(winner,reason){var b=bombMatch;if(!b||b.done)return;
   toast((winner?BOMB_TEXT.terrorWin:BOMB_TEXT.policeWin)+' - '+reason);
 }
 function bombNextRound(){var old=bombMatch,team=pl.tm,wins=ts.slice(),stats={};
+  // Reset rebuilds the world. Preserve a surviving player's life streak only.
+  var survivorStreak=pl.dead?null:{n:ck.n,hs:ck.hs};
   ROS.forEach(function(s){stats[s.tm+':'+s.name]={k:s.k,d:s.d};});
   bombCleanup();old.keepRound=true;
   reset();startMatch(team);
+  if(survivorStreak){ck.n=survivorStreak.n;ck.hs=survivorStreak.hs;}
   ts=wins;ROS.forEach(function(s){var h=stats[s.tm+':'+s.name];if(h){s.k=h.k;s.d=h.d;}});
 }
 // The tactical director assigns moving, separate objectives to every team member.

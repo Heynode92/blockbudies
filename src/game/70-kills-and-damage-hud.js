@@ -29,10 +29,10 @@ function showKill(txt,n,cls,sub){
   kf.className="";void kf.offsetWidth;kf.className="kfl "+cls;
   shakeT=Math.max(shakeT,cls==="mass"?.7:.12);killSfx(cls);
 }
-// killNotify(): decides which banner/sound to show from the current chain ck (normal, headshot, multi-kill). mass = many kills at once (explosion).
+// killNotify(): life streak controls milestones; the latest headshot overrides its banner, not the streak. mass = several explosion kills.
 function killNotify(mass){var n=ck.n;
   if(mass)showKill("MASS KILL",boomN,"mass",boomN+" DOWN WITH 1 "+boomLab);
-  else if(ck.hs===n)showKill(n>1?"CHAIN HEADSHOT":"HEADSHOT",n,"hs",n>1?n+" HEADSHOT STREAK":"LIGHTS OUT");
+  else if(hsF)showKill("HEADSHOT",n,"hs","LIGHTS OUT");
   else if(n===2)showKill("DOUBLE KILL",2,"dk","2 DOWN");
   else if(n===3)showKill("TRIPLE KILL",3,"tk","3 DOWN");
   else if(n>=4)showKill("CHAIN KILLER",n,"chain","x"+n+" STREAK");}
@@ -66,7 +66,7 @@ function hdUpd(dt){var R=Math.min(innerWidth,innerHeight)*.3,sf=Math.sin(pl.face
 // hurt(): damages the PLAYER by d (from position sx,sz). Ignored while dead or spawn-protected. Calls die() at 0 HP.
 function hurt(d,sx,sz,kind){if(pl.dead||pl.inv>0)return;if(isBombMode())bombInterruptPlant(pl);d=defenseDamage(pl,d,kind||"bullet-body");if(sx!==undefined&&Math.hypot(sx-pl.x,sz-pl.z)>.6)hdHit(sx,sz);pl.hp-=d;pm.fl=.1;cs.s=Math.max(cs.s,.55);var hs2=0;if(sx!==undefined){var ddx=sx-pl.x,ddz=sz-pl.z;hs2=Math.sign(-ddx*Math.cos(pl.face)+ddz*Math.sin(pl.face));}cs.kv+=.7;cs.yv+=hs2*1.5;cs.rv+=hs2*.5+(Math.random()-.5)*.4;document.getElementById("hit").style.opacity=1;if(pl.hp<=0){pl.hp=0;die();}}
 // die(): player death: starts the 5 s respawn timer, drops the gun, updates stats and the killer credit.
-function die(){pl.dead=true;pl.rsT=5;pl.st.d++;pl.kb=curK&&curK!==pl?curK.name:"";if(curK&&curK!==pl){curK.st.k++;if(!isBombMode())ts[curK.tm]++;}kFeed(curK,1,false,pl);mouse.right=false;mouse.down=false;fireHeld=false;kn.innerHTML="";pm.g.visible=true;if(pm.hg)pm.hg.visible=false;dropPlayerGun();if(isBombMode()){bombDrop(pl);document.body.classList.add("bomb-spectator");}else document.body.classList.add("dead");
+function die(){pl.dead=true;resetKillStreak();pl.rsT=5;pl.st.d++;pl.kb=curK&&curK!==pl?curK.name:"";if(curK&&curK!==pl){curK.st.k++;if(!isBombMode())ts[curK.tm]++;}kFeed(curK,1,false,pl);mouse.right=false;mouse.down=false;fireHeld=false;kn.innerHTML="";pm.g.visible=true;if(pm.hg)pm.hg.visible=false;dropPlayerGun();if(isBombMode()){bombDrop(pl);document.body.classList.add("bomb-spectator");}else document.body.classList.add("dead");
   try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();tn(260,40,1.2,"sawtooth",.12);tn(120,30,1.6,"sine",.3);}catch(e){}}
 // mmss(): formats seconds as m:ss.
 function mmss(t){t=Math.floor(t);return Math.floor(t/60)+":"+("0"+t%60).slice(-2);}

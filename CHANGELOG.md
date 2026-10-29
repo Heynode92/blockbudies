@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-10-29 — Life-based kill streak and headshot notifications
+
+### Fixes
+- Kill streak is now **per life**, not a four-second timed combo. First kill remains normal; second is **DOUBLE KILL**, third **TRIPLE KILL**, and fourth onward **CHAIN KILLER**. Any gap between kills is allowed while the player is alive.
+- Every headshot kill shows **HEADSHOT**, regardless of previous headshots, and still increments the life streak. The next non-headshot resumes the correct milestone.
+- Player death resets the streak immediately; a new match also starts at zero. Career kills, team score and bot statistics are unchanged.
+- In Bomb Mission, **survivors** retain their life streak between rounds even though the world is rebuilt. Players who died begin the next round at zero.
+- Existing **MASS KILL** for multi-victim explosions remains unchanged; its kills still contribute to the life streak.
+
+### Technical
+- Source of truth: `resetKillStreak()` and `registerPlayerKill()` in the combat event flow. Removed the old `ck.t` expiry and preserved the existing headshot feed.
+- Updated `assets/game.js` to match the modular source. No changes to damage, armor, bots, movement, inventory, bomb objectives, or map assets.
+- New regression tests exercise long gaps, headshots amid normal kills, death resets, multi-kill explosions, and Bomb Mode round transitions. All UI strings remain English.
+
+
 ## 2026-10-29 — Standard Helmet and tactical equipment Inventory
 
 ### New gear

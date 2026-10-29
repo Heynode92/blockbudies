@@ -96,9 +96,12 @@ function bombFinish(winner,reason){var b=bombMatch;if(!b||b.done)return;
   toast((winner?BOMB_TEXT.terrorWin:BOMB_TEXT.policeWin)+' - '+reason);
 }
 function bombNextRound(){var old=bombMatch,team=pl.tm,wins=ts.slice(),stats={};
+  // Reset rebuilds the world. Preserve a surviving player's life streak only.
+  var survivorStreak=pl.dead?null:{n:ck.n,hs:ck.hs};
   ROS.forEach(function(s){stats[s.tm+':'+s.name]={k:s.k,d:s.d};});
   bombCleanup();old.keepRound=true;
   reset();startMatch(team);
+  if(survivorStreak){ck.n=survivorStreak.n;ck.hs=survivorStreak.hs;}
   ts=wins;ROS.forEach(function(s){var h=stats[s.tm+':'+s.name];if(h){s.k=h.k;s.d=h.d;}});
 }
 // The tactical director assigns moving, separate objectives to every team member.
