@@ -10,7 +10,7 @@ document.getElementById("go").onclick=function(){this.blur();reset();ov.style.di
 // Lobby (mode select screen). lobBest() reads the best score from localStorage key "bbfps_best" (try/catch).
 var lb=document.getElementById("lb");
 function lobBest(){var b=0;try{b=+localStorage.getItem("bbfps_best")||0;}catch(e){}document.getElementById("lbbest").textContent=b;}
-function lobP(id){["lbs","lbm","lbiv"].forEach(function(i){document.getElementById(i).classList.toggle("on",i===id);});if(id==="lbs")lobBest();document.getElementById("lbn").classList.remove("on");}
+function lobP(id){["lbs","lbm","lbiv","lbshop"].forEach(function(i){document.getElementById(i).classList.toggle("on",i===id);});if(id==="lbs")lobBest();document.getElementById("lbn").classList.remove("on");}
 lobBest();
 (function(){var n=document.getElementById("lbn"),nt=document.getElementById("lbnt"),tm=0;[].forEach.call(document.querySelectorAll(".mb[data-n]"),function(b){b.onclick=function(){this.blur();nt.textContent=this.getAttribute("data-n");n.classList.remove("on","shk");void n.offsetWidth;n.classList.add("on","shk");clearTimeout(tm);tm=setTimeout(function(){n.classList.remove("on");},2800);};});})();
 // MODES: lobby cards. Only TEAM DEATH MATCH is playable (lock:0). BOMB MODE and BATTLEGROUND are "coming soon" placeholders (lock:1).

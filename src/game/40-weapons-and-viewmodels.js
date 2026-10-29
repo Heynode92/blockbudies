@@ -14,8 +14,11 @@ var WEAPON_PROFILES=[
  {name:"Grenade",damage:40,rpm:null,control:null,speed:98,vRecoil:null,hRecoil:null,mag:2,res:2,range:null,kind:"grenade"},
  {name:"Kriss",damage:21,rpm:93,control:59,speed:90,vRecoil:48,hRecoil:48,mag:30,res:210,range:60,kind:"smg"},
  {name:"Dual Kriss",damage:18,rpm:93,control:59,speed:90,vRecoil:48,hRecoil:48,mag:125,res:0,range:60,kind:"dual"},
- {name:"AWP",damage:81,rpm:39,control:66,speed:69,vRecoil:60,hRecoil:60,mag:5,res:64,range:180,kind:"sniper"}
+ {name:"AWP",damage:81,rpm:39,control:66,speed:69,vRecoil:60,hRecoil:60,mag:5,res:64,range:180,kind:"sniper"},
+ {name:"K2",damage:36,rpm:96,control:75,speed:79,vRecoil:66,hRecoil:33,mag:40,res:200,range:120,kind:"rifle"}
 ];
+// Weapon IDs remain stable so existing bot loadouts and inventory saves do not shift.
+var WEAPON_STARTER_ID=9;
 // The score->engine conversion is game balancing, NOT an unofficial Point Blank formula.
 // min/max are real rounds-per-minute bounds for each archetype; spread is angular.
 var WEAPON_TUNING={
@@ -62,7 +65,7 @@ var bG=new T.SphereGeometry(.15,8,8),rG=new T.SphereGeometry(.3,10,10),
 // The flag guards BOTH crate sources: the random airdrop in update() and the loot crate dropped where a bot dies (killE).
 // (Dead characters still toss their gun model as a visual effect, but it can NOT be picked up.)
 var DM_RULES={crates:false};
-var mt={t:60,cd:0,over:true},ts=[0,0],rq=[],ROS=[],curK=null,pl,en,bl,cr,fx,sk,score,run=false,spawnT,crateT,tt=0,toastT=0,adsT=0,sprT=0,ADF=[56,44,58,50,70,70,50,70,14],AP=[[0,-.066,-.5],[0,-.125,-.5],[0,-.078,-.5],[0,-.16,-.5],[0,-.1,-.5],[0,-.1,-.5],[0,-.13,-.5],[0,-.13,-.5],[0,-.14,-.5]],bobP=0,bobL=performance.now(),lob=true;
+var mt={t:60,cd:0,over:true},ts=[0,0],rq=[],ROS=[],curK=null,pl,en,bl,cr,fx,sk,score,run=false,spawnT,crateT,tt=0,toastT=0,adsT=0,sprT=0,ADF=[56,44,58,50,70,70,50,70,14,44],AP=[[0,-.066,-.5],[0,-.125,-.5],[0,-.078,-.5],[0,-.16,-.5],[0,-.1,-.5],[0,-.1,-.5],[0,-.13,-.5],[0,-.13,-.5],[0,-.14,-.5],[0,-.125,-.5]],bobP=0,bobL=performance.now(),lob=true;
 // mkPm()/pm: the visible body of the player (seen when dead/spectating). Its gun is hidden because the viewmodel is used instead.
 function mkPm(tm){var m=terro(tm);if(m.g.userData.gun)m.g.userData.gun.visible=false;return m;}
 var pm=mkPm(0);pm.g.visible=false;function resetPm(){pm.g.visible=false;if(pm.hm)pm.hm.visible=true;if(pm.hg)pm.hg.visible=true;if(pm.body){pm.body.rotation.set(0,0,0);pm.body.position.y=0;}(pm.arms||[]).concat(pm.legs||[]).forEach(function(q){q.rotation.z=0;});}
@@ -98,12 +101,44 @@ function mkGun(i){var g=new T.Group(),a=function(){for(var k=0;k<arguments.lengt
     bx(.05,.06,.035,0x2b2f3d,0,.03,0),bx(.06,.1,.03,0x1d2129,0,.0,.03)); // short folded stock + pad (kept tiny)
   else if(i===7){var kr=mkGun(6),kl=mkGun(6);kl.position.x=-.52;a(kr,kl);}
   else if(i===8){var bh=bx(.1,.025,.03,0x888e98,.07,.03,-.08);g.userData.bolt=bh;a(bx(.09,.13,.6,0x3b4a2a,0,0,-.1),cy(.018,.018,1,0x1d2129,0,.025,-.95),cy(.03,.03,.16,0x2b2f3d,0,.025,-1.5),bx(.085,.17,.45,0x3b4a2a,0,-.02,.4),bx(.09,.06,.18,0x2b2f3d,0,.07,.18),cy(.04,.04,.34,0x111111,0,.13,-.2),cy(.05,.05,.07,0x111111,0,.13,-.4),cy(.045,.045,.06,0x111111,0,.13,.0),bx(.03,.05,.04,0x333333,0,.09,-.3),bx(.07,.2,.09,0x2b2f3d,0,-.15,-.05,.2),bx(.06,.14,.1,0x2b2f3d,0,-.12,-.3),bh);}
+  else if(i===9){
+    // K2: silver rifle receiver with black rail, polymer telescopic stock,
+    // ventilated handguard, 40-round curved magazine and compact sight.
+    // The provided reference informs this dedicated low-poly mesh.
+    a(
+      bx(.105,.12,.48,0x969f9e,0,0,-.23),      // receiver
+      bx(.109,.046,.43,0x5f6c6e,0,.076,-.23),  // upper rail mount
+      bx(.11,.07,.38,0x536265,0,-.005,-.65),   // handguard
+      bx(.118,.024,.37,0x242a2e,0,.077,-.66), // top accessory rail
+      cy(.022,.022,.40,0x20272b,0,.005,-1.03),// long exposed barrel
+      cy(.031,.031,.10,0x101719,0,.005,-1.27),// muzzle
+      bx(.08,.045,.19,0x343b40,0,-.015,-1.01),// gas block
+      bx(.095,.035,.14,0x303c40,0,.09,-.24),  // sight mount
+      bx(.055,.045,.075,0x1a2024,0,.138,-.24),// reflex sight
+      bx(.07,.014,.10,0x525e61,0,.158,-.25),  // sight top
+      bx(.07,.08,.12,0x30373b,0,-.17,-.19,.26), // grip
+      bx(.082,.20,.10,0x1e2428,0,-.22,-.46,-.22),// curved magazine
+      bx(.084,.045,.1,0x424d50,0,-.32,-.50,-.3), // magazine base
+      bx(.025,.018,.08,0x1d2428,0,-.09,-.23), // trigger guard
+      bx(.05,.05,.33,0x242b2f,0,-.003,.31),   // stock beam
+      bx(.09,.125,.28,0x20272b,0,-.02,.48),  // adjustable rear stock
+      bx(.11,.17,.035,0x111719,0,-.02,.67),  // rubber butt plate
+      bx(.14,.018,.13,0xb2bdb6,0,.066,-.50) // handguard metal strap
+    );
+    for(var k2v=0;k2v<5;k2v++){
+      a(bx(.016,.013,.034,0x171d20,.054,.058,-.82+k2v*.071));
+      a(bx(.016,.013,.034,0x171d20,-.054,.058,-.82+k2v*.071));
+    }
+    for(var k2m=0;k2m<4;k2m++){
+      a(bx(.087,.009,.014,0x707d72,0,-.16-k2m*.038,-.46-k2m*.008));
+    }
+  }
   else if(i===5)a(bx(.15,.15,.15,0x4a5a2a,0,0,-.3),bx(.16,.03,.16,0x3a4620,0,.03,-.3),bx(.06,.05,.06,0x888e98,0,.1,-.3),bx(.04,.03,.14,0xaab0b9,0,.13,-.27),bx(.1,.02,.02,0xd4a017,.06,.1,-.36));
   else a(cy(.1,.1,1.1,0x5c6b3c,0,.03,-.4),cy(.1,.17,.2,0x3b4a2a,0,.03,-1),cy(.09,0,.28,0xe03131,0,.03,-1.2),bx(.07,.16,.08,0x2b2f3d,0,-.12,-.2,.2),bx(.04,.06,.1,0x111111,0,.12,-.3));
   return g;}
 // hold = the first-person gun group (child of VS). guns[i] = model of weapon i; only guns[pl.w] is visible (set in loop()).
 // mflash/mflash2 = muzzle flash spheres (mflash2 is the LEFT gun flash for Dual Kriss at x=-0.52).
-var hold=new T.Group(),guns=[0,1,2,3,4,5,6,7,8].map(mkGun);guns[3].scale.setScalar(.8);guns.forEach(function(g){hold.add(g);});
+var hold=new T.Group(),guns=WEAPON_PROFILES.map(function(p,i){return mkGun(i);});guns[3].scale.setScalar(.8);guns.forEach(function(g){hold.add(g);});
 var mflash=new T.Mesh(new T.SphereGeometry(.09,8,8),new T.MeshBasicMaterial({color:0xffe08a,transparent:true,opacity:.95}));mflash.visible=false;hold.add(mflash);var mflash2=mflash.clone();mflash2.visible=false;hold.add(mflash2);
 VS.add(hold);
 // ---- FIRST-PERSON HANDS & ANIMATION ----
@@ -128,10 +163,10 @@ handL.add(magP,shP,rkP);hold.add(handR,handL,armR,armL);
 // Hand/anim tables, indexed by weapon id: RG = right-hand grip position, RL = left-hand rest position,
 // PT = left-hand "port" position for the reload animation, MODE = reload style (0 = mag swap, 1 = loop-load shells/rocket),
 // NC = number of loop cycles in a loop reload, DD = left-hand "drop" position (below the gun) used in reload animations.
-var RG=[[0,-.2,-.1],[0,-.2,-.15],[0,-.13,-.08],[0,-.14,-.2],[0,.02,-.09],[0,-.1,-.3],[0,-.22,-.1],[0,-.22,-.1],[0,-.19,-.06]],
- RL=[[-.03,-.22,-.22],[0,-.09,-.62],[0,-.1,-.58],[0,-.1,-.7],[-.3,-.5,-.1],[-.3,-.5,-.1],[0,-.09,-.5],[-.52,-.22,-.1],[0,-.1,-.62]],
- PT=[[0,-.2,-.28],[0,-.24,-.4],[0,-.12,-.2],[0,.02,-.95],[0,0,0],[0,0,0],[0,-.24,-.35],[0,0,0],[0,-.24,-.42]],
- MODE=[0,0,1,1,0,0,0,0,0],NC=[1,1,3,1,1,1,1,1,1],DD=[-.1,-.34,-.28];
+var RG=[[0,-.2,-.1],[0,-.2,-.15],[0,-.13,-.08],[0,-.14,-.2],[0,.02,-.09],[0,-.1,-.3],[0,-.22,-.1],[0,-.22,-.1],[0,-.19,-.06],[0,-.2,-.19]],
+ RL=[[-.03,-.22,-.22],[0,-.09,-.62],[0,-.1,-.58],[0,-.1,-.7],[-.3,-.5,-.1],[-.3,-.5,-.1],[0,-.09,-.5],[-.52,-.22,-.1],[0,-.1,-.62],[0,-.09,-.72]],
+ PT=[[0,-.2,-.28],[0,-.24,-.4],[0,-.12,-.2],[0,.02,-.95],[0,0,0],[0,0,0],[0,-.24,-.35],[0,0,0],[0,-.24,-.42],[0,-.24,-.43]],
+ MODE=[0,0,1,1,0,0,0,0,0,0],NC=[1,1,3,1,1,1,1,1,1,1],DD=[-.1,-.34,-.28];
 // xp(w): extra viewmodel offsets [x,y,z,rotX,rotY,rotZ] for weapon switch, knife stab and grenade throw animations.
 function xp(w){var r=[0,0,0,0,0,0],u,p,s,q,b,f;
   if(pl.sw>0){u=pl.sw/.28;u=u*u;r[1]-=u*.55;r[3]+=u*.7;r[4]+=u*.3;}

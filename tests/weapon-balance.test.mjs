@@ -19,10 +19,11 @@ const expected=[
  ['Grenade',40,null,null,98,null,null,2,2,null],
  ['Kriss',21,93,59,90,48,48,30,210,60],
  ['Dual Kriss',18,93,59,90,48,48,125,0,60],
- ['AWP',81,39,66,69,60,60,5,64,180]
+ ['AWP',81,39,66,69,60,60,5,64,180],
+ ['K2',36,96,75,79,66,33,40,200,120]
 ];
 
-test('all nine weapon profiles exactly match supplied values and separately chosen RPG settings',()=>{
+test('all ten weapon profiles exactly match supplied values and separately chosen RPG settings',()=>{
  const {profiles}=load();assert.equal(profiles.length,expected.length);
  for(let i=0;i<expected.length;i++){
   const p=profiles[i];let fields=['name','damage','rpm','control','speed','vRecoil','hRecoil','mag','res','range'];
@@ -33,13 +34,13 @@ test('shotgun 168 is total damage for 6 pellets (28 each), not 1008',()=>{
  const w=load().weapons[2];assert.equal(w.pel,6);assert.equal(w.dmg,28);assert.equal(w.pel*w.dmg,168);
 });
 test('all ranged gun damage and ammo are real runtime values',()=>{
- const {weapons}=load();for(const i of [0,1,3,6,7,8]){
+ const {weapons}=load();for(const i of [0,1,3,6,7,8,9]){
   assert.equal(weapons[i].dmg,expected[i][1]);assert.equal(weapons[i].mag,expected[i][7]);assert.equal(weapons[i].res,expected[i][8]);
  }
  assert.equal(weapons[4].dmg,60);assert.equal(weapons[5].dmg,40);
 });
 test('maximum projectile travel corresponds to requested range without early expiry',()=>{
- const {weapons}=load();for(const i of [0,1,2,3,6,7,8]){
+ const {weapons}=load();for(const i of [0,1,2,3,6,7,8,9]){
   assert.ok(Math.abs(weapons[i].spd*weapons[i].life-expected[i][9])<1e-9,`${weapons[i].n} range`);
  }
 });
@@ -60,7 +61,7 @@ test('recoil is calculated from vertical and horizontal ratings rather than old 
  const {weapons}=load(),s=read('src/game/65-audio.js');
  const snippet=s.slice(s.indexOf('var CKV='),s.indexOf('// camShot('));
  const ctx={WP:weapons,Math};runInNewContext(snippet+'\nthis.recoil={CKV,CKY,CKR,CKS};',ctx);
- assert.equal(ctx.recoil.CKV.length,9);
+ assert.equal(ctx.recoil.CKV.length,10);
  assert.equal(ctx.recoil.CKV[4],0);assert.equal(ctx.recoil.CKV[5],0);
  assert.ok(ctx.recoil.CKV[2]>ctx.recoil.CKV[1]);
  assert.ok(ctx.recoil.CKY[1]>0);

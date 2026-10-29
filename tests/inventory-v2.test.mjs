@@ -15,7 +15,7 @@ test("Inventory Kriss is a single owned item while V mode remains in gameplay",(
 });
 test("Colorful thumbnails come from mkGun meshes, not SVG silhouettes",()=>{
  assert.match(code,/function inventoryBuildThumbnails\(\)/);
- assert.match(code,/var gun=mkGun\(id\)/);
+ assert.match(code,/mkGun\(id\)/);
  assert.match(code,/preserveDrawingBuffer:true/);
  assert.match(code,/\.toDataURL\("image\/png"\)/);
  assert.match(code,/INVENTORY_THUMBS\[id\]/);

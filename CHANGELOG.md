@@ -1,5 +1,26 @@
 # Changelog
 
+## 2026-10-29 — K2 starter weapon, weapon ownership and playable Shop
+
+### New K2
+- **K2** rifle added at stable weapon ID 9 with exact requested stats: **Damage 36, RPM 96, Control 75, Speed 79, V.Recoil 66, H.Recoil 33, Bullets 40/200, Range 120**.
+- Added a proper low-poly K2 model derived from the supplied visual reference, including silver receiver, long black barrel, handguard rails, optic, curved magazine and adjustable stock. Added colored 3D Inventory/Shop previews, HUD silhouette, fire/muzzle effects, ADS, recoil, weapon animations and dropped-gun geometry.
+- Existing weapon IDs, all BOT_WEAPONS loadout values and weapon damage rules remain unchanged. The K2 uses existing rifle ballistics conversion.
+
+### Player starter and Shop
+- **Brand-new browser profile gets only K2 as primary**, along with existing free Handgun, Knife, Grenade, Standard Helmet and vest. Other main weapons must first be unlocked in **SHOP**.
+- Replaced the prior placeholder SHOP menu with a real catalog featuring **AK-47, Shotgun, RPG, Kriss and AWP**. All five currently have a working **UNLOCK FREE** action; no currency, price, or fake wallet balance is introduced. Unlocks are local to this browser profile until a future account/economy system is built.
+- Owned weapons are saved in `bbfps_inventory_v1` as a separate `unlockedMain` list. Previously equipped weapons from old saves do not automatically count as purchased; previous saves default to K2 unless an actual unlocked list exists.
+- Inventory shows only owned primary weapons. Pre-round weapon selection in **Deathmatch and Bomb Mission** now only shows owned primaries, prevents direct selection of locked IDs, and retains the five keyboard shortcuts plus click/tap for any further owned entries.
+- **Kriss and Dual Kriss** remain one Shop item and one ownership entry; the existing **V** dual-mode toggle continues working after Kriss is unlocked.
+- Weapon profile data and bot selection are not connected to the player's Shop unlocks. Bot weapons and AI behavior are unchanged.
+
+### Architecture and user-facing copy
+- Added modular `src/game/89-shop.js` and `src/styles/10-shop.css` plus Inventory/shop integration, catalog tests and manifest updates. Compiled runtime committed to `assets/game.js` for direct `index.html` use without builds, Docker or external services.
+- Shop labels: **WEAPON SHOP**, **STANDARD ISSUE**, **MORE FIREPOWER**, **UNLOCK FREE**, **OWNED**. Existing local Inventory copy remains English.
+- This first Shop version deliberately **does not charge credits** because no pricing or reward rules have been supplied. Browser-level visual testing remains pending.
+
+
 ## 2026-10-29 — Life-based kill streak and headshot notifications
 
 ### Fixes

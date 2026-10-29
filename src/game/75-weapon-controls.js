@@ -46,7 +46,8 @@ var SV={0:'<svg viewBox="0 0 48 20"><rect x="10" y="4" width="30" height="6" rx=
  5:'<svg viewBox="0 0 48 20"><ellipse cx="22" cy="12" rx="8" ry="8.5"/><path d="M14.5 10h15M14.2 14h15.6M22 4v16" stroke="var(--hud)" stroke-width="1" fill="none"/><rect x="19.500" y="1.500" width="5" height="3.500" rx=".8"/><polygon points="24.5,2 35,3.5 35,5.5 24.5,5"/><circle cx="38" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
  6:'<svg viewBox="0 0 48 20"><rect x="8" y="5" width="24" height="7" rx="1.5"/><rect x="32" y="6.5" width="12" height="4" rx="1"/><rect x="43" y="7.2" width="4" height="2.4"/><polygon points="17,12 24,12 22,19.5 15,19.5"/><polygon points="9,12 14,12 12,18 8,18"/><rect x="2" y="6.5" width="7" height="3"/><rect x="14" y="3" width="14" height="1.6"/></svg>',
  7:'<svg viewBox="0 0 48 20"><g transform="translate(0,-3) scale(.62)"><rect x="8" y="5" width="24" height="7" rx="1.5"/><rect x="32" y="6.5" width="12" height="4" rx="1"/><polygon points="17,12 24,12 22,19.5 15,19.5"/><polygon points="9,12 14,12 12,18 8,18"/></g><g transform="translate(14,6) scale(.62)"><rect x="8" y="5" width="24" height="7" rx="1.5"/><rect x="32" y="6.5" width="12" height="4" rx="1"/><polygon points="17,12 24,12 22,19.5 15,19.5"/><polygon points="9,12 14,12 12,18 8,18"/></g></svg>',
- 8:'<svg viewBox="0 0 48 20"><rect x="1" y="8" width="10" height="5" rx="1.2"/><rect x="11" y="8.5" width="16" height="3.6"/><rect x="27" y="9.6" width="19" height="1.4"/><rect x="45" y="8.8" width="2.6" height="3"/><rect x="16" y="4.4" width="12" height="3" rx="1.4"/><polygon points="12,12 17,12 16,18 11,18"/><rect x="21" y="12" width="4" height="4"/></svg>'};
+ 8:'<svg viewBox="0 0 48 20"><rect x="1" y="8" width="10" height="5" rx="1.2"/><rect x="11" y="8.5" width="16" height="3.6"/><rect x="27" y="9.6" width="19" height="1.4"/><rect x="45" y="8.8" width="2.6" height="3"/><rect x="16" y="4.4" width="12" height="3" rx="1.4"/><rect x="22" y="5" width="3" height="4"/><polygon points="12,12 17,12 16,18 11,18"/><rect x="21" y="12" width="4" height="4"/></svg>',
+ 9:'<svg viewBox="0 0 48 20"><rect x="13" y="7" width="17" height="5"/><rect x="28" y="8" width="11" height="3"/><rect x="39" y="9" width="8" height="1.5"/><path d="M1 6h8v3H5v3h9v-3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="13" y="5" width="13" height="2"/><rect x="22" y="2" width="4" height="3"/><polygon points="19,12 23,12 26,19 21,19"/><polygon points="14,12 17,12 16,18 12,18"/><rect x="11" y="6" width="2" height="6"/></svg>'};
 // Weapon-slot HUD elements and their cached keys (so the DOM is only touched when something changed).
 var slEls=[],slKey=[];
 (function(){var el=document.getElementById("wsb");for(var s=0;s<4;s++){(function(s){var d=document.createElement("div");d.className="sl";d.innerHTML='<b class="k">'+(s+1)+'</b><span class="ic"></span><span class="nm"></span><span class="sa"></span>';d.addEventListener("pointerdown",function(e){e.stopPropagation();e.preventDefault();if(run&&!pl.dead)swSlot(s);});el.appendChild(d);slEls.push(d);})(s);}})();
@@ -64,18 +65,28 @@ function slotUI(w){
 // ===== PRIMARY WEAPON SELECT / KRISS <-> DUAL / AWP SCOPE =====
 // ===== primary weapon select / Kriss <-> Dual / AWP scope =====
 // WSEL = weapon ids offered in the pre-match select (keys 1-5). WDESC = descriptions shown on the cards.
-var WSEL=[1,2,3,6,8],WDESC={1:"Balanced · mid range",2:"Close range · high burst",3:"Explosive splash",6:"Fast SMG · V = DUAL",8:"Bolt-action sniper · RMB scope"};
+var WSEL=[],WDESC={1:"Balanced · mid range",2:"Close range · high burst",3:"Explosive splash",6:"Fast SMG · V = DUAL",8:"Bolt-action sniper · RMB scope",9:"Standard-issue assault rifle"};
 // canAds(w): which weapons can aim down sights: ids 0-3, Kriss (6) and AWP (8). Dual Kriss, knife, grenade cannot.
-function canAds(w){return w<4||w===6||w===8;}
+function canAds(w){return w<4||w===6||w===8||w===WEAPON_STARTER_ID;}
 // fall(b,p): damage falloff multiplier (0..1) for bullet b at hit point p from its start (sx,sz), using the weapon's r0/r1/rm.
 function fall(b,p){var f=b.fo;if(!f)return 1;var d=Math.hypot(p.x-b.sx,p.z-b.sz);if(d<=f[0])return 1;if(d>=f[1])return f[2];return 1-(1-f[2])*(d-f[0])/(f[1]-f[0]);}
 // DOM references for the weapon-select screen, the scope overlay and the alt (V / scope) touch button.
 var wsEl=document.getElementById("wsel"),scopeEl=document.getElementById("scope"),abEl=document.getElementById("ab"),wsOn=false,wsCards=[],wsBar,wsT;
-(function(){wsEl.innerHTML='<div class="wt"></div><div class="wb"><i></i></div><div class="wc"></div>';wsT=wsEl.children[0];wsBar=wsEl.children[1].firstChild;var box=wsEl.children[2];
-  WSEL.forEach(function(id,i){var d=document.createElement("div");d.className="wcd";d.innerHTML='<b class="k">'+(i+1)+'</b>'+SV[id]+'<b>'+WP[id].n+'</b><small>'+WDESC[id]+'</small>';
-    d.addEventListener("pointerdown",function(e){e.stopPropagation();e.preventDefault();chooseWeapon(id);});box.appendChild(d);wsCards.push(d);});})();
+(function(){wsEl.innerHTML='<div class="wt"></div><div class="wb"><i></i></div><div class="wc"></div>';wsT=wsEl.children[0];wsBar=wsEl.children[1].firstChild;})();
+function refreshWeaponSelection(){
+  // 1-5 remain keyboard shortcuts; additional owned primaries stay clickable.
+  var owned=inventoryOwned("main");
+  WSEL=[WEAPON_STARTER_ID].concat(owned.filter(function(id){return id!==WEAPON_STARTER_ID;}));
+  var box=wsEl.children[2];box.textContent="";wsCards=[];
+  WSEL.forEach(function(id,i){
+    var d=document.createElement("div");d.className="wcd";
+    d.innerHTML='<b class="k">'+(i<5?i+1:"•")+'</b>'+SV[id]+'<b>'+WP[id].n+'</b><small>'+(WDESC[id]||"Ready for battle")+'</small>';
+    d.addEventListener("pointerdown",function(e){e.stopPropagation();e.preventDefault();chooseWeapon(id);});
+    box.appendChild(d);wsCards.push(d);
+  });
+}
 // chooseWeapon(id): picks the primary weapon during the pre-match countdown.
-function chooseWeapon(id){if(!run||pl.dead||!(mt.cd>0)||mt.over||WSEL.indexOf(id)<0)return;
+function chooseWeapon(id){if(!run||pl.dead||!(mt.cd>0)||mt.over||WSEL.indexOf(id)<0||inventoryOwned("main").indexOf(id)<0)return;
   favPrim=id;pl.prim=id;scopeOn=false;
   if(pl.w!==id){pl.ammo[id]={mag:WP[id].mag,res:WP[id].res};swW(id);}else{pl.mag=WP[id].mag;pl.res=WP[id].res;}}
 // wselUpd(): shows/hides the weapon-select panel and updates its countdown bar.

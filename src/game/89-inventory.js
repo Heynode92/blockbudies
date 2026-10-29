@@ -33,13 +33,33 @@ var INVENTORY_DESCRIPTIONS={
  sniper:"Stay sharp and own the long sightlines.",pistol:"Your trusty backup when the fight gets close.",
  knife:"Move fast and finish the fight up close.",grenade:"Clear a path when the enemy has cover."
 };
-var inventoryTab="main",inventoryPick={},inventoryScroll={},inventoryState={equipped:{}};
+var inventoryTab="main",inventoryPick={},inventoryScroll={},inventoryState={equipped:{},unlockedMain:[]};
+function inventoryCatalogMain(){
+  var kinds=INVENTORY_TABS[0].kinds;
+  return WP.reduce(function(ids,w,id){if(kinds.indexOf(w.stats.kind)>=0)ids.push(id);return ids;},[]);
+}
 function inventoryOwned(cat){
  var c=INVENTORY_TABS.filter(function(t){return t.key===cat;})[0],ids=[];
  if(!c)return ids;
  if(INVENTORY_GEAR[cat])return INVENTORY_GEAR[cat].map(function(gear){return gear.id;});
+ if(cat==="main"){
+   // Only the issued K2 is owned on a fresh profile. Old inventory settings
+   // never implied that other rifles were purchased or unlocked.
+   return inventoryCatalogMain().filter(function(id){
+     return id===WEAPON_STARTER_ID||inventoryState.unlockedMain.indexOf(id)>=0;
+   });
+ }
  WP.forEach(function(w,id){if(c.kinds.indexOf(w.stats.kind)>=0)ids.push(id);});
  return ids;
+}
+function inventorySave(){
+ try{localStorage.setItem(INVENTORY_STORAGE,JSON.stringify(inventoryState));}catch(err){}
+}
+function inventoryClaimPrimary(id){
+ if(id===WEAPON_STARTER_ID||inventoryCatalogMain().indexOf(id)<0||inventoryOwned("main").indexOf(id)>=0)return false;
+ inventoryState.unlockedMain.push(id);
+ inventorySave();refreshWeaponSelection();
+ return true;
 }
 function inventoryEquipped(cat){
  var ids=inventoryOwned(cat),id=inventoryState.equipped[cat];
@@ -47,6 +67,9 @@ function inventoryEquipped(cat){
 }
 function inventoryLoad(){
  var saved=null;try{saved=JSON.parse(localStorage.getItem(INVENTORY_STORAGE));}catch(err){}
+ inventoryState.unlockedMain=Array.isArray(saved&&saved.unlockedMain)?
+   saved.unlockedMain.filter(function(id){return Number.isInteger(id)&&id!==WEAPON_STARTER_ID&&inventoryCatalogMain().indexOf(id)>=0;}):[];
+ inventoryState.unlockedMain=inventoryState.unlockedMain.filter(function(id,i,list){return list.indexOf(id)===i;});
  INVENTORY_TABS.forEach(function(c){
    var ids=inventoryOwned(c.key),wish=saved&&saved.equipped&&saved.equipped[c.key];
    // Migrate older inventory saves that treated Dual Kriss as an owned item.
@@ -54,6 +77,7 @@ function inventoryLoad(){
    inventoryState.equipped[c.key]=ids.indexOf(wish)>=0?wish:(ids.length?ids[0]:null);
  });
  var primary=inventoryEquipped("main");if(primary!==null)favPrim=primary;
+ refreshWeaponSelection();
 }
 function inventoryForNewMatch(){
  var id=inventoryEquipped("main");if(id!==null)favPrim=id;
@@ -62,7 +86,7 @@ function inventoryEquip(cat,id){
  if(inventoryOwned(cat).indexOf(id)<0)return false;
  inventoryState.equipped[cat]=id;
  if(cat==="main")favPrim=id;
- try{localStorage.setItem(INVENTORY_STORAGE,JSON.stringify(inventoryState));}catch(err){}
+ inventorySave();
  inventoryRender();return true;
 }
 // Pose specifications apply to a weapon TYPE, not duplicated weapon IDs.
@@ -180,7 +204,10 @@ function inventoryBuildThumbnails(){
    var fill=new T.DirectionalLight(0xb9d8ff,1.2);fill.position.set(-2,1,-3);scene.add(fill);
    var camera=new T.OrthographicCamera(-1.55,1.55,.73,-.73,.1,40);
    camera.position.set(0,.32,6);camera.lookAt(0,0,0);
-   var ids=[];INVENTORY_TABS.forEach(function(tab){inventoryOwned(tab.key).forEach(function(id){if(ids.indexOf(id)<0)ids.push(id);});});
+   var ids=inventoryCatalogMain();INVENTORY_TABS.forEach(function(tab){
+     if(tab.key==="main")return;
+     inventoryOwned(tab.key).forEach(function(id){if(ids.indexOf(id)<0)ids.push(id);});
+   });
    ids.forEach(function(id){
      // Use the same real helmet geometry as the live Police character.
      var helm=!!inventoryGear(id);

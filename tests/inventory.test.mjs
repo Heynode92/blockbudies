@@ -5,9 +5,9 @@ import {resolve,dirname} from "node:path";
 import {fileURLToPath} from "node:url";
 const root=resolve(dirname(fileURLToPath(import.meta.url)),".."),read=p=>readFileSync(resolve(root,p),"utf8");
 const html=read("index.html"),inventory=read("src/game/89-inventory.js"),lobby=read("src/game/85-lobby-and-match.js"),slots=read("src/game/75-weapon-controls.js"),m=JSON.parse(read("tools/source-manifest.json"));
-test("Inventory menu, 3D preview and five tabs are connected",()=>{
+test("Inventory menu, 3D preview and six tabs are connected",()=>{
  for(const id of ["lbin","lbiv","ivpreview","ivcards","ivuse","ivtabs","ivback"])assert.ok(html.includes('id="'+id+'"'));
- for(const t of ["MAIN WEAPON","SECONDARY","MELE","EXPLOSIVE","ITEM"])assert.ok(inventory.includes(t));
+ for(const t of ["MAIN WEAPON","SECONDARY","MELE","EXPLOSIVE","HELM","ITEM"])assert.ok(inventory.includes(t));
  assert.match(inventory,/terro\(0\)/);assert.match(inventory,/mkGun\(id\)/);assert.match(inventory,/new T\.WebGLRenderer/);
 });
 test("One equipped weapon per category and persistent saved loadout",()=>{
@@ -17,7 +17,7 @@ test("One equipped weapon per category and persistent saved loadout",()=>{
  assert.match(slots,/inventoryEquipped\("secondary"\)/);
  assert.match(slots,/inventoryEquipped\("mele"\)/);
  assert.match(slots,/inventoryEquipped\("explosive"\)/);
- assert.match(slots,/var WSEL=\[1,2,3,6,8\]/);
+ assert.match(slots,/function refreshWeaponSelection\(\)/);
 });
 test("New inventory module follows lobby, precedes gameplay, and bundle stays exact",()=>{
  const ix=m.parts.indexOf("src/game/89-inventory.js");

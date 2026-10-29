@@ -576,8 +576,11 @@ var WEAPON_PROFILES=[
  {name:"Grenade",damage:40,rpm:null,control:null,speed:98,vRecoil:null,hRecoil:null,mag:2,res:2,range:null,kind:"grenade"},
  {name:"Kriss",damage:21,rpm:93,control:59,speed:90,vRecoil:48,hRecoil:48,mag:30,res:210,range:60,kind:"smg"},
  {name:"Dual Kriss",damage:18,rpm:93,control:59,speed:90,vRecoil:48,hRecoil:48,mag:125,res:0,range:60,kind:"dual"},
- {name:"AWP",damage:81,rpm:39,control:66,speed:69,vRecoil:60,hRecoil:60,mag:5,res:64,range:180,kind:"sniper"}
+ {name:"AWP",damage:81,rpm:39,control:66,speed:69,vRecoil:60,hRecoil:60,mag:5,res:64,range:180,kind:"sniper"},
+ {name:"K2",damage:36,rpm:96,control:75,speed:79,vRecoil:66,hRecoil:33,mag:40,res:200,range:120,kind:"rifle"}
 ];
+// Weapon IDs remain stable so existing bot loadouts and inventory saves do not shift.
+var WEAPON_STARTER_ID=9;
 // The score->engine conversion is game balancing, NOT an unofficial Point Blank formula.
 // min/max are real rounds-per-minute bounds for each archetype; spread is angular.
 var WEAPON_TUNING={
@@ -624,7 +627,7 @@ var bG=new T.SphereGeometry(.15,8,8),rG=new T.SphereGeometry(.3,10,10),
 // The flag guards BOTH crate sources: the random airdrop in update() and the loot crate dropped where a bot dies (killE).
 // (Dead characters still toss their gun model as a visual effect, but it can NOT be picked up.)
 var DM_RULES={crates:false};
-var mt={t:60,cd:0,over:true},ts=[0,0],rq=[],ROS=[],curK=null,pl,en,bl,cr,fx,sk,score,run=false,spawnT,crateT,tt=0,toastT=0,adsT=0,sprT=0,ADF=[56,44,58,50,70,70,50,70,14],AP=[[0,-.066,-.5],[0,-.125,-.5],[0,-.078,-.5],[0,-.16,-.5],[0,-.1,-.5],[0,-.1,-.5],[0,-.13,-.5],[0,-.13,-.5],[0,-.14,-.5]],bobP=0,bobL=performance.now(),lob=true;
+var mt={t:60,cd:0,over:true},ts=[0,0],rq=[],ROS=[],curK=null,pl,en,bl,cr,fx,sk,score,run=false,spawnT,crateT,tt=0,toastT=0,adsT=0,sprT=0,ADF=[56,44,58,50,70,70,50,70,14,44],AP=[[0,-.066,-.5],[0,-.125,-.5],[0,-.078,-.5],[0,-.16,-.5],[0,-.1,-.5],[0,-.1,-.5],[0,-.13,-.5],[0,-.13,-.5],[0,-.14,-.5],[0,-.125,-.5]],bobP=0,bobL=performance.now(),lob=true;
 // mkPm()/pm: the visible body of the player (seen when dead/spectating). Its gun is hidden because the viewmodel is used instead.
 function mkPm(tm){var m=terro(tm);if(m.g.userData.gun)m.g.userData.gun.visible=false;return m;}
 var pm=mkPm(0);pm.g.visible=false;function resetPm(){pm.g.visible=false;if(pm.hm)pm.hm.visible=true;if(pm.hg)pm.hg.visible=true;if(pm.body){pm.body.rotation.set(0,0,0);pm.body.position.y=0;}(pm.arms||[]).concat(pm.legs||[]).forEach(function(q){q.rotation.z=0;});}
@@ -660,12 +663,44 @@ function mkGun(i){var g=new T.Group(),a=function(){for(var k=0;k<arguments.lengt
     bx(.05,.06,.035,0x2b2f3d,0,.03,0),bx(.06,.1,.03,0x1d2129,0,.0,.03)); // short folded stock + pad (kept tiny)
   else if(i===7){var kr=mkGun(6),kl=mkGun(6);kl.position.x=-.52;a(kr,kl);}
   else if(i===8){var bh=bx(.1,.025,.03,0x888e98,.07,.03,-.08);g.userData.bolt=bh;a(bx(.09,.13,.6,0x3b4a2a,0,0,-.1),cy(.018,.018,1,0x1d2129,0,.025,-.95),cy(.03,.03,.16,0x2b2f3d,0,.025,-1.5),bx(.085,.17,.45,0x3b4a2a,0,-.02,.4),bx(.09,.06,.18,0x2b2f3d,0,.07,.18),cy(.04,.04,.34,0x111111,0,.13,-.2),cy(.05,.05,.07,0x111111,0,.13,-.4),cy(.045,.045,.06,0x111111,0,.13,.0),bx(.03,.05,.04,0x333333,0,.09,-.3),bx(.07,.2,.09,0x2b2f3d,0,-.15,-.05,.2),bx(.06,.14,.1,0x2b2f3d,0,-.12,-.3),bh);}
+  else if(i===9){
+    // K2: silver rifle receiver with black rail, polymer telescopic stock,
+    // ventilated handguard, 40-round curved magazine and compact sight.
+    // The provided reference informs this dedicated low-poly mesh.
+    a(
+      bx(.105,.12,.48,0x969f9e,0,0,-.23),      // receiver
+      bx(.109,.046,.43,0x5f6c6e,0,.076,-.23),  // upper rail mount
+      bx(.11,.07,.38,0x536265,0,-.005,-.65),   // handguard
+      bx(.118,.024,.37,0x242a2e,0,.077,-.66), // top accessory rail
+      cy(.022,.022,.40,0x20272b,0,.005,-1.03),// long exposed barrel
+      cy(.031,.031,.10,0x101719,0,.005,-1.27),// muzzle
+      bx(.08,.045,.19,0x343b40,0,-.015,-1.01),// gas block
+      bx(.095,.035,.14,0x303c40,0,.09,-.24),  // sight mount
+      bx(.055,.045,.075,0x1a2024,0,.138,-.24),// reflex sight
+      bx(.07,.014,.10,0x525e61,0,.158,-.25),  // sight top
+      bx(.07,.08,.12,0x30373b,0,-.17,-.19,.26), // grip
+      bx(.082,.20,.10,0x1e2428,0,-.22,-.46,-.22),// curved magazine
+      bx(.084,.045,.1,0x424d50,0,-.32,-.50,-.3), // magazine base
+      bx(.025,.018,.08,0x1d2428,0,-.09,-.23), // trigger guard
+      bx(.05,.05,.33,0x242b2f,0,-.003,.31),   // stock beam
+      bx(.09,.125,.28,0x20272b,0,-.02,.48),  // adjustable rear stock
+      bx(.11,.17,.035,0x111719,0,-.02,.67),  // rubber butt plate
+      bx(.14,.018,.13,0xb2bdb6,0,.066,-.50) // handguard metal strap
+    );
+    for(var k2v=0;k2v<5;k2v++){
+      a(bx(.016,.013,.034,0x171d20,.054,.058,-.82+k2v*.071));
+      a(bx(.016,.013,.034,0x171d20,-.054,.058,-.82+k2v*.071));
+    }
+    for(var k2m=0;k2m<4;k2m++){
+      a(bx(.087,.009,.014,0x707d72,0,-.16-k2m*.038,-.46-k2m*.008));
+    }
+  }
   else if(i===5)a(bx(.15,.15,.15,0x4a5a2a,0,0,-.3),bx(.16,.03,.16,0x3a4620,0,.03,-.3),bx(.06,.05,.06,0x888e98,0,.1,-.3),bx(.04,.03,.14,0xaab0b9,0,.13,-.27),bx(.1,.02,.02,0xd4a017,.06,.1,-.36));
   else a(cy(.1,.1,1.1,0x5c6b3c,0,.03,-.4),cy(.1,.17,.2,0x3b4a2a,0,.03,-1),cy(.09,0,.28,0xe03131,0,.03,-1.2),bx(.07,.16,.08,0x2b2f3d,0,-.12,-.2,.2),bx(.04,.06,.1,0x111111,0,.12,-.3));
   return g;}
 // hold = the first-person gun group (child of VS). guns[i] = model of weapon i; only guns[pl.w] is visible (set in loop()).
 // mflash/mflash2 = muzzle flash spheres (mflash2 is the LEFT gun flash for Dual Kriss at x=-0.52).
-var hold=new T.Group(),guns=[0,1,2,3,4,5,6,7,8].map(mkGun);guns[3].scale.setScalar(.8);guns.forEach(function(g){hold.add(g);});
+var hold=new T.Group(),guns=WEAPON_PROFILES.map(function(p,i){return mkGun(i);});guns[3].scale.setScalar(.8);guns.forEach(function(g){hold.add(g);});
 var mflash=new T.Mesh(new T.SphereGeometry(.09,8,8),new T.MeshBasicMaterial({color:0xffe08a,transparent:true,opacity:.95}));mflash.visible=false;hold.add(mflash);var mflash2=mflash.clone();mflash2.visible=false;hold.add(mflash2);
 VS.add(hold);
 // ---- FIRST-PERSON HANDS & ANIMATION ----
@@ -690,10 +725,10 @@ handL.add(magP,shP,rkP);hold.add(handR,handL,armR,armL);
 // Hand/anim tables, indexed by weapon id: RG = right-hand grip position, RL = left-hand rest position,
 // PT = left-hand "port" position for the reload animation, MODE = reload style (0 = mag swap, 1 = loop-load shells/rocket),
 // NC = number of loop cycles in a loop reload, DD = left-hand "drop" position (below the gun) used in reload animations.
-var RG=[[0,-.2,-.1],[0,-.2,-.15],[0,-.13,-.08],[0,-.14,-.2],[0,.02,-.09],[0,-.1,-.3],[0,-.22,-.1],[0,-.22,-.1],[0,-.19,-.06]],
- RL=[[-.03,-.22,-.22],[0,-.09,-.62],[0,-.1,-.58],[0,-.1,-.7],[-.3,-.5,-.1],[-.3,-.5,-.1],[0,-.09,-.5],[-.52,-.22,-.1],[0,-.1,-.62]],
- PT=[[0,-.2,-.28],[0,-.24,-.4],[0,-.12,-.2],[0,.02,-.95],[0,0,0],[0,0,0],[0,-.24,-.35],[0,0,0],[0,-.24,-.42]],
- MODE=[0,0,1,1,0,0,0,0,0],NC=[1,1,3,1,1,1,1,1,1],DD=[-.1,-.34,-.28];
+var RG=[[0,-.2,-.1],[0,-.2,-.15],[0,-.13,-.08],[0,-.14,-.2],[0,.02,-.09],[0,-.1,-.3],[0,-.22,-.1],[0,-.22,-.1],[0,-.19,-.06],[0,-.2,-.19]],
+ RL=[[-.03,-.22,-.22],[0,-.09,-.62],[0,-.1,-.58],[0,-.1,-.7],[-.3,-.5,-.1],[-.3,-.5,-.1],[0,-.09,-.5],[-.52,-.22,-.1],[0,-.1,-.62],[0,-.09,-.72]],
+ PT=[[0,-.2,-.28],[0,-.24,-.4],[0,-.12,-.2],[0,.02,-.95],[0,0,0],[0,0,0],[0,-.24,-.35],[0,0,0],[0,-.24,-.42],[0,-.24,-.43]],
+ MODE=[0,0,1,1,0,0,0,0,0,0],NC=[1,1,3,1,1,1,1,1,1,1],DD=[-.1,-.34,-.28];
 // xp(w): extra viewmodel offsets [x,y,z,rotX,rotY,rotZ] for weapon switch, knife stab and grenade throw animations.
 function xp(w){var r=[0,0,0,0,0,0],u,p,s,q,b,f;
   if(pl.sw>0){u=pl.sw/.28;u=u*u;r[1]-=u*.55;r[3]+=u*.7;r[4]+=u*.3;}
@@ -871,7 +906,7 @@ function weaponMovementSpeed(weaponId,sprintBlend,adsBlend){
 }
 // BOLT_T = AWP bolt-action cycle length in seconds (must stay <= the AWP fire cooldown so the next shot is possible when it ends).
 // MZ = per-weapon muzzle z offset in viewmodel space (where bullets and muzzle flash start). kick = recoil offset. flashT = muzzle flash time left.
-var BOLT_T=1.1,MZ=[-.7,-1,-1.15,-1.2,-.9,-.3,-.9,-.9,-1.62],kick=0,flashT=0;
+var BOLT_T=1.1,MZ=[-.7,-1,-1.15,-1.2,-.9,-.3,-.9,-.9,-1.62,-1.3],kick=0,flashT=0;
 // mkPick(): small floating weapon model shown on top of a crate. ci = crate type (weapon id = ci + 1).
 function mkPick(ci){var g=new T.Group(),gn=mkGun(ci+1);gn.scale.setScalar(ci===2?1.2:1.5);gn.position.z=[0,.5,.45,.72][ci+1];g.add(gn);
   g.add(new T.Mesh(new T.SphereGeometry(.85,16,12),new T.MeshBasicMaterial({color:CC[ci],transparent:true,opacity:.22,depthWrite:false})));return g;}
@@ -962,7 +997,7 @@ function mkCasing(w){var g=new T.Group();function c(a,b,l,m,y){var q=new T.Mesh(
 // ejectShell(w, side): throws a spent casing from the gun port. Supports weapons 0-2, Kriss (6), Dual Kriss (7) and AWP (8).
 //  side = +1 throws to the player's RIGHT, -1 to the LEFT. Single guns always use +1. Dual Kriss uses -1 for the left gun (shotSide = 1).
 //  The AWP casing is thrown from the bolt (called mid bolt-cycle from animHands(), not from the shot itself).
-function ejectShell(w,side){var sm=(w===6||w===7);if(w>2&&!sm&&w!==8)return;side=side||1;var cw=sm?0:(w===8?1:w);
+function ejectShell(w,side){var sm=(w===6||w===7);if(w>2&&!sm&&w!==8&&w!==WEAPON_STARTER_ID)return;side=side||1;var cw=sm?0:(w===8?1:w===WEAPON_STARTER_ID?1:w);
   var v=new T.Vector3(CSP[cw][0],CSP[cw][1],CSP[cw][2]);if(sm){v.x=side<0?-.52-CSP[0][0]:CSP[0][0];}if(w===8)v.set(.09,.06,-.08);hold.localToWorld(v);
   var k=Math.tan(35*Math.PI/180)/Math.tan(C.fov*Math.PI/360);v.x*=k;v.y*=k;C.localToWorld(v);
   var d=new T.Vector3((2.5+Math.random()*.4)*side,1.1+Math.random()*.25,.02+Math.random()*.06).applyQuaternion(C.quaternion);
@@ -972,7 +1007,7 @@ function ejectShell(w,side){var sm=(w===6||w===7);if(w>2&&!sm&&w!==8)return;side
   m.traverse(function(o){o.castShadow=false;});
   var n=0;for(var i=dg.length-1;i>=0;i--)if(dg[i].cs&&++n>20){S.remove(dg[i].m);dg.splice(i,1);}}
 // GSC = size of a dropped gun model per weapon id, GH = rest height of a dropped gun per weapon id.
-var GSC=[1.5,1.2,1.2,1,2,2,1.2,1,1.2],GH=[.07,.09,.09,.17,.03,.1,.09,.09,.09];
+var GSC=[1.5,1.2,1.2,1,2,2,1.2,1,1.2,1.2],GH=[.07,.09,.09,.17,.03,.1,.09,.09,.09,.09];
 // dropPlayerGun(): when the player dies, throws the current weapon model onto the ground.
 function dropPlayerGun(){var w=pl.w,g=mkGun(w),f=pl.face,s=Math.sin(f),c=Math.cos(f);
   g.scale.setScalar(GSC[w]);g.rotation.order="YXZ";g.rotation.y=f+Math.PI;
@@ -1161,7 +1196,7 @@ function updSm(dt){for(var i=SM.length-1;i>=0;i--){var q=SM[i];q.t+=dt;var k=q.t
 // GS = synthesized gun sound presets {f frequency, v volume, d decay, t type}. SFXI maps weapon id -> preset index (AWP uses preset 4).
 // No audio files: sounds are generated with WebAudio. SND = master sound switch.
 // --- sound & muzzle flash ---
-var GS=[{f:1800,v:.22,d:.09,t:180},{f:1400,v:.2,d:.1,t:140},{f:900,v:.45,d:.22,t:100},{f:500,v:.5,d:.4,t:70},{f:700,v:.8,d:.6,t:55}],SFXI=[0,1,2,3,3,3,1,1,4];
+var GS=[{f:1800,v:.22,d:.09,t:180},{f:1400,v:.2,d:.1,t:140},{f:900,v:.45,d:.22,t:100},{f:500,v:.5,d:.4,t:70},{f:700,v:.8,d:.6,t:55}],SFXI=[0,1,2,3,3,3,1,1,4,1];
 // gunSfx(): plays a synthesized gun/explosion sound from preset k at volume vol (does nothing if sound is off or too quiet).
 function gunSfx(k,vol){if(!SND||vol<=.02)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state==="suspended")AC.resume();
   if(!nbuf){nbuf=AC.createBuffer(1,Math.floor(AC.sampleRate*.25),AC.sampleRate);var dd=nbuf.getChannelData(0);for(var i=0;i<dd.length;i++)dd[i]=Math.random()*2-1;}
@@ -1397,7 +1432,8 @@ var SV={0:'<svg viewBox="0 0 48 20"><rect x="10" y="4" width="30" height="6" rx=
  5:'<svg viewBox="0 0 48 20"><ellipse cx="22" cy="12" rx="8" ry="8.5"/><path d="M14.5 10h15M14.2 14h15.6M22 4v16" stroke="var(--hud)" stroke-width="1" fill="none"/><rect x="19.500" y="1.500" width="5" height="3.500" rx=".8"/><polygon points="24.5,2 35,3.5 35,5.5 24.5,5"/><circle cx="38" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
  6:'<svg viewBox="0 0 48 20"><rect x="8" y="5" width="24" height="7" rx="1.5"/><rect x="32" y="6.5" width="12" height="4" rx="1"/><rect x="43" y="7.2" width="4" height="2.4"/><polygon points="17,12 24,12 22,19.5 15,19.5"/><polygon points="9,12 14,12 12,18 8,18"/><rect x="2" y="6.5" width="7" height="3"/><rect x="14" y="3" width="14" height="1.6"/></svg>',
  7:'<svg viewBox="0 0 48 20"><g transform="translate(0,-3) scale(.62)"><rect x="8" y="5" width="24" height="7" rx="1.5"/><rect x="32" y="6.5" width="12" height="4" rx="1"/><polygon points="17,12 24,12 22,19.5 15,19.5"/><polygon points="9,12 14,12 12,18 8,18"/></g><g transform="translate(14,6) scale(.62)"><rect x="8" y="5" width="24" height="7" rx="1.5"/><rect x="32" y="6.5" width="12" height="4" rx="1"/><polygon points="17,12 24,12 22,19.5 15,19.5"/><polygon points="9,12 14,12 12,18 8,18"/></g></svg>',
- 8:'<svg viewBox="0 0 48 20"><rect x="1" y="8" width="10" height="5" rx="1.2"/><rect x="11" y="8.5" width="16" height="3.6"/><rect x="27" y="9.6" width="19" height="1.4"/><rect x="45" y="8.8" width="2.6" height="3"/><rect x="16" y="4.4" width="12" height="3" rx="1.4"/><polygon points="12,12 17,12 16,18 11,18"/><rect x="21" y="12" width="4" height="4"/></svg>'};
+ 8:'<svg viewBox="0 0 48 20"><rect x="1" y="8" width="10" height="5" rx="1.2"/><rect x="11" y="8.5" width="16" height="3.6"/><rect x="27" y="9.6" width="19" height="1.4"/><rect x="45" y="8.8" width="2.6" height="3"/><rect x="16" y="4.4" width="12" height="3" rx="1.4"/><rect x="22" y="5" width="3" height="4"/><polygon points="12,12 17,12 16,18 11,18"/><rect x="21" y="12" width="4" height="4"/></svg>',
+ 9:'<svg viewBox="0 0 48 20"><rect x="13" y="7" width="17" height="5"/><rect x="28" y="8" width="11" height="3"/><rect x="39" y="9" width="8" height="1.5"/><path d="M1 6h8v3H5v3h9v-3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="13" y="5" width="13" height="2"/><rect x="22" y="2" width="4" height="3"/><polygon points="19,12 23,12 26,19 21,19"/><polygon points="14,12 17,12 16,18 12,18"/><rect x="11" y="6" width="2" height="6"/></svg>'};
 // Weapon-slot HUD elements and their cached keys (so the DOM is only touched when something changed).
 var slEls=[],slKey=[];
 (function(){var el=document.getElementById("wsb");for(var s=0;s<4;s++){(function(s){var d=document.createElement("div");d.className="sl";d.innerHTML='<b class="k">'+(s+1)+'</b><span class="ic"></span><span class="nm"></span><span class="sa"></span>';d.addEventListener("pointerdown",function(e){e.stopPropagation();e.preventDefault();if(run&&!pl.dead)swSlot(s);});el.appendChild(d);slEls.push(d);})(s);}})();
@@ -1415,18 +1451,28 @@ function slotUI(w){
 // ===== PRIMARY WEAPON SELECT / KRISS <-> DUAL / AWP SCOPE =====
 // ===== primary weapon select / Kriss <-> Dual / AWP scope =====
 // WSEL = weapon ids offered in the pre-match select (keys 1-5). WDESC = descriptions shown on the cards.
-var WSEL=[1,2,3,6,8],WDESC={1:"Balanced · mid range",2:"Close range · high burst",3:"Explosive splash",6:"Fast SMG · V = DUAL",8:"Bolt-action sniper · RMB scope"};
+var WSEL=[],WDESC={1:"Balanced · mid range",2:"Close range · high burst",3:"Explosive splash",6:"Fast SMG · V = DUAL",8:"Bolt-action sniper · RMB scope",9:"Standard-issue assault rifle"};
 // canAds(w): which weapons can aim down sights: ids 0-3, Kriss (6) and AWP (8). Dual Kriss, knife, grenade cannot.
-function canAds(w){return w<4||w===6||w===8;}
+function canAds(w){return w<4||w===6||w===8||w===WEAPON_STARTER_ID;}
 // fall(b,p): damage falloff multiplier (0..1) for bullet b at hit point p from its start (sx,sz), using the weapon's r0/r1/rm.
 function fall(b,p){var f=b.fo;if(!f)return 1;var d=Math.hypot(p.x-b.sx,p.z-b.sz);if(d<=f[0])return 1;if(d>=f[1])return f[2];return 1-(1-f[2])*(d-f[0])/(f[1]-f[0]);}
 // DOM references for the weapon-select screen, the scope overlay and the alt (V / scope) touch button.
 var wsEl=document.getElementById("wsel"),scopeEl=document.getElementById("scope"),abEl=document.getElementById("ab"),wsOn=false,wsCards=[],wsBar,wsT;
-(function(){wsEl.innerHTML='<div class="wt"></div><div class="wb"><i></i></div><div class="wc"></div>';wsT=wsEl.children[0];wsBar=wsEl.children[1].firstChild;var box=wsEl.children[2];
-  WSEL.forEach(function(id,i){var d=document.createElement("div");d.className="wcd";d.innerHTML='<b class="k">'+(i+1)+'</b>'+SV[id]+'<b>'+WP[id].n+'</b><small>'+WDESC[id]+'</small>';
-    d.addEventListener("pointerdown",function(e){e.stopPropagation();e.preventDefault();chooseWeapon(id);});box.appendChild(d);wsCards.push(d);});})();
+(function(){wsEl.innerHTML='<div class="wt"></div><div class="wb"><i></i></div><div class="wc"></div>';wsT=wsEl.children[0];wsBar=wsEl.children[1].firstChild;})();
+function refreshWeaponSelection(){
+  // 1-5 remain keyboard shortcuts; additional owned primaries stay clickable.
+  var owned=inventoryOwned("main");
+  WSEL=[WEAPON_STARTER_ID].concat(owned.filter(function(id){return id!==WEAPON_STARTER_ID;}));
+  var box=wsEl.children[2];box.textContent="";wsCards=[];
+  WSEL.forEach(function(id,i){
+    var d=document.createElement("div");d.className="wcd";
+    d.innerHTML='<b class="k">'+(i<5?i+1:"•")+'</b>'+SV[id]+'<b>'+WP[id].n+'</b><small>'+(WDESC[id]||"Ready for battle")+'</small>';
+    d.addEventListener("pointerdown",function(e){e.stopPropagation();e.preventDefault();chooseWeapon(id);});
+    box.appendChild(d);wsCards.push(d);
+  });
+}
 // chooseWeapon(id): picks the primary weapon during the pre-match countdown.
-function chooseWeapon(id){if(!run||pl.dead||!(mt.cd>0)||mt.over||WSEL.indexOf(id)<0)return;
+function chooseWeapon(id){if(!run||pl.dead||!(mt.cd>0)||mt.over||WSEL.indexOf(id)<0||inventoryOwned("main").indexOf(id)<0)return;
   favPrim=id;pl.prim=id;scopeOn=false;
   if(pl.w!==id){pl.ammo[id]={mag:WP[id].mag,res:WP[id].res};swW(id);}else{pl.mag=WP[id].mag;pl.res=WP[id].res;}}
 // wselUpd(): shows/hides the weapon-select panel and updates its countdown bar.
@@ -1518,7 +1564,7 @@ document.getElementById("go").onclick=function(){this.blur();reset();ov.style.di
 // Lobby (mode select screen). lobBest() reads the best score from localStorage key "bbfps_best" (try/catch).
 var lb=document.getElementById("lb");
 function lobBest(){var b=0;try{b=+localStorage.getItem("bbfps_best")||0;}catch(e){}document.getElementById("lbbest").textContent=b;}
-function lobP(id){["lbs","lbm","lbiv"].forEach(function(i){document.getElementById(i).classList.toggle("on",i===id);});if(id==="lbs")lobBest();document.getElementById("lbn").classList.remove("on");}
+function lobP(id){["lbs","lbm","lbiv","lbshop"].forEach(function(i){document.getElementById(i).classList.toggle("on",i===id);});if(id==="lbs")lobBest();document.getElementById("lbn").classList.remove("on");}
 lobBest();
 (function(){var n=document.getElementById("lbn"),nt=document.getElementById("lbnt"),tm=0;[].forEach.call(document.querySelectorAll(".mb[data-n]"),function(b){b.onclick=function(){this.blur();nt.textContent=this.getAttribute("data-n");n.classList.remove("on","shk");void n.offsetWidth;n.classList.add("on","shk");clearTimeout(tm);tm=setTimeout(function(){n.classList.remove("on");},2800);};});})();
 // MODES: lobby cards. Only TEAM DEATH MATCH is playable (lock:0). BOMB MODE and BATTLEGROUND are "coming soon" placeholders (lock:1).
@@ -2063,13 +2109,33 @@ var INVENTORY_DESCRIPTIONS={
  sniper:"Stay sharp and own the long sightlines.",pistol:"Your trusty backup when the fight gets close.",
  knife:"Move fast and finish the fight up close.",grenade:"Clear a path when the enemy has cover."
 };
-var inventoryTab="main",inventoryPick={},inventoryScroll={},inventoryState={equipped:{}};
+var inventoryTab="main",inventoryPick={},inventoryScroll={},inventoryState={equipped:{},unlockedMain:[]};
+function inventoryCatalogMain(){
+  var kinds=INVENTORY_TABS[0].kinds;
+  return WP.reduce(function(ids,w,id){if(kinds.indexOf(w.stats.kind)>=0)ids.push(id);return ids;},[]);
+}
 function inventoryOwned(cat){
  var c=INVENTORY_TABS.filter(function(t){return t.key===cat;})[0],ids=[];
  if(!c)return ids;
  if(INVENTORY_GEAR[cat])return INVENTORY_GEAR[cat].map(function(gear){return gear.id;});
+ if(cat==="main"){
+   // Only the issued K2 is owned on a fresh profile. Old inventory settings
+   // never implied that other rifles were purchased or unlocked.
+   return inventoryCatalogMain().filter(function(id){
+     return id===WEAPON_STARTER_ID||inventoryState.unlockedMain.indexOf(id)>=0;
+   });
+ }
  WP.forEach(function(w,id){if(c.kinds.indexOf(w.stats.kind)>=0)ids.push(id);});
  return ids;
+}
+function inventorySave(){
+ try{localStorage.setItem(INVENTORY_STORAGE,JSON.stringify(inventoryState));}catch(err){}
+}
+function inventoryClaimPrimary(id){
+ if(id===WEAPON_STARTER_ID||inventoryCatalogMain().indexOf(id)<0||inventoryOwned("main").indexOf(id)>=0)return false;
+ inventoryState.unlockedMain.push(id);
+ inventorySave();refreshWeaponSelection();
+ return true;
 }
 function inventoryEquipped(cat){
  var ids=inventoryOwned(cat),id=inventoryState.equipped[cat];
@@ -2077,6 +2143,9 @@ function inventoryEquipped(cat){
 }
 function inventoryLoad(){
  var saved=null;try{saved=JSON.parse(localStorage.getItem(INVENTORY_STORAGE));}catch(err){}
+ inventoryState.unlockedMain=Array.isArray(saved&&saved.unlockedMain)?
+   saved.unlockedMain.filter(function(id){return Number.isInteger(id)&&id!==WEAPON_STARTER_ID&&inventoryCatalogMain().indexOf(id)>=0;}):[];
+ inventoryState.unlockedMain=inventoryState.unlockedMain.filter(function(id,i,list){return list.indexOf(id)===i;});
  INVENTORY_TABS.forEach(function(c){
    var ids=inventoryOwned(c.key),wish=saved&&saved.equipped&&saved.equipped[c.key];
    // Migrate older inventory saves that treated Dual Kriss as an owned item.
@@ -2084,6 +2153,7 @@ function inventoryLoad(){
    inventoryState.equipped[c.key]=ids.indexOf(wish)>=0?wish:(ids.length?ids[0]:null);
  });
  var primary=inventoryEquipped("main");if(primary!==null)favPrim=primary;
+ refreshWeaponSelection();
 }
 function inventoryForNewMatch(){
  var id=inventoryEquipped("main");if(id!==null)favPrim=id;
@@ -2092,7 +2162,7 @@ function inventoryEquip(cat,id){
  if(inventoryOwned(cat).indexOf(id)<0)return false;
  inventoryState.equipped[cat]=id;
  if(cat==="main")favPrim=id;
- try{localStorage.setItem(INVENTORY_STORAGE,JSON.stringify(inventoryState));}catch(err){}
+ inventorySave();
  inventoryRender();return true;
 }
 // Pose specifications apply to a weapon TYPE, not duplicated weapon IDs.
@@ -2210,7 +2280,10 @@ function inventoryBuildThumbnails(){
    var fill=new T.DirectionalLight(0xb9d8ff,1.2);fill.position.set(-2,1,-3);scene.add(fill);
    var camera=new T.OrthographicCamera(-1.55,1.55,.73,-.73,.1,40);
    camera.position.set(0,.32,6);camera.lookAt(0,0,0);
-   var ids=[];INVENTORY_TABS.forEach(function(tab){inventoryOwned(tab.key).forEach(function(id){if(ids.indexOf(id)<0)ids.push(id);});});
+   var ids=inventoryCatalogMain();INVENTORY_TABS.forEach(function(tab){
+     if(tab.key==="main")return;
+     inventoryOwned(tab.key).forEach(function(id){if(ids.indexOf(id)<0)ids.push(id);});
+   });
    ids.forEach(function(id){
      // Use the same real helmet geometry as the live Police character.
      var helm=!!inventoryGear(id);
@@ -2332,6 +2405,45 @@ document.getElementById("ivcards").addEventListener("scroll",function(){
 },{passive:true});
 document.getElementById("lbin").addEventListener("click",inventoryOpen);
 document.getElementById("ivback").addEventListener("click",function(){lobP("lbs");});
+// Shop unlocks the existing non-starter primaries without inventing a coin economy.
+// New players only own K2. Shop unlock is free until a priced economy is specified.
+function shopCatalog(){
+  return inventoryCatalogMain().filter(function(id){return id!==WEAPON_STARTER_ID;});
+}
+function shopRender(){
+  var grid=document.getElementById("shopGrid");
+  grid.textContent="";
+  shopCatalog().forEach(function(id){
+    var w=WP[id],isOwned=inventoryOwned("main").indexOf(id)>=0;
+    var tile=document.createElement("article");tile.className="shop-weapon"+(isOwned?" shop-owned":"");
+    var media=document.createElement("div");media.className="shop-art";
+    if(INVENTORY_THUMBS[id]){
+      var img=document.createElement("img");img.src=INVENTORY_THUMBS[id];
+      img.alt=w.n+" weapon model";img.loading="lazy";media.appendChild(img);
+    }else{
+      var missing=document.createElement("span");missing.textContent="PREVIEW UNAVAILABLE";media.appendChild(missing);
+    }
+    var details=document.createElement("div");details.className="shop-details";
+    var name=document.createElement("h3");name.textContent=w.n;
+    var type=document.createElement("p");type.textContent=inventoryWeaponRole(w.stats.kind);
+    var specs=document.createElement("span");specs.className="shop-specs";
+    specs.textContent="DAMAGE "+w.stats.damage+"  ·  SPEED "+w.stats.speed+"  ·  "+w.mag+"/"+w.res+" AMMO";
+    details.appendChild(name);details.appendChild(type);details.appendChild(specs);
+    var action=document.createElement("button");action.type="button";
+    action.className="shop-action"+(isOwned?" shop-action-owned":"");
+    action.disabled=isOwned;action.textContent=isOwned?"OWNED":"UNLOCK FREE";
+    action.onclick=function(){
+      if(inventoryClaimPrimary(id)){shopRender();toast("UNLOCKED: "+w.n);}
+    };
+    tile.appendChild(media);tile.appendChild(details);tile.appendChild(action);
+    grid.appendChild(tile);
+  });
+}
+function shopOpen(){
+  lobP("lbshop");inventoryBuildThumbnails();shopRender();
+}
+document.getElementById("lshop").addEventListener("click",shopOpen);
+document.getElementById("shopBack").addEventListener("click",function(){lobP("lbs");});
 // ---- BOT PATH-FINDING GRID ----
 // GB = walkability grid (GN x GN cells). GCS = grid cell size in world units.
 // NOTE: the cell size is named GCS (not GS) on purpose. GS is already the array of gun sound presets; reusing the name GS here would overwrite it and silence the player gun sounds.
@@ -2471,7 +2583,7 @@ function update(dt){
   adsT+=((wA?1:0)-adsT)*Math.min(1,dt*12);sprT+=((wS?1:0)-sprT)*Math.min(1,dt*9);
   if(!pl.dead)pl.life+=dt;else{pl.dt+=dt;pl.rsT-=dt;if(pl.rsT<=0&&!mt.over&&!isBombMode())respawnPl();}
   var spd=weaponMovementSpeed(pl.w,sprT,adsT);
-  mvAmt+=(ml-mvAmt)*Math.min(1,dt*8);wtT+=((pl.w>=1&&pl.w<=3||pl.w===6||pl.w===8?1:0)-wtT)*Math.min(1,dt*6);
+  mvAmt+=(ml-mvAmt)*Math.min(1,dt*8);wtT+=((pl.w>=1&&pl.w<=3||pl.w===6||pl.w===8||pl.w===WEAPON_STARTER_ID?1:0)-wtT)*Math.min(1,dt*6);
   var fw=-mz,sf=Math.sin(pl.face),cf=Math.cos(pl.face);pl.x+=(fw*sf-mx*cf)*spd*dt;pl.z+=(fw*cf+mx*sf)*spd*dt;resolve(pl,.55);
   var py=pl.y,gy=gh(pl.x,pl.z,py);
   if(!pl.dead&&!(isBombMode()&&pl.bAction)&&(keys.Space||jumpHeld)&&pl.y<=gy+.001)pl.vy=9;
