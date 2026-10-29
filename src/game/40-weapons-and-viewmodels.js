@@ -1,21 +1,52 @@
-// ---- WEAPON TABLE ----
-// Fields: n name | cd seconds between shots | dmg damage per pellet | spd bullet speed (units/s) | life bullet lifetime (s)
-// pel pellets per shot | spr random spread (radians) | mag magazine size | res reserve ammo | rt reload time (s)
-// r0/r1/rm damage falloff (full damage until r0, down to rm*dmg at r1) | rk rocket | melee knife | gr grenade
-// dual = Dual Kriss | snp = sniper (bolt action).
-// RANGE: a bullet flies spd x life units before it disappears (Dual Kriss: 150 x .6 = 90 units, Kriss: 150 x .22 = 33 units).
-// If life is too small the bullet vanishes in mid-air and leaves no mark on far walls. r0/r1 only change the DAMAGE, not how far it flies.
-// weapons
-var WP=[{n:"Pistol",cd:.35,dmg:10,spd:140,life:.25,pel:1,spr:0,mag:12,res:Infinity,rt:1},
- {n:"Rifle",cd:.09,dmg:6,spd:160,life:.24,pel:1,spr:.07,mag:30,res:90,rt:1.4},
- {n:"Shotgun",cd:.65,dmg:8,spd:110,life:.13,pel:6,spr:.3,mag:6,res:24,rt:2.2},
- {n:"Rocket",cd:1,dmg:45,spd:15,life:2,pel:1,spr:0,mag:1,res:6,rt:1.8,rk:1},
- {n:"Knife",cd:.55,dmg:30,mag:1,res:Infinity,rt:1,melee:1,spd:0,life:0,pel:0,spr:0},
- {n:"Grenade",cd:1.1,dmg:45,mag:3,res:0,rt:1,gr:1,spd:0,life:0,pel:0,spr:0},
- // r0 = full-damage range, r1 = range where damage bottoms out at rm x dmg (bullet also dies near r1)
- {n:"Kriss",cd:.07,dmg:6,spd:150,life:.22,pel:1,spr:.025,mag:25,res:150,rt:1.5,r0:10,r1:32,rm:.45},
- {n:"Dual Kriss",cd:.05,dmg:5,spd:150,life:.6,pel:1,spr:.035,mag:150,res:0,rt:2.4,r0:14,r1:70,rm:.4,dual:1},
- {n:"AWP",cd:1.35,dmg:110,spd:420,life:.55,pel:1,spr:.14,mag:5,res:20,rt:2.6,r0:60,r1:200,rm:.85,snp:1}];
+// ---- WEAPON DATA: Single source of truth for user-provided Point Blank-style ratings ----
+// Display ratings (0..100) are NOT real-world rounds/minute, meters/second or recoil angles.
+// Actual gameplay fire intervals/accuracy/movement are derived explicitly below.
+// damage = per-shot damage; for shotguns the damage is SPLIT across six pellets.
+// range = maximum bullet travel in world units (not meters or an infinite visual tracer).
+var WEAPON_PROFILES=[
+ {name:"Pistol",damage:26,rpm:84,control:87,speed:93,vRecoil:61,hRecoil:61,mag:13,res:52,range:45,kind:"pistol"},
+ {name:"AK-47",damage:33,rpm:88,control:44,speed:74,vRecoil:69,hRecoil:62,mag:30,res:90,range:140,kind:"rifle"},
+ {name:"Shotgun",damage:168,rpm:48,control:58,speed:79,vRecoil:100,hRecoil:78,mag:6,res:30,range:70,kind:"shotgun"},
+ // RPG is a project-specific value; user permitted its tuning rather than supplying PB ratings.
+ {name:"RPG",damage:85,rpm:35,control:25,speed:48,vRecoil:100,hRecoil:85,mag:1,res:6,range:65,kind:"rocket"},
+ {name:"Knife",damage:60,rpm:null,control:100,speed:98,vRecoil:null,hRecoil:null,mag:1,res:Infinity,range:1,kind:"knife"},
+ {name:"Grenade",damage:40,rpm:null,control:null,speed:98,vRecoil:null,hRecoil:null,mag:2,res:2,range:null,kind:"grenade"},
+ {name:"Kriss",damage:21,rpm:93,control:59,speed:90,vRecoil:48,hRecoil:48,mag:30,res:210,range:60,kind:"smg"},
+ {name:"Dual Kriss",damage:18,rpm:93,control:59,speed:90,vRecoil:48,hRecoil:48,mag:125,res:0,range:60,kind:"dual"},
+ {name:"AWP",damage:81,rpm:39,control:66,speed:69,vRecoil:60,hRecoil:60,mag:5,res:64,range:180,kind:"sniper"}
+];
+// The score->engine conversion is game balancing, NOT an unofficial Point Blank formula.
+// min/max are real rounds-per-minute bounds for each archetype; spread is angular.
+var WEAPON_TUNING={
+ pistol:{rpmMin:180,rpmMax:360,spread:.09,bulletSpeed:160,reload:1,viewKick:1.1,recoilScale:.35},
+ rifle:{rpmMin:400,rpmMax:750,spread:.13,bulletSpeed:180,reload:1.4,viewKick:.9,recoilScale:.65},
+ shotgun:{rpmMin:45,rpmMax:90,spread:.6,bulletSpeed:125,reload:2.2,pellets:6,viewKick:1.7,recoilScale:1.2},
+ rocket:{rpmMin:25,rpmMax:45,spread:.02,bulletSpeed:15,reload:1.8,viewKick:2,recoilScale:1.3},
+ knife:{cooldown:.55,reload:1},
+ grenade:{cooldown:1.1,reload:1},
+ smg:{rpmMin:650,rpmMax:1050,spread:.075,bulletSpeed:170,reload:1.5,viewKick:.65,recoilScale:.45},
+ dual:{rpmMin:850,rpmMax:1250,spread:.095,bulletSpeed:170,reload:2.4,viewKick:.55,recoilScale:.4},
+ sniper:{rpmMin:30,rpmMax:65,spread:.21,bulletSpeed:420,reload:2.6,viewKick:2.8,recoilScale:1.5}
+};
+function weaponProfile(p){var t=WEAPON_TUNING[p.kind],pel=t.pellets||1;
+  var realRpm=p.rpm===null?null:t.rpmMin+(t.rpmMax-t.rpmMin)*p.rpm/100;
+  var speed=t.bulletSpeed||0;
+  var w={n:p.name,stats:p,cd:realRpm===null?t.cooldown:60/realRpm,
+    dmg:p.damage/pel,spd:speed,life:p.range===null?0:p.range/speed,
+    pel:p.kind==='knife'||p.kind==='grenade'?0:pel,
+    spr:p.control===null?0:(t.spread||0)*(100-p.control)/100,
+    mag:p.mag,res:p.res,rt:t.reload,
+    range:p.range,moveMult:.75+.003*p.speed,
+    viewKick:t.viewKick?Math.min(.26,(.015+.001*p.vRecoil)*t.viewKick):0,
+    recoilScale:t.recoilScale||0};
+  if(p.kind==='rocket')w.rk=1;
+  if(p.kind==='knife')w.melee=1;
+  if(p.kind==='grenade')w.gr=1;
+  if(p.kind==='dual')w.dual=1;
+  if(p.kind==='sniper')w.snp=1;
+  return w;
+}
+var WP=WEAPON_PROFILES.map(weaponProfile);
 // EW: stats used for bot (enemy) bullets. Bots do not use the WP table.
 var EW={dmg:7,spd:100,life:.55,pel:1,spr:0};
 // CC: crate colors by contents (index = weapon crate type, see mkCrate/rci).

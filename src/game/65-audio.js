@@ -15,7 +15,10 @@ function enemyShotFx(o,x,y,z){var m=new T.Mesh(spG,mzfM);m.position.set(x,y,z);m
 // gImpact(): bullet impact on the ground at point p (small decal + dust).
 function gImpact(p){if(Math.abs(p.x)>A||Math.abs(p.z)>A)return;gDecal(TXH[(Math.random()*3)|0],p.x,p.z,.38*rr(.85,1.15));spark(p.x,.08,p.z,0xd9d0bb,3,1.6,.1);}
 // Camera recoil per weapon id: CKV = pitch kick, CKS = shake strength, CKY = random yaw kick, CKR = random roll kick (camShot() applies them, reduced while aiming).
-var CKV=[.55,.38,1.4,1.7,0,0,.25,.2,2.4],CKS=[.6,.5,1,1,0,0,.3,.3,1.2],CKY=[.25,.3,.6,.7,0,0,.08,.05,.4],CKR=[.5,.6,1,1.2,0,0,.15,.12,.8];
+var CKV=WP.map(function(w){return w.stats.vRecoil===null?0:.12+.015*w.stats.vRecoil*w.recoilScale;}),
+    CKY=WP.map(function(w){return w.stats.hRecoil===null?0:.005*w.stats.hRecoil*(1-w.stats.control/200)*Math.max(.45,w.recoilScale);}),
+    CKR=CKY.map(function(y){return y*1.5;}),
+    CKS=WP.map(function(w){return w.stats.vRecoil===null?0:Math.min(1.2,.25+.009*w.stats.vRecoil);});
 // camShot(w): adds camera recoil for weapon w. Knife and grenade have none.
 function camShot(w){if(w===4||w===5)return;var a=1-.45*adsT;cs.kv+=CKV[w]*a;if(cs.k>.12)cs.kv*=.3;cs.yv+=(Math.random()-.5)*CKY[w]*a;cs.rv+=(Math.random()-.5)*CKR[w]*a;cs.s=Math.max(cs.s,CKS[w]);}
 // spr(): spring-damper step used for camera recoil recovery (value o[a], velocity o[b]).

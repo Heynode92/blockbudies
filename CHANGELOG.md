@@ -2,6 +2,31 @@
 
 Every update must record its date, scope, affected modules, user-visible strings, compatibility, and validation. Keep the original fixture immutable.
 
+## 2026-10-29 — Weapon balance profiles (user-provided Point Blank-style ratings)
+
+### Changed
+- Renamed the playable Rifle to **AK-47** in all dynamic weapon labels; retained the weapon ID, model, slot and controls.
+- Centralized pistol, AK-47, shotgun, RPG, knife, grenade, Kriss, Dual Kriss and AWP ratings in `WEAPON_PROFILES`, with runtime conversion settings in `WEAPON_TUNING` (`src/game/40-weapons-and-viewmodels.js`).
+- Preserved supplied Damage/RPM/Control/Speed/V.Recoil/H.Recoil/Ammo/Range values exactly. The RPG profile (85 damage, 35 RPM rating, 1/6 ammo, 65 range) is an explicitly chosen Block Buddies setting.
+- Fire interval derives from RPM *rating* via archetype-specific bounds; RPM ratings are not literal rounds per minute. Control derives spread, Speed derives player movement multiplier, and V/H recoil drive camera/viewmodel effects. These conversions are project-specific, not purported official Point Blank formulas.
+- Range now corresponds to bullet velocity times lifetime, so shots cannot vanish before the configured range; no unspecified damage-falloff formula was invented.
+- Shotgun damage 168 is the **sum of six pellets**, not 168 per pellet. AWP now deals 81 base body damage, so its select-card text no longer promises a one-shot kill.
+- Pistol ammo is now finite (13/52). Grenade is 2/2, reloads its spare stock, and its explosion uses the configured 40 damage. Knife has 60 damage with 1-unit listed reach plus character-collision allowance. Exhausted pistol switches to knife safely.
+
+### Scope and user-facing strings
+- `Rifle` -> `AK-47` in generated weapon names in HUD and weapon selection.
+- `1-shot sniper · RMB scope` -> `Bolt-action sniper · RMB scope` to avoid misleading damage claims.
+- All other original English UI text, models, Bomb Mission rules and AI decisions unchanged. Existing bot-only bullet table `EW` is intentionally unchanged; this update is for playable weapons rather than an unrequested bot lethality redesign.
+
+### Updated files
+- `src/game/40-weapons-and-viewmodels.js`, `src/game/65-audio.js`, `src/game/70-kills-and-damage-hud.js`, `src/game/75-weapon-controls.js`, `src/game/95-simulation.js`, generated `assets/game.js`, `tests/weapon-balance.test.mjs`, `CHANGELOG.md`.
+
+### Validation
+- 58/58 automated tests passed locally (47 existing baseline regression tests and 11 dedicated weapon-balance tests).
+- `node --check assets/game.js` passed.
+- Source-manifest concatenation exactly matches the committed runtime bundle.
+- Full visual/browser gameplay testing was not completed; values are locally code-tested and require playtesting for final feel.
+
 ## 2026-10-28 — Bomb Mission tactical clearing and structural wall clarity
 
 ### AI behavior (Bomb Mission only)

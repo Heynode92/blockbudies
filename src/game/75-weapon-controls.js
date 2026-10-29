@@ -8,19 +8,19 @@ function swW(i){pl.ammo[pl.w]={mag:pl.mag,res:pl.res};pl.w=i;var a=pl.ammo[i];pl
 // swSlot(s): switches to slot s (0 primary, 1 pistol, 2 knife, 3 grenade) with the switch animation.
 function swSlot(s){var id=[pl.prim,0,4,5][s],a=amo(id);
   if(id===pl.w){pl.slot=s;return;}
-  if((id===5&&a.mag<=0)||(id===pl.prim&&a.mag+a.res<=0)){toast(id===5?"Out of grenades":"Out of ammo");return;}
-  pl.slot=s;swW(id);}
+  if((id===5&&a.mag+a.res<=0)||(id===pl.prim&&a.mag+a.res<=0)){toast(id===5?"Out of grenades":"Out of ammo");return;}
+  pl.slot=s;swW(id);if(id===5&&pl.mag===0&&pl.res>0)reload();}
 // addGren(): +1 grenade (max 6).
-function addGren(){var a=amo(5);if(a.mag<6){a.mag++;toast("Grenade +1");}}
+function addGren(){var a=amo(5),w=WP[5];if(a.mag+a.res<w.mag+w.res){a.res++;toast("Grenade +1");}}
 // doStab(): knife attack: damages enemies in a short cone in front of the player.
 function doStab(){killW=4;curK=pl;var w=WP[4],fx=Math.sin(pl.face),fz=Math.cos(pl.face),hit=0;
-  en.slice().forEach(function(e){if(e.tm===pl.tm)return;var dx=e.x-pl.x,dz=e.z-pl.z,d=Math.hypot(dx,dz)||1;if(d<2.7&&(dx*fx+dz*fz)/d>.3&&clearTo(pl.x,pl.z,e.x,e.z,0)){dmgE(e,w.dmg,fx,fz);hit++;}});
+  en.slice().forEach(function(e){if(e.tm===pl.tm)return;var dx=e.x-pl.x,dz=e.z-pl.z,d=Math.hypot(dx,dz)||1;if(d<WP[4].range+.8&&(dx*fx+dz*fz)/d>.3&&clearTo(pl.x,pl.z,e.x,e.z,0)){dmgE(e,w.dmg,fx,fz);hit++;}});
   spark(pl.x+fx*1.3,1.2+pl.y,pl.z+fz*1.3,hit?0xff6b6b:0xffffff,hit?8:4,3,.07);
   var sh=document.getElementById("slh");sh.className="";void sh.offsetWidth;sh.className="go";}
 // mkGren(): builds a grenade mesh.
 function mkGren(){var g=new T.Group(),m=new T.Mesh(new T.SphereGeometry(.17,10,8),new T.MeshLambertMaterial({color:0x4a5a2a}));m.castShadow=true;g.add(m,bx(.06,.08,.06,0x888e98,0,.18,0),bx(.05,.03,.16,0xaab0b9,0,.23,.04));S.add(g);return g;}
 // throwG(): spawns a thrown grenade using the player's facing and pitch.
-function throwG(){pl.mag--;pl.ghide=.65;var f=pl.face,pt=pl.pitch,sp=16+pt*3;
+function throwG(){pl.mag--;pl.ghide=.65;if(pl.mag===0&&pl.res>0)reload();var f=pl.face,pt=pl.pitch,sp=16+pt*3;
   grs.push({m:mkGren(),x:pl.x+Math.sin(f)*.6,z:pl.z+Math.cos(f)*.6,y:1.3+pl.y,vx:Math.sin(f)*sp,vz:Math.cos(f)*sp,vy:5.5+pt*9,t:1.7});}
 // updG(dt): physics for thrown grenades (arc, bounce, fuse, explosion via boom()).
 function updG(dt){
@@ -34,7 +34,7 @@ function updG(dt){
     if(g.y<fl){g.y=fl;if(g.vy<-1.5)spark(g.x,fl,g.z,0xcfcfcf,2,1.5,.06);g.vy=-g.vy*.4;g.vx*=.72;g.vz*=.72;if(Math.abs(g.vy)<1)g.vy=0;}
     g.m.position.set(g.x,g.y,g.z);g.m.rotation.x+=dt*(Math.abs(g.vx)+Math.abs(g.vz)+1)*1.2;
     g.m.children[0].material.emissive.setHex(g.t<.8&&Math.floor(g.t*10)%2?0x771111:0);
-    if(g.t<=0){S.remove(g.m);grs.splice(gi,1);boom(g.x,g.z,45,"GRENADE");}
+    if(g.t<=0){S.remove(g.m);grs.splice(gi,1);boom(g.x,g.z,WP[5].dmg,"GRENADE");}
   }
 }
 // SV: inline SVG icons of each weapon id for the HUD.
@@ -54,17 +54,17 @@ var slEls=[],slKey=[];
 function slotUI(w){
   var ids=[pl.prim,0,4,5],i,id,a,el,txt,em,on,key;
   for(i=0;i<4;i++){id=ids[i];a=amo(id);
-    txt=id===4?"\u221e":id===5?"x"+a.mag:a.mag+"/"+(a.res===Infinity?"\u221e":a.res);
-    em=id===4?false:id===5?a.mag<=0:a.mag+a.res<=0;on=id===pl.w;
+    txt=id===4?"\u221e":a.mag+"/"+(a.res===Infinity?"\u221e":a.res);
+    em=id===4?false:a.mag+a.res<=0;on=id===pl.w;
     key=id+"|"+on+"|"+em+"|"+txt;
     if(slKey[i]!==key){slKey[i]=key;el=slEls[i];el.className="sl"+(on?" on":"")+(em?" em":"");
       el.children[1].innerHTML=SV[id];el.children[2].textContent=i===0?WP[id].n:["","Pistol","Knife","Grenade"][i];el.children[3].textContent=txt;}}
-  if(w.melee){E.mg.textContent="\u221e";E.rs.textContent="";}else if(w.gr){E.rs.textContent="";}
+  if(w.melee){E.mg.textContent="\u221e";E.rs.textContent="";}
 }
 // ===== PRIMARY WEAPON SELECT / KRISS <-> DUAL / AWP SCOPE =====
 // ===== primary weapon select / Kriss <-> Dual / AWP scope =====
 // WSEL = weapon ids offered in the pre-match select (keys 1-5). WDESC = descriptions shown on the cards.
-var WSEL=[1,2,3,6,8],WDESC={1:"Balanced · mid range",2:"Close range · high burst",3:"Explosive splash",6:"Fast SMG · V = DUAL",8:"1-shot sniper · RMB scope"};
+var WSEL=[1,2,3,6,8],WDESC={1:"Balanced · mid range",2:"Close range · high burst",3:"Explosive splash",6:"Fast SMG · V = DUAL",8:"Bolt-action sniper · RMB scope"};
 // canAds(w): which weapons can aim down sights: ids 0-3, Kriss (6) and AWP (8). Dual Kriss, knife, grenade cannot.
 function canAds(w){return w<4||w===6||w===8;}
 // fall(b,p): damage falloff multiplier (0..1) for bullet b at hit point p from its start (sx,sz), using the weapon's r0/r1/rm.

@@ -545,24 +545,55 @@ function aimA(q,px,py,tx,ty,tz,sd){var L1=.4,L2=.46;va.set(tx-px,ty-py,tz);var d
 function aimArms(e){var r=e.rc||0,ce=0,ph=tt*7+e.ph,gx0=Math.sin(tt*1.1+e.ph)*.015,gy0=.05*r+Math.sin(tt*1.7+e.ph)*.012,gx=gx0+ce*(.3+Math.sin(ph*.5)*.05),gy=gy0+ce*(.9+Math.abs(Math.sin(ph))*.1),gz=-.14*r;e.g.userData.gun.position.set(-.15+gx,gy,-.1+gz);aimA(e.arms[1],.55,1.3,.05+gx,.85+gy,.24+gz,1);aimA(e.arms[0],-.55,1.3,(.05+gx0)*(1-ce)-.6*ce,(.98+gy0)*(1-ce)+(2.25+Math.abs(Math.sin(ph+1))*.15)*ce,(.5+gz)*(1-ce)+.05*ce,-1);}
 // flash(): hit-flash/knockback wobble of a bot after it takes damage (e.fl timer, e.hv/e.hx wobble).
 function flash(e,dt){e.fl=Math.max(0,e.fl-dt);if(e.tm===undefined)return;e.hv=e.hv||0;e.hx=e.hx||0;e.hv+=(-e.hx*170-e.hv*13)*dt;e.hx+=e.hv*dt;var h=Math.max(-.5,Math.min(.9,e.hx));e.body.rotation.x-=h*.75;e.body.rotation.y+=h*(e.hs||1)*.35;e.body.position.y-=Math.abs(h)*.06;e.g.position.x+=(e.hdx||0)*h*.3;e.g.position.z+=(e.hdz||0)*h*.3;}
-// ---- WEAPON TABLE ----
-// Fields: n name | cd seconds between shots | dmg damage per pellet | spd bullet speed (units/s) | life bullet lifetime (s)
-// pel pellets per shot | spr random spread (radians) | mag magazine size | res reserve ammo | rt reload time (s)
-// r0/r1/rm damage falloff (full damage until r0, down to rm*dmg at r1) | rk rocket | melee knife | gr grenade
-// dual = Dual Kriss | snp = sniper (bolt action).
-// RANGE: a bullet flies spd x life units before it disappears (Dual Kriss: 150 x .6 = 90 units, Kriss: 150 x .22 = 33 units).
-// If life is too small the bullet vanishes in mid-air and leaves no mark on far walls. r0/r1 only change the DAMAGE, not how far it flies.
-// weapons
-var WP=[{n:"Pistol",cd:.35,dmg:10,spd:140,life:.25,pel:1,spr:0,mag:12,res:Infinity,rt:1},
- {n:"Rifle",cd:.09,dmg:6,spd:160,life:.24,pel:1,spr:.07,mag:30,res:90,rt:1.4},
- {n:"Shotgun",cd:.65,dmg:8,spd:110,life:.13,pel:6,spr:.3,mag:6,res:24,rt:2.2},
- {n:"Rocket",cd:1,dmg:45,spd:15,life:2,pel:1,spr:0,mag:1,res:6,rt:1.8,rk:1},
- {n:"Knife",cd:.55,dmg:30,mag:1,res:Infinity,rt:1,melee:1,spd:0,life:0,pel:0,spr:0},
- {n:"Grenade",cd:1.1,dmg:45,mag:3,res:0,rt:1,gr:1,spd:0,life:0,pel:0,spr:0},
- // r0 = full-damage range, r1 = range where damage bottoms out at rm x dmg (bullet also dies near r1)
- {n:"Kriss",cd:.07,dmg:6,spd:150,life:.22,pel:1,spr:.025,mag:25,res:150,rt:1.5,r0:10,r1:32,rm:.45},
- {n:"Dual Kriss",cd:.05,dmg:5,spd:150,life:.6,pel:1,spr:.035,mag:150,res:0,rt:2.4,r0:14,r1:70,rm:.4,dual:1},
- {n:"AWP",cd:1.35,dmg:110,spd:420,life:.55,pel:1,spr:.14,mag:5,res:20,rt:2.6,r0:60,r1:200,rm:.85,snp:1}];
+// ---- WEAPON DATA: Single source of truth for user-provided Point Blank-style ratings ----
+// Display ratings (0..100) are NOT real-world rounds/minute, meters/second or recoil angles.
+// Actual gameplay fire intervals/accuracy/movement are derived explicitly below.
+// damage = per-shot damage; for shotguns the damage is SPLIT across six pellets.
+// range = maximum bullet travel in world units (not meters or an infinite visual tracer).
+var WEAPON_PROFILES=[
+ {name:"Pistol",damage:26,rpm:84,control:87,speed:93,vRecoil:61,hRecoil:61,mag:13,res:52,range:45,kind:"pistol"},
+ {name:"AK-47",damage:33,rpm:88,control:44,speed:74,vRecoil:69,hRecoil:62,mag:30,res:90,range:140,kind:"rifle"},
+ {name:"Shotgun",damage:168,rpm:48,control:58,speed:79,vRecoil:100,hRecoil:78,mag:6,res:30,range:70,kind:"shotgun"},
+ // RPG is a project-specific value; user permitted its tuning rather than supplying PB ratings.
+ {name:"RPG",damage:85,rpm:35,control:25,speed:48,vRecoil:100,hRecoil:85,mag:1,res:6,range:65,kind:"rocket"},
+ {name:"Knife",damage:60,rpm:null,control:100,speed:98,vRecoil:null,hRecoil:null,mag:1,res:Infinity,range:1,kind:"knife"},
+ {name:"Grenade",damage:40,rpm:null,control:null,speed:98,vRecoil:null,hRecoil:null,mag:2,res:2,range:null,kind:"grenade"},
+ {name:"Kriss",damage:21,rpm:93,control:59,speed:90,vRecoil:48,hRecoil:48,mag:30,res:210,range:60,kind:"smg"},
+ {name:"Dual Kriss",damage:18,rpm:93,control:59,speed:90,vRecoil:48,hRecoil:48,mag:125,res:0,range:60,kind:"dual"},
+ {name:"AWP",damage:81,rpm:39,control:66,speed:69,vRecoil:60,hRecoil:60,mag:5,res:64,range:180,kind:"sniper"}
+];
+// The score->engine conversion is game balancing, NOT an unofficial Point Blank formula.
+// min/max are real rounds-per-minute bounds for each archetype; spread is angular.
+var WEAPON_TUNING={
+ pistol:{rpmMin:180,rpmMax:360,spread:.09,bulletSpeed:160,reload:1,viewKick:1.1,recoilScale:.35},
+ rifle:{rpmMin:400,rpmMax:750,spread:.13,bulletSpeed:180,reload:1.4,viewKick:.9,recoilScale:.65},
+ shotgun:{rpmMin:45,rpmMax:90,spread:.6,bulletSpeed:125,reload:2.2,pellets:6,viewKick:1.7,recoilScale:1.2},
+ rocket:{rpmMin:25,rpmMax:45,spread:.02,bulletSpeed:15,reload:1.8,viewKick:2,recoilScale:1.3},
+ knife:{cooldown:.55,reload:1},
+ grenade:{cooldown:1.1,reload:1},
+ smg:{rpmMin:650,rpmMax:1050,spread:.075,bulletSpeed:170,reload:1.5,viewKick:.65,recoilScale:.45},
+ dual:{rpmMin:850,rpmMax:1250,spread:.095,bulletSpeed:170,reload:2.4,viewKick:.55,recoilScale:.4},
+ sniper:{rpmMin:30,rpmMax:65,spread:.21,bulletSpeed:420,reload:2.6,viewKick:2.8,recoilScale:1.5}
+};
+function weaponProfile(p){var t=WEAPON_TUNING[p.kind],pel=t.pellets||1;
+  var realRpm=p.rpm===null?null:t.rpmMin+(t.rpmMax-t.rpmMin)*p.rpm/100;
+  var speed=t.bulletSpeed||0;
+  var w={n:p.name,stats:p,cd:realRpm===null?t.cooldown:60/realRpm,
+    dmg:p.damage/pel,spd:speed,life:p.range===null?0:p.range/speed,
+    pel:p.kind==='knife'||p.kind==='grenade'?0:pel,
+    spr:p.control===null?0:(t.spread||0)*(100-p.control)/100,
+    mag:p.mag,res:p.res,rt:t.reload,
+    range:p.range,moveMult:.75+.003*p.speed,
+    viewKick:t.viewKick?Math.min(.26,(.015+.001*p.vRecoil)*t.viewKick):0,
+    recoilScale:t.recoilScale||0};
+  if(p.kind==='rocket')w.rk=1;
+  if(p.kind==='knife')w.melee=1;
+  if(p.kind==='grenade')w.gr=1;
+  if(p.kind==='dual')w.dual=1;
+  if(p.kind==='sniper')w.snp=1;
+  return w;
+}
+var WP=WEAPON_PROFILES.map(weaponProfile);
 // EW: stats used for bot (enemy) bullets. Bots do not use the WP table.
 var EW={dmg:7,spd:100,life:.55,pel:1,spr:0};
 // CC: crate colors by contents (index = weapon crate type, see mkCrate/rci).
@@ -1008,7 +1039,10 @@ function enemyShotFx(o,x,y,z){var m=new T.Mesh(spG,mzfM);m.position.set(x,y,z);m
 // gImpact(): bullet impact on the ground at point p (small decal + dust).
 function gImpact(p){if(Math.abs(p.x)>A||Math.abs(p.z)>A)return;gDecal(TXH[(Math.random()*3)|0],p.x,p.z,.38*rr(.85,1.15));spark(p.x,.08,p.z,0xd9d0bb,3,1.6,.1);}
 // Camera recoil per weapon id: CKV = pitch kick, CKS = shake strength, CKY = random yaw kick, CKR = random roll kick (camShot() applies them, reduced while aiming).
-var CKV=[.55,.38,1.4,1.7,0,0,.25,.2,2.4],CKS=[.6,.5,1,1,0,0,.3,.3,1.2],CKY=[.25,.3,.6,.7,0,0,.08,.05,.4],CKR=[.5,.6,1,1.2,0,0,.15,.12,.8];
+var CKV=WP.map(function(w){return w.stats.vRecoil===null?0:.12+.015*w.stats.vRecoil*w.recoilScale;}),
+    CKY=WP.map(function(w){return w.stats.hRecoil===null?0:.005*w.stats.hRecoil*(1-w.stats.control/200)*Math.max(.45,w.recoilScale);}),
+    CKR=CKY.map(function(y){return y*1.5;}),
+    CKS=WP.map(function(w){return w.stats.vRecoil===null?0:Math.min(1.2,.25+.009*w.stats.vRecoil);});
 // camShot(w): adds camera recoil for weapon w. Knife and grenade have none.
 function camShot(w){if(w===4||w===5)return;var a=1-.45*adsT;cs.kv+=CKV[w]*a;if(cs.k>.12)cs.kv*=.3;cs.yv+=(Math.random()-.5)*CKY[w]*a;cs.rv+=(Math.random()-.5)*CKR[w]*a;cs.s=Math.max(cs.s,CKS[w]);}
 // spr(): spring-damper step used for camera recoil recovery (value o[a], velocity o[b]).
@@ -1169,7 +1203,7 @@ function setW(i){pl.w=i;pl.mag=WP[i].mag;pl.res=WP[i].res;pl.rl=0;}
 // reload(): starts a reload of the current weapon if allowed (needs reserve ammo, magazine not full, not already reloading).
 //  Dual Kriss (7) cannot reload: when empty the player must press V to go back to the single Kriss.
 //  AWP (8) does NOT reload after each shot (it uses the bolt cycle); reload() is only called when its magazine is empty.
-function reload(){var w=WP[pl.w];if(!run||pl.dead||pl.rl>0||pl.mag>=w.mag)return;if(pl.w===7){if(pl.mag<=0&&toastT<=0)toast("DUAL EMPTY - PRESS V");return;}if(pl.res<=0){if(pl.mag<=0&&toastT<=0)toast("NO AMMO");return;}pl.rl=w.rt;}
+function reload(){var w=WP[pl.w];if(!run||pl.dead||pl.rl>0||pl.mag>=w.mag||w.melee)return;if(pl.w===7){if(pl.mag<=0&&toastT<=0)toast("DUAL EMPTY - PRESS V");return;}if(pl.res<=0){if(pl.mag<=0&&toastT<=0)toast("NO AMMO");return;}pl.rl=w.rt;}
 // pick(ci): player collects crate type ci: medkit (3) heals, otherwise resupplies or swaps the primary weapon.
 function pick(ci){
   if(ci===3){pl.hp=Math.min(100,pl.hp+40);toast("Medkit +40 HP");return;}
@@ -1188,19 +1222,19 @@ function swW(i){pl.ammo[pl.w]={mag:pl.mag,res:pl.res};pl.w=i;var a=pl.ammo[i];pl
 // swSlot(s): switches to slot s (0 primary, 1 pistol, 2 knife, 3 grenade) with the switch animation.
 function swSlot(s){var id=[pl.prim,0,4,5][s],a=amo(id);
   if(id===pl.w){pl.slot=s;return;}
-  if((id===5&&a.mag<=0)||(id===pl.prim&&a.mag+a.res<=0)){toast(id===5?"Out of grenades":"Out of ammo");return;}
-  pl.slot=s;swW(id);}
+  if((id===5&&a.mag+a.res<=0)||(id===pl.prim&&a.mag+a.res<=0)){toast(id===5?"Out of grenades":"Out of ammo");return;}
+  pl.slot=s;swW(id);if(id===5&&pl.mag===0&&pl.res>0)reload();}
 // addGren(): +1 grenade (max 6).
-function addGren(){var a=amo(5);if(a.mag<6){a.mag++;toast("Grenade +1");}}
+function addGren(){var a=amo(5),w=WP[5];if(a.mag+a.res<w.mag+w.res){a.res++;toast("Grenade +1");}}
 // doStab(): knife attack: damages enemies in a short cone in front of the player.
 function doStab(){killW=4;curK=pl;var w=WP[4],fx=Math.sin(pl.face),fz=Math.cos(pl.face),hit=0;
-  en.slice().forEach(function(e){if(e.tm===pl.tm)return;var dx=e.x-pl.x,dz=e.z-pl.z,d=Math.hypot(dx,dz)||1;if(d<2.7&&(dx*fx+dz*fz)/d>.3&&clearTo(pl.x,pl.z,e.x,e.z,0)){dmgE(e,w.dmg,fx,fz);hit++;}});
+  en.slice().forEach(function(e){if(e.tm===pl.tm)return;var dx=e.x-pl.x,dz=e.z-pl.z,d=Math.hypot(dx,dz)||1;if(d<WP[4].range+.8&&(dx*fx+dz*fz)/d>.3&&clearTo(pl.x,pl.z,e.x,e.z,0)){dmgE(e,w.dmg,fx,fz);hit++;}});
   spark(pl.x+fx*1.3,1.2+pl.y,pl.z+fz*1.3,hit?0xff6b6b:0xffffff,hit?8:4,3,.07);
   var sh=document.getElementById("slh");sh.className="";void sh.offsetWidth;sh.className="go";}
 // mkGren(): builds a grenade mesh.
 function mkGren(){var g=new T.Group(),m=new T.Mesh(new T.SphereGeometry(.17,10,8),new T.MeshLambertMaterial({color:0x4a5a2a}));m.castShadow=true;g.add(m,bx(.06,.08,.06,0x888e98,0,.18,0),bx(.05,.03,.16,0xaab0b9,0,.23,.04));S.add(g);return g;}
 // throwG(): spawns a thrown grenade using the player's facing and pitch.
-function throwG(){pl.mag--;pl.ghide=.65;var f=pl.face,pt=pl.pitch,sp=16+pt*3;
+function throwG(){pl.mag--;pl.ghide=.65;if(pl.mag===0&&pl.res>0)reload();var f=pl.face,pt=pl.pitch,sp=16+pt*3;
   grs.push({m:mkGren(),x:pl.x+Math.sin(f)*.6,z:pl.z+Math.cos(f)*.6,y:1.3+pl.y,vx:Math.sin(f)*sp,vz:Math.cos(f)*sp,vy:5.5+pt*9,t:1.7});}
 // updG(dt): physics for thrown grenades (arc, bounce, fuse, explosion via boom()).
 function updG(dt){
@@ -1214,7 +1248,7 @@ function updG(dt){
     if(g.y<fl){g.y=fl;if(g.vy<-1.5)spark(g.x,fl,g.z,0xcfcfcf,2,1.5,.06);g.vy=-g.vy*.4;g.vx*=.72;g.vz*=.72;if(Math.abs(g.vy)<1)g.vy=0;}
     g.m.position.set(g.x,g.y,g.z);g.m.rotation.x+=dt*(Math.abs(g.vx)+Math.abs(g.vz)+1)*1.2;
     g.m.children[0].material.emissive.setHex(g.t<.8&&Math.floor(g.t*10)%2?0x771111:0);
-    if(g.t<=0){S.remove(g.m);grs.splice(gi,1);boom(g.x,g.z,45,"GRENADE");}
+    if(g.t<=0){S.remove(g.m);grs.splice(gi,1);boom(g.x,g.z,WP[5].dmg,"GRENADE");}
   }
 }
 // SV: inline SVG icons of each weapon id for the HUD.
@@ -1234,17 +1268,17 @@ var slEls=[],slKey=[];
 function slotUI(w){
   var ids=[pl.prim,0,4,5],i,id,a,el,txt,em,on,key;
   for(i=0;i<4;i++){id=ids[i];a=amo(id);
-    txt=id===4?"\u221e":id===5?"x"+a.mag:a.mag+"/"+(a.res===Infinity?"\u221e":a.res);
-    em=id===4?false:id===5?a.mag<=0:a.mag+a.res<=0;on=id===pl.w;
+    txt=id===4?"\u221e":a.mag+"/"+(a.res===Infinity?"\u221e":a.res);
+    em=id===4?false:a.mag+a.res<=0;on=id===pl.w;
     key=id+"|"+on+"|"+em+"|"+txt;
     if(slKey[i]!==key){slKey[i]=key;el=slEls[i];el.className="sl"+(on?" on":"")+(em?" em":"");
       el.children[1].innerHTML=SV[id];el.children[2].textContent=i===0?WP[id].n:["","Pistol","Knife","Grenade"][i];el.children[3].textContent=txt;}}
-  if(w.melee){E.mg.textContent="\u221e";E.rs.textContent="";}else if(w.gr){E.rs.textContent="";}
+  if(w.melee){E.mg.textContent="\u221e";E.rs.textContent="";}
 }
 // ===== PRIMARY WEAPON SELECT / KRISS <-> DUAL / AWP SCOPE =====
 // ===== primary weapon select / Kriss <-> Dual / AWP scope =====
 // WSEL = weapon ids offered in the pre-match select (keys 1-5). WDESC = descriptions shown on the cards.
-var WSEL=[1,2,3,6,8],WDESC={1:"Balanced · mid range",2:"Close range · high burst",3:"Explosive splash",6:"Fast SMG · V = DUAL",8:"1-shot sniper · RMB scope"};
+var WSEL=[1,2,3,6,8],WDESC={1:"Balanced · mid range",2:"Close range · high burst",3:"Explosive splash",6:"Fast SMG · V = DUAL",8:"Bolt-action sniper · RMB scope"};
 // canAds(w): which weapons can aim down sights: ids 0-3, Kriss (6) and AWP (8). Dual Kriss, knife, grenade cannot.
 function canAds(w){return w<4||w===6||w===8;}
 // fall(b,p): damage falloff multiplier (0..1) for bullet b at hit point p from its start (sx,sz), using the weapon's r0/r1/rm.
@@ -1932,7 +1966,7 @@ function update(dt){
   var wA=!pl.dead&&(pl.w===8?scopeOn:mouse.right)&&canAds(pl.w)&&pl.rl<=0&&pl.sw<=0&&pl.thr<=0&&pl.stab<=0,wS=!pl.dead&&(keys.ShiftLeft||keys.ShiftRight)&&-mz>.25&&!wA&&!shoot;
   adsT+=((wA?1:0)-adsT)*Math.min(1,dt*12);sprT+=((wS?1:0)-sprT)*Math.min(1,dt*9);
   if(!pl.dead)pl.life+=dt;else{pl.dt+=dt;pl.rsT-=dt;if(pl.rsT<=0&&!mt.over&&!isBombMode())respawnPl();}
-  var spd=6.5*(1+.62*sprT)*(1-.38*adsT)*(1-.12*wtT);
+  var spd=6.5*(1+.62*sprT)*(1-.38*adsT)*(1-.12*wtT)*WP[pl.w].moveMult;
   mvAmt+=(ml-mvAmt)*Math.min(1,dt*8);wtT+=((pl.w>=1&&pl.w<=3||pl.w===6||pl.w===8?1:0)-wtT)*Math.min(1,dt*6);
   var fw=-mz,sf=Math.sin(pl.face),cf=Math.cos(pl.face);pl.x+=(fw*sf-mx*cf)*spd*dt;pl.z+=(fw*cf+mx*sf)*spd*dt;resolve(pl,.55);
   var py=pl.y,gy=gh(pl.x,pl.z,py);
@@ -1943,9 +1977,11 @@ function update(dt){
   var rk=pl.dead?0:1;pl.face-=ST.r.x*2.4*dt*rk;pl.pitch=Math.max(-1.2,Math.min(1.2,pl.pitch-ST.r.y*1.6*dt*rk));
   var cdo=pl.cd;pl.cd-=dt;pl.ov=(cdo>0&&pl.cd<0)?-pl.cd:0;var w=WP[pl.w];pl.sw=Math.max(0,pl.sw-dt);pl.stab=Math.max(0,pl.stab-dt);pl.ghide=Math.max(0,pl.ghide-dt);if(pl.sth&&pl.stab<=.23){pl.sth=false;doStab();}if(pl.thr>0){pl.thr=Math.max(0,pl.thr-dt);if(pl.pend&&pl.thr<=.225){pl.pend=false;throwG();}}
   if(pl.rl>0){pl.rl-=dt;if(pl.rl<=0){var n=Math.min(w.mag-pl.mag,pl.res);pl.mag+=n;pl.res-=n;}}
-  for(var sn=0;sn<3&&shoot&&pl.cd<=0&&pl.rl<=0&&pl.thr<=0&&pl.sw<=0;sn++){if(sn>0)pl.ov=-pl.cd;if(w.melee){pl.cd=w.cd;pl.stab=.42;pl.sth=true;}else if(w.gr){if(pl.mag>0){pl.thr=.5;pl.pend=true;pl.cd=1.1;}}else if(pl.mag>0){fire(pl,pl.face,w,"p",pl.ov);ejectShell(pl.w,(pl.w===7&&shotSide)?-1:1);pl.cd=w.cd-pl.ov;kick=Math.min(.26,kick+(w.snp?.26:w.rk?.25:w.pel>1?.2:pl.w===0?.09:.065));flashT=Math.min(.06,w.cd*.75);camShot(pl.w);gunSfx(GS[SFXI[pl.w]],1);if(w.snp){scopeOn=false;pl.mag--;pl.bolt=BOLT_T;pl.bc=0;}else if(--pl.mag===0)reload();}else reload();}
+  for(var sn=0;sn<3&&shoot&&pl.cd<=0&&pl.rl<=0&&pl.thr<=0&&pl.sw<=0;sn++){if(sn>0)pl.ov=-pl.cd;if(w.melee){pl.cd=w.cd;pl.stab=.42;pl.sth=true;}else if(w.gr){if(pl.mag>0){pl.thr=.5;pl.pend=true;pl.cd=w.cd;}}else if(pl.mag>0){fire(pl,pl.face,w,"p",pl.ov);ejectShell(pl.w,(pl.w===7&&shotSide)?-1:1);pl.cd=w.cd-pl.ov;kick=Math.min(.26,kick+w.viewKick);flashT=Math.min(.06,w.cd*.75);camShot(pl.w);gunSfx(GS[SFXI[pl.w]],1);if(w.snp){scopeOn=false;pl.mag--;pl.bolt=BOLT_T;pl.bc=0;}else if(--pl.mag===0)reload();}else reload();}
   if(!pl.dead&&pl.w===7&&pl.mag<=0&&pl.res<=0){var kk=pl.ammo[6];if(kk&&kk.mag+kk.res>0)toggleDual();}
-  if(!pl.dead&&pl.mag<=0&&pl.res<=0&&pl.rl<=0&&pl.thr<=0&&pl.w!==0&&pl.w!==4){swSlot(1);toast("Out of ammo");}
+  if(!pl.dead&&pl.mag<=0&&pl.res<=0&&pl.rl<=0&&pl.thr<=0&&!WP[pl.w].melee&&!WP[pl.w].gr){
+    var pistol=amo(0),next=pistol.mag+pistol.res>0?1:2;
+    swSlot(next);toast("Out of ammo");}
   // crates
   crateT-=dt;if(DM_RULES.crates&&crateT<=0&&cr.length<12){crateT=2;var x,z,k=0;do{x=(Math.random()*2-1)*(A-3);z=(Math.random()*2-1)*(A-3);}while(inObs(x,z,1)&&k++<12);mkCrate(x,z,46,rci());}
   for(var i=cr.length-1;i>=0;i--){var c=cr[i];
