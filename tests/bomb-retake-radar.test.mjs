@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const source=(p)=>readFileSync(resolve(root,p),'utf8');
 const tactics=source('src/game/87-bomb-tactics.js');
+const perception=source('src/game/88-bot-perception.js');
 const radarSrc=source('src/game/96-hud-and-radar.js');
 const radarHelpers=radarSrc.slice(radarSrc.indexOf('var BOMB_RADAR='),radarSrc.indexOf('// cfont():'));
 const css=source('src/styles/07-bomb-mission.css');
@@ -21,9 +22,10 @@ function state(){
     pl:{tm:1,x:-72,z:-60,dead:false},
     BOMB_SITES:[{id:'A',x:-25,z:-5},{id:'B',x:25,z:5}],
     bombMatch:{state:'planted',site:1,done:false,device,defuser:null},
-    isBombMode(){return true;},inObs(){return false;},
+    isBombMode(){return true;},inObs(){return false;},los(){return true;},
     bombActionFor(){return null;}
   };
+  runInNewContext(perception,ctx);
   runInNewContext(tactics,ctx);
   return {ctx,defuser,officer,guard};
 }
@@ -40,6 +42,7 @@ test('the assigned defuser approaches the real bomb position',()=>{
 test('assault officers chase Terrorists close to the planted device',()=>{
   const {ctx,officer,guard}=state();
   officer.x=8;officer.z=5;
+  ctx.botIntelAcquire(officer);
   assert.deepEqual([...ctx.bombTacticalGoal(officer)],[guard.x,guard.z]);
 });
 test('if the enemy is away, assault officers sweep immediately around the planted device',()=>{
