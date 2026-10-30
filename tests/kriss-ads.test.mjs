@@ -57,7 +57,7 @@ test('Kriss has a unique tactical reflex sight; Dual Kriss can never ADS',()=>{
  assert.equal(ctx.canAds(6),true);
  assert.equal(ctx.canAds(7),false);
  for(const id of [10,11,12])assert.ok(ctx.tacticalOpticConfig(id));
- assert.match(read('src/game/95-simulation.js'),/pl\.w===8\?scopeOn:mouse\.right/);
+ assert.match(read('src/game/95-simulation.js'),/WP\[pl\.w\]\.snp\?scopeOn:mouse\.right/);
 });
 test('Kriss ADS hides the original physical optic and restores it on release or Dual toggle',()=>{
  const ctx=models(),gun=ctx.mkGun(6),dualGun=ctx.mkGun(7);
@@ -88,7 +88,7 @@ test('Kriss sight style and alignment remain independent of Dual and other tacti
  assert.match(css,/\.tactical-aim-kriss \.ta-frame\{width:98px;height:72px;border-radius:9px/);
  assert.match(css,/\.tactical-aim-kriss \.ta-frame::after\{box-shadow:/);
  assert.doesNotMatch(css,/\.ta-label|--ta-label-offset/);
- assert.match(viewmodels,/\[0,-\.21,-\.55\],\[0,-\.13,-\.5\],\[0,-\.14,-\.5\]/);
+ assert.match(viewmodels,/\[0,-0\.21,-0\.55\],\[0,-0\.13,-0\.5\],\[0,-0\.14,-0\.5\]/);
  assert.match(viewmodels,/ADF=\[[^\]]+,50,70,14,44/);
  for(const name of ['mp7','p90','sopmod'])assert.match(css,new RegExp('tactical-aim-'+name));
  assert.match(read('index.html'),/id="tacticalAim"/);
