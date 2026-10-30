@@ -25,7 +25,7 @@ function shopStat(label,value,max){
   row.appendChild(shopEl("span","ss-l",label));row.appendChild(bar);row.appendChild(shopEl("span","ss-v",value));
   return row;
 }
-function shopBuildFilter(roles,ids,ownedCount){
+function shopBuildFilter(roles,ids){
   var grid=document.getElementById("shopGrid"),bar=document.getElementById("shopFilter");
   if(!bar){bar=shopEl("div","shop-filter");bar.id="shopFilter";grid.parentNode.insertBefore(bar,grid);}
   bar.textContent="";
@@ -38,13 +38,10 @@ function shopBuildFilter(roles,ids,ownedCount){
     chip.onclick=function(){shopFilter=r;shopAnim=true;grid.scrollTop=0;shopRender();};
     bar.appendChild(chip);
   });
-  var count=shopEl("div","shop-count","OWNED ");
-  count.appendChild(shopEl("b","",ownedCount+" / "+ids.length));
-  bar.appendChild(count);
 }
 function shopRender(){
   var grid=document.getElementById("shopGrid"),ids=shopCatalog(),owned=inventoryOwned("main"),
-      roles=[],max={d:1,s:1,m:1},ownedCount=0,flash=shopFlashId,shown=0,scrollPosition=grid.scrollTop;
+      roles=[],max={d:1,s:1,m:1},flash=shopFlashId,shown=0,scrollPosition=grid.scrollTop;
   shopFlashId=-1;
   // Bar lengths are relative to the strongest weapon in the shop, so no assumptions about stat scales.
   ids.forEach(function(id){
@@ -54,9 +51,8 @@ function shopRender(){
     max.d=Math.max(max.d,shopNum(w.stats.damage));
     max.s=Math.max(max.s,shopNum(w.stats.speed));
     max.m=Math.max(max.m,shopNum(w.mag));
-    if(owned.indexOf(id)>=0)ownedCount++;
   });
-  shopBuildFilter(roles,ids,ownedCount);
+  shopBuildFilter(roles,ids);
   if(ids.indexOf(shopSelectedId)<0)shopSelectedId=ids[0];
   if(shopFilter!=="ALL"&&shopRole(shopSelectedId)!==shopFilter)shopSelectedId=ids.filter(function(id){return shopRole(id)===shopFilter;})[0];
   shopRenderSelection(ids,owned,max);
