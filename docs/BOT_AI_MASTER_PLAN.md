@@ -1,11 +1,12 @@
 # BLOCK BUDDIES — BOT Intelligence Modernization Master Plan
 
 > **Document ID:** BB-AI-ROADMAP-001  
-> **Status:** APPROVED FOR PLANNING / NOT IMPLEMENTED  
+> **Status:** GAMEPLAY UPGRADE NOT IMPLEMENTED / M0 SYNTHETIC TEST HARNESS IN PROGRESS  
 > **Baseline reviewed:** `main` at `23cd2bb71a2535de86ba49ccdfc3d23455be2ff9` (2026-10-30)  
 > **Scope:** Police and Terrorist BOTs in Team Deathmatch (TDM) and Bomb Mission  
 > **Source of truth:** repository production sources, `docs/ARCHITECTURE.md`, original-game fixture, existing test suite  
-> **Progress tracker:** [BOT_AI_IMPLEMENTATION_LOG.md](BOT_AI_IMPLEMENTATION_LOG.md)
+> **Progress tracker:** [BOT_AI_IMPLEMENTATION_LOG.md](BOT_AI_IMPLEMENTATION_LOG.md)  
+> **M0 baseline evidence:** [BOT_AI_M0_BASELINE.md](BOT_AI_M0_BASELINE.md)
 
 ## 1. Product outcome
 
@@ -15,7 +16,7 @@ All improvements must apply to **both teams**. Team-specific differences are lim
 
 **Quality criteria:** challenging but readable, responsive but not instantaneous, adaptive but not random jitter, aggressive but not suicidal, accurate but beatable, and tactical without cheating.
 
-This document is a **future implementation specification**, not evidence that any of the proposed behaviors exist today.
+This document is a **future gameplay implementation specification**, not evidence that any of the proposed behaviors exist today. On 2026-10-30, only a development-only synthetic M0 fixture and initial trace have been added; real-game KPI validation and M0 completion remain pending.
 
 ## 2. Hard constraints and non-goals
 
@@ -162,6 +163,8 @@ Mark a milestone complete **only after its acceptance gates pass**. Each milesto
 
 ### M0 — Foundations and measurement
 
+**Current tracking (2026-10-30):** **IN PROGRESS**. See [synthetic M0 trace and unfinished gates](BOT_AI_M0_BASELINE.md). The `footstepAdvance` isolated test mock is already fixed; seeded TDM/Bomb replay exists, but real map/browser metrics, native full Node suite and frame-time validation are not yet evidenced.
+
 **Work:** capture the existing BOT update behavior from `main` for fixed seeds and the 5v5 Police/Terrorist combinations; verify `node --test` isolation and missing `footstepAdvance` test mock; measure behavior and frame time on the existing runtime. Build a developer-only debug overlay/logging mode *only if needed*, disabled by default.
 
 **Exit gate:** automated test harness runs the active code, deterministic scenarios yield reproducible outcome traces, pre-change metrics are recorded and legacy UI/gameplay remain unchanged.
@@ -304,4 +307,4 @@ These are **maintainer-only** actions. The user must never be told to install No
 5. Keep tactical input honest and preserve canonical gameplay mechanics. Test in realistic scenarios; record baseline deltas.
 6. Commit only after verification; update documentation and implementation log in the same commit. Never claim an upgrade was completed while only the plan was edited.
 
-**Approval boundary:** The repository owner requested this **documentation and logging only** on 2026-10-30. All gameplay implementation milestones remain pending a separate instruction.
+**Approval boundary:** The original request on 2026-10-30 authorized documentation and logging only. A later explicit owner instruction authorized M0 harness and testing work. M1–M7 gameplay upgrades remain pending separate authorization.
