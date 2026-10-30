@@ -98,6 +98,9 @@ test("closed pointer lock and input cannot steal a loadout click",()=>{
  assert.match(input,/if\(wsOn\)\{e.preventDefault\(\);return;\}/);
  assert.match(picker,/document.exitPointerLock\(\)/);
  assert.match(picker,/document.body.classList.toggle\("loadout-cursor-hidden"/);
+ const hud=read("src/game/70-kills-and-damage-hud.js");
+ assert.doesNotMatch(hud,/run=true;if\(!touch\)\{try\{R\.domElement\.requestPointerLock/);
+ assert.match(hud,/Keep cursor free for pre-round loadout selection/);
  assert.match(controls,/WSEL.indexOf\(id\)<0\|\|inventoryOwned\("main"\).indexOf\(id\)<0/);
 });
 test("source manifest and generated asset preserve all original game features",()=>{

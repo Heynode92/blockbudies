@@ -3,7 +3,7 @@
 ## 2026-10-30 — Mouse-first weapon loadout for Deathmatch and Bomb Mission
 
 - Replaced the small countdown strip with the approved five-card tactical loadout dock: large clickable weapon icons, category navigation, carousel arrows, countdown and CONFIRM LOADOUT.
-- The cursor is released for selection, and the camera/mouse fire controls are suspended while the picker is active. Mouse or Enter confirmation saves the selected owned primary and attempts pointer lock from that user gesture.
+- The cursor is released for selection, and the camera/mouse fire controls are suspended while the picker is active. Initial team selection no longer races to lock the cursor; mouse or Enter confirmation saves the selected owned primary and attempts pointer lock from that user gesture.
 - Timeout automatically confirms, hides the panel and cursor, and waits for the next canvas click if the browser requires user activation for pointer lock.
 - The picker resets for each Bomb Mission round and Deathmatch match, preserving the last confirmed primary via Inventory. Locked Shop weapons remain visible but unavailable for selection.
 - Kept weapon damage, recoil, ammo, gameplay, standard slot HUD and legacy number-key shortcuts unchanged. Added isolated UI/input/timeout regression coverage and rebuilt the game bundle from 46 ordered modules.
