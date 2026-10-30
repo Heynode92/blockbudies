@@ -234,7 +234,9 @@ test('Room Settings stays in the active lobby; saving commits via popup only',()
  assert.equal(doc.getElementById('roomSettingsModal').hidden,false);
  assert.equal(call(context,'roomCurrent.id'),id);
  doc.getElementById('roomModalName').value='Updated';
- doc.getElementById('roomModalKillsPlus').click(); // default 50 -> 75, from whitelist
+ const killSelect=doc.getElementById('roomModalKills');
+ assert.deepEqual(killSelect.children.map(item=>item.value),['20','30','50','75','100']);
+ killSelect.value='75';killSelect.events.change.call(killSelect);
  assert.equal(call(context,'roomCurrent.kills'),50,'changes are unsaved before Save');
  doc.getElementById('roomModalSave').click();
  assert.equal(view.page,'lbroomlive');
@@ -304,9 +306,10 @@ test('Room popup CANCEL discards draft changes without closing room or changing 
  assert.equal(view.page,'lbroomlive');
  assert.equal(call(context,'roomCurrent.mode'),0,'draft does not change roomCurrent');
  assert.equal(JSON.parse(data.get('bbfps_local_rooms_v1'))[0].mode,0,'draft not persisted');
- assert.equal(doc.getElementById('roomModalTdmGroup').classes.has('is-inactive'),true);
- assert.equal(doc.getElementById('roomModalKillsPlus').disabled,true);
- doc.getElementById('roomModalRoundsPlus').click();
+ assert.equal(doc.getElementById('roomModalTdmGroup').hidden,true,'TDM settings entirely disappear in Bomb Mode');
+ assert.equal(doc.getElementById('roomModalBombGroup').hidden,false);
+ const rounds=doc.getElementById('roomModalRounds');
+ rounds.value='5';rounds.events.change.call(rounds);
  doc.getElementById('roomModalCancel').click();
  assert.equal(doc.getElementById('roomSettingsModal').hidden,true);
  assert.equal(call(context,'roomCurrent.mode'),original.mode);
@@ -339,13 +342,16 @@ test('Room popup saves only canonical settings for Bomb Mode and updates actual 
  const {context,doc,view,data}=setup();call(context,'roomLobbyOpen()');call(context,'roomCreateLocal()');
  const roomId=call(context,'roomCurrent.id');
  doc.getElementById('rmlSettings').click();doc.getElementById('roomModalBomb').click();
- // Canonical values: 12 -> max at 12 and 2 -> 3, clamped to ROOM_LIMITS.
- doc.getElementById('roomModalRoundsPlus').click();
- doc.getElementById('roomModalRoundMinutesPlus').click();
+ // Dropdowns inherit the exact canonical values from the Create Room form.
+ assert.deepEqual(doc.getElementById('roomModalRounds').children.map(v=>v.value),['3','5','7','9','12']);
+ const rounds=doc.getElementById('roomModalRounds');
+ rounds.value='9';rounds.events.change.call(rounds);
+ const time=doc.getElementById('roomModalRoundMinutes');
+ time.value='3';time.events.change.call(time);
  doc.getElementById('roomModalSave').click();
  assert.equal(call(context,'roomCurrent.id'),roomId);
  assert.equal(call(context,'roomCurrent.mode'),1);
- assert.equal(call(context,'roomCurrent.rounds'),12);
+ assert.equal(call(context,'roomCurrent.rounds'),9);
  assert.equal(call(context,'roomCurrent.roundMinutes'),3);
  assert.equal(doc.getElementById('rmlGameMode').textContent,'BOMB MODE');
  assert.equal(doc.getElementById('rmlTime').textContent,'3 MINUTES');
@@ -372,5 +378,45 @@ test('popup follows real map and source layout, not a new map or hardcoded timer
  assert.match(preview,/modalCtx.drawImage\(src/);
  assert.match(src,/ROOM_LIMITS\[key\]/);
  assert.match(src,/function roomShowSettings\(\)/);
+ assert.match(src,/roomModalPopulateOptions\(\)/);
+ assert.match(src,/roomModalSelect\(key,this\.value\)/);
+ assert.match(html,/id="roomModalMinutes"[^>]*><\/select>/);
+ assert.doesNotMatch(html,/roomModalKillsPlus|roomModalRoundsMinus|roomModalRoundMinutesPlus/);
+ assert.match(read('src/styles/04-lobby.css'),/#lbroomlive \.room-modal-group\[hidden\]\{display:none!important\}/);
  assert.doesNotMatch(src,/function roomShowSettings\(\)\{if\(!roomCurrent\)return;roomEditState\(roomCurrent\);lobP\("lbrooms"\);\}/);
+});
+
+test('Popup shows only selected mode settings and uses native dropdowns',()=>{
+ const {context,doc,view}=setup();call(context,'roomLobbyOpen()');call(context,'roomCreateLocal()');
+ doc.getElementById('rmlSettings').click();
+ const tdm=doc.getElementById('roomModalTdmGroup'),bomb=doc.getElementById('roomModalBombGroup');
+ assert.equal(tdm.hidden,false);
+ assert.equal(bomb.hidden,true);
+ assert.equal(view.page,'lbroomlive');
+ assert.deepEqual(doc.getElementById('roomModalMinutes').children.map(v=>v.value),['1','3','5','10','15']);
+ assert.deepEqual(doc.getElementById('roomModalRoundMinutes').children.map(v=>v.value),['1','2','3','4']);
+ assert.equal(doc.getElementById('roomModalKills').value,'50');
+ assert.equal(doc.getElementById('roomModalMinutes').value,'10');
+ doc.getElementById('roomModalBomb').click();
+ assert.equal(tdm.hidden,true);
+ assert.equal(bomb.hidden,false);
+ assert.equal(doc.getElementById('roomModalRounds').value,'12');
+ doc.getElementById('roomModalTdm').click();
+ assert.equal(tdm.hidden,false);
+ assert.equal(bomb.hidden,true);
+ assert.equal(doc.getElementById('roomModalMinutes').value,'10','mode toggle must preserve draft values');
+});
+test('Popup dropdown cannot bypass ROOM_LIMITS or persist an invalid forged option',()=>{
+ const {context,doc,data,view}=setup();call(context,'roomLobbyOpen()');call(context,'roomCreateLocal()');
+ doc.getElementById('rmlSettings').click();
+ const dropdown=doc.getElementById('roomModalKills');
+ dropdown.value='999999';dropdown.events.change.call(dropdown);
+ assert.equal(doc.getElementById('roomModalKills').value,'50','fallback to prior allowed value');
+ assert.equal(call(context,'roomModalDraft.kills'),50);
+ dropdown.value='30';dropdown.events.change.call(dropdown);
+ assert.equal(call(context,'roomCurrent.kills'),50,'unsaved changes must stay in the modal');
+ doc.getElementById('roomModalSave').click();
+ assert.equal(call(context,'roomCurrent.kills'),30);
+ assert.equal(JSON.parse(data.get('bbfps_local_rooms_v1'))[0].kills,30);
+ assert.equal(view.page,'lbroomlive');
 });

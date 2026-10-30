@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-30 — Simplify Room Settings modal to per-mode dropdowns
+
+- Removed the +/- steppers and simultaneous two-mode settings layout. ROOM SETTINGS now shows only the two fields relevant to the currently selected mode: TDM Kill Limit + Match Time, or Bomb Max Rounds + Round Time.
+- Replaced numeric steppers with native dropdowns matching Create Room. Dropdown options are generated from the existing ROOM_LIMITS whitelist rather than duplicated or invented.
+- Reduced popup padding, height and control density, improved responsive spacing, retained the existing WebGL map preview, and explicitly hide the inactive group with [hidden] CSS.
+- Retained current-room draft isolation, Save/Cancel semantics, Room Master ownership, BOT team slots, 3–2–1/loading and Inventory preview. Updated regression coverage and standalone bundle.
+
+
 ## 2026-10-30 — Room Master settings popup without leaving Room Lobby
 
 - ROOM SETTINGS in an active local room now opens a responsive, accessible overlay dialog on top of the same Room Lobby instead of routing back to the room browser.

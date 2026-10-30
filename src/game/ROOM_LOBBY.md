@@ -105,8 +105,10 @@ same lobby**, instead of navigating to the Room Browser's creation/editor view.
 The existing Create Room form remains intact for initial room creation.
 
 The modal maintains a separate unsaved draft (room name, game mode, map,
-kill limit, match minutes, max rounds, round minutes). +/- controls take their
-allowed values exclusively from `ROOM_LIMITS`; current playable map names,
+kill limit, match minutes, max rounds, round minutes). Native dropdowns, matching
+the existing Create Room controls, populate allowed values exclusively from
+`ROOM_LIMITS`. Only the selected mode's two fields are displayed (Kill Limit +
+Match Time for TDM; Max Rounds + Round Time for Bomb). Current playable map names,
 descriptions and the actual rendered 3D map come from `MODE_MAP_PREVIEWS`
 and the existing WebGL preview in `84-live-map-preview.js`.
 

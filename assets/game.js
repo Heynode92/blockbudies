@@ -2306,6 +2306,17 @@ function roomLiveOpen(room){
 // In-room settings have their own unsaved draft; the room browser stays untouched.
 var roomModalDraft=null,roomModalReturnFocus=null;
 function roomModalActive(){return !document.getElementById("roomSettingsModal").hidden;}
+// Populate from the same authoritative limits as Create Room; no duplicated values.
+function roomModalPopulateOptions(){
+ [["kills"," KILLS"],["minutes"," MINUTES"],["rounds"," ROUNDS"],["roundMinutes"," MINUTES"]].forEach(function(entry){
+  var key=entry[0],select=document.getElementById("roomModal"+key.charAt(0).toUpperCase()+key.slice(1));
+  select.replaceChildren();
+  ROOM_LIMITS[key].forEach(function(value){
+   var option=document.createElement("option");option.value=String(value);
+   option.textContent=value+entry[1];select.appendChild(option);
+  });
+ });
+}
 function roomModalPaint(){
  if(!roomModalDraft)return;
  var mode=roomModalDraft.mode;
@@ -2313,15 +2324,10 @@ function roomModalPaint(){
   var button=document.getElementById(id),active=index===mode;
   button.classList.toggle("active",active);button.setAttribute("aria-pressed",String(active));
  });
- [["roomModalTdmGroup",mode!==0,["kills","minutes"]],
-  ["roomModalBombGroup",mode!==1,["rounds","roundMinutes"]]].forEach(function(group){
-  document.getElementById(group[0]).classList.toggle("is-inactive",group[1]);
-  group[2].forEach(function(key){
-   var prefix="roomModal"+key.charAt(0).toUpperCase()+key.slice(1);
-   document.getElementById(prefix+"Value").textContent=String(roomModalDraft[key]);
-   document.getElementById(prefix+"Minus").disabled=group[1]||roomModalDraft[key]===ROOM_LIMITS[key][0];
-   document.getElementById(prefix+"Plus").disabled=group[1]||roomModalDraft[key]===ROOM_LIMITS[key][ROOM_LIMITS[key].length-1];
-  });
+ document.getElementById("roomModalTdmGroup").hidden=mode!==0;
+ document.getElementById("roomModalBombGroup").hidden=mode!==1;
+ ["kills","minutes","rounds","roundMinutes"].forEach(function(key){
+  document.getElementById("roomModal"+key.charAt(0).toUpperCase()+key.slice(1)).value=String(roomModalDraft[key]);
  });
  var map=roomMapsForMode(mode);
  roomText("roomModalMapName",map?map.name:"UNAVAILABLE");
@@ -2331,14 +2337,13 @@ function roomModalChooseMode(mode){
  if(!roomModalDraft)return;
  roomModalDraft.mode=mode===1?1:0;
  roomModalPaint();
- // Only the 3D *preview* changes until SAVE; roomCurrent remains unchanged.
+ // Only the 3D preview changes until SAVE; roomCurrent remains unchanged.
  selM=roomModalDraft.mode;modePreviewSelect(selM);
 }
-function roomModalStep(key,delta){
+function roomModalSelect(key,value){
  if(!roomModalDraft||ROOM_LIMITS[key]===undefined)return;
- var list=ROOM_LIMITS[key],index=list.indexOf(roomModalDraft[key]);
- if(index<0)return;
- roomModalDraft[key]=list[Math.max(0,Math.min(list.length-1,index+(delta<0?-1:1)))];
+ // A forged DOM value cannot bypass the same whitelist used by roomNormalize.
+ roomModalDraft[key]=roomAllowed(value,ROOM_LIMITS[key],roomModalDraft[key]);
  roomModalPaint();
 }
 function roomModalHide(restorePreview){
@@ -2356,6 +2361,7 @@ function roomShowSettings(){
  if(!roomCurrent||roomStartFlow.active||roomModalActive())return;
  roomModalReturnFocus=document.activeElement||document.getElementById("rmlSettings");
  roomModalDraft=Object.assign({},roomCurrent);
+ roomModalPopulateOptions();
  document.getElementById("roomModalName").value=roomCurrent.name;
  roomText("roomModalError","");
  roomModalPaint();
@@ -2632,9 +2638,8 @@ document.getElementById("roomModalSave").addEventListener("click",roomModalSave)
 document.getElementById("roomModalTdm").addEventListener("click",function(){roomModalChooseMode(0);});
 document.getElementById("roomModalBomb").addEventListener("click",function(){roomModalChooseMode(1);});
 ["kills","minutes","rounds","roundMinutes"].forEach(function(key){
- var prefix="roomModal"+key.charAt(0).toUpperCase()+key.slice(1);
- document.getElementById(prefix+"Minus").addEventListener("click",function(){roomModalStep(key,-1);});
- document.getElementById(prefix+"Plus").addEventListener("click",function(){roomModalStep(key,1);});
+ var id="roomModal"+key.charAt(0).toUpperCase()+key.slice(1);
+ document.getElementById(id).addEventListener("change",function(){roomModalSelect(key,this.value);});
 });
 document.getElementById("roomSettingsModal").addEventListener("click",function(e){
  if(e.target===this)roomModalHide(true);
@@ -2643,9 +2648,12 @@ document.addEventListener("keydown",function(e){
  if(!roomModalActive())return;
  if(e.key==="Escape"){e.preventDefault();roomModalHide(true);return;}
  if(e.key!=="Tab")return;
- var buttons=document.getElementById("roomSettingsModal").querySelectorAll("button:not(:disabled),input:not(:disabled)");
- if(!buttons.length)return;
- var first=buttons[0],last=buttons[buttons.length-1];
+ var elements=Array.prototype.filter.call(
+  document.getElementById("roomSettingsModal").querySelectorAll("button:not(:disabled),input:not(:disabled),select:not(:disabled)"),
+  function(el){return !el.closest("[hidden]");}
+ );
+ if(!elements.length)return;
+ var first=elements[0],last=elements[elements.length-1];
  if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
  else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
 });

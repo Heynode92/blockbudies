@@ -158,31 +158,23 @@
     </div>
     <div class="room-modal-settings">
      <section id="roomModalTdmGroup" class="room-modal-group" aria-label="Team Death Match settings">
-      <h4>TEAM DEATH MATCH SETTINGS</h4>
-      <div class="room-modal-control"><span>KILL LIMIT</span>
-       <button id="roomModalKillsMinus" type="button" aria-label="Decrease kill limit">−</button>
-       <output id="roomModalKillsValue" aria-live="polite"></output>
-       <button id="roomModalKillsPlus" type="button" aria-label="Increase kill limit">+</button>
+      <div class="room-modal-field room-modal-select-field">
+       <label for="roomModalKills">KILL LIMIT</label>
+       <select id="roomModalKills" aria-label="Kill limit"></select>
       </div>
-      <div class="room-modal-control"><span>MATCH TIME</span>
-       <button id="roomModalMinutesMinus" type="button" aria-label="Decrease match time">−</button>
-       <output id="roomModalMinutesValue" aria-live="polite"></output>
-       <button id="roomModalMinutesPlus" type="button" aria-label="Increase match time">+</button>
-       <small>MIN</small>
+      <div class="room-modal-field room-modal-select-field">
+       <label for="roomModalMinutes">MATCH TIME</label>
+       <select id="roomModalMinutes" aria-label="Match time"></select>
       </div>
      </section>
-     <section id="roomModalBombGroup" class="room-modal-group" aria-label="Bomb Mode settings">
-      <h4>BOMB MODE SETTINGS</h4>
-      <div class="room-modal-control"><span>MAX ROUNDS</span>
-       <button id="roomModalRoundsMinus" type="button" aria-label="Decrease max rounds">−</button>
-       <output id="roomModalRoundsValue" aria-live="polite"></output>
-       <button id="roomModalRoundsPlus" type="button" aria-label="Increase max rounds">+</button>
+     <section id="roomModalBombGroup" class="room-modal-group" aria-label="Bomb Mode settings" hidden>
+      <div class="room-modal-field room-modal-select-field">
+       <label for="roomModalRounds">MAX ROUNDS</label>
+       <select id="roomModalRounds" aria-label="Maximum rounds"></select>
       </div>
-      <div class="room-modal-control"><span>ROUND TIME</span>
-       <button id="roomModalRoundMinutesMinus" type="button" aria-label="Decrease round time">−</button>
-       <output id="roomModalRoundMinutesValue" aria-live="polite"></output>
-       <button id="roomModalRoundMinutesPlus" type="button" aria-label="Increase round time">+</button>
-       <small>MIN</small>
+      <div class="room-modal-field room-modal-select-field">
+       <label for="roomModalRoundMinutes">ROUND TIME</label>
+       <select id="roomModalRoundMinutes" aria-label="Round time"></select>
       </div>
      </section>
     </div>
