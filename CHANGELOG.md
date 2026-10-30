@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-30 — XM8 red-dot ADS view obstruction fix
+
+- Fixed XM8's circular red-dot scope being blocked by the 3D rifle receiver and tall carry handle after aiming.
+- Tactical optic configuration now explicitly opts XM8 into hiding its first-person weapon model **only while its existing 2D optic overlay is active**; the model, hands and normal animation reappear immediately on exit, reload, switching weapons or cancellation.
+- Preserved the existing physical XM8 low-poly model and its original visible hip-fire appearance. No changes to any other weapon's ADS, aiming direction, recoil, audio, damage or ownership.
+- Added regression checks for active/inactive ADS and other tactical weapons. Synchronized `assets/game.js` for direct `index.html` use.
+
 ## 2026-10-30 — XM2010 bolt-action sniper (weapon ID 17)
 
 - Added XM2010 tan low-poly model (`src/game/weapon/18-xm2010.js`) with suppressor, scope, bipod, stock, magazine and moving bolt.

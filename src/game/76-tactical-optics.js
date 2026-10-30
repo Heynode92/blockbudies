@@ -8,9 +8,12 @@ var TACTICAL_OPTICS={
  11:{style:"p90",name:"P90"},
  12:{style:"sopmod",name:"AK SOPMOD"},
  15:{style:"hk417",name:"HK417"},
- 16:{style:"xm8",name:"XM8"}
+ 16:{style:"xm8",name:"XM8",hideViewmodelOnAds:true}
 };
 function tacticalOpticConfig(w){return TACTICAL_OPTICS[w]||null;}
+// XM8 uses a centered 2D circular reflex sight. Its tall 3D receiver/carry handle
+// otherwise obstruct the sight picture; only opt-in weapon configs hide the viewmodel.
+function tacticalOpticHidesViewmodel(w,active){var spec=tacticalOpticConfig(w);return !!(active&&spec&&spec.hideViewmodelOnAds);}
 var tacticalAimEl=document.getElementById("tacticalAim");
 function tacticalOpticUpdate(){
  var spec=pl&&!pl.dead&&!lob&&!mt.over&&mt.cd<=0&&run?tacticalOpticConfig(pl.w):null;
@@ -23,4 +26,5 @@ function tacticalOpticUpdate(){
  document.body.classList.toggle("tactical-ads",active&&adsT>.65);
  // The 2D overlay draws the sight, so hide the 3D optic frame while aiming (it would block the view and double the optic).
  guns.forEach(function(g,i){var parts=g.userData.opticParts;if(!parts)return;var hide=active&&pl.w===i&&adsT>.35;parts.forEach(function(m){m.visible=!hide;});});
+ return active;
 }

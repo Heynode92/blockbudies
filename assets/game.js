@@ -1935,9 +1935,12 @@ var TACTICAL_OPTICS={
  11:{style:"p90",name:"P90"},
  12:{style:"sopmod",name:"AK SOPMOD"},
  15:{style:"hk417",name:"HK417"},
- 16:{style:"xm8",name:"XM8"}
+ 16:{style:"xm8",name:"XM8",hideViewmodelOnAds:true}
 };
 function tacticalOpticConfig(w){return TACTICAL_OPTICS[w]||null;}
+// XM8 uses a centered 2D circular reflex sight. Its tall 3D receiver/carry handle
+// otherwise obstruct the sight picture; only opt-in weapon configs hide the viewmodel.
+function tacticalOpticHidesViewmodel(w,active){var spec=tacticalOpticConfig(w);return !!(active&&spec&&spec.hideViewmodelOnAds);}
 var tacticalAimEl=document.getElementById("tacticalAim");
 function tacticalOpticUpdate(){
  var spec=pl&&!pl.dead&&!lob&&!mt.over&&mt.cd<=0&&run?tacticalOpticConfig(pl.w):null;
@@ -1950,6 +1953,7 @@ function tacticalOpticUpdate(){
  document.body.classList.toggle("tactical-ads",active&&adsT>.65);
  // The 2D overlay draws the sight, so hide the 3D optic frame while aiming (it would block the view and double the optic).
  guns.forEach(function(g,i){var parts=g.userData.opticParts;if(!parts)return;var hide=active&&pl.w===i&&adsT>.35;parts.forEach(function(m){m.visible=!hide;});});
+ return active;
 }
 // Mouse-first primary weapon picker shared by Team Deathmatch and Bomb Mission.
 // Weapon profiles, ballistics, inventory ownership and 4-slot HUD remain authoritative elsewhere.
@@ -3586,7 +3590,7 @@ function radar(){
   X.shadowColor="#ffd23f";X.shadowBlur=12;X.lineWidth=7;X.strokeStyle="#ffd23f";X.beginPath();X.arc(RC,RC,RO,-Math.PI/2-.2,-Math.PI/2+.2);X.stroke();X.shadowBlur=0;}
 // hud(): updates all HUD pieces every frame: timer, HP, ammo, crosshair spread, reload bar, scope overlay (scopedNow when AWP aim blend > .92),
 // hides the gun model while scoped, kill banners, radar.
-function hud(){var w=WP[pl.w],hp=pl.hp;tmUpd();wselUpd();abUpd();tacticalOpticUpdate();scopedNow=!!w.snp&&adsT>.92&&!pl.dead&&!lob&&!mt.over;scopeEl.style.display=scopedNow?"block":"none";document.body.classList.toggle("scoped",scopedNow);hold.visible=!scopedNow&&!(isBombMode()&&pl.bAction);
+function hud(){var w=WP[pl.w],hp=pl.hp;tmUpd();wselUpd();abUpd();var tacticalAdsActive=tacticalOpticUpdate();scopedNow=!!w.snp&&adsT>.92&&!pl.dead&&!lob&&!mt.over;scopeEl.style.display=scopedNow?"block":"none";document.body.classList.toggle("scoped",scopedNow);hold.visible=!scopedNow&&!tacticalOpticHidesViewmodel(pl.w,tacticalAdsActive)&&!(isBombMode()&&pl.bAction);
   E.hpf.style.width=hp+"%";E.hpf.style.background=hp>60?"linear-gradient(90deg,#2f9e44,#69db7c)":hp>30?"linear-gradient(90deg,#f08c00,#ffd43b)":"linear-gradient(90deg,#c92a2a,#ff6b6b)";
   E.hpt.textContent=Math.ceil(hp);var vestEl=document.getElementById("vestHud");if(vestEl){vestEl.textContent="VEST "+Math.ceil(pl.vest);vestEl.classList.toggle("empty",pl.vest<=0);}E.sc.textContent=score;E.wn.textContent=w.n;
   E.mg.textContent=pl.mag;E.mg.style.color=pl.mag<=w.mag*.25?"#ff6b6b":"";
