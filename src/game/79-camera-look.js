@@ -7,12 +7,20 @@ var LOOK_CONFIG={
   otherAdsReduction:.5,        // Original non-AWP ADS multiplier (unchanged).
   maxMouseDeltaPerEvent:200     // Pixels; discard impossible jumps, not normal aim.
 };
-var lookDragPoint=null,lookSkipLockedMove=false;
+var lookDragPoint=null,lookHoverPoint=null,lookSkipLockedMove=false;
+// Timer callbacks cannot obtain Pointer Lock without browser user activation.
+// Fallback mouse-look immediately responds to normal movement after auto-deploy.
+function lookFreeAimEnabled(){
+ return typeof wsConfirmed!=="undefined"&&wsConfirmed&&
+        typeof wsOn!=="undefined"&&!wsOn&&typeof touch!=="undefined"&&!touch&&
+        mt&&mt.cd<=0&&!mt.over&&run&&!lob&&pl&&!pl.dead&&
+        document.pointerLockElement!==R.domElement;
+}
 function lookStartDrag(e){
   if(e.pointerType!=="mouse"||document.pointerLockElement===R.domElement)return;
   if(Number.isFinite(e.clientX)&&Number.isFinite(e.clientY))lookDragPoint={x:e.clientX,y:e.clientY};
 }
-function lookStopDrag(){lookDragPoint=null;}
+function lookStopDrag(){lookDragPoint=null;lookHoverPoint=null;}
 function lookLockChanged(){
   lookStopDrag();
   // The first relative movement can contain a cursor-warp delta after lock acquisition.
@@ -21,17 +29,27 @@ function lookLockChanged(){
 function lookMove(e){
   if(e.pointerType!=="mouse"||!run||lob||mt.over||!pl||pl.dead||
      (typeof wsOn!=="undefined"&&wsOn))return;
-  var locked=document.pointerLockElement===R.domElement,dragging=!!(e.buttons&1),dx,dy;
-  if(!locked&&!dragging){lookStopDrag();return;}
+  var locked=document.pointerLockElement===R.domElement,dragging=!!(e.buttons&1),
+      freeAim=!locked&&!dragging&&lookFreeAimEnabled(),dx,dy;
+  if(!locked&&!dragging&&!freeAim){lookStopDrag();return;}
   if(locked){
     if(lookSkipLockedMove){lookSkipLockedMove=false;return;}
     dx=e.movementX;dy=e.movementY;
-  }else{
+  }else if(dragging){
     // Screen coordinates are stable during unlocked click-and-drag; movementX/Y
     // can jump when the browser switches between locked and unlocked pointers.
     if(!lookDragPoint){lookStartDrag(e);return;}
     dx=e.clientX-lookDragPoint.x;dy=e.clientY-lookDragPoint.y;
     lookStartDrag(e);
+  }else{
+    // Timer ended without pointer lock: aim immediately from mouse hover,
+    // using stable screen coordinates rather than unreliable movementX.
+    if(!Number.isFinite(e.clientX)||!Number.isFinite(e.clientY)){
+      lookHoverPoint=null;return;
+    }
+    if(!lookHoverPoint){lookHoverPoint={x:e.clientX,y:e.clientY};return;}
+    dx=e.clientX-lookHoverPoint.x;dy=e.clientY-lookHoverPoint.y;
+    lookHoverPoint={x:e.clientX,y:e.clientY};
   }
   if(!Number.isFinite(dx)||!Number.isFinite(dy)||
       Math.abs(dx)>LOOK_CONFIG.maxMouseDeltaPerEvent||

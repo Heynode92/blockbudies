@@ -104,3 +104,33 @@ test('pointerlockchange and blur reset stale pointer state',()=>{
   canvas.emit('pointermove',mouse(1500,0));
   assert.ok(Math.abs(ctx.pl.face-(1-10*.003))<1e-12);
 });
+
+test('auto-deploy enables unlocked mouse look immediately, with no click',()=>{
+ const {ctx,document}=setup();
+ document.pointerLockElement=null;ctx.lookLockChanged();
+ ctx.wsConfirmed=true;ctx.wsOn=false;ctx.touch=false;ctx.mt.cd=0;
+ ctx.lookMove(mouse(0,0,0,500,300));
+ ctx.lookMove(mouse(9000,9000,0,520,290));
+ assert.ok(Math.abs(ctx.pl.face-(1-20*.003))<1e-12);
+ assert.ok(Math.abs(ctx.pl.pitch-10*.003)<1e-12);
+});
+test('unlocked hover aim never activates during loadout, freeze, or death',()=>{
+ const {ctx,document}=setup();document.pointerLockElement=null;ctx.lookLockChanged();
+ ctx.wsConfirmed=false;ctx.wsOn=true;ctx.touch=false;ctx.mt.cd=3;
+ ctx.lookMove(mouse(0,0,0,500,300));ctx.lookMove(mouse(0,0,0,520,300));assert.equal(ctx.pl.face,1);
+ ctx.wsOn=false;ctx.wsConfirmed=true;
+ ctx.lookMove(mouse(0,0,0,520,300));ctx.lookMove(mouse(0,0,0,540,300));assert.equal(ctx.pl.face,1);
+ ctx.mt.cd=0;ctx.pl.dead=true;
+ ctx.lookMove(mouse(0,0,0,540,300));ctx.lookMove(mouse(0,0,0,560,300));assert.equal(ctx.pl.face,1);
+ ctx.pl.dead=false;ctx.lookMove(mouse(0,0,0,560,300));ctx.lookMove(mouse(0,0,0,580,300));
+ assert.ok(Math.abs(ctx.pl.face-(1-20*.003))<1e-12);
+});
+test('free aim discards jumps and transitions cleanly into locked FPS look',()=>{
+ const {ctx,document,canvas}=setup();document.pointerLockElement=null;ctx.lookLockChanged();
+ ctx.wsConfirmed=true;ctx.wsOn=false;ctx.touch=false;ctx.mt.cd=0;
+ ctx.lookMove(mouse(0,0,0,100,100));ctx.lookMove(mouse(0,0,0,500,100));assert.equal(ctx.pl.face,1);
+ ctx.lookMove(mouse(0,0,0,510,100));assert.ok(Math.abs(ctx.pl.face-(1-10*.003))<1e-12);
+ document.pointerLockElement=canvas;ctx.lookLockChanged();
+ ctx.lookMove(mouse(800,0));assert.ok(Math.abs(ctx.pl.face-(1-10*.003))<1e-12);
+ ctx.lookMove(mouse(10,0));assert.ok(Math.abs(ctx.pl.face-(1-20*.003))<1e-12);
+});

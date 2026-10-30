@@ -81,7 +81,7 @@ function loadoutFinish(userGesture){
  var id=pl.prim===7?6:pl.prim;
  if(inventoryOwned("main").indexOf(id)>=0){inventoryState.equipped.main=id;inventorySave();}
  loadoutReleaseInput();loadoutUpdate();
- // Lock requests need browser user activation; on timeout hide the cursor and wait for a game click.
+ // User confirmation requests pointer lock; on timeout ordinary mouse movement already aims without a click.
  if(userGesture&&!touch&&!lob&&R.domElement.requestPointerLock){
   try{var req=R.domElement.requestPointerLock();if(req&&req.catch)req.catch(function(){});}catch(e){}
  }

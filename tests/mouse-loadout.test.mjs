@@ -98,6 +98,11 @@ test("closed pointer lock and input cannot steal a loadout click",()=>{
  assert.match(input,/typeof wsOn!=="undefined"&&wsOn\)\{e.preventDefault\(\);return;\}/);
  assert.match(picker,/document.exitPointerLock\(\)/);
  assert.match(picker,/document.body.classList.toggle\("loadout-cursor-hidden"/);
+ assert.match(look,/function lookFreeAimEnabled\(\)/);
+ assert.match(look,/lookHoverPoint/);
+ assert.match(input,/e.target!==R.domElement&&lookFreeAimEnabled\(\)/);
+ assert.match(input,/Key\[WASD\]/);
+ assert.match(css,/body.loadout-cursor-hidden:not\(\.lobby\):not\(\.over\) \*/);
  const hud=read("src/game/70-kills-and-damage-hud.js");
  assert.doesNotMatch(hud,/run=true;if\(!touch\)\{try\{R\.domElement\.requestPointerLock/);
  assert.match(hud,/Keep cursor free for pre-round loadout selection/);

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-30 — Fix mouse aim after automatic loadout confirmation
+
+- Fixed the frozen mouse-look when a player lets the loadout timer expire: auto-confirm now transitions straight to active aim without another mouse click.
+- While browser Pointer Lock is unavailable, an unlocked mouse-look fallback uses clientX/clientY deltas from the game canvas and HUD; active weapon picker, freeze time, dead players and lobby stay excluded.
+- WASD or arrow-key user input attempts to upgrade that fallback to unrestricted Pointer Lock, where permitted by the browser. Clicking CONFIRM keeps its existing direct Pointer Lock request.
+- Hide the cursor over the complete gameplay HUD after loadout closes and keep existing sensitivity, sanity checks, and locked mouse-look behavior.
+- Added regression coverage for no-click auto aim, safety guards and pointer-lock transitions. No weapon stats or mode rules changed.
+
 ## 2026-10-30 — Isolated camera-input compatibility
 
 - Guard the optional loadout flag in keyboard and canvas input handlers, preserving the existing standalone camera-look tests.
