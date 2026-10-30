@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-30 — Cinematic Shop visual refresh
+
+- Restyled Shop to match approved tactical armory visual: clean cinematic header, large featured standard-issue panel, colorful category filters, four-column desktop weapon cards, and responsive layouts.
+- Featured weapon name, ammo, readiness and preview are derived from `WEAPON_STARTER_ID`, `WP`, existing inventory ownership and thumbnails; no duplicate weapon catalog or economy logic was introduced.
+- Preserved existing category filter, free-unlock flow, saved ownership, weapon stats, gameplay and navigation; synchronized generated browser bundle.
+
 ## 2026-10-30 — Remove Inventory sort and Grid/List controls
 
 - Removed DEFAULT sorting dropdown, SORT BY label, and Grid/List toggle entirely from Inventory at user request.
