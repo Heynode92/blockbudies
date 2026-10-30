@@ -27,6 +27,8 @@ function bombSoloPoliceThreat(e){
   var p=bombMatch.device.position;
   return bombNearestThreat(0,p.x,p.z,BOMB_AI.soloDefuseThreatRadius);
 }
+function bombSmartCarrierThreat(e){var foe=bombPlantThreat(e);return !!(foe&&
+ Math.hypot(foe.x-e.x,foe.z-e.z)<BOMB_AI.urgentThreatRange*1.5&&los(e.x,e.z,foe.x,foe.z));}
 function bombPlantThreat(e){
   if(!bombMatch||bombMatch.done||bombMatch.state!=='idle'||e.tm!==1)return null;
   // Threats in the plant site or close enough to engage the carrier must be cleared.
@@ -74,6 +76,15 @@ function bombPickDefuser(){
   team.sort(function(a,c){return Math.hypot(a.x-target.x,a.z-target.z)-Math.hypot(c.x-target.x,c.z-target.z);});
   b.defuser=team[0]||null;return b.defuser;
 }
+// One designated recoverer retrieves a dropped device while others screen it.
+function bombSmartRecoverer(){
+ if(!bombMatch||!bombMatch.dropped)return null;
+ var p=bombMatch.dropped,best=null,d=Infinity;
+ bombLiving(1).forEach(function(e){if(e===pl)return;
+  var n=Math.hypot(e.x-p.x,e.z-p.z);if(n<d){d=n;best=e;}
+ });
+ return best;
+}
 function bombTacticalStage(e){
   if(!bombMatch||bombMatch.done)return 'none';
   var b=bombMatch;
@@ -84,10 +95,11 @@ function bombTacticalStage(e){
     }
     // A lone survivor cannot simply camp a random cover point: find and fight CTs.
     if(bombLiving(1).length===1)return 'hunt';
-    return e.idx%3===0?'hold':'hunt';
+    return e.idx%3===1?'intercept':'hold';
   }
   if(e.tm===0)return e.idx%3===0?'patrol':'site-defense';
-  if(e===b.carrier)return bombPlantThreat(e)?'clear':'plant';
+  if(b.dropped)return e===bombSmartRecoverer()?'recover':'recover-cover';
+  if(e===b.carrier)return bombSmartCarrierThreat(e)?'clear':'plant';
   return e.idx%3===0?'hunt':'escort';
 }
 // Compute a reachable tactical candidate rather than stacking all bots on a single site.
@@ -134,16 +146,26 @@ function bombTacticalGoal(e){
       return bombSafeGoal(b.device.position.x+Math.cos(angle)*radius,
         b.device.position.z+Math.sin(angle)*radius,e);
     }
+    if(stage==='intercept'){
+      foe=bombNearestThreat(1,site.x,site.z,BOMB_AI.roamRadius);
+      if(foe)return bombSafeGoal(foe.x,foe.z,e);
+      radius=8+idx%3*2;
+    }
     if(stage==='hunt'){
       foe=bombNearestOpponent(e);
       if(foe&&(bombLiving(1).length===1||Math.hypot(foe.x-site.x,foe.z-site.z)<BOMB_AI.roamRadius))
         return bombSafeGoal(foe.x,foe.z,e);
       radius=11+idx%3*4;
-    }else radius=5+idx%3*2;
+    }else if(stage!=='intercept')radius=5+idx%3*2;
     return bombSafeGoal(site.x+Math.cos(angle)*radius,site.z+Math.sin(angle)*radius,e);
   }
   if(e.tm===1){
-    if(b.dropped)return bombSafeGoal(b.dropped.x,b.dropped.z,e);
+    if(b.dropped){
+      if(stage==='recover')return bombSafeGoal(b.dropped.x,b.dropped.z,e);
+      var flank=(idx*2+1)*Math.PI/4;
+      return bombSafeGoal(b.dropped.x+Math.cos(flank)*(5+idx%3*2),
+        b.dropped.z+Math.sin(flank)*(5+idx%3*2),e);
+    }
     var carrier=b.carrier;
     if(stage==='plant'){
       site=bombStrategicSite(e);
@@ -181,7 +203,7 @@ function bombBotWantsObjective(e,t){
   if(!isBombMode()||!bombMatch||bombMatch.done)return false;
   if(e.bAction)return true;
   var role=bombTacticalStage(e);
-  if(role==='retake-defuse'||role==='retake-support'||role==='plant'){
+  if(role==='retake-defuse'||role==='retake-support'||role==='plant'||role==='recover'){
     // Do not abandon the objective for distant gunfire; fight close threats normally.
     return !t||Math.hypot(t.x-e.x,t.z-e.z)>BOMB_AI.urgentThreatRange;
   }
@@ -191,7 +213,7 @@ function bombBotCanAct(e){
   var a=bombActionFor(e);if(!a)return false;
   if(a.type==='defuse'&&bombPickDefuser()!==e)return false;
   if(a.type==='defuse'&&bombUncontestedRetake())return true;
-  if(a.type==='plant'&&(bombPlantThreat(e)||tt<(e.bHitUntil||0)))return false;
+  if(a.type==='plant'&&(bombSmartCarrierThreat(e)||tt<(e.bHitUntil||0)))return false;
   if(e.tg&&e.lok&&Math.hypot(e.tg.x-e.x,e.tg.z-e.z)<BOMB_AI.defusePriorityRadius)return false;
   return true;
 }

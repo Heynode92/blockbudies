@@ -4,7 +4,7 @@ var BOT_WEAPONS=Object.freeze({
   primaries:[1,1,1,2,2,6,6,6,7,8,3],
   sidearm:0,knife:4,grenade:5,
   meleeRange:1.7,grenadeMinDistance:9,grenadeMaxDistance:18,grenadeChance:.035,
-  grenadeCooldown:12,aimNoise:.08,noisePerUnit:.006,
+  grenadeCooldown:12,aimNoise:.055,noisePerUnit:.0045,
   safeRocketDistance:7
 });
 function botVisualWeapon(e,id){
@@ -36,15 +36,15 @@ function botUpdateReload(e,dt){
   e.reloadId=null;
 }
 function botStartReload(e,id){
-  var a=e.ammo[id];if(!a||a.mag>0||a.res<=0||e.reloadId!==null)return false;
+  var a=e.ammo[id],w=WP[id];if(!a||!w||a.mag>=w.mag||a.res<=0||e.reloadId!==null)return false;
   e.reloadId=id;e.reloadLeft=WP[id].rt;return true;
 }
 function botChooseWeapon(e,d){
   if(d<=BOT_WEAPONS.meleeRange)return BOT_WEAPONS.knife;
   var p=e.primary,primary=e.ammo[p],secondary=e.ammo[BOT_WEAPONS.sidearm];
-  if(primary&&primary.mag>0&&!(p===3&&d<BOT_WEAPONS.safeRocketDistance))return p;
+  if(primary&&primary.mag>0&&e.reloadId!==p&&!(p===3&&d<BOT_WEAPONS.safeRocketDistance))return p;
   if(primary&&primary.res>0&&primary.mag<=0)botStartReload(e,p);
-  if(secondary&&secondary.mag>0)return BOT_WEAPONS.sidearm;
+  if(secondary&&secondary.mag>0&&e.reloadId!==BOT_WEAPONS.sidearm)return BOT_WEAPONS.sidearm;
   if(secondary&&secondary.res>0&&secondary.mag<=0)botStartReload(e,BOT_WEAPONS.sidearm);
   return null;
 }
@@ -57,9 +57,8 @@ function botThrowGrenade(e,face){
   return true;
 }
 function botAttack(e,target,face,d){
-  if(e.reloadId!==null)return false;
   var id=botChooseWeapon(e,d);
-  if(id===null)return false;
+  if(id===null||e.reloadId===id)return false;
   var w=WP[id];
   if(id!==BOT_WEAPONS.knife&&d>w.range)return false;
   if(id===BOT_WEAPONS.knife){
@@ -78,10 +77,10 @@ function botAttack(e,target,face,d){
 }
 function botNeedsMelee(e){var a=e.ammo||{},p=a[e.primary],s=a[BOT_WEAPONS.sidearm];return (!p||p.mag+p.res===0)&&(!s||s.mag+s.res===0);}
 function botCombatTick(e,target,face,d){
-  if(!target||target.dead)return;
+  if(!target||target.dead||(e.smartRetreat&&d>8))return;
   if(d>=BOT_WEAPONS.grenadeMinDistance&&d<=BOT_WEAPONS.grenadeMaxDistance&&
      tt>=e.grenadeAt&&e.ammo&&e.ammo[5]&&e.ammo[5].mag>0&&
-     Math.random()<BOT_WEAPONS.grenadeChance&&clearTo(e.x,e.z,target.x,target.z,0)){
+     Math.random()<BOT_WEAPONS.grenadeChance&&botSmartGrenadeSafe(e,target)&&clearTo(e.x,e.z,target.x,target.z,0)){
     if(botThrowGrenade(e,face))return;
   }
   botAttack(e,target,face,d);

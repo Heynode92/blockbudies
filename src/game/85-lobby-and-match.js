@@ -15,11 +15,11 @@ lobBest();
 (function(){var n=document.getElementById("lbn"),nt=document.getElementById("lbnt"),tm=0;[].forEach.call(document.querySelectorAll(".mb[data-n]"),function(b){b.onclick=function(){this.blur();nt.textContent=this.getAttribute("data-n");n.classList.remove("on","shk");void n.offsetWidth;n.classList.add("on","shk");clearTimeout(tm);tm=setTimeout(function(){n.classList.remove("on");},2800);};});})();
 // MODES: lobby cards. Only TEAM DEATH MATCH is playable (lock:0). BOMB MODE and BATTLEGROUND are "coming soon" placeholders (lock:1).
 var MODES=[
- {n:"TEAM DEATH MATCH",tg:"5 VS 5 \u00b7 POLICE vs TERRORIST",st:"AVAILABLE",bt:"PLAY NOW",lock:0,df:3,
+ {n:"TEAM DEATH MATCH",tg:"5 VS 5 \u00b7 POLICE vs TERRORIST",st:"AVAILABLE",bt:"PLAY NOW",lock:0,df:BOT_TACTICS.difficulty,
   d:"Police against Terrorists, 5 vs 5. You fight with 4 AI teammates against 5 AI enemies. When the 1-minute timer ends, the team with the most kills wins.",
   sp:[["PLAYERS","5 VS 5"],["TIME","1 MINUTE"],["RESPAWN","5 SECONDS"],["TEAMS","POLICE / TERRORIST"]],
   hw:["Pick your side: <b>Police</b> or <b>Terrorist</b>. Your 4 teammates are AI and show as blue markers.","Every kill adds 1 point to your team. Teammates' kills count too.","When you die you respawn after <b>5 seconds</b>, with a short spawn shield.","Headshots deal 3x damage. No airdrops: weapons, ammo and medkits are never dropped, so choose your primary weapon wisely."]},
- {n:"BOMB MODE",tg:"TEAM \u00b7 TACTICAL",st:"AVAILABLE",bt:"PLAY NOW",lock:0,df:4,
+ {n:"BOMB MODE",tg:"TEAM \u00b7 TACTICAL",st:"AVAILABLE",bt:"PLAY NOW",lock:0,df:BOT_TACTICS.difficulty,
   d:"Indoor 5 vs 5: Terrorists plant a bomb at site A or B. Police must eliminate the attackers or defuse before detonation. No respawns until the next round.",
   sp:[["PLAYERS",BOMB_RULES.teamSize+" VS "+BOMB_RULES.teamSize],["ROUNDS",String(BOMB_RULES.rounds)],["TIME",BOMB_RULES.roundSeconds/60+" MIN/ROUND"],["ROLE","PLANT / DEFUSE"]],
   hw:["A random Terrorist carries the bomb. Walk into the highlighted site and hold <b>E</b> for "+BOMB_RULES.plantSeconds+" seconds to plant.","Police hold <b>E</b> for "+BOMB_RULES.defuseSeconds+" seconds near the planted bomb to defuse. Both actions leave you vulnerable.","A fallen bomb carrier drops the device; a teammate can pick it up. After death, spectate surviving teammates.","First team to win "+BOMB_RULES.wins+" rounds wins. The match is limited to "+BOMB_RULES.rounds+" rounds."]},
@@ -88,7 +88,7 @@ function newBot(tm,i){var b=terro(tm);b.tm=tm;b.idx=i;b.name=BN[tm][i];b.ph=Math
   var cv=document.createElement("canvas");cv.width=256;cv.height=64;var cx=cv.getContext("2d"),nt=b.name.toUpperCase();cx.font='700 40px Rajdhani,"Trebuchet MS",sans-serif';cx.textAlign="center";cx.textBaseline="middle";cx.lineWidth=7;cx.strokeStyle="rgba(0,0,0,.85)";cx.strokeText(nt,128,34);cx.fillStyle=tm?"#ff8a65":"#74c0fc";cx.fillText(nt,128,34);
   var sp=new T.Sprite(new T.SpriteMaterial({map:new T.CanvasTexture(cv),depthTest:false,transparent:true,fog:false}));sp.scale.set(3,.75,1);sp.position.set(0,2.75,0);sp.renderOrder=1000;sp.visible=tm===pl.tm;b.g.add(sp);b.nm=sp;return b;}
 // placeBot(b): (re)spawns bot b at a spawn point with full HP and short invulnerability.
-function placeBot(b){var s=spawnPt(b.tm);b.x=s[0];b.z=s[1];b.y=0;defenseSpawn(b);if(b.hm)b.hm.visible=true;b.inv=2;b.cd=1+Math.random();b.dead=false;b.tg=null;b.bn=0;b.wx=b.x;b.wz=b.z;b.stk=0;b.g.rotation.y=b.tm?0:Math.PI;botInitialLoadout(b);en.push(b);}
+function placeBot(b){var s=spawnPt(b.tm);b.x=s[0];b.z=s[1];b.y=0;defenseSpawn(b);if(b.hm)b.hm.visible=true;b.inv=2;b.cd=1+Math.random();b.dead=false;b.tg=null;b.bn=0;b.wx=b.x;b.wz=b.z;b.stk=0;b.lastSeen=null;b.coverGoal=null;b.coverExpires=0;b.coverHoldUntil=0;b.smartRetreat=false;b.siteChoice=undefined;b.g.rotation.y=b.tm?0:Math.PI;botInitialLoadout(b);en.push(b);}
 // startMatch(tm): sets up scores, timer (60 s) and the countdown, spawns the player and 4+5 bots, resets weapons to the chosen primary.
 function startMatch(tm){inventoryForNewMatch();starsReset();SPH=[[],[]];var s=spawnPt(tm);pl.tm=tm;pl.x=s[0];pl.z=s[1];pl.face=tm?0:Math.PI;pl.inv=2;ts=[0,0];rq=[];mt={t:60,cd:5,over:false};pl.prim=favPrim;pl.w=favPrim;pl.mag=WP[favPrim].mag;pl.res=WP[favPrim].res;scopeOn=false;ROS=[];pl.st={name:"You",tm:tm,k:0,d:0};ROS.push(pl.st);
   S.remove(pm.g);pm=mkPm(tm);pm.g.visible=false;[armR,armL].forEach(function(ar){ar.children[0].material.color.setHex(tm?0x4b5320:0x1c4a8a);ar.children[1].material.color.setHex(tm?0x23272b:0x142a52);});
