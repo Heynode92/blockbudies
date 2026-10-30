@@ -6,7 +6,7 @@
 - Added its low-poly black receiver, integral suppressor, vertical foregrip, removable magazine and open iron sights based on the supplied image; no external asset needed.
 - Applied exactly the requested ratings: Damage 22, RPM 92, Control 46, Speed 86, V.Recoil 49, H.Recoil 60, magazine 30, reserve 210, Range 45. Uses the existing SMG range modifier and ballistics tuning.
 - Enabled no-scope right-mouse ADS with dedicated aim alignment and muzzle geometry; added first-person hand positions, HUD silhouette and loadout picker support.
-- Added a quieter short low-pass WebAudio suppressed-shot preset for player and bot weapons without changing other guns' presets.
+- Added a quieter short low-pass WebAudio suppressed-shot preset for player and bot weapons without changing other guns' presets. Muzzle flash is also visually reduced for suppressed presets, with no ballistic changes.
 - Shop, Inventory, unlock and category counts remain driven from canonical weapon data and saved ownership. Removed incorrect Dual Kriss instructions from unrelated SMG descriptions.
 - Updated source manifest and compiled `assets/game.js`. Added isolated regression coverage for profile, model, ADS, audio and compiled bundle.
 
