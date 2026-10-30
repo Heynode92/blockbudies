@@ -62,7 +62,8 @@ test('Bomb Mode previews actual interior world, city restores on return',()=>{
  assert.match(lobby,/modePreviewSelect\(i\)/);
 });
 test('source manifest, original browser bundle and game modes remain in sync',()=>{
- assert.equal(manifest.parts.indexOf('src/game/84-live-map-preview.js')+1,manifest.parts.indexOf('src/game/85-lobby-and-match.js'));
+ assert.ok(manifest.parts.indexOf('src/game/84-live-map-preview.js')<manifest.parts.indexOf('src/game/85-lobby-and-match.js'));
+ assert.equal(manifest.parts.indexOf('src/game/89-bot-tactical-intelligence.js')+1,manifest.parts.indexOf('src/game/85-lobby-and-match.js'));
  const built='(function(){\n'+manifest.parts.map(read).join('')+'})();\n';
  assert.equal(read('assets/game.js'),built);
  assert.match(lobby,/function startMatch\(tm\)/);
