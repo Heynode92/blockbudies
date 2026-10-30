@@ -14,7 +14,8 @@ function lookFreeAimEnabled(){
  return typeof wsConfirmed!=="undefined"&&wsConfirmed&&
         typeof wsOn!=="undefined"&&!wsOn&&typeof touch!=="undefined"&&!touch&&
         mt&&mt.cd<=0&&!mt.over&&run&&!lob&&pl&&!pl.dead&&
-        document.pointerLockElement!==R.domElement;
+        document.pointerLockElement!==R.domElement&&
+        (typeof escEl==="undefined"||escEl.style.display!=="flex");
 }
 function lookStartDrag(e){
   if(e.pointerType!=="mouse"||document.pointerLockElement===R.domElement)return;
@@ -28,7 +29,8 @@ function lookLockChanged(){
 }
 function lookMove(e){
   if(e.pointerType!=="mouse"||!run||lob||mt.over||!pl||pl.dead||
-     (typeof wsOn!=="undefined"&&wsOn))return;
+     (typeof wsOn!=="undefined"&&wsOn)||
+     (typeof escEl!=="undefined"&&escEl.style.display==="flex"))return;
   var locked=document.pointerLockElement===R.domElement,dragging=!!(e.buttons&1),
       freeAim=!locked&&!dragging&&lookFreeAimEnabled(),dx,dy;
   if(!locked&&!dragging&&!freeAim){lookStopDrag();return;}

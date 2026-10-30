@@ -49,8 +49,11 @@
 #wsel .wp-enter kbd{padding:4px 8px;border:1px solid #b4c9d8;border-radius:5px;color:white;background:rgba(0,0,0,.35);font:800 12px Rajdhani,sans-serif}
 body.loadout-active #gl{cursor:default!important}
 /* Hide the cursor on the entire playing field, including intercepting HUD layers. */
-body.loadout-cursor-hidden:not(.lobby):not(.over),
-body.loadout-cursor-hidden:not(.lobby):not(.over) *{cursor:none!important}
+body.loadout-cursor-hidden:not(.lobby):not(.over):not(.game-menu-open),
+body.loadout-cursor-hidden:not(.lobby):not(.over):not(.game-menu-open) *{cursor:none!important}
+/* ESC always wins over the in-game hidden cursor, including its buttons. */
+body.game-menu-open #esc{cursor:default!important}
+body.game-menu-open #esc button{cursor:pointer!important}
 @media(max-width:1000px){
  #wsel{bottom:calc(env(safe-area-inset-bottom,0px) + 73px);width:96vw}
  #wsel .wp-shell{padding:11px;gap:9px}

@@ -7,6 +7,7 @@ addEventListener("keydown",function(e){if(e.code==="Space")e.preventDefault();ke
 // hover-aim to unrestricted Pointer Lock; auto-timeout itself cannot.
 if(typeof wsConfirmed!=="undefined"&&wsConfirmed&&run&&!lob&&
    !mt.over&&mt.cd<=0&&!pl.dead&&!document.pointerLockElement&&
+   (typeof escEl==="undefined"||escEl.style.display!=="flex")&&
    /^(Key[WASD]|Arrow(Up|Down|Left|Right))$/.test(e.code)&&
    R.domElement.requestPointerLock){
  try{var request=R.domElement.requestPointerLock();if(request&&request.catch)request.catch(function(){});}catch(err){}
@@ -20,7 +21,8 @@ R.domElement.addEventListener("pointermove",function(e){if(e.pointerType==="mous
 addEventListener("pointermove",function(e){
  if(e.pointerType==="mouse"&&e.target!==R.domElement&&lookFreeAimEnabled())lookMove(e);
 });
-R.domElement.addEventListener("pointerdown",function(e){if(e.pointerType==="mouse"){if(typeof wsOn!=="undefined"&&wsOn){e.preventDefault();return;}lookStartDrag(e);if(e.button===2){mouse.right=true;e.preventDefault();if(run&&!pl.dead&&pl.w===8&&mt.cd<=0&&!mt.over)scopeOn=!scopeOn;}else if(e.button===0)mouse.down=true;if(run&&!pl.dead&&!document.pointerLockElement&&R.domElement.requestPointerLock){try{R.domElement.requestPointerLock();}catch(x){}}}});
+R.domElement.addEventListener("pointerdown",function(e){if(e.pointerType==="mouse"){if((typeof wsOn!=="undefined"&&wsOn)||
+  (typeof escEl!=="undefined"&&escEl.style.display==="flex")){e.preventDefault();return;}lookStartDrag(e);if(e.button===2){mouse.right=true;e.preventDefault();if(run&&!pl.dead&&pl.w===8&&mt.cd<=0&&!mt.over)scopeOn=!scopeOn;}else if(e.button===0)mouse.down=true;if(run&&!pl.dead&&!document.pointerLockElement&&R.domElement.requestPointerLock){try{R.domElement.requestPointerLock();}catch(x){}}}});
 addEventListener("pointerup",function(e){if(e.pointerType==="mouse"){mouse.down=!!(e.buttons&1);mouse.right=!!(e.buttons&2);if(!mouse.down)lookStopDrag();}});addEventListener("blur",function(){mouse.right=false;mouse.down=false;keys={};lookStopDrag();});
 document.addEventListener("pointerlockchange",lookLockChanged);
 R.domElement.addEventListener("contextmenu",function(e){e.preventDefault();});

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-30 — Fix ESC menu cursor and FPS resume behavior
+
+- Restored the visible, clickable mouse cursor for GAME MENU (ESC), including Resume Game and Back to Lobby.
+- ESC now releases Pointer Lock and clears held mouse/fire input; closing the menu hides the cursor again and attempts to restore FPS mouse control.
+- Blocked mouse-look and automatic WASD pointer relocking while ESC is open. Opening the pre-round weapon picker no longer accidentally triggers the ESC overlay when its pointer is unlocked.
+- Kept loadout timeout auto-aim, round selection and match rules intact. Added regression tests for ESC, resume, lobby and loadout transitions.
+
 ## 2026-10-30 — Fix mouse aim after automatic loadout confirmation
 
 - Fixed the frozen mouse-look when a player lets the loadout timer expire: auto-confirm now transitions straight to active aim without another mouse click.

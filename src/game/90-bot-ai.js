@@ -110,14 +110,26 @@ function botsUpdOld(dt){var i,cdn=mt.cd>0;
 // ESC/pause menu helpers (shown when the mouse lock is released during a match).
 var escEl=document.getElementById("esc"),escT=0;
 // escShow(): shows the pause overlay.
-function escShow(){if(!run||mt.over||lob||escEl.style.display==="flex")return;escEl.style.display="flex";escT=performance.now();}
+function escShow(){
+ if(!run||mt.over||lob||escEl.style.display==="flex")return;
+ escEl.style.display="flex";document.body.classList.add("game-menu-open");escT=performance.now();
+ // ESC must free the pointer for actual buttons, not merely show a visual overlay.
+ mouse.down=mouse.right=false;fireHeld=false;
+ if(typeof keys!=="undefined")keys={};
+ if(typeof lookStopDrag==="function")lookStopDrag();
+ if(document.pointerLockElement===R.domElement&&document.exitPointerLock)document.exitPointerLock();
+}
 // escHide(): hides the pause overlay.
-function escHide(){escEl.style.display="none";}
+function escHide(){escEl.style.display="none";document.body.classList.remove("game-menu-open");}
 // lockTry(): tries to re-capture the mouse (pointer lock), retrying a few times.
-function lockTry(n){if(touch||!run||mt.over||lob||document.pointerLockElement||escEl.style.display==="flex")return;try{R.domElement.requestPointerLock();}catch(e){}if(n<4)setTimeout(function(){lockTry(n+1);},400);}
+function lockTry(n){if(touch||!run||mt.over||lob||document.pointerLockElement||escEl.style.display==="flex"||
+ (typeof wsOn!=="undefined"&&wsOn))return;try{R.domElement.requestPointerLock();}catch(e){}if(n<4)setTimeout(function(){lockTry(n+1);},400);}
 // escResume(): closes the pause overlay and re-locks the mouse.
 function escResume(){escHide();lockTry(0);}
-document.addEventListener("pointerlockchange",function(){if(!document.pointerLockElement)escShow();});
+document.addEventListener("pointerlockchange",function(){
+ // Opening the loadout deliberately releases Pointer Lock; that is not an ESC request.
+ if(!document.pointerLockElement&&!(typeof wsOn!=="undefined"&&wsOn))escShow();
+});
 addEventListener("keydown",function(e){if(e.code!=="Escape"||!run||mt.over||lob)return;if(escEl.style.display==="flex"){if(performance.now()-escT>300)escResume();}else escShow();});
 document.getElementById("escR").onclick=function(){this.blur();escResume();};
 document.getElementById("escB").onclick=function(){this.blur();escHide();if(document.exitPointerLock)document.exitPointerLock();document.getElementById("dmn").onclick();};

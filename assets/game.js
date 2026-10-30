@@ -1788,7 +1788,8 @@ function lookFreeAimEnabled(){
  return typeof wsConfirmed!=="undefined"&&wsConfirmed&&
         typeof wsOn!=="undefined"&&!wsOn&&typeof touch!=="undefined"&&!touch&&
         mt&&mt.cd<=0&&!mt.over&&run&&!lob&&pl&&!pl.dead&&
-        document.pointerLockElement!==R.domElement;
+        document.pointerLockElement!==R.domElement&&
+        (typeof escEl==="undefined"||escEl.style.display!=="flex");
 }
 function lookStartDrag(e){
   if(e.pointerType!=="mouse"||document.pointerLockElement===R.domElement)return;
@@ -1802,7 +1803,8 @@ function lookLockChanged(){
 }
 function lookMove(e){
   if(e.pointerType!=="mouse"||!run||lob||mt.over||!pl||pl.dead||
-     (typeof wsOn!=="undefined"&&wsOn))return;
+     (typeof wsOn!=="undefined"&&wsOn)||
+     (typeof escEl!=="undefined"&&escEl.style.display==="flex"))return;
   var locked=document.pointerLockElement===R.domElement,dragging=!!(e.buttons&1),
       freeAim=!locked&&!dragging&&lookFreeAimEnabled(),dx,dy;
   if(!locked&&!dragging&&!freeAim){lookStopDrag();return;}
@@ -1841,6 +1843,7 @@ addEventListener("keydown",function(e){if(e.code==="Space")e.preventDefault();ke
 // hover-aim to unrestricted Pointer Lock; auto-timeout itself cannot.
 if(typeof wsConfirmed!=="undefined"&&wsConfirmed&&run&&!lob&&
    !mt.over&&mt.cd<=0&&!pl.dead&&!document.pointerLockElement&&
+   (typeof escEl==="undefined"||escEl.style.display!=="flex")&&
    /^(Key[WASD]|Arrow(Up|Down|Left|Right))$/.test(e.code)&&
    R.domElement.requestPointerLock){
  try{var request=R.domElement.requestPointerLock();if(request&&request.catch)request.catch(function(){});}catch(err){}
@@ -1854,7 +1857,8 @@ R.domElement.addEventListener("pointermove",function(e){if(e.pointerType==="mous
 addEventListener("pointermove",function(e){
  if(e.pointerType==="mouse"&&e.target!==R.domElement&&lookFreeAimEnabled())lookMove(e);
 });
-R.domElement.addEventListener("pointerdown",function(e){if(e.pointerType==="mouse"){if(typeof wsOn!=="undefined"&&wsOn){e.preventDefault();return;}lookStartDrag(e);if(e.button===2){mouse.right=true;e.preventDefault();if(run&&!pl.dead&&pl.w===8&&mt.cd<=0&&!mt.over)scopeOn=!scopeOn;}else if(e.button===0)mouse.down=true;if(run&&!pl.dead&&!document.pointerLockElement&&R.domElement.requestPointerLock){try{R.domElement.requestPointerLock();}catch(x){}}}});
+R.domElement.addEventListener("pointerdown",function(e){if(e.pointerType==="mouse"){if((typeof wsOn!=="undefined"&&wsOn)||
+  (typeof escEl!=="undefined"&&escEl.style.display==="flex")){e.preventDefault();return;}lookStartDrag(e);if(e.button===2){mouse.right=true;e.preventDefault();if(run&&!pl.dead&&pl.w===8&&mt.cd<=0&&!mt.over)scopeOn=!scopeOn;}else if(e.button===0)mouse.down=true;if(run&&!pl.dead&&!document.pointerLockElement&&R.domElement.requestPointerLock){try{R.domElement.requestPointerLock();}catch(x){}}}});
 addEventListener("pointerup",function(e){if(e.pointerType==="mouse"){mouse.down=!!(e.buttons&1);mouse.right=!!(e.buttons&2);if(!mouse.down)lookStopDrag();}});addEventListener("blur",function(){mouse.right=false;mouse.down=false;keys={};lookStopDrag();});
 document.addEventListener("pointerlockchange",lookLockChanged);
 R.domElement.addEventListener("contextmenu",function(e){e.preventDefault();});
@@ -2988,14 +2992,26 @@ function botsUpdOld(dt){var i,cdn=mt.cd>0;
 // ESC/pause menu helpers (shown when the mouse lock is released during a match).
 var escEl=document.getElementById("esc"),escT=0;
 // escShow(): shows the pause overlay.
-function escShow(){if(!run||mt.over||lob||escEl.style.display==="flex")return;escEl.style.display="flex";escT=performance.now();}
+function escShow(){
+ if(!run||mt.over||lob||escEl.style.display==="flex")return;
+ escEl.style.display="flex";document.body.classList.add("game-menu-open");escT=performance.now();
+ // ESC must free the pointer for actual buttons, not merely show a visual overlay.
+ mouse.down=mouse.right=false;fireHeld=false;
+ if(typeof keys!=="undefined")keys={};
+ if(typeof lookStopDrag==="function")lookStopDrag();
+ if(document.pointerLockElement===R.domElement&&document.exitPointerLock)document.exitPointerLock();
+}
 // escHide(): hides the pause overlay.
-function escHide(){escEl.style.display="none";}
+function escHide(){escEl.style.display="none";document.body.classList.remove("game-menu-open");}
 // lockTry(): tries to re-capture the mouse (pointer lock), retrying a few times.
-function lockTry(n){if(touch||!run||mt.over||lob||document.pointerLockElement||escEl.style.display==="flex")return;try{R.domElement.requestPointerLock();}catch(e){}if(n<4)setTimeout(function(){lockTry(n+1);},400);}
+function lockTry(n){if(touch||!run||mt.over||lob||document.pointerLockElement||escEl.style.display==="flex"||
+ (typeof wsOn!=="undefined"&&wsOn))return;try{R.domElement.requestPointerLock();}catch(e){}if(n<4)setTimeout(function(){lockTry(n+1);},400);}
 // escResume(): closes the pause overlay and re-locks the mouse.
 function escResume(){escHide();lockTry(0);}
-document.addEventListener("pointerlockchange",function(){if(!document.pointerLockElement)escShow();});
+document.addEventListener("pointerlockchange",function(){
+ // Opening the loadout deliberately releases Pointer Lock; that is not an ESC request.
+ if(!document.pointerLockElement&&!(typeof wsOn!=="undefined"&&wsOn))escShow();
+});
 addEventListener("keydown",function(e){if(e.code!=="Escape"||!run||mt.over||lob)return;if(escEl.style.display==="flex"){if(performance.now()-escT>300)escResume();}else escShow();});
 document.getElementById("escR").onclick=function(){this.blur();escResume();};
 document.getElementById("escB").onclick=function(){this.blur();escHide();if(document.exitPointerLock)document.exitPointerLock();document.getElementById("dmn").onclick();};
