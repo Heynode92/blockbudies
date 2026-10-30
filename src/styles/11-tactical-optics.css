@@ -1,4 +1,4 @@
-/* Tactical optic overlays for MP7/P90/SOPMOD — never use the AWP black scope. */
+/* Tactical reflex overlays for single Kriss, MP7, P90 and SOPMOD — never AWP scope or Dual Kriss. */
 .tactical-aim{position:fixed;inset:0;z-index:6;display:none;pointer-events:none;
  transition:opacity .08s linear;color:#d4e4ec}
 .tactical-aim::before{content:"";position:absolute;inset:0;
@@ -18,6 +18,16 @@
 .tactical-aim .ta-cross::before,.tactical-aim .ta-cross::after{content:"";position:absolute;background:var(--ta-color,#ff5946);}
 .tactical-aim .ta-cross::before{width:1px;left:50%;height:7px;top:-8px;}
 .tactical-aim .ta-cross::after{height:1px;top:50%;width:7px;right:-8px;}
+/* Single Kriss: compact open reflex sight, distinct from the MP7 rectangular holo.
+   Frame and red dot align with the optic built into weapon/07-kriss.js. */
+.tactical-aim-kriss{--ta-size:94px;--ta-cross-size:15px;--ta-color:#ff3737;--ta-dot:5px;}
+.tactical-aim-kriss .ta-frame{width:98px;height:72px;border-radius:9px;border:3px solid #333d43;
+ background:radial-gradient(ellipse,rgba(8,23,29,.025),rgba(8,19,24,.10) 70%,rgba(5,12,17,.2));
+ box-shadow:0 0 0 2px #707980,0 0 0 5px rgba(13,21,28,.67),inset 0 0 10px rgba(0,0,0,.28);}
+.tactical-aim-kriss .ta-frame::before{inset:6px;border-radius:5px;border-color:rgba(173,194,197,.17);}
+.tactical-aim-kriss .ta-frame::after{box-shadow:0 0 5px 1px #ff3737,0 0 12px 3px rgba(255,55,55,.63);}
+.tactical-aim-kriss .ta-cross{border:1px solid rgba(255,55,55,.36);opacity:.64;border-radius:50%;}
+.tactical-aim-kriss .ta-cross::before,.tactical-aim-kriss .ta-cross::after{display:none;}
 .tactical-aim-mp7{--ta-size:106px;--ta-cross-size:20px;--ta-color:#ff2b2b;--ta-dot:6px;}
 /* MP7 uses a compact rectangular reflex/holo window; only its reticle is painted in 2D. */
 .tactical-aim-mp7 .ta-frame{width:128px;height:88px;border-radius:10px;border-width:4px;border-color:#4c5a5f;

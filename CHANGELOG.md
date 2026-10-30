@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-30 — Single Kriss tactical ADS fix (Dual remains hip-fire)
+
+- Added a dedicated compact red-dot/reflex sight for **Kriss (weapon ID 6)** when holding right mouse button, with clear centered aiming dot and unobstructed view.
+- Separated the existing eight 3D Kriss optic pieces into an `opticParts` group; these hide during single-Kriss ADS and restore when released. The original physical model and Dual Kriss nested models remain intact.
+- Adjusted **only** the single Kriss ADS viewmodel alignment; maintained original FOV, weapon ratings, damage, recoil, ammo and movement values.
+- Explicitly deny ADS for **Dual Kriss (weapon ID 7)**, including overlay and FOV. MP7, P90, AK SOPMOD and AWP scopes remain unchanged.
+- Added regression coverage and regenerated the tracked game bundle from 46 ordered modules.
+
 ## 2026-10-30 — ESC Back to Lobby transition ordering
 
 - Finish the lobby state transition before releasing any remaining pointer lock, preventing the pointerlockchange listener from reopening the ESC menu.

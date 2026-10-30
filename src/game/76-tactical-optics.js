@@ -1,6 +1,7 @@
-// Tactical optics: compact sight overlays for MP7/P90/AK SOPMOD.
+// Tactical optics: dedicated single-Kriss/MP7/P90/AK SOPMOD reticles; Dual Kriss is hip-fire only.
 // Different from AWP scope: no opaque full-screen sniper mask and RMB is held.
 var TACTICAL_OPTICS={
+ 6:{style:"kriss",name:"Kriss"},
  10:{style:"mp7",name:"MP7"},
  11:{style:"p90",name:"P90"},
  12:{style:"sopmod",name:"AK SOPMOD"}
