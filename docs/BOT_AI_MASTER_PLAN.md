@@ -163,7 +163,7 @@ Mark a milestone complete **only after its acceptance gates pass**. Each milesto
 
 ### M0 — Foundations and measurement
 
-**Current tracking (2026-10-30):** **IN PROGRESS**. See [synthetic M0 trace and unfinished gates](BOT_AI_M0_BASELINE.md). The `footstepAdvance` isolated test mock is already fixed; seeded TDM/Bomb replay exists, but real map/browser metrics, native full Node suite and frame-time validation are not yet evidenced.
+**Current tracking (2026-10-30):** **IN PROGRESS**. See [synthetic M0 trace and unfinished gates](BOT_AI_M0_BASELINE.md). The `footstepAdvance` isolated test mock is already fixed; seeded TDM/Bomb replay exists and native Windows CI bundle/syntax/full Node regression succeeded in [run #26](https://github.com/Heynode92/blockbudies/actions/runs/41096566590). Real playable-map/browser hit/reaction/Bomb KPIs and frame-time validation are still **not evidenced**.
 
 **Work:** capture the existing BOT update behavior from `main` for fixed seeds and the 5v5 Police/Terrorist combinations; verify `node --test` isolation and missing `footstepAdvance` test mock; measure behavior and frame time on the existing runtime. Build a developer-only debug overlay/logging mode *only if needed*, disabled by default.
 
