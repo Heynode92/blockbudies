@@ -1,5 +1,6 @@
 # Temporary, main-branch-only source-of-truth builder for the M1 offline bundle.
 # The canonical Node build never changes game rules; write access is limited to this job.
+# Rebuild after threat-knowledge fix; then remove this one-shot workflow.
 name: M1 standalone bundle sync
 on:
   push:
