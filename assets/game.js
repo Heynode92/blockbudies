@@ -3445,35 +3445,49 @@ function botPath(e,gx,gz){var p=gPath(e.x,e.z,gx,gz);
 // botsUpd(dt): LIVE bot AI (movement along paths, target choice, line-of-sight, shooting with fire(..., "e")).
 function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
   for(i=rq.length-1;i>=0;i--){var q=rq[i];q.t-=dt;if(q.t<=0&&!mt.over&&!isBombMode()){var nb=newBot(q.b.tm,q.b.idx);nb.st=q.b.st;placeBot(nb);rq.splice(i,1);}}
-  en.forEach(function(e){var t,dx=0,dz=0,d=99,f,mvx=0,mvz=0,sp=isBombMode()?BOMB_AI.navSpeed*(e.tm===0&&bombUncontestedRetake()?BOMB_AI.clearSiteSpeedMultiplier:1):4.8,ox=e.x,oz=e.z,combat,gx,gz,wp,ml;
+  en.forEach(function(e){var t,dx=0,dz=0,d=99,f,mvx=0,mvz=0,sp=isBombMode()?BOMB_AI.navSpeed*(e.tm===0&&bombUncontestedRetake()?BOMB_AI.clearSiteSpeedMultiplier:1):4.8,ox=e.x,oz=e.z,combat,gx,gz,wp,ml,intent;
     botUpdateReload(e,dt);e.inv=Math.max(0,(e.inv||0)-(cdn?0:dt));e.vis=Math.max(0,(e.vis||0)-dt);e.tq=(e.tq||0)-dt;e.navT=Math.max(0,(e.navT||0)-dt);
-    if(e.tq<=0){e.tq=.35+Math.random()*.2;var bd=1e9,bt=null;
+    if(e.tq<=0){e.tq=.22+Math.random()*.16;var bd=1e9,bt=null;
       en.forEach(function(o){if(o.tm!==e.tm){var dd=Math.hypot(o.x-e.x,o.z-e.z);if(dd<bd&&dd<45&&los(e.x,e.z,o.x,o.z)){bd=dd;bt=o;}}});
       if(pl.tm!==e.tm&&!pl.dead){var d2=Math.hypot(pl.x-e.x,pl.z-e.z);if(d2<bd&&d2<45&&los(e.x,e.z,pl.x,pl.z)){bd=d2;bt=pl;}}
       e.tg=bt;e.lok=!!bt;
+      if(bt)botSmartRemember(e,bt);
       if(isBombMode()){var objective=bombBotGoal(e);if(objective){e.wx=objective[0];e.wz=objective[1];}}
-      if(!bt&&!isBombMode()){var ob=null,od=1e9;en.concat(pl.dead?[]:[pl]).forEach(function(o){if(o.tm!==e.tm){var dd=Math.hypot(o.x-e.x,o.z-e.z);if(dd<od){od=dd;ob=o;}}});
-        if(ob){e.wx=ob.x+(Math.random()-.5)*12;e.wz=ob.z+(Math.random()-.5)*12;}else{e.wx=(Math.random()-.5)*2*(A-8);e.wz=(Math.random()-.5)*2*(A-8);}}}
+      if(!bt&&!isBombMode()){
+        // Pursue the last visible contact, never unseen live player coordinates.
+        if(e.lastSeen&&e.lastSeen.until>tt){e.wx=e.lastSeen.x;e.wz=e.lastSeen.z;}
+        else if(!e.patrolUntil||tt>e.patrolUntil||Math.hypot(e.wx-e.x,e.wz-e.z)<2){
+          e.patrolUntil=tt+3+Math.random()*3;
+          var side=e.idx%2?1:-1,angle=Math.atan2(e.z,e.x)+side*(.6+Math.random()*1.3);
+          e.wx=Math.max(-A+3,Math.min(A-3,e.x+Math.cos(angle)*(9+Math.random()*11)));
+          e.wz=Math.max(-A+3,Math.min(A-3,e.z+Math.sin(angle)*(9+Math.random()*11)));
+        }}}
     t=e.tg;if(t&&(t.dead||(t===pl&&pl.dead)))t=e.tg=null;
     // Bomb carriers and designated defusers prioritize the objective unless an enemy is close.
     if(t&&bombBotWantsObjective(e,t))t=null;
+    // Post-plant guards do not pursue opponents far from the device.
+    if(t&&isBombMode()&&bombMatch&&bombMatch.state==='planted'&&e.tm===1&&
+       bombTacticalStage(e)==='hold'&&Math.hypot(t.x-bombMatch.device.position.x,t.z-bombMatch.device.position.z)>BOMB_AI.roamRadius)t=null;
     e.lt=(e.lt||0)-dt;if(t&&e.lt<=0){e.lt=.15;e.lok=los(e.x,e.z,t.x,t.z);}
-    if(t){dx=t.x-e.x;dz=t.z-e.z;d=Math.hypot(dx,dz)||1;}
-    combat=!!t&&e.lok&&e.navT<=0;
+    if(t){dx=t.x-e.x;dz=t.z-e.z;d=Math.hypot(dx,dz)||1;botSmartRemember(e,t);}
+    botSmartReload(e,t);intent=botSmartIntent(e,t);e.smartRetreat=intent.retreat;
+    combat=!!t&&e.lok&&e.navT<=0&&!(intent.retreat&&intent.goal)&&!intent.hold;
+    sp*=intent.retreat?BOT_TACTICS.retreatSpeed:combat?BOT_TACTICS.fightSpeed:BOT_TACTICS.approachSpeed;
     if(isBombMode()&&e.bAction)combat=false;
     if(combat){var fw=botNeedsMelee(e)?1:(isBombMode()&&bombMatch&&bombMatch.state==='planted'&&e.tm===0)?
       (d>BOMB_AI.retakeCombatDistance?1:-.3):(d>16?1:d<7?-.6:0),st;e.bt=(e.bt||0)-dt;if(e.bt<=0){e.bt=.7+Math.random()*1.4;e.sd=[-1,0,1][(Math.random()*3)|0];}st=(e.sd||0)*.9;
+      var dodge=botSmartVelocity(e,d,fw,st);fw=dodge[0];st=dodge[1];
       mvx=dx/d*fw+(dz/d)*st;mvz=dz/d*fw-(dx/d)*st;
       if(GB[gc(e.z+mvz*sp*dt*4)*GN+gc(e.x+mvx*sp*dt*4)]){e.sd=-(e.sd||1);mvx=dx/d*fw;mvz=dz/d*fw;}}
-    else{gx=t?t.x:e.wx;gz=t?t.z:e.wz;e.pt=(e.pt||0)-dt;
+    else{gx=intent.goal?intent.goal[0]:(t?t.x:e.wx);gz=intent.goal?intent.goal[1]:(t?t.z:e.wz);e.pt=(e.pt||0)-dt;
       if(!e.path||e.pt<=0||e.stk>.5||
-         (isBombMode()&&Math.hypot((e.goalX||0)-gx,(e.goalZ||0)-gz)>BOMB_AI.repathGoalDistance)){
+         Math.hypot((e.goalX||0)-gx,(e.goalZ||0)-gz)>(isBombMode()?BOMB_AI.repathGoalDistance:2.4)){
         botPath(e,gx,gz);e.stk=0;
       }
       wp=e.path[e.pi];while(wp&&e.pi<e.path.length-1&&Math.hypot(wp[0]-e.x,wp[1]-e.z)<1.1){e.pi++;wp=e.path[e.pi];}
       if(wp){var wx=wp[0]-e.x,wz=wp[1]-e.z,wl=Math.hypot(wx,wz)||1;if(wl>.4){mvx=wx/wl;mvz=wz/wl;}}}
-    if(isBombMode()&&e.bAction)mvx=mvz=0;
-    if(!e.bAction&&!(isBombMode()&&e.tm===0&&bombUncontestedRetake()&&bombPickDefuser()===e))en.forEach(function(o){if(o!==e&&!o.dead){
+    if(isBombMode()&&e.bAction||intent.hold)mvx=mvz=0;
+    if(!e.bAction&&!intent.hold&&!(isBombMode()&&e.tm===0&&bombUncontestedRetake()&&bombPickDefuser()===e))en.forEach(function(o){if(o!==e&&!o.dead){
       var sx=e.x-o.x,sz=e.z-o.z,sq=Math.hypot(sx,sz),space=isBombMode()?BOMB_AI.teammateSpacing:1.8;
       if(sq<space&&sq>.01){mvx+=sx/sq*.75;mvz+=sz/sq*.75;}
     }});
