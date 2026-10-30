@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-30 — Live 3D Select Mode map briefing
+
+- Implemented the approved streamlined esports SELECT MODE screen, replacing excessive text with a live map view, concise mode facts and PLAY NOW.
+- Named the existing Team Deathmatch city map **BLOCK DISTRICT**, without changing collision, map geometry, combat or other gameplay rules.
+- Live right-panel footage captures the same Three.js renderer as the rotating lobby camera at a capped refresh rate, without allocating a second WebGL context.
+- Bomb Mode shows its real indoor map using an interior orbit. Switching back to Deathmatch restores the urban map; locked Battleground displays a no-preview placeholder.
+- Added responsive UI and map-preview regression tests. The committed game bundle includes the new preview module.
+
 ## 2026-10-30 — Bomb Mission round kill streak and Terrorist-only dropped-bomb signal
 
 - Reset Double/Triple/Chain Kill streak at the start of every Bomb Mission round, including when the player survives. Team round wins, accumulated kills/deaths and Deathmatch life streaks are unchanged.

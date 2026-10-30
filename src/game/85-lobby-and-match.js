@@ -27,14 +27,23 @@ var MODES=[
   d:"Dozens of players drop into a single arena. The safe zone keeps shrinking, forcing everyone toward the center. Scavenge weapons, survive, and be the last one standing.",
   sp:[["PLAYERS","30 SOLO"],["ZONE","SHRINKING"],["DURATION","\u00b1 15 MIN"],["WIN","LAST ALIVE"]],
   hw:["Land anywhere and scavenge for weapons and armor.","The safe zone closes in every few minutes.","Outside the zone, your HP keeps draining.","The last player standing wins."]}];
+// Presentation-only map briefing; original MODES owns all combat and mode rules.
+var MODE_MAP_PREVIEWS=[
+ {name:"BLOCK DISTRICT",caption:"Urban Combat Zone",stats:[["PLAYERS","5 VS 5"],["TIME","1 MINUTE"],["RESPAWN","5 SECONDS"]],features:["Urban lanes","Elevated sightlines","Close-quarter fights"]},
+ {name:"BOMB MISSION",caption:"Indoor Tactical Arena",stats:[["PLAYERS","5 VS 5"],["ROUNDS","12"],["RESPAWN","NONE"]],features:["Two bomb sites","Plant or defuse","Tactical rounds"]},
+ {name:"COMING SOON",caption:"Map not available",stats:[["PLAYERS","SOLO"],["MAP","TBA"],["STATUS","SOON"]],features:["Last survivor","Shrinking zone","In development"]}
+];
 var selM=0,miEl=document.querySelectorAll(".mi");
 // selMode(i): selects a lobby mode card and fills the description panel.
 function selMode(i){selM=i;var $=function(x){return document.getElementById(x);},m=MODES[i],t=$("mdt"),k;
   [].forEach.call(miEl,function(e,j){e.classList.toggle("on",j===i);});
-  $("mnm").textContent=m.n;$("mst").textContent=m.st;$("mtg").textContent=m.tg;$("mds").textContent=m.d;
-  $("msp").innerHTML=m.sp.map(function(p){return"<div><span>"+p[0]+"</span><b>"+p[1]+"</b></div>";}).join("");
-  $("mhw").innerHTML=m.hw.map(function(h){return"<li>"+h+"</li>";}).join("");
-  var df="";for(k=1;k<=5;k++)df+='<i'+(k<=m.df?' class="f"':'')+'></i>';$("mdf").innerHTML=df;
+  $("mnm").textContent=m.n;$("mst").textContent=m.st;$("mtg").textContent=m.tg;
+  var preview=MODE_MAP_PREVIEWS[i];
+  $("mapName").textContent=preview.name;$("mapCaption").textContent=preview.caption;
+  $("mmap").classList.toggle("unavailable",!!m.lock);
+  $("msp").innerHTML=preview.stats.map(function(p){return"<div><span>"+p[0]+"</span><b>"+p[1]+"</b></div>";}).join("");
+  $("mapOverview").innerHTML=preview.features.map(function(x){return"<span>"+x+"</span>";}).join("");
+  modePreviewSelect(i);
   $("mk").innerHTML=miEl[i].querySelector("svg").outerHTML;
   $("mdm").firstChild.nodeValue=m.bt;t.classList.toggle("lk",!!m.lock);
   t.classList.remove("sw");void t.offsetWidth;t.classList.add("sw");}
