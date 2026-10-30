@@ -1,0 +1,172 @@
+/* BLOCK BUDDIES — Tactical Armory v3 (reference-approved three-column inventory).
+ * Overrides legacy 09-inventory.css layout, preserving its 3D soldier, actual weapon
+ * thumbnails, gear states and Shop ownership rules. No gameplay or stat modifications.
+ */
+#lbiv.on{--iv-orange:#ff8b21;--iv-amber:#ffbd72;grid-template-columns:minmax(225px,1.03fr) minmax(0,2.28fr) minmax(250px,1.08fr);
+ grid-template-rows:auto minmax(0,1fr);gap:12px;padding:12px 14px;align-content:stretch;
+ background:radial-gradient(ellipse at 44% 60%,rgba(19,65,102,.18),transparent 64%),linear-gradient(145deg,#07111d,#030912);overflow:hidden}
+#lbiv.on::before{opacity:.18}
+#lbiv.on::after{height:6px;opacity:1}
+#lbiv .ivtop{grid-column:1/-1;grid-row:1;display:grid;grid-template-columns:minmax(225px,1.03fr) minmax(0,2.28fr) minmax(250px,1.08fr);
+ gap:12px;min-width:0;align-items:center;min-height:86px;border-bottom:1px solid rgba(114,162,203,.25);
+ background:linear-gradient(115deg,rgba(4,12,23,.78),rgba(15,26,43,.65));position:relative;padding:4px 10px 9px}
+#lbiv .ivtop::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;
+ background:linear-gradient(90deg,#ff7920 0 23%,transparent 23% 76%,#ff7920 76% 100%);opacity:.85}
+#lbiv .ivtop-title{min-width:0}
+#lbiv .ivtop h2{font:italic 900 clamp(42px,4.2vw,76px)/.96 Impact,"Arial Black",sans-serif;letter-spacing:.045em;
+ color:#fff;margin:0;text-shadow:3px 4px 0 rgba(140,61,27,.8),0 6px 19px #000}
+#lbiv .ivtop-title>span{display:block;margin-top:6px;color:#a9c4e1;font:800 clamp(10px,.85vw,14px) Rajdhani,sans-serif;letter-spacing:.32em}
+#lbiv .ivtop-actions{display:flex;align-items:center;justify-content:flex-end;gap:12px;min-width:0}
+#lbiv .ivbrand{font:italic 900 clamp(19px,2vw,34px)/.86 Impact,"Arial Black",sans-serif;color:#fff;text-align:right;
+ letter-spacing:.045em;text-shadow:0 2px #000;white-space:nowrap}
+#lbiv .ivbrand b{display:block;color:#ff8b21;font-weight:900}
+#lbiv #ivback{min-width:72px;padding:7px 10px;font-size:12px}
+#lbiv #ivtabs{min-width:0;display:flex;flex-wrap:nowrap;justify-content:space-between;align-items:center;gap:4px;overflow-x:auto;scrollbar-width:thin}
+#lbiv #ivtabs button{flex:0 0 auto;min-width:0;padding:12px clamp(8px,.8vw,16px);
+ font-size:clamp(10px,.9vw,14px);background:linear-gradient(145deg,#263b55,#111e30);border:1px solid #344c69;color:#dde7f3}
+#lbiv #ivtabs button.on{background:linear-gradient(135deg,#ffa039,#f06b17);border-color:#ffab59;color:#fff;box-shadow:0 4px 13px rgba(245,102,17,.25)}
+#lbiv .ivleft,#lbiv .ivright,#lbiv .ivdetails{grid-row:2;grid-column:auto;min-width:0;min-height:0;height:100%;box-sizing:border-box;
+ border:1px solid rgba(90,147,197,.46);background:linear-gradient(145deg,rgba(10,23,39,.96),rgba(4,12,22,.94));
+ box-shadow:inset 0 1px rgba(198,224,248,.09),0 7px 30px rgba(0,0,0,.3);backdrop-filter:blur(8px)}
+#lbiv .ivleft{grid-column:1;display:flex;flex-direction:column;gap:9px;padding:12px;clip-path:none;border-color:#2b5579}
+#lbiv .ivleft::before{display:none}
+#lbiv .ivcap{padding:7px 8px 8px;border-left:4px solid #ff902c;border-bottom:1px solid #32506b;font-size:13px}
+#lbiv .ivcap b{font-size:10px;color:#ffb45c;letter-spacing:.1em}
+#lbiv .ivpreview{flex:1 1 auto;width:100%;height:auto;min-height:150px;max-height:none;
+ background:radial-gradient(ellipse at 50% 40%,rgba(17,97,163,.25),transparent 60%),linear-gradient(145deg,#122d47,#060f1d)}
+#lbiv .ivpreview::before{bottom:-98%;opacity:.6}
+#lbiv .ivloadout{flex:none;padding:10px 10px 8px;border-top:1px solid rgba(119,161,205,.35);
+ background:linear-gradient(140deg,rgba(18,40,62,.6),rgba(6,15,28,.4))}
+#lbiv .ivloadout-label{font:800 12px Rajdhani,sans-serif;letter-spacing:.2em;color:#b7d7ee}
+#lbiv .ivname{padding-left:0;margin-top:8px;border-left:0;min-height:38px;gap:4px}
+#lbiv .ivname strong{font-size:clamp(25px,2.35vw,40px)}
+#lbiv #ivstatus{background:transparent;border:0;color:#ffb56f;font-size:10px;text-align:right;padding:0}
+#lbiv #ivuse{margin-top:auto;flex:none;min-height:65px;padding:10px 6px;border:1px solid #ffad58;
+ background:linear-gradient(150deg,#ffac40,#ef7717);font-size:clamp(22px,2vw,31px);clip-path:none;border-radius:5px;
+ box-shadow:0 0 20px rgba(255,112,24,.16);text-shadow:0 1px 2px #472717}
+#lbiv #ivuse:disabled{background:linear-gradient(110deg,#075e48,#007554);color:#a4f7cc;
+ border-color:#00c87d;text-shadow:none}
+#lbiv .ivright{grid-column:2;display:flex;flex-direction:column;gap:10px;padding:12px 10px;overflow:hidden;clip-path:none}
+#lbiv .ivright::before{display:none}
+#lbiv .ivfilters{display:flex;justify-content:space-between;align-items:center;gap:9px;min-width:0;flex:none}
+#lbiv .ivclasses{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;overflow-x:auto;min-width:0;scrollbar-width:thin}
+#lbiv .ivclasses button{flex:none;border:1px solid #3e617e;border-radius:4px;
+ background:linear-gradient(#142b44,#0a192b);color:#b6cde5;padding:8px clamp(8px,.8vw,14px);
+ font:800 clamp(11px,.86vw,14px) Rajdhani,sans-serif;letter-spacing:.05em;cursor:pointer}
+#lbiv .ivclasses button.on{background:linear-gradient(#ffa537,#f7801c);border-color:#ff9e38;color:#0b192a}
+#lbiv .ivclasses button:focus-visible,#lbiv .ivtools :focus-visible,#lbiv .ivcard:focus-visible{outline:2px solid #ff9f39;outline-offset:2px}
+#lbiv .ivtools{display:flex;gap:6px;flex:0 0 auto}
+#lbiv .ivtools select,#lbiv .ivtools button{height:36px;box-sizing:border-box;border:1px solid #385772;border-radius:5px;
+ background:#101f33;color:#c2d4e8;font:800 12px Rajdhani,sans-serif;cursor:pointer}
+#lbiv .ivtools select{max-width:104px;padding:0 7px}
+#lbiv .ivtools button{width:35px;font-size:21px}
+#lbiv .ivhint{display:none}
+#lbiv:not(.iv-main) .ivhint{display:block;margin:0;padding:6px 9px;font-size:12px;line-height:1.1}
+#lbiv #ivcards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:clamp(142px,21vh,215px);
+ align-content:start;align-self:stretch;gap:10px;min-height:0;height:100%;overflow-y:auto;overflow-x:hidden;
+ padding:2px 5px 7px 2px;scrollbar-color:#ff8b22 #132337}
+#lbiv #ivcards.iv-list{grid-template-columns:1fr;grid-auto-rows:90px}
+#lbiv .ivcard{height:100%;min-height:0;position:relative;padding:0 10px 11px;
+ border:1px solid #335671;border-radius:7px;clip-path:none;
+ background:linear-gradient(140deg,#1b3148,#0d192b);overflow:hidden;
+ box-shadow:inset 0 1px rgba(255,255,255,.07)}
+#lbiv .ivcard::after{height:3px;background:linear-gradient(90deg,#fb8628 0 22%,rgba(80,135,175,.2) 22% 100%)}
+#lbiv .ivcard::before{content:"····";position:absolute;top:5px;right:9px;z-index:2;color:#52718e;
+ font:900 19px Rajdhani,sans-serif;letter-spacing:1px;pointer-events:none}
+#lbiv .ivcard.selected{border:2px solid #ffa12e;background:linear-gradient(140deg,#4c3529,#172437);
+ box-shadow:0 0 0 1px rgba(255,143,30,.68),0 0 17px rgba(255,112,17,.32)}
+#lbiv .ivcard.equipped::before{content:none}
+#lbiv .ivcard:hover{border-color:#ff9e36;transform:translateY(-1px)}
+#lbiv .ivcard.locked{opacity:.58}
+#lbiv .ivcard.locked.selected{opacity:1}
+#lbiv .ivweaponicon{top:7px;left:8px;right:8px;bottom:41px}
+#lbiv .ivthumb{transform:scale(1.05)}
+#lbiv .ivcard:hover .ivthumb,#lbiv .ivcard.selected .ivthumb{transform:scale(1.12)}
+#lbiv .ivweaponinfo{display:flex;align-items:flex-end;justify-content:space-between;gap:4px}
+#lbiv .ivweaponinfo strong{font-size:clamp(17px,1.4vw,27px)}
+#lbiv .ivweaponinfo small{display:block;color:#8aaed2;font:800 10px Rajdhani,sans-serif;letter-spacing:.12em}
+#lbiv .ivmark{top:8px;right:8px;color:#ffd18d;font-size:10px}
+#lbiv .ivcard.equipped .ivmark{background:#00dd7b;color:#05251d;border-radius:3px;padding:4px 6px;top:7px;right:7px}
+#lbiv #ivcards.iv-list .ivcard{display:flex;flex-direction:row;align-items:center;justify-content:space-between;padding:7px 12px}
+#lbiv #ivcards.iv-list .ivweaponicon{position:relative;top:auto;bottom:auto;left:auto;right:auto;width:43%;height:100%}
+#lbiv #ivcards.iv-list .ivweaponinfo{flex:1}
+#lbiv .ivdetails{grid-column:3;display:flex;flex-direction:column;gap:12px;padding:15px 13px;overflow-y:auto}
+#lbiv .ivdetails-head{color:#f1f5fb;padding:5px 7px 10px;border-left:4px solid #ff8626;border-bottom:1px solid #39516e;
+ font:900 17px Rajdhani,sans-serif;letter-spacing:.1em}
+#lbiv .ivdetail-art{flex:0 0 auto;height:clamp(120px,22vh,235px);position:relative;overflow:hidden;
+ border:1px solid rgba(82,121,159,.4);background:radial-gradient(ellipse at center,rgba(54,86,117,.26),transparent 68%),#0a1727}
+#lbiv .ivdetail-art::before{content:"";position:absolute;inset:9px;pointer-events:none;z-index:2;
+ background:linear-gradient(#b6c5d4,#b6c5d4) left top/14px 2px no-repeat,
+ linear-gradient(#b6c5d4,#b6c5d4) left top/2px 14px no-repeat,
+ linear-gradient(#b6c5d4,#b6c5d4) right top/14px 2px no-repeat,
+ linear-gradient(#b6c5d4,#b6c5d4) right top/2px 14px no-repeat,
+ linear-gradient(#b6c5d4,#b6c5d4) left bottom/14px 2px no-repeat,
+ linear-gradient(#b6c5d4,#b6c5d4) left bottom/2px 14px no-repeat,
+ linear-gradient(#b6c5d4,#b6c5d4) right bottom/14px 2px no-repeat,
+ linear-gradient(#b6c5d4,#b6c5d4) right bottom/2px 14px no-repeat}
+#lbiv .ivdetailthumb{width:100%;height:100%;object-fit:contain;transform:scale(1.15);filter:drop-shadow(0 12px 12px #000)}
+#lbiv .ivdetail-heading{display:flex;justify-content:space-between;gap:8px;align-items:baseline;
+ padding-bottom:9px;border-bottom:1px solid #335371}
+#lbiv .ivdetail-heading strong{font:italic 900 clamp(27px,2.4vw,43px)/1 Impact,"Arial Black",sans-serif}
+#lbiv .ivdetail-heading span{font:900 12px Rajdhani,sans-serif;letter-spacing:.11em;color:#ff9b36;text-align:right}
+#lbiv #ivdescription{margin:0;min-height:34px;font:700 14px/1.3 Rajdhani,sans-serif;color:#c3d3e4}
+#lbiv .ivstats{display:flex;flex-direction:column;gap:8px;min-height:0}
+#lbiv .ivstats>div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;padding:4px 6px;background:transparent;border:0}
+#lbiv .ivstats span{color:#bcd2e8;font-size:11px}
+#lbiv .ivstats strong{margin:0;color:#f7f9ff;font:900 18px Impact,sans-serif}
+#lbiv .ivstat-track{grid-column:1/-1;display:block;height:8px;overflow:hidden;background:#173149}
+#lbiv .ivstat-track i{display:block;height:100%;background:linear-gradient(90deg,#ff7b20,#ffae42)}
+#lbiv .ivstat-text .ivstat-track{display:none}
+#lbiv .ivsr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+@media(max-height:780px) and (min-width:1161px){
+ #lbiv.on{padding:8px 10px;gap:9px}
+ #lbiv .ivtop{min-height:65px}
+ #lbiv .ivtop h2{font-size:48px}
+ #lbiv .ivleft,#lbiv .ivright,#lbiv .ivdetails{padding:9px}
+ #lbiv #ivcards{grid-auto-rows:clamp(115px,21vh,175px);gap:7px}
+ #lbiv .ivdetail-art{height:clamp(100px,18vh,150px)}
+ #lbiv .ivstats{gap:4px}
+ #lbiv #ivuse{min-height:52px}
+}
+@media(max-width:1160px){
+ #lbiv.on{grid-template-columns:minmax(210px,.75fr) minmax(0,1.65fr);grid-template-rows:auto minmax(380px,1fr) auto;
+ overflow-y:auto}
+ #lbiv .ivtop{grid-template-columns:minmax(210px,.75fr) minmax(0,1.65fr);gap:9px;min-height:82px}
+ #lbiv .ivtop-actions{grid-column:1/-1;justify-content:space-between}
+ #lbiv .ivbrand b{display:inline}
+ #lbiv .ivleft{grid-column:1;grid-row:2;height:100%}
+ #lbiv .ivright{grid-column:2;grid-row:2;height:100%}
+ #lbiv .ivdetails{grid-column:1/-1;grid-row:3;height:auto;max-height:none;min-height:250px;
+ display:grid;grid-template-columns:220px 1fr;grid-template-rows:auto auto 1fr;gap:9px}
+ #lbiv .ivdetails-head{grid-column:1/-1}
+ #lbiv .ivdetail-art{grid-column:1;grid-row:2/4;height:190px}
+ #lbiv .ivdetail-heading,#lbiv #ivdescription,#lbiv .ivstats{grid-column:2}
+ #lbiv .ivstats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px 10px}
+ #lbiv #ivcards{grid-auto-rows:clamp(125px,18vh,190px)}
+}
+@media(max-width:680px){
+ #lbiv.on{grid-template-columns:1fr;grid-template-rows:auto auto auto auto;overflow-y:auto;padding:8px;gap:9px}
+ #lbiv .ivtop{grid-column:1;grid-row:1;display:flex;flex-direction:column;align-items:stretch;gap:8px}
+ #lbiv .ivtop-title{display:flex;justify-content:space-between;align-items:baseline;gap:9px}
+ #lbiv .ivtop h2{font-size:41px}
+ #lbiv .ivtop-title>span{letter-spacing:.1em;font-size:10px}
+ #lbiv #ivtabs{justify-content:flex-start}
+ #lbiv .ivtop-actions{justify-content:space-between}
+ #lbiv .ivleft{grid-column:1;grid-row:2;min-height:360px}
+ #lbiv .ivpreview{min-height:240px}
+ #lbiv .ivright{grid-column:1;grid-row:3;min-height:425px}
+ #lbiv #ivcards{height:auto;max-height:63vh;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:145px}
+ #lbiv .ivfilters{flex-wrap:wrap}
+ #lbiv .ivclasses{width:100%}
+ #lbiv .ivdetails{grid-column:1;grid-row:4;grid-template-columns:1fr 1fr;min-height:280px}
+ #lbiv .ivdetail-art{grid-column:1;grid-row:2/4;height:170px}
+ #lbiv .ivstats{grid-template-columns:1fr 1fr}
+}
+@media(max-width:420px){
+ #lbiv .ivdetails{display:flex;flex-direction:column}
+ #lbiv .ivdetail-art{height:160px}
+ #lbiv #ivcards{grid-auto-rows:130px}
+ #lbiv .ivweaponinfo strong{font-size:17px}
+ #lbiv .ivdetail-heading strong{font-size:32px}
+}
+@media(prefers-reduced-motion:reduce){#lbiv .ivcard,#lbiv .ivthumb{transition:none}}

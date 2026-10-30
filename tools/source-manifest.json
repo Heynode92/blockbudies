@@ -58,6 +58,7 @@
     "src/styles/08-defense.css",
     "src/styles/09-inventory.css",
     "src/styles/10-shop.css",
-    "src/styles/11-tactical-optics.css"
+    "src/styles/11-tactical-optics.css",
+    "src/styles/12-inventory-armory.css"
   ]
 }

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-30 — Tactical Armory Inventory redesign
+
+- Implemented the approved three-column Inventory screen: interactive real-3D soldier preview at left, compact three-column weapon grid and category controls in the center, and selected-item 3D thumbnail plus graphic stats on the right.
+- Added Main Weapon class filters, default/name/damage sorting and functional grid/list view switching. Desktop has one bounded weapon-grid scroller; tablet and mobile retain responsive layouts.
+- Main Weapon displays the real full catalog (not only unlocked inventory); unowned items are visibly LOCKED and cannot equip. The action opens the existing Shop for an unlock, preserving saved ownership and one equipped weapon per category.
+- Reused the original Three.js model thumbnails, character pose/IK, drag-to-rotate soldier, persistent equipment, secondary/melee/explosive/helmet/item panels and shop behavior. Kept weapon stats and gameplay unchanged.
+- Added dedicated `src/styles/12-inventory-armory.css`, updated Inventory regression checks, and rebuilt `assets/game.js` from its 46 ordered modules.
+
 ## 2026-10-30 — K2 and Shotgun unscoped ADS, RPG launcher aiming
 
 - **K2 (ID 9):** removed its artificial reflex sight mesh; added low-profile iron sight posts. Lowered only its ADS viewmodel so the rifle receiver and rails stay below the aim center. No scope overlay is shown.
