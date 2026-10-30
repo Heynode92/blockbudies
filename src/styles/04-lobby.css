@@ -311,3 +311,48 @@ body.lobby #gl{filter:brightness(.55) saturate(.8)}
 .room-transition-track i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ff7017,#ffc16a);transition:width .22s ease-out}
 .room-transition-center small{font-size:12px;letter-spacing:.22em;color:#a9bfd7;font-weight:800}
 @media(prefers-reduced-motion:reduce){.room-transition{transition:none}.room-transition-track i{transition:none}}
+
+
+/* Room Master edits stay in the active lobby; all styles scoped to this modal. */
+#lbroomlive #roomSettingsModal[hidden]{display:none!important}
+#lbroomlive #roomSettingsModal{position:fixed;inset:0;z-index:25;box-sizing:border-box;display:flex;align-items:center;justify-content:center;padding:clamp(12px,2.6vh,28px);background:rgba(1,7,18,.78);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);font-family:Rajdhani,"Trebuchet MS",sans-serif}
+#lbroomlive .room-modal-panel{box-sizing:border-box;display:flex;flex-direction:column;min-height:0;width:min(790px,96vw);max-height:min(94dvh,950px);border:1px solid #3e93bb;border-top:3px solid #ff8424;border-radius:7px;background:linear-gradient(155deg,#0d2138,#071325 85%);box-shadow:0 22px 85px rgba(0,0,0,.8),0 0 35px rgba(17,74,112,.2);color:#eaf2fe;overflow:hidden}
+#lbroomlive .room-modal-header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex:none;padding:20px 24px 12px}
+#lbroomlive .room-modal-heading{border-left:7px solid #ff8d24;padding-left:15px}
+#lbroomlive .room-modal-heading h3{margin:0;color:#fff;font:italic 900 clamp(30px,3vw,46px)/1 Impact,"Arial Black",sans-serif;letter-spacing:.05em;text-shadow:2px 3px 0 #6e3423}
+#lbroomlive .room-modal-heading small{display:block;margin-top:5px;color:#ff9e34;font-size:11px;letter-spacing:.25em;font-weight:900}
+#lbroomlive .room-modal-x{width:44px;height:44px;flex:none;border:1px solid #426483;border-radius:6px;background:#14263d;color:#eaf2ff;font-size:31px;line-height:1;cursor:pointer}
+#lbroomlive .room-modal-content{display:flex;flex-direction:column;gap:15px;min-height:0;overflow-y:auto;padding:2px 24px 14px;scrollbar-color:#5a708b #0a1828}
+#lbroomlive .room-modal-field{display:flex;flex-direction:column;gap:7px;min-width:0}
+#lbroomlive .room-modal-field>span{font-size:13px;letter-spacing:.18em;color:#ffa33f;font-weight:900;border-left:4px solid #ff8e2a;padding-left:9px}
+#lbroomlive #roomModalName{box-sizing:border-box;width:100%;height:42px;padding:8px 12px;border:1px solid #3b5775;border-radius:4px;background:#142940;color:#edf5fe;font:800 17px Rajdhani,sans-serif}
+#lbroomlive .room-modal-map{position:relative;display:flex;align-items:stretch;min-height:111px;max-height:155px;overflow:hidden;border:1px solid #416587;border-radius:4px;background:#0c1c30}
+#lbroomlive #roomModalMapPreview{display:block;position:relative;width:48%;min-height:111px;object-fit:cover}
+#lbroomlive .room-modal-map-caption{display:flex;flex:1;flex-direction:column;justify-content:center;gap:5px;padding:10px 15px;background:linear-gradient(90deg,#11253d,#0a182a)}
+#lbroomlive .room-modal-map-caption strong{font:italic 900 clamp(18px,1.8vw,26px) Impact,"Arial Black",sans-serif;color:#fff;letter-spacing:.03em}
+#lbroomlive .room-modal-map-caption small,.room-modal-help{font-size:12px;color:#9eb9d5}
+#lbroomlive .room-modal-modes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#lbroomlive .room-modal-modes button{min-height:49px;padding:8px 11px;border:1px solid #496482;border-radius:5px;background:#152941;color:#d6e4f4;font:900 clamp(14px,1.2vw,19px) Rajdhani,sans-serif;cursor:pointer}
+#lbroomlive .room-modal-modes button.active{border:2px solid #ff922b;background:linear-gradient(110deg,#483023,#1c2a3b);color:#fff;box-shadow:0 0 9px rgba(255,136,32,.5)}
+#lbroomlive .room-modal-settings{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:12px;border:1px solid #31465c;background:#0b1b2f;border-radius:4px}
+#lbroomlive .room-modal-group{min-width:0;display:flex;flex-direction:column;gap:11px}
+#lbroomlive .room-modal-group+.room-modal-group{border-left:1px solid #395571;padding-left:13px}
+#lbroomlive .room-modal-group h4{margin:0 0 1px;border-left:4px solid #ff8c2d;padding-left:8px;font:900 clamp(12px,1vw,15px) Rajdhani,sans-serif;color:#ff9c3b;letter-spacing:.045em}
+#lbroomlive .room-modal-group.is-inactive{opacity:.42}
+#lbroomlive .room-modal-group.is-inactive h4{border-left-color:#536e8a;color:#8fa7bf}
+#lbroomlive .room-modal-control{display:flex;align-items:center;gap:5px;min-width:0}
+#lbroomlive .room-modal-control>span{width:91px;min-width:0;flex:1 0 66px;font-size:12px;font-weight:900;color:#c0d2e8}
+#lbroomlive .room-modal-control button{width:34px;height:38px;flex:none;border:1px solid #4a7094;border-radius:4px;background:#152a42;color:#eef5ff;font-size:24px;cursor:pointer}
+#lbroomlive .room-modal-control button:disabled{cursor:default}
+#lbroomlive .room-modal-control output{display:flex;align-items:center;justify-content:center;width:47px;height:38px;flex:none;border:1px solid #425e7b;background:#09182b;font:900 18px Rajdhani,sans-serif}
+#lbroomlive .room-modal-control small{font-size:10px;color:#a9bed4}
+#lbroomlive .room-modal-note{background:#12304b;border:1px solid #32618a;border-radius:5px;padding:13px 15px;font:700 13px Rajdhani,sans-serif;color:#c5dcee}
+#lbroomlive #roomModalError{min-height:0;margin:0;color:#ffb09c;font-size:13px;font-weight:800}
+#lbroomlive .room-modal-actions{flex:none;display:grid;grid-template-columns:1fr 1.15fr;gap:12px;padding:0 24px 20px}
+#lbroomlive .room-modal-actions button{min-height:58px;border-radius:6px;font:italic 900 clamp(19px,1.6vw,25px) Impact,"Arial Black",sans-serif;letter-spacing:.035em;cursor:pointer}
+#lbroomlive #roomModalCancel{border:1px solid #b84637;background:#172941;color:#ffb7a9}
+#lbroomlive #roomModalSave{border:0;background:linear-gradient(110deg,#ff7217,#ff9632);color:white}
+#lbroomlive .room-modal-panel button:hover:not(:disabled){filter:brightness(1.16)}
+#lbroomlive .room-modal-panel button:focus-visible,#lbroomlive #roomModalName:focus-visible{outline:2px solid #ffb95b;outline-offset:3px}
+@media(max-width:700px){#lbroomlive #roomSettingsModal{padding:9px}#lbroomlive .room-modal-panel{max-height:96dvh;width:100%}#lbroomlive .room-modal-header{padding:14px 14px 10px}#lbroomlive .room-modal-content{padding:2px 14px 12px;gap:11px}#lbroomlive .room-modal-settings{grid-template-columns:1fr;gap:12px}#lbroomlive .room-modal-group+.room-modal-group{border-left:0;border-top:1px solid #395571;padding-left:0;padding-top:10px}#lbroomlive .room-modal-actions{padding:0 14px 14px;gap:7px}#lbroomlive .room-modal-actions button{min-height:50px}#lbroomlive .room-modal-map{min-height:90px}#lbroomlive #roomModalMapPreview{min-height:90px}}
+@media(prefers-reduced-motion:reduce){#lbroomlive #roomSettingsModal{backdrop-filter:none}}

@@ -29,7 +29,7 @@ Slot capacity comes from `BOMB_RULES.teamSize` and BOT preview names from `BN`.
 AI occupants are clearly marked ON START: only `startMatch()` creates BOTs and all
 remaining slots are automatically populated when the game begins.
 
-Room Settings returns to the existing editor; Save Settings goes back to the live room.
+Room Settings opens an in-room modal; Save Changes updates the current room without leaving the lobby.
 Leave Room deletes the Room Master room from localStorage and memory; returning to
 main menu and browser pagehide also close an owned room. Room activity is a local
 log, not online chat. START MATCH calls existing `begin(roomSide)` and changes the
@@ -97,3 +97,26 @@ hover-aim still works during the live selection window. Hovering over the picker
 does not alter aim. Confirming by user click can obtain pointer lock; browser
 activation rules prohibit forcing pointer lock at the end of a loading timer.
 Standard later Bomb Mode freeze + loadout selection remains unchanged.
+
+## Room Master settings modal (2026-10-30)
+
+The active Room Lobby's **ROOM SETTINGS** button now opens a modal **over the
+same lobby**, instead of navigating to the Room Browser's creation/editor view.
+The existing Create Room form remains intact for initial room creation.
+
+The modal maintains a separate unsaved draft (room name, game mode, map,
+kill limit, match minutes, max rounds, round minutes). +/- controls take their
+allowed values exclusively from `ROOM_LIMITS`; current playable map names,
+descriptions and the actual rendered 3D map come from `MODE_MAP_PREVIEWS`
+and the existing WebGL preview in `84-live-map-preview.js`.
+
+SAVE CHANGES validates/normalizes with the shared `roomSaveDraft` path,
+persists to the same browser-local room record, refreshes the existing Room
+Information panel and remains in the room. Cancel, X, Escape and backdrop
+click discard draft changes and restore the original 3D map preview. The modal
+blocks Start Match while open; leaving a room also closes the popup. The
+player's selected Police/Terrorist slot and equipped Inventory weapon are
+unchanged by the room-settings modal. The dialog supports keyboard focus,
+Escape and Tab cycling and scales to smaller screens.
+
+No multiplayer network, simulated map or new backend is introduced.

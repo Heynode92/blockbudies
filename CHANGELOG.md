@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-10-30 — Room Master settings popup without leaving Room Lobby
+
+- ROOM SETTINGS in an active local room now opens a responsive, accessible overlay dialog on top of the same Room Lobby instead of routing back to the room browser.
+- The popup offers room name, actual playable 3D map preview, TDM/Bomb Mode switch, and bounded +/- controls for kill limit, match duration, max rounds, and round duration; options derive from the existing ROOM_LIMITS and MODE_MAP_PREVIEWS.
+- Editing uses an isolated draft. Cancel, X, Escape, and backdrop dismiss unsaved changes and restore the original preview; Save Changes reuses canonical validation/persistence and refreshes Room Information without leaving the room or changing the selected team/equipped weapon.
+- Room closure cleans up open dialogs and prevents match launch while editing. Existing Create Room workflow, 3–2–1 countdown, loading fade, BOT spawning and gameplay remain intact.
+- Added modal-specific regression coverage and synced standalone assets/game.js for direct Windows browser launch.
+
+
 ## 2026-10-30 — Fix loading handoff, mouse-look and live in-match loadout
 
 - Fixed Room Start clearing the same timer that controlled in-game weapon selection. Record the canonical per-mode pick duration before suppressing the duplicate initial freeze, and reopen selection only **after** the loading overlay has faded.

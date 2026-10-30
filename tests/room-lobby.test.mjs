@@ -9,12 +9,14 @@ const module=read('src/game/83-room-lobby.js');
 
 class FakeElement{
  constructor(){
-  this.value='';this.textContent='';this.hidden=false;this.style={};this.children=[];this.attributes={};this.events={};this.width=1280;this.height=720;
+  this.value='';this.textContent='';this.hidden=false;this.style={};this.children=[];this.attributes={};this.events={};this.width=1280;this.height=720;this.disabled=false;
   this.classes=new Set();
   this.classList={add:name=>this.classes.add(name),remove:name=>this.classes.delete(name),
    toggle:(name,yes)=>{if(yes)this.classes.add(name);else this.classes.delete(name);}};
  }
  getContext(){return {drawImage(){}};}
+ focus(){this.focused=true;}
+ querySelectorAll(){return [];}
  addEventListener(type,fn){this.events[type]=fn;}
  setAttribute(name,value){this.attributes[name]=value;}
  replaceChildren(...items){this.children=items;}
@@ -22,7 +24,7 @@ class FakeElement{
  click(){if(this.events.click)this.events.click();}
 }
 function setup(){
- const nodes=new Map(),data=new Map(),view={page:'',previews:[],previewSides:[],frames:0};
+ const nodes=new Map(),data=new Map(),view={page:'',previews:[],previewSides:[],frames:0,documentHandlers:{}};
  let now=0,nextId=0;const frames=new Map(),timers=new Map();
  function advance(ms){
   const end=now+ms;
@@ -41,7 +43,7 @@ function setup(){
  const doc={getElementById:id=>{
   if(!nodes.has(id))nodes.set(id,new FakeElement());
   return nodes.get(id);
- },createElement:()=>new FakeElement()};
+ },createElement:()=>new FakeElement(),addEventListener:(type,fn)=>{view.documentHandlers[type]=fn;},activeElement:null};
  for(const [key,value] of Object.entries({roomName:'My Room',roomKills:'50',roomMinutes:'10',roomRounds:'12',roomRoundMinutes:'2'}))
   doc.getElementById(key).value=value;
  const context={document:doc,localStorage:{getItem:key=>data.get(key)||null,setItem:(key,value)=>data.set(key,value)},
@@ -224,11 +226,23 @@ test('Room Master leaving closes the local room and removes it from browser stor
  assert.equal(call(context,'roomCurrent'),null);assert.equal(JSON.parse(data.get('bbfps_local_rooms_v1')).length,0);
  assert.equal(view.page,'lbrooms');
 });
-test('Room Settings edit and save returns to the active lobby',()=>{
- const {context,doc,view}=setup();call(context,'roomLobbyOpen()');call(context,'roomCreateLocal()');
- doc.getElementById('rmlSettings').click();assert.equal(view.page,'lbrooms');
- doc.getElementById('roomName').value='Updated';doc.getElementById('roomSave').click();
- assert.equal(view.page,'lbroomlive');assert.equal(doc.getElementById('rmlRoomName').textContent,'Updated');
+test('Room Settings stays in the active lobby; saving commits via popup only',()=>{
+ const {context,doc,view,data}=setup();call(context,'roomLobbyOpen()');call(context,'roomCreateLocal()');
+ const id=call(context,'roomCurrent.id'),count=view.previewOpens;
+ doc.getElementById('rmlSettings').click();
+ assert.equal(view.page,'lbroomlive','must NOT navigate to the room browser');
+ assert.equal(doc.getElementById('roomSettingsModal').hidden,false);
+ assert.equal(call(context,'roomCurrent.id'),id);
+ doc.getElementById('roomModalName').value='Updated';
+ doc.getElementById('roomModalKillsPlus').click(); // default 50 -> 75, from whitelist
+ assert.equal(call(context,'roomCurrent.kills'),50,'changes are unsaved before Save');
+ doc.getElementById('roomModalSave').click();
+ assert.equal(view.page,'lbroomlive');
+ assert.equal(doc.getElementById('roomSettingsModal').hidden,true);
+ assert.equal(doc.getElementById('rmlRoomName').textContent,'Updated');
+ assert.equal(doc.getElementById('rmlGoal').textContent,'75 KILLS');
+ assert.equal(JSON.parse(data.get('bbfps_local_rooms_v1'))[0].kills,75);
+ assert.equal(view.previewOpens,count+1,'refreshes same 3D soldier without duplicate previews');
 });
 
 test('live team counts and human-vs-BOT total derive from shared gameplay capacity',()=>{
@@ -238,13 +252,12 @@ test('live team counts and human-vs-BOT total derive from shared gameplay capaci
  assert.match(read('src/game/85-lobby-and-match.js'),/i<BOMB_RULES\.teamSize-\(t===tm\?1:0\)/);
 });
 
-test('Create Room and Room Settings save refresh the shared 3D soldier preview',()=>{
- const {context,doc,view}=setup();call(context,'roomLobbyOpen()');
- call(context,'roomCreateLocal()');
+test('Create Room and popup Save refresh the shared 3D soldier preview',()=>{
+ const {context,doc,view}=setup();call(context,'roomLobbyOpen()');call(context,'roomCreateLocal()');
  assert.equal(view.previewOpens,1);
  doc.getElementById('rmlSettings').click();
- doc.getElementById('roomName').value='My Test Room';
- doc.getElementById('roomSave').click();
+ doc.getElementById('roomModalName').value='My Test Room';
+ doc.getElementById('roomModalSave').click();
  assert.equal(view.previewOpens,2);
  assert.equal(doc.getElementById('rmlRoomName').textContent,'My Test Room');
 });
@@ -280,4 +293,84 @@ test('map loading reads 3D pixels in the post-render preview hook',()=>{
  assert.match(preview,/if\(inLive&&roomStartFlow\.active&&roomStartFlow\.phase==="loading"\)roomStartCaptureMap\(\)/);
  assert.doesNotMatch(room,/var captured=roomStartCaptureMap\(\)/);
  assert.match(room,/if\(!flow\.mapReady\|\|elapsed<500\)/);
+});
+
+test('Room popup CANCEL discards draft changes without closing room or changing sides',()=>{
+ const {context,doc,view,data}=setup();call(context,'roomLobbyOpen()');call(context,'roomCreateLocal()');
+ const original=JSON.parse(data.get('bbfps_local_rooms_v1'))[0],side=call(context,'roomSide');
+ doc.getElementById('rmlSettings').click();
+ doc.getElementById('roomModalBomb').click();
+ assert.equal(doc.getElementById('roomModalMapName').textContent,'LOCKDOWN');
+ assert.equal(view.page,'lbroomlive');
+ assert.equal(call(context,'roomCurrent.mode'),0,'draft does not change roomCurrent');
+ assert.equal(JSON.parse(data.get('bbfps_local_rooms_v1'))[0].mode,0,'draft not persisted');
+ assert.equal(doc.getElementById('roomModalTdmGroup').classes.has('is-inactive'),true);
+ assert.equal(doc.getElementById('roomModalKillsPlus').disabled,true);
+ doc.getElementById('roomModalRoundsPlus').click();
+ doc.getElementById('roomModalCancel').click();
+ assert.equal(doc.getElementById('roomSettingsModal').hidden,true);
+ assert.equal(call(context,'roomCurrent.mode'),original.mode);
+ assert.equal(call(context,'selM'),0,'3D preview restored after cancel');
+ assert.equal(call(context,'roomSide'),side,'team selection stays intact');
+ assert.equal(JSON.parse(data.get('bbfps_local_rooms_v1'))[0].rounds,original.rounds);
+ assert.equal(view.page,'lbroomlive','room remains open');
+});
+test('Room popup X, Escape, backdrop and missing name are handled safely',()=>{
+ const {context,doc,view}=setup();call(context,'roomLobbyOpen()');call(context,'roomCreateLocal()');
+ const modal=doc.getElementById('roomSettingsModal');
+ doc.getElementById('rmlSettings').click();doc.getElementById('roomModalClose').click();
+ assert.equal(modal.hidden,true);
+ doc.getElementById('rmlSettings').click();
+ view.documentHandlers.keydown({key:'Escape',preventDefault(){}});
+ assert.equal(modal.hidden,true,'Escape closes dialog');
+ doc.getElementById('rmlSettings').click();
+ modal.events.click.call(modal,{target:modal});
+ assert.equal(modal.hidden,true,'backdrop closes dialog');
+ doc.getElementById('rmlSettings').click();
+ doc.getElementById('roomModalName').value='   ';
+ doc.getElementById('roomModalSave').click();
+ assert.equal(modal.hidden,false,'invalid name keeps dialog open');
+ assert.equal(call(context,'roomCurrent.name'),'My Room','invalid name cannot corrupt room');
+ assert.match(doc.getElementById('roomModalError').textContent,/room name/i);
+ doc.getElementById('roomModalCancel').click();
+ assert.equal(view.page,'lbroomlive');
+});
+test('Room popup saves only canonical settings for Bomb Mode and updates actual lobby',()=>{
+ const {context,doc,view,data}=setup();call(context,'roomLobbyOpen()');call(context,'roomCreateLocal()');
+ const roomId=call(context,'roomCurrent.id');
+ doc.getElementById('rmlSettings').click();doc.getElementById('roomModalBomb').click();
+ // Canonical values: 12 -> max at 12 and 2 -> 3, clamped to ROOM_LIMITS.
+ doc.getElementById('roomModalRoundsPlus').click();
+ doc.getElementById('roomModalRoundMinutesPlus').click();
+ doc.getElementById('roomModalSave').click();
+ assert.equal(call(context,'roomCurrent.id'),roomId);
+ assert.equal(call(context,'roomCurrent.mode'),1);
+ assert.equal(call(context,'roomCurrent.rounds'),12);
+ assert.equal(call(context,'roomCurrent.roundMinutes'),3);
+ assert.equal(doc.getElementById('rmlGameMode').textContent,'BOMB MODE');
+ assert.equal(doc.getElementById('rmlTime').textContent,'3 MINUTES');
+ assert.equal(view.page,'lbroomlive');
+ assert.equal(JSON.parse(data.get('bbfps_local_rooms_v1'))[0].mode,1);
+ call(context,'roomLaunch()');
+ assert.equal(view.begunTeam,undefined,'still uses the room-only countdown before gameplay');
+});
+test('Room popup is closed when Room Master leaves and never blocks subsequent navigation',()=>{
+ const {context,doc,view,data}=setup();call(context,'roomLobbyOpen()');call(context,'roomCreateLocal()');
+ doc.getElementById('rmlSettings').click();
+ call(context,'roomLaunch()');
+ assert.equal(call(context,'roomStartFlow.active'),false,'start is disabled while settings dialog is open');
+ call(context,'roomCloseLocal()');
+ assert.equal(doc.getElementById('roomSettingsModal').hidden,true);
+ assert.equal(call(context,'roomCurrent'),null);
+ assert.equal(JSON.parse(data.get('bbfps_local_rooms_v1')).length,0);
+});
+test('popup follows real map and source layout, not a new map or hardcoded timer',()=>{
+ const html=read('index.html'),src=read('src/game/83-room-lobby.js'),preview=read('src/game/84-live-map-preview.js');
+ assert.match(html,/id="roomSettingsModal"/);
+ assert.match(html,/aria-modal="true"/);
+ assert.match(html,/id="roomModalMapPreview"/);
+ assert.match(preview,/modalCtx.drawImage\(src/);
+ assert.match(src,/ROOM_LIMITS\[key\]/);
+ assert.match(src,/function roomShowSettings\(\)/);
+ assert.doesNotMatch(src,/function roomShowSettings\(\)\{if\(!roomCurrent\)return;roomEditState\(roomCurrent\);lobP\("lbrooms"\);\}/);
 });

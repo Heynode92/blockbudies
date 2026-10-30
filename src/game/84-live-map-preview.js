@@ -23,7 +23,12 @@ function modePreviewDraw(now){
  var ratio=dw/dh,ww=Math.min(sw,sh*ratio),hh=Math.min(sh,sw/ratio);
  if(inMode)mapPreviewCtx.drawImage(src,(sw-ww)/2,(sh-hh)/2,ww,hh,0,0,dw,dh);
  if(inRoom||inLive){var c=document.getElementById(inLive?"rmlMapPreview":"roomMapPreview"),ctx=c.getContext("2d",{alpha:false});
-   ctx.drawImage(src,(sw-ww)/2,(sh-hh)/2,ww,hh,0,0,c.width,c.height);}
+   ctx.drawImage(src,(sw-ww)/2,(sh-hh)/2,ww,hh,0,0,c.width,c.height);
+   if(inLive&&!document.getElementById("roomSettingsModal").hidden){
+    var modalCanvas=document.getElementById("roomModalMapPreview"),modalCtx=modalCanvas.getContext("2d",{alpha:false});
+    modalCtx.drawImage(src,(sw-ww)/2,(sh-hh)/2,ww,hh,0,0,modalCanvas.width,modalCanvas.height);
+   }
+ }
  // Only read WebGL pixels synchronously after this frame's R.render().
  if(inLive&&roomStartFlow.active&&roomStartFlow.phase==="loading")roomStartCaptureMap();
 }

@@ -134,6 +134,64 @@
   <section class="rml-log"><h3>ROOM LOG</h3><div id="rmlLogLines" aria-live="polite"></div><footer>LOCAL SESSION · NO ONLINE CHAT</footer></section>
   <nav class="rml-actions" aria-label="Room Master actions"><button id="rmlSettings" type="button">⚙ ROOM SETTINGS</button><button id="rmlLeave" type="button">LEAVE ROOM</button><button id="rmlStart" type="button">▶ START MATCH</button></nav>
  </div>
+
+ <div id="roomSettingsModal" class="room-modal-backdrop" hidden>
+  <section class="room-modal-panel" role="dialog" aria-modal="true" aria-labelledby="roomModalTitle" aria-describedby="roomModalHint">
+   <header class="room-modal-header">
+    <div class="room-modal-heading"><h3 id="roomModalTitle">ROOM SETTINGS</h3><small>ROOM MASTER ONLY</small></div>
+    <button id="roomModalClose" type="button" class="room-modal-x" aria-label="Close room settings">×</button>
+   </header>
+   <div class="room-modal-content">
+    <label class="room-modal-field"><span>ROOM NAME</span><input id="roomModalName" maxlength="32" autocomplete="off" spellcheck="false" aria-label="Room name"></label>
+    <div class="room-modal-field"><span>MAP</span>
+     <div class="room-modal-map" aria-label="Preview of the current selected map">
+      <canvas id="roomModalMapPreview" width="720" height="320" aria-label="Actual 3D map preview"></canvas>
+      <div class="room-modal-map-caption"><strong id="roomModalMapName"></strong><small id="roomModalMapCaption"></small></div>
+     </div>
+     <small class="room-modal-help">Only existing playable maps are available for each mode.</small>
+    </div>
+    <div class="room-modal-field"><span>GAME MODE</span>
+     <div class="room-modal-modes" role="group" aria-label="Choose game mode">
+      <button id="roomModalTdm" type="button" aria-pressed="false">TEAM DEATH MATCH</button>
+      <button id="roomModalBomb" type="button" aria-pressed="false">BOMB MODE</button>
+     </div>
+    </div>
+    <div class="room-modal-settings">
+     <section id="roomModalTdmGroup" class="room-modal-group" aria-label="Team Death Match settings">
+      <h4>TEAM DEATH MATCH SETTINGS</h4>
+      <div class="room-modal-control"><span>KILL LIMIT</span>
+       <button id="roomModalKillsMinus" type="button" aria-label="Decrease kill limit">−</button>
+       <output id="roomModalKillsValue" aria-live="polite"></output>
+       <button id="roomModalKillsPlus" type="button" aria-label="Increase kill limit">+</button>
+      </div>
+      <div class="room-modal-control"><span>MATCH TIME</span>
+       <button id="roomModalMinutesMinus" type="button" aria-label="Decrease match time">−</button>
+       <output id="roomModalMinutesValue" aria-live="polite"></output>
+       <button id="roomModalMinutesPlus" type="button" aria-label="Increase match time">+</button>
+       <small>MIN</small>
+      </div>
+     </section>
+     <section id="roomModalBombGroup" class="room-modal-group" aria-label="Bomb Mode settings">
+      <h4>BOMB MODE SETTINGS</h4>
+      <div class="room-modal-control"><span>MAX ROUNDS</span>
+       <button id="roomModalRoundsMinus" type="button" aria-label="Decrease max rounds">−</button>
+       <output id="roomModalRoundsValue" aria-live="polite"></output>
+       <button id="roomModalRoundsPlus" type="button" aria-label="Increase max rounds">+</button>
+      </div>
+      <div class="room-modal-control"><span>ROUND TIME</span>
+       <button id="roomModalRoundMinutesMinus" type="button" aria-label="Decrease round time">−</button>
+       <output id="roomModalRoundMinutesValue" aria-live="polite"></output>
+       <button id="roomModalRoundMinutesPlus" type="button" aria-label="Increase round time">+</button>
+       <small>MIN</small>
+      </div>
+     </section>
+    </div>
+    <div class="room-modal-note" id="roomModalHint">Changes apply to this room when saved. You stay in the Room Lobby.</div>
+    <p id="roomModalError" role="alert" aria-live="polite"></p>
+   </div>
+   <footer class="room-modal-actions"><button id="roomModalCancel" type="button">CANCEL</button><button id="roomModalSave" type="button">SAVE CHANGES</button></footer>
+  </section>
+ </div>
  <div id="roomPrestart" class="room-prestart" role="status" aria-live="polite" hidden>
   <div class="room-prestart-content"><span>MATCH STARTING</span><strong id="roomPrestartNumber">3</strong><small>PREPARE YOUR TEAM</small></div>
  </div>

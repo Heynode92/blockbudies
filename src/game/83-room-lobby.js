@@ -52,7 +52,78 @@ function roomLiveOpen(room){
  // Inventory owns the soldier, real mkGun models, equipped weapon and 3D renderer.
  inventoryRoomPreviewOpen(roomSide);
 }
-function roomShowSettings(){if(!roomCurrent)return;roomEditState(roomCurrent);lobP("lbrooms");}
+
+// In-room settings have their own unsaved draft; the room browser stays untouched.
+var roomModalDraft=null,roomModalReturnFocus=null;
+function roomModalActive(){return !document.getElementById("roomSettingsModal").hidden;}
+function roomModalPaint(){
+ if(!roomModalDraft)return;
+ var mode=roomModalDraft.mode;
+ ["roomModalTdm","roomModalBomb"].forEach(function(id,index){
+  var button=document.getElementById(id),active=index===mode;
+  button.classList.toggle("active",active);button.setAttribute("aria-pressed",String(active));
+ });
+ [["roomModalTdmGroup",mode!==0,["kills","minutes"]],
+  ["roomModalBombGroup",mode!==1,["rounds","roundMinutes"]]].forEach(function(group){
+  document.getElementById(group[0]).classList.toggle("is-inactive",group[1]);
+  group[2].forEach(function(key){
+   var prefix="roomModal"+key.charAt(0).toUpperCase()+key.slice(1);
+   document.getElementById(prefix+"Value").textContent=String(roomModalDraft[key]);
+   document.getElementById(prefix+"Minus").disabled=group[1]||roomModalDraft[key]===ROOM_LIMITS[key][0];
+   document.getElementById(prefix+"Plus").disabled=group[1]||roomModalDraft[key]===ROOM_LIMITS[key][ROOM_LIMITS[key].length-1];
+  });
+ });
+ var map=roomMapsForMode(mode);
+ roomText("roomModalMapName",map?map.name:"UNAVAILABLE");
+ roomText("roomModalMapCaption",map?map.caption:"");
+}
+function roomModalChooseMode(mode){
+ if(!roomModalDraft)return;
+ roomModalDraft.mode=mode===1?1:0;
+ roomModalPaint();
+ // Only the 3D *preview* changes until SAVE; roomCurrent remains unchanged.
+ selM=roomModalDraft.mode;modePreviewSelect(selM);
+}
+function roomModalStep(key,delta){
+ if(!roomModalDraft||ROOM_LIMITS[key]===undefined)return;
+ var list=ROOM_LIMITS[key],index=list.indexOf(roomModalDraft[key]);
+ if(index<0)return;
+ roomModalDraft[key]=list[Math.max(0,Math.min(list.length-1,index+(delta<0?-1:1)))];
+ roomModalPaint();
+}
+function roomModalHide(restorePreview){
+ if(!roomModalActive())return;
+ document.getElementById("roomSettingsModal").hidden=true;
+ roomModalDraft=null;
+ roomText("roomModalError","");
+ if(restorePreview&&roomCurrent){
+  selM=roomCurrent.mode;modePreviewSelect(selM);
+ }
+ var focus=roomModalReturnFocus;roomModalReturnFocus=null;
+ if(focus&&typeof focus.focus==="function")focus.focus();
+}
+function roomShowSettings(){
+ if(!roomCurrent||roomStartFlow.active||roomModalActive())return;
+ roomModalReturnFocus=document.activeElement||document.getElementById("rmlSettings");
+ roomModalDraft=Object.assign({},roomCurrent);
+ document.getElementById("roomModalName").value=roomCurrent.name;
+ roomText("roomModalError","");
+ roomModalPaint();
+ document.getElementById("roomSettingsModal").hidden=false;
+ // The lobby map frame fills the thumbnail immediately; next render updates the live map.
+ var source=document.getElementById("rmlMapPreview"),dest=document.getElementById("roomModalMapPreview");
+ try{dest.getContext("2d",{alpha:false}).drawImage(source,0,0,dest.width,dest.height);}catch(err){}
+ if(typeof document.getElementById("roomModalName").focus==="function")document.getElementById("roomModalName").focus();
+}
+function roomModalSave(){
+ if(!roomCurrent||!roomModalDraft)return;
+ var draft=Object.assign({},roomModalDraft,{name:document.getElementById("roomModalName").value.trim().slice(0,32)});
+ if(!draft.name){roomText("roomModalError","Enter a room name before saving.");return;}
+ var saved=roomSaveDraft(draft);
+ if(!saved){roomText("roomModalError","Could not save these room settings.");return;}
+ roomModalHide(false);roomLiveLog("Room settings updated.");roomLiveOpen(saved);
+}
+
 function roomLeaveLive(){roomCloseLocal();lobP("lbrooms");}
 
 function roomAllowed(value,list,fallback){var n=Number(value);return list.indexOf(n)>=0?n:fallback;}
@@ -153,17 +224,18 @@ function roomCreateLocal(){
  roomLiveLog("Room created. You are Room Master.");roomLiveOpen(room);
  roomSetMessage("Room created locally. You are the Room Master.");
 }
-function roomSaveLocal(){
- if(!roomCurrent)return null;
- var draft=roomFormData();if(!draft){roomSetMessage("Room name cannot be empty.");return null;}
- var next=roomNormalize(Object.assign({id:roomCurrent.id},draft));
+function roomSaveDraft(draft){
+ if(!roomCurrent||!draft||!String(draft.name||"").trim()){roomSetMessage("Room name cannot be empty.");return null;}
+ var next=roomNormalize(Object.assign({},draft,{id:roomCurrent.id}));
  if(!next)return null;
  var i=roomList.findIndex(function(r){return r.id===roomCurrent.id;});
  if(i<0){roomSetMessage("Room no longer exists.");roomEditState(null);return null;}
  roomList[i]=next;roomCurrent=next;roomPersist();roomRender();
  roomSetMessage("Room settings saved.");return next;
 }
+function roomSaveLocal(){return roomSaveDraft(roomFormData());}
 function roomCloseLocal(){
+ roomModalHide(false);
  roomStartAbort();
  if(!roomCurrent)return;
  roomList=roomList.filter(function(r){return r.id!==roomCurrent.id;});roomPersist();roomRender();
@@ -269,7 +341,7 @@ function roomStartReveal(token){
  },600);
 }
 function roomLaunch(){
- if(roomStartFlow.active)return;
+ if(roomStartFlow.active||roomModalActive())return;
  var room=roomSaveLocal();if(!room)return;
  var flow=roomStartFlow;flow.active=true;flow.phase="countdown";flow.token++;
  flow.team=roomSide;flow.config=Object.assign({},room);
@@ -287,6 +359,7 @@ function roomRoundLimit(){return roomMatchConfig&&roomMatchConfig.mode===1?roomM
 function roomRoundSeconds(){return roomMatchConfig&&roomMatchConfig.mode===1?roomMatchConfig.roundMinutes*60:BOMB_RULES.roundSeconds;}
 function roomRoundsToWin(){return roomMatchConfig&&roomMatchConfig.mode===1?Math.floor(roomRoundLimit()/2)+1:BOMB_RULES.wins;}
 function roomLobbyOpen(){
+ roomModalHide(false);
  roomLoad();roomRender();
  if(roomCurrent){var found=roomList.find(function(r){return r.id===roomCurrent.id;});if(found){roomLiveOpen(found);return;}roomEditState(null);}
  else roomEditState(null);
@@ -303,6 +376,29 @@ document.getElementById("roomClose").addEventListener("click",roomCloseLocal);
 document.getElementById("roomStart").addEventListener("click",roomLaunch);
 
 document.getElementById("rmlSettings").addEventListener("click",roomShowSettings);
+document.getElementById("roomModalClose").addEventListener("click",function(){roomModalHide(true);});
+document.getElementById("roomModalCancel").addEventListener("click",function(){roomModalHide(true);});
+document.getElementById("roomModalSave").addEventListener("click",roomModalSave);
+document.getElementById("roomModalTdm").addEventListener("click",function(){roomModalChooseMode(0);});
+document.getElementById("roomModalBomb").addEventListener("click",function(){roomModalChooseMode(1);});
+["kills","minutes","rounds","roundMinutes"].forEach(function(key){
+ var prefix="roomModal"+key.charAt(0).toUpperCase()+key.slice(1);
+ document.getElementById(prefix+"Minus").addEventListener("click",function(){roomModalStep(key,-1);});
+ document.getElementById(prefix+"Plus").addEventListener("click",function(){roomModalStep(key,1);});
+});
+document.getElementById("roomSettingsModal").addEventListener("click",function(e){
+ if(e.target===this)roomModalHide(true);
+});
+document.addEventListener("keydown",function(e){
+ if(!roomModalActive())return;
+ if(e.key==="Escape"){e.preventDefault();roomModalHide(true);return;}
+ if(e.key!=="Tab")return;
+ var buttons=document.getElementById("roomSettingsModal").querySelectorAll("button:not(:disabled),input:not(:disabled)");
+ if(!buttons.length)return;
+ var first=buttons[0],last=buttons[buttons.length-1];
+ if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+ else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+});
 document.getElementById("rmlLeave").addEventListener("click",roomLeaveLive);
 document.getElementById("rmlStart").addEventListener("click",roomLaunch);
 addEventListener("pagehide",function(){roomStartAbort();if(roomCurrent)roomCloseLocal();});
