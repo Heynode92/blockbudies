@@ -1880,7 +1880,6 @@ function updDead(dt){
     d.legs[0].rotation.z=-.3*s;d.legs[1].rotation.z=.3*s;
   }
 }
-
 // Surface-aware Web Audio tactical footsteps. No external sound files.
 // Steps are driven by actual player / BOT displacement, not a repeating timer.
 var FOOTSTEP_RULES=Object.freeze({radius:24,near:2.2,maxVoices:16,walkStride:2.05,sprintStride:1.78}),
