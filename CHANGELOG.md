@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-30 — Saiga-12 and pump-action shotgun animation
+
+- Added Saiga-12, stable weapon ID 18, in `src/game/weapon/19-saiga12.js`, using user-specified ratings (Damage 100, RPM 53, Control 0, Speed 78, V.Recoil 100, H.Recoil 58, ammunition 6 / 30, Range 70).
+- The magazine-fed Saiga-12 reuses the original shotgun damage falloff, pellet mechanics and shot SFX, and adds a box-shaped red-dot tactical ADS with an unobstructed center.
+- Saiga-12 has **no** manual pump; existing Shotgun (ID 2) gets profile-specific `pump:true`, a fore-end/hand pump stroke, casing ejection during pumping, firing lock during cycling and post-pump automatic empty-magazine reload.
+- Preserved all older IDs, gameplay mechanics for unrelated weapons, Shop, Inventory, save format and unlock rules. Synchronized `assets/game.js` and source manifest; expanded legacy table-length tests and added Saiga/pump regression coverage.
+
 ## 2026-10-30 — XM8 red-dot ADS view obstruction fix
 
 - Fixed XM8's circular red-dot scope being blocked by the 3D rifle receiver and tall carry handle after aiming.

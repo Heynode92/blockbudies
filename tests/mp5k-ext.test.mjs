@@ -48,7 +48,7 @@ test('MP5K Ext is wired into the same ADS, reload, sound and HUD tables',()=>{
  const muzzle=bracketArray(combat,/MZ=(\[[^\]]+\])/, 'muzzle placement');
  const sfx=bracketArray(audio,/SFXI=(\[[^\]]+\])/, 'audio mapping');
  for(const [name,list] of Object.entries({fov,offsets,rg,rl,pt,mode,cycles,muzzle,sfx}))
-  assert.equal(list.length,18,name+' must cover all 16 weapon IDs');
+  assert.equal(list.length,19,name+' must cover all 16 weapon IDs');
  assert.equal(sfx[13],5);
  const sounds=bracketArray(audio,/var GS=(\[.*?\]),SFXI=/s,'audio presets');
  assert.equal(sounds[5].suppressed,true);

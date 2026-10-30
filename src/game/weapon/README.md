@@ -8,13 +8,13 @@ Edit weapon data in one place: `src/game/weapon/<NN>-<name>.js`. Each file owns 
 | Assault Rifle | AK-47 (2), K2 (10), AK SOPMOD (13), HK417 (16), XM8 (17) | `rifle` |
 | SMG | Kriss (7), Dual Kriss (8), MP7 (11), P90 (12), MP5K Ext (14), UMP45 Ext D (15) | `smg` / `dual` |
 | Sniper Rifle | AWP (9), XM2010 (18) | `sniper` |
-| Shotgun | Shotgun (3) | `shotgun` |
+| Shotgun | Shotgun (3), Saiga-12 (19) | `shotgun` |
 | Handgun | Handgun (1) | `pistol` |
 | Launcher | RPG (4) | `rocket` |
 | Melee | Knife (5) | `knife` |
 | Throwable | Grenade (6) | `grenade` |
 
-_Numbers in parentheses are the 1-based filenames, NOT weapon IDs. Actual weapon IDs are 0–17, starting with Handgun at 0. Don't renumber IDs: inventory save data and bots depend on them._
+_Numbers in parentheses are the 1-based filenames, NOT weapon IDs. Actual weapon IDs are 0–18, starting with Handgun at 0. Don't renumber IDs: inventory save data and bots depend on them._
 
 ## Shared modules
 - `00-registry.js` initializes arrays, the frozen class labels, and `DAMAGE_FALLOFF.referenceUnits` (currently 20 BLOCK BUDDIES world units per modifier interval).
@@ -90,3 +90,12 @@ CS:GO/CS2 uses 500 CS units per modifier interval. BLOCK BUDDIES has a much smal
 - Exact ratings: Damage 82, RPM rating **0**, Control 86, Speed 69, Vertical Recoil 64, Horizontal Recoil 60, Magazine 5, Reserve 30, Range 200. Existing sniper tuning maps rating 0 to its minimum cyclic rate, not to disabled shooting.
 - Uses the same AWP sniper scope, ADS sensitivity, WebAudio firing preset, bolt cocking animation and shell ejection. Shared sniper behavior now checks `WP[id].snp` rather than relying only on the original AWP ID.
 - A shot is blocked while the bolt cycles; automatic magazine reload remains deferred until after cocking is complete. The Shop, Inventory, loadout and saved-ownership rules are unchanged, preserving IDs 0–16.
+
+## Saiga-12 (weapon ID 18) and standard Shotgun pump-action
+
+- Added `src/game/weapon/19-saiga12.js` with a dedicated black low-poly receiver, polymer stock, magazine, vented foregrip, and nine physical red-dot optic pieces.
+- Saiga-12 ratings: Damage 100, RPM 53, Control 0, Speed 78, V.Recoil 100, H.Recoil 58, magazine 6, reserve 30, Range 70. It uses the canonical shotgun pellets/falloff and the original shotgun sound (`SFXI[18] === SFXI[2]`).
+- Saiga-12 is semi-auto and magazine-fed (reload MODE 0), without any between-shot pump. Box-shaped red-dot ADS uses the existing tactical optic overlay and clears the 3D viewmodel during aiming.
+- The **original Shotgun (ID 2)** is the only `pump:true` profile. Its pump duration derives from the already-calculated cooldown. After a shot the wooden fore-end moves rearward and forward, the support hand follows, the ejected shell appears during the pull, and shooting is gated until the action completes. Automatic reload after empty magazine occurs after the pump.
+- Existing shotgun statistics, ammo capacity and reload mode stay unchanged. All IDs 0–17 and saved ownership remain untouched; Shop, Inventory and category counts are registry-driven.
+

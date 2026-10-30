@@ -45,7 +45,7 @@ test('XM2010 uses AWP sound and zoom, and the complete 18-slot gameplay tables',
   MZ:parseArray(combat,/MZ=(\[[^\]]+\])/,'muzzle'),
   SFXI:parseArray(audio,/SFXI=(\[[^\]]+\])/,'sound mapping')
  };
- for(const [label,values] of Object.entries(tables))assert.equal(values.length,18,label+' covers ID 17');
+ for(const [label,values] of Object.entries(tables))assert.equal(values.length,19,label+' covers ID 17');
  assert.equal(tables.SFXI[17],tables.SFXI[8]);
  assert.equal(tables.SFXI[17],4);
  assert.equal(tables.ADF[17],tables.ADF[8],'XM2010 and AWP share zoom level');

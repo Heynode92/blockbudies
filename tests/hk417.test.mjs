@@ -49,7 +49,7 @@ test('HK417 integrates to ADS, red box optic, sound, muzzle, HUD and loadout',()
   MZ:literal(combat,/MZ=(\[[^\]]+\])/,'MZ'),
   SFXI:literal(audio,/SFXI=(\[[^\]]+\])/,'SFXI')
  };
- for(const [key,array] of Object.entries(tables))assert.equal(array.length,18,key+' covers IDs 0–15');
+ for(const [key,array] of Object.entries(tables))assert.equal(array.length,19,key+' covers IDs 0–15');
  assert.equal(tables.SFXI[15],tables.SFXI[1],'HK417 must reuse AK-47 firing sound');
  assert.equal(tables.SFXI[15],1);
  assert.ok(tables.MZ[15]<-1.3,'muzzle is at barrel tip');
