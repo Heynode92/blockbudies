@@ -58,7 +58,7 @@ test("approved five-card carousel and mouse category navigation",()=>{
  const {ctx,ws}=setup();ctx.refreshWeaponSelection();ctx.loadoutPrepareRound();ctx.loadoutUpdate();
  const cards=ws.querySelector(".wp-cards");
  assert.equal(cards.children.length,5);
- assert.deepEqual(cards.children.map(c=>c.querySelector(".wp-name").textContent),["K2","AK-47","Shotgun","Kriss","AWP"]);
+ assert.deepEqual(cards.children.map(c=>c.querySelector(".wp-name").textContent),["K2","AK-47","AK SOPMOD","Shotgun","Kriss"]);
  assert.equal(cards.children[1].disabled,false);
  assert.equal(cards.children[2].disabled,true);
  assert.match(css,/#wsel \.wp-cards\{display:grid;grid-template-columns:repeat\(5/);
@@ -95,7 +95,8 @@ test("next round resets selection for both game modes and keeps last confirmed p
 test("closed pointer lock and input cannot steal a loadout click",()=>{
  assert.match(look,/typeof wsOn!=="undefined"&&wsOn/);
  assert.match(input,/typeof wsOn!=="undefined"&&wsOn&&e.code==="Enter"/);
- assert.match(input,/typeof wsOn!=="undefined"&&wsOn\)\{e.preventDefault\(\);return;\}/);
+ assert.match(input,/if\(\(typeof wsOn!=="undefined"&&wsOn\)\|\|/);
+ assert.match(input,/e\.preventDefault\(\);return;\}lookStartDrag\(e\)/);
  assert.match(picker,/document.exitPointerLock\(\)/);
  assert.match(picker,/document.body.classList.toggle\("loadout-cursor-hidden"/);
  assert.match(look,/function lookFreeAimEnabled\(\)/);
