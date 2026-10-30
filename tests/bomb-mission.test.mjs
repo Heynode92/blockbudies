@@ -173,7 +173,7 @@ test('terrorist behavior changes from escort and plant to defense and pursuit',(
   assert.ok(Math.hypot(escortGoal[0]-plantGoal[0],escortGoal[1]-plantGoal[1])>3);
   c.bombMatch.state='planted';c.bombMatch.site=1;c.bombMatch.device.position.set(25,0,5);
   assert.ok(['hold','hunt'].includes(c.bombTacticalStage(escort)));
-  assert.equal(c.bombTacticalStage(carrier),'hunt');
+  assert.equal(c.bombTacticalStage(carrier),'intercept');
 });
 test('third-person spectator shows a teammate from behind, never through the nearest wall',()=>{
   const c=makeContext();init(c);c.selectGameMap(true);
