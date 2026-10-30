@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-30 — Interactive weapon Shop selection and detailed stats
+
+- Replaced featured starter banner with a clickable catalog and dynamic selected-weapon preview on the left.
+- Preview, category, ownership, ammo and all displayed weapon statistics come from canonical weapon profiles; no price or currency system was invented.
+- Added keyboard selection, previous/next preview navigation and responsive two-panel layout, preserving existing free unlock flow and equipment ownership.
+- Synced assets/game.js for direct index.html play without local builds.
+
 ## 2026-10-30 — Cinematic Shop visual refresh
 
 - Restyled Shop to match approved tactical armory visual: clean cinematic header, large featured standard-issue panel, colorful category filters, four-column desktop weapon cards, and responsive layouts.
