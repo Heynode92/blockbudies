@@ -1,12 +1,13 @@
 # BLOCK BUDDIES — BOT Intelligence Modernization Master Plan
 
 > **Document ID:** BB-AI-ROADMAP-001  
-> **Status:** M0 FOUNDATION VERIFIED / M1 READY (NOT STARTED) / NO AI GAMEPLAY UPGRADE IMPLEMENTED  
+> **Status:** M0 FOUNDATION VERIFIED / M1 IMPLEMENTED + CI VERIFIED, WINDOWS MANUAL VALIDATION PENDING / M2–M7 NOT STARTED  
 > **Baseline reviewed:** `main` at `23cd2bb71a2535de86ba49ccdfc3d23455be2ff9` (2026-10-30)  
 > **Scope:** Police and Terrorist BOTs in Team Deathmatch (TDM) and Bomb Mission  
 > **Source of truth:** repository production sources, `docs/ARCHITECTURE.md`, original-game fixture, existing test suite  
 > **Progress tracker:** [BOT_AI_IMPLEMENTATION_LOG.md](BOT_AI_IMPLEMENTATION_LOG.md)  
-> **M0 baseline evidence:** [BOT_AI_M0_BASELINE.md](BOT_AI_M0_BASELINE.md)
+> **M0 baseline evidence:** [BOT_AI_M0_BASELINE.md](BOT_AI_M0_BASELINE.md)  
+> **M1 verification and manual checklist:** [BOT_AI_M1_VALIDATION.md](BOT_AI_M1_VALIDATION.md)
 
 ## 1. Product outcome
 
@@ -16,7 +17,7 @@ All improvements must apply to **both teams**. Team-specific differences are lim
 
 **Quality criteria:** challenging but readable, responsive but not instantaneous, adaptive but not random jitter, aggressive but not suicidal, accurate but beatable, and tactical without cheating.
 
-This document is a **future gameplay implementation specification**, not evidence that any of the proposed behaviors exist today. M0 is now **verified for its foundational exit gate** using the deterministic synthetic active-BOT fixture, recorded behavior traces, sampled CPU tick timings, Windows CI [run #38](https://github.com/Heynode92/blockbudies/actions/runs/41105582716) (289/289 tests passing), and an owner-reported 8/8 core gameplay smoke test. No AI gameplay improvements have been implemented. Real-game browser FPS/p95, true hit-rate, reaction latency, navigation/stuck rate, per-map/faction coverage and Bomb success-rate measurements are **still open**, not asserted done.
+This document is a **future gameplay implementation specification**, not evidence that any of the proposed behaviors exist today. M0 is now **verified for its foundational exit gate** using the deterministic synthetic active-BOT fixture, recorded behavior traces, sampled CPU tick timings, Windows CI [run #38](https://github.com/Heynode92/blockbudies/actions/runs/41105582716) (289/289 tests passing), and an owner-reported 8/8 core gameplay smoke test. M1 perception/knowledge improvements are implemented and pass [Windows CI #67](https://github.com/Heynode92/blockbudies/actions/runs/41108118435) (297/297 Node tests); M1-specific human browser gameplay acceptance is pending. Real-game browser FPS/p95, true hit-rate, reaction latency, navigation/stuck rate, per-map/faction coverage and Bomb success-rate measurements are **still open**, not asserted done.
 
 ## 2. Hard constraints and non-goals
 
@@ -171,6 +172,8 @@ Mark a milestone complete **only after its acceptance gates pass**. Each milesto
 
 ### M1 — Perception and legitimate knowledge
 
+**Current tracking (2026-10-31 WIB):** **IMPLEMENTED / AUTOMATED VERIFIED**, [CI #67 297/297 PASS](https://github.com/Heynode92/blockbudies/actions/runs/41108118435). See [M1 implementation and QA checklist](BOT_AI_M1_VALIDATION.md). Sight snapshots, radio, bounded footstep/gunshot clues, expiry/reset, Bomb threat query isolation are implemented. **Human browser gameplay acceptance and true FPS/hit/reaction/stuck KPIs remain OPEN**; not yet FULLY VERIFIED or RELEASED.
+
 **Work:** explicit LOS, observation origin/time, acoustic event integration, team sighting reports and last-known uncertainty. Refactor Bomb helper queries to consume this knowledge instead of reading hidden enemies directly.
 
 **Exit gate:** wall/occlusion and unseen-movement tests show no knowledge leakage; BOTs still investigate legitimate heard shots/footsteps and execute objectives with stale/no intel.
@@ -307,4 +310,4 @@ These are **maintainer-only** actions. The user must never be told to install No
 5. Keep tactical input honest and preserve canonical gameplay mechanics. Test in realistic scenarios; record baseline deltas.
 6. Commit only after verification; update documentation and implementation log in the same commit. Never claim an upgrade was completed while only the plan was edited.
 
-**Approval boundary:** The original request on 2026-10-30 authorized documentation and logging only. A later explicit owner instruction authorized M0 harness and testing work. M1–M7 gameplay upgrades remain pending separate authorization.
+**Approval boundary:** The original request on 2026-10-30 authorized documentation and logging only. A later explicit owner instruction authorized M0 harness and testing work. M1 gameplay update was explicitly authorized by the owner in the subsequent request and is now implemented. M2–M7 remain pending separate authorization.
