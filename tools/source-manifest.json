@@ -46,6 +46,7 @@
     "src/game/80-input.js",
     "src/game/83-room-lobby.js",
     "src/game/84-live-map-preview.js",
+    "src/game/88-bot-perception.js",
     "src/game/89-bot-tactical-intelligence.js",
     "src/game/85-lobby-and-match.js",
     "src/game/86-bomb-mission.js",
