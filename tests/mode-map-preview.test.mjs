@@ -22,14 +22,27 @@ test('the selected Deathmatch displays BLOCK DISTRICT with minimal map-centric t
  assert.match(html,/PLAY NOW<kbd>ENTER<\/kbd>/);
  assert.doesNotMatch(html,/id="mds"|id="mhw"|id="mdf"/);
  assert.match(css,/#lbm \.mmap\{/);
+ assert.doesNotMatch(html,/LIVE 3D|class="mmap-live"/);
+ assert.doesNotMatch(css,/\.mmap-live/);
 });
 test('live preview reuses the rendered world frame and throttles 2D copies',()=>{
  const {state,draws,source}=setup();
- state.modePreviewDraw(1000);state.modePreviewDraw(1050);state.modePreviewDraw(1100);
- assert.equal(draws.length,2);assert.equal(draws[0][0],source);
+ state.modePreviewDraw(1000);state.modePreviewDraw(1017);state.modePreviewDraw(1034);
+ state.modePreviewDraw(1050);state.modePreviewDraw(1068);
+ assert.equal(draws.length,3);assert.equal(draws[0][0],source);
  assert.equal(draws[0][7],960);assert.equal(draws[0][8],540);
  assert.doesNotMatch(preview,/new\s+(?:T\.)?WebGLRenderer|requestAnimationFrame/);
  assert.match(loop,/R\.render\(S,C\);modePreviewDraw\(now\);/);
+ assert.equal(state.mapPreviewFrameMs,1000/30);
+});
+test('30 FPS cap is identical on touch and desktop; preview stays paused between frames',()=>{
+ const {state,draws}=setup();
+ state.touch=true;
+ for(let now=0;now<=100;now+=10)state.modePreviewDraw(now);
+ assert.equal(draws.length,3,'draw only at 0, 40 and 80ms');
+ state.touch=false;
+ for(let now=110;now<=200;now+=10)state.modePreviewDraw(now);
+ assert.equal(draws.length,6,'continue the same 30 FPS limit on desktop');
 });
 test('preview stays idle outside SELECT MODE, in gameplay, in a hidden tab or on the locked mode',()=>{
  const {state,draws}=setup();

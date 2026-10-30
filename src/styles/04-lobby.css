@@ -124,15 +124,13 @@ body.lobby #gl{filter:brightness(.55) saturate(.8)}
 #lbm .mmap::after{right:0;bottom:0;border-right:5px solid;border-bottom:5px solid}
 #mapPreviewCanvas{display:block;width:100%;height:100%;object-fit:cover;object-position:center;filter:saturate(1.14) contrast(1.06)}
 #lbm .mmap-shade{position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(7,13,25,.13) 15%,transparent 32%,rgba(4,9,18,.12) 55%,rgba(4,9,18,.94) 100%)}
-#lbm .mmap-live{position:absolute;right:17px;top:15px;padding:4px 10px;border:1px solid rgba(255,185,72,.72);
- background:rgba(6,17,26,.78);color:#ffcb71;font:800 12px Rajdhani,sans-serif;letter-spacing:.16em;z-index:2}
 #lbm .mmap-title{position:absolute;bottom:18px;left:clamp(16px,2vw,28px);z-index:2;display:flex;flex-direction:column;
  align-items:flex-start;gap:2px;text-shadow:0 2px 7px #000}
 #lbm .mmap-title>span{font:800 12px Rajdhani,sans-serif;letter-spacing:.35em;color:#ff9f28}
 #lbm .mmap-title>strong{font:italic 900 clamp(28px,3.1vw,55px)/1 Impact,"Arial Black",sans-serif;letter-spacing:.055em;color:#fff;filter:drop-shadow(0 2px 1px #000)}
 #lbm .mmap-title>small{font:700 clamp(12px,1.1vw,17px) Rajdhani,sans-serif;color:#c6d7ed;letter-spacing:.06em}
 #lbm .mmap.unavailable{background:radial-gradient(circle at center,rgba(254,127,49,.12),transparent 60%),linear-gradient(135deg,#1b2436,#080e18)}
-#lbm .mmap.unavailable #mapPreviewCanvas,#lbm .mmap.unavailable .mmap-live{display:none}
+#lbm .mmap.unavailable #mapPreviewCanvas{display:none}
 #lbm .moverview{position:relative;display:flex;flex-direction:column;gap:8px;min-width:0}
 #lbm .moverview-head{font:800 12px Rajdhani,sans-serif;letter-spacing:.28em;color:#ff8d27}
 #lbm .moverview-facts{display:flex;flex-wrap:wrap;align-items:center;gap:9px 20px}

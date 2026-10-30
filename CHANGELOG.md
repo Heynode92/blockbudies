@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-30 — Cleaner live map preview and 30 FPS cap
+
+- Removed the unnecessary "LIVE 3D" badge from the SELECT MODE map preview; kept the map name and preview itself.
+- Raised the preview's 2D frame-copy rate cap from 10 FPS desktop / 6 FPS touch to 30 FPS on both, without creating a second WebGL renderer.
+- Added regression checks for the badge removal and 30 FPS throttling. World geometry, renderer, camera, combat, and gameplay rules remain unchanged.
+- Updated the generated game bundle in sync with its source module.
+
 ## 2026-10-30 — Live 3D Select Mode map briefing
 
 - Implemented the approved streamlined esports SELECT MODE screen, replacing excessive text with a live map view, concise mode facts and PLAY NOW.
