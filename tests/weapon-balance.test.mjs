@@ -25,8 +25,8 @@ const expected=[
  ['AK SOPMOD',33,90,50,74,64,60,30,150,160]
 ];
 
-test('all thirteen weapon profiles exactly match supplied values and separately chosen RPG settings',()=>{
- const {profiles}=load();assert.equal(profiles.length,expected.length);
+test('original thirteen weapon profiles keep exact approved stats within expanded catalog',()=>{
+ const {profiles}=load();assert.ok(profiles.length>=expected.length);
  for(let i=0;i<expected.length;i++){
   const p=profiles[i];let fields=['name','damage','rpm','control','speed','vRecoil','hRecoil','mag','res','range'];
   fields.forEach((f,j)=>assert.equal(p[f],expected[i][j],`${p.name}.${f}`));
@@ -63,7 +63,7 @@ test('recoil is calculated from vertical and horizontal ratings rather than old 
  const {weapons}=load(),s=read('src/game/65-audio.js');
  const snippet=s.slice(s.indexOf('var CKV='),s.indexOf('// camShot('));
  const ctx={WP:weapons,Math};runInNewContext(snippet+'\nthis.recoil={CKV,CKY,CKR,CKS};',ctx);
- assert.equal(ctx.recoil.CKV.length,13);
+ assert.equal(ctx.recoil.CKV.length,weapons.length);
  assert.equal(ctx.recoil.CKV[4],0);assert.equal(ctx.recoil.CKV[5],0);
  assert.ok(ctx.recoil.CKV[2]>ctx.recoil.CKV[1]);
  assert.ok(ctx.recoil.CKY[1]>0);
