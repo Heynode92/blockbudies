@@ -56,7 +56,7 @@ test('XM8 uses extended gameplay tables, round red-dot ADS and AK-47 shot audio'
  assert.ok(tables.MZ[16]<-1.35,'XM8 muzzle offset matches barrel tip');
  assert.match(controls,/\b16:'<svg/,'new HUD silhouette exists');
  assert.match(controls,/16:"XM8 · Round red-dot sight"/,'description exists');
- assert.match(optics,/16:\{style:"xm8",name:"XM8"\}/,'optic routes through standard ADS');
+ assert.match(optics,/16:\{style:"xm8",name:"XM8",hideViewmodelOnAds:true\}/,'optic routes through standard ADS');
  assert.match(css,/\.tactical-aim-xm8\{[^}]*--ta-color:#ff3038/,'red reticle');
  assert.match(css,/\.tactical-aim-xm8 \.ta-frame\{[^}]*border-radius:50%/,'circular optic');
  assert.match(picker,/WS_ORDER=\[[^\]]*16/,'loadout lists XM8');
