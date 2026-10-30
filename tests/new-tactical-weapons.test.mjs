@@ -82,3 +82,34 @@ test('Compiled runtime matches all source modules including tactical optic modul
  assert.ok(manifest.styles.includes('src/styles/11-tactical-optics.css'));
  assert.equal(read('assets/game.js'),'(function(){\n'+manifest.parts.map(read).join('')+'})();\n');
 });
+
+test('MP7 micro red dot clears its physical optic while ADS and restores it afterward',()=>{
+ const ctx={WEAPON_PROFILES:[],WEAPON_RANGE_MODIFIERS:[],WEAPON_MODEL_BUILDERS:[],
+  bx(){return{visible:true}},cy(){return{visible:true}}};
+ runInNewContext(read('src/game/weapon/11-mp7.js'),ctx);
+ const gun={userData:{}},meshes=[];
+ ctx.WEAPON_MODEL_BUILDERS[10](gun,(...parts)=>meshes.push(...parts));
+ const opticParts=gun.userData.opticParts;
+ assert.equal(opticParts.length,5);
+ for(const part of opticParts)assert.ok(meshes.includes(part));
+ const aimEl={style:{},querySelector(){return{textContent:''}}};
+ const env={
+  document:{getElementById(){return aimEl},body:{classList:{toggle(){}}}},
+  pl:{w:10,dead:false,rl:0,sw:0,bAction:false},
+  mt:{over:false,cd:0},lob:false,run:true,adsT:1,
+  isBombMode(){return false},
+  guns:Array.from({length:13},(_,i)=>i===10?gun:{userData:{}})
+ };
+ runInNewContext(optic,env);
+ env.tacticalOpticUpdate();
+ assert.equal(aimEl.style.display,'block');
+ assert.ok(opticParts.every(p=>p.visible===false),'all physical MP7 sight pieces should be hidden');
+ env.adsT=0;
+ env.tacticalOpticUpdate();
+ assert.equal(aimEl.style.display,'none');
+ assert.ok(opticParts.every(p=>p.visible===true),'physical sight pieces should return after ADS');
+ assert.match(viewmodels,/\[0,-\.25,-\.58\],\[0,-\.27,-\.56\]/);
+ const opticsCss=read('src/styles/11-tactical-optics.css');
+ assert.match(opticsCss,/\.tactical-aim-mp7 \.ta-frame::after\{box-shadow:/);
+ assert.match(opticsCss,/\.tactical-aim-mp7 \.ta-cross::before,/);
+});

@@ -16,13 +16,20 @@ WEAPON_MODEL_BUILDERS[10]=function(g,a){
       bx(.08,.035,.06,0x475053,0,-.36,-.40),
       bx(.026,.028,.47,0x181e21,0,.014,.34), // folding stock beam
       bx(.10,.23,.028,0x191f21,0,-.025,.61), // buttpad
-      bx(.07,.014,.18,0x596062,0,.145,-.24), // optic rail base
-      bx(.055,.015,.16,0x101819,0,.203,-.27), // holo upper
-      bx(.013,.084,.018,0x0d1517,-.045,.174,-.28),bx(.013,.084,.018,0x0d1517,.045,.174,-.28),
-      bx(.080,.016,.016,0x0c1418,0,.220,-.28),
       bx(.065,.025,.10,0x495457,0,-.036,-.05), // ejection panel
       bx(.12,.033,.08,0x111517,0,-.07,-.42)  // trigger guard
     );
+    // Hide the physical MP7 optic frame during ADS: the tactical overlay supplies the reticle.
+    // The receiver and Picatinny rail remain visible; only the five sight pieces disappear.
+    var opticParts=[
+      bx(.07,.014,.18,0x596062,0,.145,-.24), // optic rail base
+      bx(.055,.015,.16,0x101819,0,.203,-.27), // holo upper
+      bx(.013,.084,.018,0x0d1517,-.045,.174,-.28),
+      bx(.013,.084,.018,0x0d1517,.045,.174,-.28),
+      bx(.080,.016,.016,0x0c1418,0,.220,-.28)
+    ];
+    opticParts.forEach(function(m){a(m);});
+    g.userData.opticParts=opticParts;
     for(var mp=0;mp<6;mp++){
       a(bx(.014,.013,.035,0x495054,-.059,.123,-.50+mp*.075));
       a(bx(.014,.013,.035,0x495054,.059,.123,-.50+mp*.075));

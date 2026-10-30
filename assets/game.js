@@ -695,13 +695,20 @@ WEAPON_MODEL_BUILDERS[10]=function(g,a){
       bx(.08,.035,.06,0x475053,0,-.36,-.40),
       bx(.026,.028,.47,0x181e21,0,.014,.34), // folding stock beam
       bx(.10,.23,.028,0x191f21,0,-.025,.61), // buttpad
-      bx(.07,.014,.18,0x596062,0,.145,-.24), // optic rail base
-      bx(.055,.015,.16,0x101819,0,.203,-.27), // holo upper
-      bx(.013,.084,.018,0x0d1517,-.045,.174,-.28),bx(.013,.084,.018,0x0d1517,.045,.174,-.28),
-      bx(.080,.016,.016,0x0c1418,0,.220,-.28),
       bx(.065,.025,.10,0x495457,0,-.036,-.05), // ejection panel
       bx(.12,.033,.08,0x111517,0,-.07,-.42)  // trigger guard
     );
+    // Hide the physical MP7 optic frame during ADS: the tactical overlay supplies the reticle.
+    // The receiver and Picatinny rail remain visible; only the five sight pieces disappear.
+    var opticParts=[
+      bx(.07,.014,.18,0x596062,0,.145,-.24), // optic rail base
+      bx(.055,.015,.16,0x101819,0,.203,-.27), // holo upper
+      bx(.013,.084,.018,0x0d1517,-.045,.174,-.28),
+      bx(.013,.084,.018,0x0d1517,.045,.174,-.28),
+      bx(.080,.016,.016,0x0c1418,0,.220,-.28)
+    ];
+    opticParts.forEach(function(m){a(m);});
+    g.userData.opticParts=opticParts;
     for(var mp=0;mp<6;mp++){
       a(bx(.014,.013,.035,0x495054,-.059,.123,-.50+mp*.075));
       a(bx(.014,.013,.035,0x495054,.059,.123,-.50+mp*.075));
@@ -841,7 +848,7 @@ var bG=new T.SphereGeometry(.15,8,8),rG=new T.SphereGeometry(.3,10,10),
 // The flag guards BOTH crate sources: the random airdrop in update() and the loot crate dropped where a bot dies (killE).
 // (Dead characters still toss their gun model as a visual effect, but it can NOT be picked up.)
 var DM_RULES={crates:false};
-var mt={t:60,cd:0,over:true},ts=[0,0],rq=[],ROS=[],curK=null,pl,en,bl,cr,fx,sk,score,run=false,spawnT,crateT,tt=0,toastT=0,adsT=0,sprT=0,ADF=[56,44,58,50,70,70,50,70,14,44,42,44,36],AP=[[0,-.066,-.5],[0,-.125,-.5],[0,-.078,-.5],[0,-.16,-.5],[0,-.1,-.5],[0,-.1,-.5],[0,-.13,-.5],[0,-.13,-.5],[0,-.14,-.5],[0,-.125,-.5],[0,-.115,-.58],[0,-.27,-.56],[0,-.18,-.64]],bobP=0,bobL=performance.now(),lob=true;
+var mt={t:60,cd:0,over:true},ts=[0,0],rq=[],ROS=[],curK=null,pl,en,bl,cr,fx,sk,score,run=false,spawnT,crateT,tt=0,toastT=0,adsT=0,sprT=0,ADF=[56,44,58,50,70,70,50,70,14,44,42,44,36],AP=[[0,-.066,-.5],[0,-.125,-.5],[0,-.078,-.5],[0,-.16,-.5],[0,-.1,-.5],[0,-.1,-.5],[0,-.13,-.5],[0,-.13,-.5],[0,-.14,-.5],[0,-.125,-.5],[0,-.25,-.58],[0,-.27,-.56],[0,-.18,-.64]],bobP=0,bobL=performance.now(),lob=true;
 // mkPm()/pm: the visible body of the player (seen when dead/spectating). Its gun is hidden because the viewmodel is used instead.
 function mkPm(tm){var m=terro(tm);if(m.g.userData.gun)m.g.userData.gun.visible=false;return m;}
 var pm=mkPm(0);pm.g.visible=false;function resetPm(){pm.g.visible=false;if(pm.hm)pm.hm.visible=true;if(pm.hg)pm.hg.visible=true;if(pm.body){pm.body.rotation.set(0,0,0);pm.body.position.y=0;}(pm.arms||[]).concat(pm.legs||[]).forEach(function(q){q.rotation.z=0;});}

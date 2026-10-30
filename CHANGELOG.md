@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-30 — MP7 Micro Red Dot ADS Fix
+
+- Registered all five MP7 3D optic pieces for hiding during tactical ADS, reusing the existing P90/SOPMOD optic visibility mechanism.
+- Lowered the MP7 ADS viewmodel to clear the central red dot and leave the receiver visible below the sight.
+- Improved the MP7-specific micro red dot and ring contrast without changing P90, SOPMOD or AWP styling.
+- Added regression coverage for MP7 optic hiding/restoring, ADS alignment and CSS sight styling.
+- Regenerated the tracked game bundle; weapon balance and gameplay logic remain unchanged.
+
 ## 2026-10-30 — P90 Red Dot ADS Fix
 
 - Fixed P90 ADS optic alignment and red dot visibility.
