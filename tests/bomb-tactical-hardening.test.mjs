@@ -25,7 +25,7 @@ function makeState(){
     bombArea(e){return Math.hypot(e.x-25,e.z-5)<3.1?1:-1;},
     bombActionFor(e){return this.bombMatch.state==='planted'&&e.tm===0?{type:'defuse',site:1}:
       this.bombMatch.state==='idle'&&e.tm===1&&this.bombMatch.carrier===e?{type:'plant',site:1}:null;},
-    inObs(){return false;},isBombMode(){return true;},bombPlant(){ctx.bombMatch.state='planted';},bombDefuse(){ctx.bombMatch.done=true;}
+    inObs(){return false;},los(){return true;},bloodHit(){},isBombMode(){return true;},bombPlant(){ctx.bombMatch.state='planted';},bombDefuse(){ctx.bombMatch.done=true;}
   };
   // A VM global function does not use this, use a closure-safe function below.
   ctx.bombActionFor=function(e){if(ctx.bombMatch.state==='planted'&&e.tm===0)return {type:'defuse',site:1};
