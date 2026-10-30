@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-30 — Room Lobby verification & layout regression
+
+- Added `tests/room-lobby.test.mjs` with 8 unit/integration scenarios for local room creation, master controls, mode-specific match conditions, strict option bounds, safe room-name rendering and startup ordering.
+- Fixed the empty-room placeholder remaining displayed after the first room was created; the `hidden` state now wins over flex layout styles.
+- Added `src/game/ROOM_LOBBY.md` to document the existing offline/AI-only room implementation and its clean future network-server boundary.
+
 ## 2026-10-30 — Start opens local Room Lobby / Room Master
 
 - Replaced the Start button's direct SELECT MODE route with a cinematic two-column **Room Lobby**, following the approved visual: saved room list on the left and Create Room controls on the right. The old mode DOM remains available internally for compatibility but is no longer the normal Start destination.

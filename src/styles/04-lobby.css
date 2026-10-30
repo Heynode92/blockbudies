@@ -227,3 +227,6 @@ body.lobby #gl{filter:brightness(.55) saturate(.8)}
 .room-cols,.room-entry{min-width:650px}.room-fields-two{grid-template-columns:1fr}.room-list-footer{font-size:10px}
 .room-master-status{flex-direction:column;align-items:flex-start}}
 @media(prefers-reduced-motion:reduce){#lbrooms.on{animation:none}}
+
+/* Honor native hidden state once a browser-local room exists. */
+#lbrooms .room-empty[hidden]{display:none}
