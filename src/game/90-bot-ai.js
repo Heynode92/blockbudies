@@ -40,7 +40,7 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
       e.tg=botIntelAcquire(e);e.lok=!!e.tg;
       botIntelHearing(e);
       if(isBombMode()){var objective=bombBotGoal(e);if(objective){e.wx=objective[0];e.wz=objective[1];}}
-      if(!bt&&!isBombMode()){
+      if(!e.tg&&!isBombMode()){
         // Pursue the last visible contact, never unseen live player coordinates.
         var clue=botIntelKnown(e);
         if(clue){e.wx=clue.x;e.wz=clue.z;}
