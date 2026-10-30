@@ -962,6 +962,81 @@ WEAPON_MODEL_BUILDERS[15]=function(g,a){
  opticParts.forEach(function(part){a(part);});
  g.userData.opticParts=opticParts;
 };
+// XM8: stable weapon ID 16, assault rifle. Do not renumber saved weapon IDs 0–15.
+// Dedicated grey/black low-poly XM8 silhouette based on the supplied image:
+// polymer full-length shell, slotted elevated carry handle, round reflex optic,
+// ribbed fore-end, magazine, grip and swept integrated shoulder stock.
+WEAPON_PROFILES[16]=Object.freeze({
+ name:"XM8",damage:25,rpm:92,control:63,speed:82,
+ vRecoil:49,hRecoil:28,mag:30,res:150,range:100,kind:"rifle"
+});
+// Share the existing rifle damage-falloff and rate-of-fire tuning.
+WEAPON_RANGE_MODIFIERS[16]=DAMAGE_FALLOFF.defaultModifiers.rifle;
+WEAPON_MODEL_BUILDERS[16]=function(g,a){
+ var shell=0x555d64,upper=0x666e74,high=0x858d94,shade=0x394148;
+ var dark=0x1d2328,rail=0x30373d,grip=0x282f34,highlight=0x929a9d;
+ a(
+  bx(.176,.168,.82,shell,0,.010,-.24),       // XM8 extended upper polymer shell
+  bx(.174,.096,.61,upper,0,.083,-.29),       // elevated, rounded-looking receiver
+  bx(.177,.130,.60,shade,0,-.014,-.67),      // forward shell / ventilation shroud
+  bx(.171,.085,.42,shell,0,-.021,-.92),      // broad curved-look fore-end
+  bx(.120,.032,.64,rail,0,.153,-.30),        // top bridge underneath carry handle
+  cy(.022,.022,.27,dark,0,-.009,-1.29),      // projecting barrel
+  cy(.032,.032,.077,shade,0,-.009,-1.46),    // short XM8 muzzle brake
+  bx(.112,.075,.29,upper,0,.02,.31),         // rear receiver
+  bx(.128,.115,.38,shell,0,-.002,.52),       // integrated rear shoulder housing
+  bx(.136,.165,.26,shade,0,-.010,.75),       // folding / telescoping stock
+  bx(.153,.200,.042,dark,0,-.01,.90),        // textured rubber buttplate
+  bx(.084,.237,.106,grip,0,-.209,.11,-.26), // angled main pistol grip
+  bx(.083,.030,.123,dark,0,-.112,-.03),      // trigger guard
+  bx(.097,.302,.117,0x323a3f,0,-.244,-.25,-.16), // long dark magazine
+  bx(.102,.032,.123,dark,0,-.397,-.30),      // magazine base
+  bx(.075,.245,.09,grip,0,-.219,-.74),      // vertical forward grip
+  bx(.085,.027,.108,rail,0,-.361,-.74),     // foregrip cap
+  bx(.061,.021,.110,highlight,.089,.024,.12), // side marking panel
+  bx(.055,.038,.022,dark,.097,-.003,.032)   // fire selector
+ );
+ // Top carry handle: open center with side rails, raised rear arch and short struts.
+ // Do not fill this open void with a solid box.
+ a(
+  bx(.024,.034,.72,shade,-.088,.222,-.26), // left carry-handle runner
+  bx(.024,.034,.72,shade,.088,.222,-.26),  // right carry-handle runner
+  bx(.184,.041,.12,high,0,.248,-.57),     // forward arch
+  bx(.180,.047,.12,upper,0,.255,.045),    // rear arch
+  bx(.025,.145,.065,shade,-.085,.189,-.57),
+  bx(.025,.145,.065,shade,.085,.189,-.57),
+  bx(.025,.125,.06,shade,-.082,.184,.044),
+  bx(.025,.125,.06,shade,.082,.184,.044)
+ );
+ // Receiver side grooves and vent slots, identical to generic low-poly geometry.
+ for(var i=0;i<6;i++){
+  var z=-.95+i*.085;
+  a(
+   bx(.011,.024,.056,dark,-.087,.035,z),
+   bx(.011,.024,.056,dark,.087,.035,z)
+  );
+ }
+ for(var j=0;j<5;j++){
+  var rib=-.91+j*.085;
+  a(bx(.014,.011,.047,highlight,-.083,-.091,rib));
+  a(bx(.014,.011,.047,highlight,.083,-.091,rib));
+ }
+ for(var k=0;k<4;k++)a(bx(.10,.009,.020,shade,0,-.215-k*.047,-.24-k*.012));
+ // Compact round 3D optic between carry-handle rails. The optic is hidden
+ // by the existing tactical ADS renderer during RMB so geometry cannot obstruct aim.
+ var opticParts=[
+  bx(.100,.030,.150,rail,0,.287,-.12),          // base
+  bx(.076,.071,.070,dark,0,.334,-.12),         // mount neck
+  cy(.079,.079,.23,shade,0,.402,-.12),         // cylindrical optic tube
+  cy(.087,.087,.032,dark,0,.402,-.232),        // front eyepiece rim
+  cy(.087,.087,.031,upper,0,.402,-.004),       // rear eyepiece rim
+  bx(.029,.035,.067,shade,.073,.476,-.085),   // adjustment turret
+  bx(.067,.031,.071,shade,0,.491,-.113),       // top adjustment housing
+  bx(.012,.012,.012,0xff3838,0,.402,-.252)   // red point when hip-firing
+ ];
+ opticParts.forEach(function(item){a(item);});
+ g.userData.opticParts=opticParts;
+};
 // The score->engine conversion is game balancing, NOT an unofficial Point Blank formula.
 // min/max are real rounds-per-minute bounds for each archetype; spread is angular.
 var WEAPON_TUNING={
@@ -1011,7 +1086,7 @@ var bG=new T.SphereGeometry(.15,8,8),rG=new T.SphereGeometry(.3,10,10),
 // The flag guards BOTH crate sources: the random airdrop in update() and the loot crate dropped where a bot dies (killE).
 // (Dead characters still toss their gun model as a visual effect, but it can NOT be picked up.)
 var DM_RULES={crates:false};
-var mt={t:60,cd:0,over:true},ts=[0,0],rq=[],ROS=[],curK=null,pl,en,bl,cr,fx,sk,score,run=false,spawnT,crateT,tt=0,toastT=0,adsT=0,sprT=0,ADF=[56,44,58,58,70,70,50,70,14,44,42,44,36,54,54,42],AP=[[0,-.066,-.5],[0,-.125,-.5],[0,-.22,-.56],[.22,-.24,-.62],[0,-.1,-.5],[0,-.1,-.5],[0,-.21,-.55],[0,-.13,-.5],[0,-.14,-.5],[0,-.215,-.53],[0,-.25,-.58],[0,-.27,-.56],[0,-.18,-.64],[0,-.245,-.56],[0,-.235,-.54],[0,-.21,-.60]],bobP=0,bobL=performance.now(),lob=true;
+var mt={t:60,cd:0,over:true},ts=[0,0],rq=[],ROS=[],curK=null,pl,en,bl,cr,fx,sk,score,run=false,spawnT,crateT,tt=0,toastT=0,adsT=0,sprT=0,ADF=[56,44,58,58,70,70,50,70,14,44,42,44,36,54,54,42,46],AP=[[0,-.066,-.5],[0,-.125,-.5],[0,-.22,-.56],[.22,-.24,-.62],[0,-.1,-.5],[0,-.1,-.5],[0,-.21,-.55],[0,-.13,-.5],[0,-.14,-.5],[0,-.215,-.53],[0,-.25,-.58],[0,-.27,-.56],[0,-.18,-.64],[0,-.245,-.56],[0,-.235,-.54],[0,-.21,-.60],[0,-.245,-.57]],bobP=0,bobL=performance.now(),lob=true;
 // mkPm()/pm: the visible body of the player (seen when dead/spectating). Its gun is hidden because the viewmodel is used instead.
 function mkPm(tm){var m=terro(tm);if(m.g.userData.gun)m.g.userData.gun.visible=false;return m;}
 var pm=mkPm(0);pm.g.visible=false;function resetPm(){pm.g.visible=false;if(pm.hm)pm.hm.visible=true;if(pm.hg)pm.hg.visible=true;if(pm.body){pm.body.rotation.set(0,0,0);pm.body.position.y=0;}(pm.arms||[]).concat(pm.legs||[]).forEach(function(q){q.rotation.z=0;});}
@@ -1051,10 +1126,10 @@ handL.add(magP,shP,rkP);hold.add(handR,handL,armR,armL);
 // Hand/anim tables, indexed by weapon id: RG = right-hand grip position, RL = left-hand rest position,
 // PT = left-hand "port" position for the reload animation, MODE = reload style (0 = mag swap, 1 = loop-load shells/rocket),
 // NC = number of loop cycles in a loop reload, DD = left-hand "drop" position (below the gun) used in reload animations.
-var RG=[[0,-.2,-.1],[0,-.2,-.15],[0,-.13,-.08],[0,-.14,-.2],[0,.02,-.09],[0,-.1,-.3],[0,-.22,-.1],[0,-.22,-.1],[0,-.19,-.06],[0,-.2,-.19],[0,-.22,-.10],[0,-.24,-.10],[0,-.205,-.15],[0,-.21,-.12],[0,-.21,-.12],[0,-.21,-.16]],
- RL=[[-.03,-.22,-.22],[0,-.09,-.62],[0,-.1,-.58],[0,-.1,-.7],[-.3,-.5,-.1],[-.3,-.5,-.1],[0,-.09,-.5],[-.52,-.22,-.1],[0,-.1,-.62],[0,-.09,-.72],[0,-.16,-.54],[0,-.15,-.56],[0,-.18,-.84],[0,-.16,-.65],[0,-.17,-.66],[0,-.17,-.88]],
- PT=[[0,-.2,-.28],[0,-.24,-.4],[0,-.12,-.2],[0,.02,-.95],[0,0,0],[0,0,0],[0,-.24,-.35],[0,0,0],[0,-.24,-.42],[0,-.24,-.43],[0,-.32,-.30],[0,-.23,-.42],[0,-.31,-.45],[0,-.29,-.30],[0,-.28,-.32],[0,-.30,-.40]],
- MODE=[0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0],NC=[1,1,3,1,1,1,1,1,1,1,1,1,1,1,1,1],DD=[-.1,-.34,-.28];
+var RG=[[0,-.2,-.1],[0,-.2,-.15],[0,-.13,-.08],[0,-.14,-.2],[0,.02,-.09],[0,-.1,-.3],[0,-.22,-.1],[0,-.22,-.1],[0,-.19,-.06],[0,-.2,-.19],[0,-.22,-.10],[0,-.24,-.10],[0,-.205,-.15],[0,-.21,-.12],[0,-.21,-.12],[0,-.21,-.16],[0,-.21,-.10]],
+ RL=[[-.03,-.22,-.22],[0,-.09,-.62],[0,-.1,-.58],[0,-.1,-.7],[-.3,-.5,-.1],[-.3,-.5,-.1],[0,-.09,-.5],[-.52,-.22,-.1],[0,-.1,-.62],[0,-.09,-.72],[0,-.16,-.54],[0,-.15,-.56],[0,-.18,-.84],[0,-.16,-.65],[0,-.17,-.66],[0,-.17,-.88],[0,-.18,-.74]],
+ PT=[[0,-.2,-.28],[0,-.24,-.4],[0,-.12,-.2],[0,.02,-.95],[0,0,0],[0,0,0],[0,-.24,-.35],[0,0,0],[0,-.24,-.42],[0,-.24,-.43],[0,-.32,-.30],[0,-.23,-.42],[0,-.31,-.45],[0,-.29,-.30],[0,-.28,-.32],[0,-.30,-.40],[0,-.30,-.35]],
+ MODE=[0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0],NC=[1,1,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1],DD=[-.1,-.34,-.28];
 // xp(w): extra viewmodel offsets [x,y,z,rotX,rotY,rotZ] for weapon switch, knife stab and grenade throw animations.
 function xp(w){var r=[0,0,0,0,0,0],u,p,s,q,b,f;
   if(pl.sw>0){u=pl.sw/.28;u=u*u;r[1]-=u*.55;r[3]+=u*.7;r[4]+=u*.3;}
@@ -1232,7 +1307,7 @@ function weaponMovementSpeed(weaponId,sprintBlend,adsBlend){
 }
 // BOLT_T = AWP bolt-action cycle length in seconds (must stay <= the AWP fire cooldown so the next shot is possible when it ends).
 // MZ = per-weapon muzzle z offset in viewmodel space (where bullets and muzzle flash start). kick = recoil offset. flashT = muzzle flash time left.
-var BOLT_T=1.1,MZ=[-.7,-1,-1.15,-1.2,-.9,-.3,-.9,-.9,-1.62,-1.3,-1.04,-1.00,-1.38,-1.51,-1.02,-1.63],kick=0,flashT=0;
+var BOLT_T=1.1,MZ=[-.7,-1,-1.15,-1.2,-.9,-.3,-.9,-.9,-1.62,-1.3,-1.04,-1.00,-1.38,-1.51,-1.02,-1.63,-1.49],kick=0,flashT=0;
 // mkPick(): small floating weapon model shown on top of a crate. ci = crate type (weapon id = ci + 1).
 function mkPick(ci){var g=new T.Group(),gn=mkGun(ci+1);gn.scale.setScalar(ci===2?1.2:1.5);gn.position.z=[0,.5,.45,.72][ci+1];g.add(gn);
   g.add(new T.Mesh(new T.SphereGeometry(.85,16,12),new T.MeshBasicMaterial({color:CC[ci],transparent:true,opacity:.22,depthWrite:false})));return g;}
@@ -1522,7 +1597,7 @@ function updSm(dt){for(var i=SM.length-1;i>=0;i--){var q=SM[i];q.t+=dt;var k=q.t
 // GS = synthesized gun sound presets {f frequency, v volume, d decay, t type}. SFXI maps weapon id -> preset index (AWP uses preset 4).
 // No audio files: sounds are generated with WebAudio. SND = master sound switch.
 // --- sound & muzzle flash ---
-var GS=[{f:1800,v:.22,d:.09,t:180},{f:1400,v:.2,d:.1,t:140},{f:900,v:.45,d:.22,t:100},{f:500,v:.5,d:.4,t:70},{f:700,v:.8,d:.6,t:55},{f:720,v:.15,d:.073,t:92,suppressed:true}],SFXI=[0,1,2,3,3,3,1,1,4,1,1,1,1,5,1,1];
+var GS=[{f:1800,v:.22,d:.09,t:180},{f:1400,v:.2,d:.1,t:140},{f:900,v:.45,d:.22,t:100},{f:500,v:.5,d:.4,t:70},{f:700,v:.8,d:.6,t:55},{f:720,v:.15,d:.073,t:92,suppressed:true}],SFXI=[0,1,2,3,3,3,1,1,4,1,1,1,1,5,1,1,1];
 // gunSfx(): plays a synthesized gun/explosion sound from preset k at volume vol (does nothing if sound is off or too quiet).
 function gunSfx(k,vol){if(!SND||vol<=.02)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state==="suspended")AC.resume();
   if(!nbuf){nbuf=AC.createBuffer(1,Math.floor(AC.sampleRate*.25),AC.sampleRate);var dd=nbuf.getChannelData(0);for(var i=0;i<dd.length;i++)dd[i]=Math.random()*2-1;}
@@ -1765,7 +1840,8 @@ var SV={0:'<svg viewBox="0 0 48 20"><rect x="10" y="4" width="30" height="6" rx=
  12:'<svg viewBox="0 0 48 20"><path d="M2 7h7v3H5v3H2z"/><rect x="9" y="6" width="18" height="7"/><rect x="27" y="7" width="14" height="5"/><rect x="41" y="9" width="6" height="2"/><rect x="12" y="4" width="26" height="2"/><rect x="20" y="1" width="5" height="3"/><path d="M19 12h5l3 7h-5z"/><rect x="30" y="12" width="3" height="7"/></svg>',
  13:'<svg viewBox="0 0 48 20"><rect x="1" y="8" width="17" height="4" rx="2"/><rect x="17" y="7" width="18" height="7" rx="1"/><rect x="34" y="8" width="9" height="5" rx="1"/><polygon points="24,13 29,13 30,20 25,20"/><polygon points="33,13 38,13 40,20 35,20"/><rect x="10" y="6" width="26" height="2"/><rect x="21" y="4" width="5" height="2"/></svg>',
  14:'<svg viewBox="0 0 48 20"><rect x="2" y="7" width="9" height="4" rx="1"/><rect x="10" y="6" width="24" height="8" rx="1"/><rect x="34" y="8" width="8" height="4" rx="1"/><path d="M42 8 L47 5 L47 17 L42 13 Z"/><rect x="12" y="4" width="24" height="2"/><polygon points="19,13 24,13 26,20 20,20"/><polygon points="11,12 15,12 13,18 10,18"/><rect x="22" y="2" width="3" height="2"/></svg>',
- 15:'<svg viewBox="0 0 48 20"><rect x="1" y="9" width="7" height="4"/><rect x="7" y="7" width="19" height="6"/><rect x="26" y="7" width="13" height="7"/><rect x="39" y="8" width="7" height="3"/><rect x="7" y="5" width="32" height="2"/><rect x="20" y="2" width="6" height="3"/><rect x="21" y="0" width="1" height="3"/><rect x="25" y="0" width="1" height="3"/><polygon points="19,13 23,13 25,20 20,20"/><polygon points="31,13 34,13 34,19 31,19"/><path d="M42 7v9h-4V7" /></svg>'};
+ 15:'<svg viewBox="0 0 48 20"><rect x="1" y="9" width="7" height="4"/><rect x="7" y="7" width="19" height="6"/><rect x="26" y="7" width="13" height="7"/><rect x="39" y="8" width="7" height="3"/><rect x="7" y="5" width="32" height="2"/><rect x="20" y="2" width="6" height="3"/><rect x="21" y="0" width="1" height="3"/><rect x="25" y="0" width="1" height="3"/><polygon points="19,13 23,13 25,20 20,20"/><polygon points="31,13 34,13 34,19 31,19"/><path d="M42 7v9h-4V7" /></svg>',
+ 16:'<svg viewBox="0 0 48 20"><path d="M1 10h7l3-4h19l5 3h10v5H34l-4-1H10l-2-2H1z"/><rect x="12" y="4" width="20" height="2"/><path d="M17 4l3-3h10l3 3" fill="none" stroke="currentColor" stroke-width="1.3"/><rect x="24" y="0" width="5" height="3" rx="1.5"/><polygon points="19,13 24,13 23,20 17,20"/><polygon points="31,13 35,13 38,20 33,20"/><path d="M41 13v4h4v-4"/></svg>'};
 // Weapon-slot HUD elements and their cached keys (so the DOM is only touched when something changed).
 var slEls=[],slKey=[];
 (function(){var el=document.getElementById("wsb");for(var s=0;s<4;s++){(function(s){var d=document.createElement("div");d.className="sl";d.innerHTML='<b class="k">'+(s+1)+'</b><span class="ic"></span><span class="nm"></span><span class="sa"></span>';d.addEventListener("pointerdown",function(e){e.stopPropagation();e.preventDefault();if(run&&!pl.dead)swSlot(s);});el.appendChild(d);slEls.push(d);})(s);}})();
@@ -1784,7 +1860,7 @@ function slotUI(w){
 // Weapon behavior stays here. UI presentation and cursor lifecycle live in 77-loadout-picker.js.
 var WSEL=[],WDESC={1:"Balanced · Mid range",2:"Close range · High burst",3:"Explosive splash",
  6:"Fast fire rate",8:"High damage · Long range",9:"Standard-issue rifle",
- 10:"Compact · Rapid fire",11:"High capacity · Fast SMG",12:"Tactical rifle · Optic",13:"Suppressed · Iron sights",14:"UMP45 · Iron sights",15:"HK417 · Red-dot optic"};
+ 10:"Compact · Rapid fire",11:"High capacity · Fast SMG",12:"Tactical rifle · Optic",13:"Suppressed · Iron sights",14:"UMP45 · Iron sights",15:"HK417 · Red-dot optic",16:"XM8 · Round red-dot sight"};
 function canAds(w){if(w===7)return false;return w<4||w===6||w===8||w===WEAPON_STARTER_ID||w===13||w===14||!!tacticalOpticConfig(w);}
 function fall(b,p){var f=b.fo;if(!f)return 1;var d=Math.max(0,Math.hypot(p.x-b.sx,p.z-b.sz));return Math.pow(f[0],d/f[1]);}
 var scopeEl=document.getElementById("scope"),abEl=document.getElementById("ab");
@@ -1819,7 +1895,8 @@ var TACTICAL_OPTICS={
  10:{style:"mp7",name:"MP7"},
  11:{style:"p90",name:"P90"},
  12:{style:"sopmod",name:"AK SOPMOD"},
- 15:{style:"hk417",name:"HK417"}
+ 15:{style:"hk417",name:"HK417"},
+ 16:{style:"xm8",name:"XM8"}
 };
 function tacticalOpticConfig(w){return TACTICAL_OPTICS[w]||null;}
 var tacticalAimEl=document.getElementById("tacticalAim");
@@ -1838,7 +1915,7 @@ function tacticalOpticUpdate(){
 // Mouse-first primary weapon picker shared by Team Deathmatch and Bomb Mission.
 // Weapon profiles, ballistics, inventory ownership and 4-slot HUD remain authoritative elsewhere.
 var wsEl=document.getElementById("wsel"),wsOn=false,wsCards=[],wsConfirmed=false,wsPage=0,wsCategory="rifle",WS_VISIBLE=5;
-var WS_ORDER=[9,1,12,15,2,6,13,14,8,10,11,3],WS_TABS=[
+var WS_ORDER=[9,1,12,15,16,2,6,13,14,8,10,11,3],WS_TABS=[
  ["rifle","ASSAULT RIFLE"],["smg","SMG"],["sniper","SNIPER"],["shotgun","SHOTGUN"],["rocket","LAUNCHER"]];
 function loadoutCatalog(){
  var all=inventoryCatalogMain();

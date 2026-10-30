@@ -46,7 +46,7 @@ test('UMP45 Ext D arrays, no-scope ADS, HUD, AK-47 sound and loadout integration
   MZ:array(combat,/MZ=(\[[^\]]+\])/,'MZ'),
   SFXI:array(audio,/SFXI=(\[[^\]]+\])/,'SFXI')
  };
- for(const [key,values] of Object.entries(tables))assert.equal(values.length,16,key+' must cover 16 IDs');
+ for(const [key,values] of Object.entries(tables))assert.equal(values.length,17,key+' must cover 16 IDs');
  assert.equal(tables.SFXI[14],tables.SFXI[1],'UMP45 Ext D must sound identical to AK-47');
  assert.equal(tables.SFXI[14],1);
  assert.match(controls,/w===14\|\|!!tacticalOpticConfig\(w\)/,'right click ADS supported');

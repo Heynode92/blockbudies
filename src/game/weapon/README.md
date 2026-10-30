@@ -5,7 +5,7 @@ Edit weapon data in one place: `src/game/weapon/<NN>-<name>.js`. Each file owns 
 ## Weapon classes
 | Class | Weapons | Source kind |
 | --- | --- | --- |
-| Assault Rifle | AK-47 (2), K2 (10), AK SOPMOD (13), HK417 (16) | `rifle` |
+| Assault Rifle | AK-47 (2), K2 (10), AK SOPMOD (13), HK417 (16), XM8 (17) | `rifle` |
 | SMG | Kriss (7), Dual Kriss (8), MP7 (11), P90 (12), MP5K Ext (14), UMP45 Ext D (15) | `smg` / `dual` |
 | Sniper Rifle | AWP (9) | `sniper` |
 | Shotgun | Shotgun (3) | `shotgun` |
@@ -14,7 +14,7 @@ Edit weapon data in one place: `src/game/weapon/<NN>-<name>.js`. Each file owns 
 | Melee | Knife (5) | `knife` |
 | Throwable | Grenade (6) | `grenade` |
 
-_Numbers in parentheses are the 1-based filenames, NOT weapon IDs. Actual weapon IDs are 0–15, starting with Handgun at 0. Don't renumber IDs: inventory save data and bots depend on them._
+_Numbers in parentheses are the 1-based filenames, NOT weapon IDs. Actual weapon IDs are 0–16, starting with Handgun at 0. Don't renumber IDs: inventory save data and bots depend on them._
 
 ## Shared modules
 - `00-registry.js` initializes arrays, the frozen class labels, and `DAMAGE_FALLOFF.referenceUnits` (currently 20 BLOCK BUDDIES world units per modifier interval).
@@ -34,6 +34,7 @@ CS:GO/CS2 uses 500 CS units per modifier interval. BLOCK BUDDIES has a much smal
 | AK-47, K2 | 0.98 |
 | AK SOPMOD | 0.97 |
 | HK417 (inherited rifle modifier) | 0.98 |
+| XM8 (inherited rifle modifier) | 0.98 |
 | MP7 | 0.85 |
 | P90 | 0.86 |
 | Kriss, Dual Kriss | 0.83 |
@@ -74,3 +75,11 @@ CS:GO/CS2 uses 500 CS units per modifier interval. BLOCK BUDDIES has a much smal
 - Right-click ADS: shared tactical optic renderer and boxed AK SOPMOD sight geometry, with an HK417-specific **red** dot. Sight housing pieces hide during ADS to prevent center obstruction.
 - Shot SFX: precisely the existing AK-47 preset index 1. No audio changes to existing weapons. Ownership and Shop listings derive from the same weapon registry; unlock flow remains free until an economy is specified.
 - Stable IDs 0–14 are not modified. Compile with `node tools/build.mjs` on the repository toolchain only; the tracked prebuilt `assets/game.js` is included for ordinary Windows pull-and-play.
+
+## XM8 (weapon ID 16)
+
+- Source: `src/game/weapon/17-xm8.js`, a dedicated grey XM8 low-poly mesh based on the supplied image: continuous polymer body, ventilated upper carry handle, round optic, vertical foregrip and integral stock.
+- Exact profile ratings: Damage 25, RPM 92, Control 63, Speed 82, Vertical Recoil 49, Horizontal Recoil 28, Magazine 30, Reserve 150, Range 100. RPM is a rating interpreted by existing assault-rifle tuning; no separate ballistics logic.
+- RMB: compact circular red-dot reflex ADS using the existing tactical optics framework. The physical optic mesh hides during ADS to prevent blocking the view.
+- Fire audio: **same existing AK-47 preset** (`SFXI[16] === SFXI[1]`); no new SFX.
+- Shop, Inventory, loadout picker and HUD use the canonical weapon registry/ownership. Previous weapon IDs 0–15 and their saved ownership remain unchanged.

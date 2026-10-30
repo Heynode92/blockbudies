@@ -67,5 +67,14 @@
  linear-gradient(90deg,var(--ta-color),var(--ta-color)) right center/10px 1px no-repeat;}
 /* HK417 reuses SOPMOD's rectangular sight layout but has its own RED dot. */
 .tactical-aim-hk417{--ta-size:122px;--ta-cross-size:41px;--ta-color:#ff3434;--ta-dot:4px;}
+/* XM8: compact round reflex optic with an unobstructed bright red dot. */
+.tactical-aim-xm8{--ta-size:116px;--ta-cross-size:22px;--ta-color:#ff3038;--ta-dot:5px;}
+.tactical-aim-xm8 .ta-frame{width:116px;height:116px;border-radius:50%;border:4px solid #313a40;
+ box-shadow:0 0 0 3px #68747b,0 0 0 8px rgba(17,25,31,.65),inset 0 0 10px rgba(0,0,0,.34);
+ background:radial-gradient(circle,rgba(17,42,49,.015),rgba(18,40,48,.10) 76%,rgba(6,15,22,.24));}
+.tactical-aim-xm8 .ta-frame::before{inset:8px;border-radius:50%;border-color:rgba(160,187,194,.19);}
+.tactical-aim-xm8 .ta-frame::after{box-shadow:0 0 6px #ff3038,0 0 17px 4px rgba(255,48,56,.62);}
+.tactical-aim-xm8 .ta-cross{width:22px;height:22px;border:1px solid rgba(255,48,56,.28);border-radius:50%;opacity:.52;}
+.tactical-aim-xm8 .ta-cross::before,.tactical-aim-xm8 .ta-cross::after{display:none;}
 body.tactical-ads #ch{opacity:0}
 @media(max-width:650px){.tactical-aim{transform:scale(.8)}}

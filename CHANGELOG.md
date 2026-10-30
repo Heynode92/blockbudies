@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-10-30 — XM8 Assault Rifle (weapon ID 16)
+
+- Added **XM8** in dedicated `src/game/weapon/17-xm8.js` without renumbering existing weapons or changing saved inventory ownership.
+- Exact weapon ratings: Damage 25, RPM 92, Control 63, Speed 82, V.Recoil 49, H.Recoil 28, Magazine 30 / Reserve 150, Range 100. Existing rifle damage falloff and firing rules remain authoritative.
+- Created low-poly grey XM8 receiver and modular polymer stock, vented carry handle, barrel, foregrip, magazine and cylindrical red-dot scope from the supplied image.
+- Added circular **red** reflex ADS using existing tactical optics; the 3D optic is hidden while aiming to maintain an unobstructed sightline.
+- Uses the **existing AK-47 shot preset** without touching other weapon sounds. Added HUD SVG, reload/hand/ADS poses, muzzle position, and loadout picker entry.
+- Shop/Inventory category counts and unlock remain derived from canonical weapon registry. Updated source manifest, generated browser bundle, regression tests and weapon docs.
+
 ## 2026-10-30 — HK417 Assault Rifle (weapon ID 15)
 
 - Added **HK417** to the shared weapon registry in dedicated `src/game/weapon/16-hk417.js`, preserving all prior weapon IDs and saved ownership.
