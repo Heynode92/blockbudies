@@ -27,6 +27,7 @@
     "src/game/weapon/18-xm2010.js",
     "src/game/weapon/19-saiga12.js",
     "src/game/weapon/20-ballistics.js",
+    "src/game/weapon/21-shotgun-spread-pattern.js",
     "src/game/weapon/30-viewmodels.js",
     "src/game/41-bot-weapons.js",
     "src/game/42-projectile-defense.js",

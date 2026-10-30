@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-30 — Learnable CS:GO-style horizontal shotgun pattern
+
+- Converted six-pellet shotgun volleys from independent random horizontal spread to a **fixed, symmetric, learnable** set of six horizontal offsets, for both standard Shotgun (ID 2) and Saiga-12 (ID 18).
+- Preserved user-specified **horizontal-only** scatter (no vertical randomization). The original `w.spr` spread width still comes from each shotgun's Control rating; ADS retains its existing spread reduction.
+- Retained all six pellets, total damage, ammunition, range, pellet ballistics, recoil, firing interval, original Shotgun pump, Saiga-12 semi-auto operation, AI and other weapon classes. All pellet traces still begin at the existing muzzle per volley.
+- Added reusable weapon-class-based helper `src/game/weapon/21-shotgun-spread-pattern.js`, regression tests for deterministic groupings and player/bot ADS behavior, and rebuilt `assets/game.js` for direct Windows launch.
+- Inspired by Valve's official 2018 shotgun spread-pattern change, adapted to Block Buddies' horizontal-only rule; not an exact Valve 2D pattern.
+
 ## 2026-10-30 — HOTFIX: restore lobby after five-star BOT update
 
 - Fixed the startup `TypeError` caused by `src/game/85-lobby-and-match.js` reading `BOT_TACTICS.difficulty` before `src/game/89-bot-tactical-intelligence.js` initialized that config. This previously halted menu script execution and left the introductory overlay visible with unusable menu buttons/background.

@@ -104,3 +104,9 @@ CS:GO/CS2 uses 500 CS units per modifier interval. BLOCK BUDDIES has a much smal
 
 - `src/game/50-items-and-drops.js`: weapon IDs differ from physical casing type IDs (0 pistol/SMG, 1 rifle/sniper, 2 shotgun). All shotguns—including Saiga-12 ID 18—use the existing shotgun shell mesh/port; shell ejection remains triggered by the established simulation logic. Invalid casing table indices must never stop the render loop.
 - Dropped-gun scale/rest-height falls back to the first legacy weapon of the same class for newer IDs. Existing ID 0–12 sizes and positions remain unchanged.
+
+## Learnable horizontal shotgun spread (CS:GO-inspired)
+
+`src/game/weapon/21-shotgun-spread-pattern.js` generates repeatable horizontal-only pellet yaw offsets from the canonical `w.pel` value (six for both current shotguns). Each volley uses evenly mirrored outer-to-inner pairs from the same muzzle; no vertical random scatter is introduced. Existing `w.spr` controls angular width, and the original ADS multiplier shrinks it. No weapon-ID-specific overrides, parallel projectile engine, modified stats, or new damage logic.
+
+This is inspired by Valve's published fixed-pattern CS:GO shotgun concept, **not** a copy of Valve's 2D scatter coordinates. Non-shotguns retain stochastic spread.
