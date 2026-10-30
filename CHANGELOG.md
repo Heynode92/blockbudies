@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-30 — Shop preview arrows removed and selection layout corrected
+
+- Removed previous/next arrows from left-side weapon preview; weapon selection remains on clickable catalog cards.
+- Fixed CSS class collision: selected catalog cards now use `shop-weapon-active`, distinct from left detail panel `shop-selected`.
+- Rebalanced header, stat panel, filter bar, card dimensions and responsive layouts to better fit the approved two-column Shop reference.
+- Preserve catalog scrolling when selecting a weapon and reset it on category changes/open; weapon profiles, ownership and free-unlock behavior unchanged.
+- Rebuilt tracked browser bundle to match source changes.
+
 ## 2026-10-30 — Interactive weapon Shop selection and detailed stats
 
 - Replaced featured starter banner with a clickable catalog and dynamic selected-weapon preview on the left.
