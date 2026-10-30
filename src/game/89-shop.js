@@ -84,7 +84,7 @@ function shopRender(){
     var ammo=shopEl("div","shop-ammo","AMMO ");
     ammo.appendChild(shopEl("b","",w.mag+" / "+w.res));
     details.appendChild(ammo);
-    var action=shopEl("button","shop-action"+(isOwned?" shop-action-owned":""),isOwned?"\u2713 OWNED":"UNLOCK \u00b7 FREE");
+    var action=shopEl("button","shop-action"+(isOwned?" shop-action-owned":""),isOwned?"\u2713 OWNED":"UNLOCK FREE");
     action.type="button";action.disabled=isOwned;
     action.onclick=function(){
       if(inventoryClaimPrimary(id)){shopAnim=false;shopFlashId=id;shopRender();toast("UNLOCKED: "+w.n);}

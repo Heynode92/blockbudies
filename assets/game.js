@@ -730,12 +730,18 @@ WEAPON_MODEL_BUILDERS[11]=function(g,a){
       bx(.19,.265,.075,0x6d7169,0,-.056,.60),
       bx(.14,.039,.28,0x1c2628,0,-.146,.26), // grip undercut bridge
       bx(.080,.19,.08,0x4a4e45,0,-.20,-.10,-.20), // forward handle
-      bx(.078,.13,.11,0x51554e,0,-.23,-.29,.15),
+      bx(.078,.13,.11,0x51554e,0,-.23,-.29,.15)
+    );
+    // Optic bracket and sight posts. Hidden while the 2D tactical sight overlay is active, otherwise the dark parts
+    // sit in the line of sight and clutter the red dot (see src/game/76-tactical-optics.js).
+    var opticParts=[
       bx(.11,.04,.21,0x454c48,0,.204,-.16), // optic bracket
       bx(.055,.045,.21,0x182224,0,.253,-.16),
       bx(.074,.018,.06,0x8f9996,0,.289,-.22),
       bx(.035,.028,.04,0x111a1d,0,.245,-.34)
-    );
+    ];
+    opticParts.forEach(function(m){a(m);});
+    g.userData.opticParts=opticParts;
     // Cutout is visual rather than actual CSG; dark inset and perimeter
     // reproduces the P90's iconic large thumb-hole grip in low-poly style.
     a(bx(.172,.118,.23,0x131a1d,0,-.184,.25));
@@ -835,7 +841,7 @@ var bG=new T.SphereGeometry(.15,8,8),rG=new T.SphereGeometry(.3,10,10),
 // The flag guards BOTH crate sources: the random airdrop in update() and the loot crate dropped where a bot dies (killE).
 // (Dead characters still toss their gun model as a visual effect, but it can NOT be picked up.)
 var DM_RULES={crates:false};
-var mt={t:60,cd:0,over:true},ts=[0,0],rq=[],ROS=[],curK=null,pl,en,bl,cr,fx,sk,score,run=false,spawnT,crateT,tt=0,toastT=0,adsT=0,sprT=0,ADF=[56,44,58,50,70,70,50,70,14,44,42,44,36],AP=[[0,-.066,-.5],[0,-.125,-.5],[0,-.078,-.5],[0,-.16,-.5],[0,-.1,-.5],[0,-.1,-.5],[0,-.13,-.5],[0,-.13,-.5],[0,-.14,-.5],[0,-.125,-.5],[0,-.115,-.58],[0,-.125,-.56],[0,-.18,-.64]],bobP=0,bobL=performance.now(),lob=true;
+var mt={t:60,cd:0,over:true},ts=[0,0],rq=[],ROS=[],curK=null,pl,en,bl,cr,fx,sk,score,run=false,spawnT,crateT,tt=0,toastT=0,adsT=0,sprT=0,ADF=[56,44,58,50,70,70,50,70,14,44,42,44,36],AP=[[0,-.066,-.5],[0,-.125,-.5],[0,-.078,-.5],[0,-.16,-.5],[0,-.1,-.5],[0,-.1,-.5],[0,-.13,-.5],[0,-.13,-.5],[0,-.14,-.5],[0,-.125,-.5],[0,-.115,-.58],[0,-.27,-.56],[0,-.18,-.64]],bobP=0,bobL=performance.now(),lob=true;
 // mkPm()/pm: the visible body of the player (seen when dead/spectating). Its gun is hidden because the viewmodel is used instead.
 function mkPm(tm){var m=terro(tm);if(m.g.userData.gun)m.g.userData.gun.visible=false;return m;}
 var pm=mkPm(0);pm.g.visible=false;function resetPm(){pm.g.visible=false;if(pm.hm)pm.hm.visible=true;if(pm.hg)pm.hg.visible=true;if(pm.body){pm.body.rotation.set(0,0,0);pm.body.position.y=0;}(pm.arms||[]).concat(pm.legs||[]).forEach(function(q){q.rotation.z=0;});}
@@ -2666,7 +2672,7 @@ function shopRender(){
     var ammo=shopEl("div","shop-ammo","AMMO ");
     ammo.appendChild(shopEl("b","",w.mag+" / "+w.res));
     details.appendChild(ammo);
-    var action=shopEl("button","shop-action"+(isOwned?" shop-action-owned":""),isOwned?"\u2713 OWNED":"UNLOCK \u00b7 FREE");
+    var action=shopEl("button","shop-action"+(isOwned?" shop-action-owned":""),isOwned?"\u2713 OWNED":"UNLOCK FREE");
     action.type="button";action.disabled=isOwned;
     action.onclick=function(){
       if(inventoryClaimPrimary(id)){shopAnim=false;shopFlashId=id;shopRender();toast("UNLOCKED: "+w.n);}

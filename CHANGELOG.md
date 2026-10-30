@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-10-30 — P90 Red Dot ADS Fix
+
+- Fixed P90 ADS optic alignment and red dot visibility.
+- Added opticParts registration for hiding 3D sight components during ADS.
+- Updated P90 red dot color, crosshair and glow.
+- Adjusted P90 viewmodel position.
+- Simplified Shop unlock button text to UNLOCK FREE.
+- Regenerated assets/game.js.
+
 ## 2026-10-29 — CS-style distance damage and per-weapon source layout
 
 ### Damage: Counter-Strike-inspired exponential falloff
