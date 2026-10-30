@@ -7,14 +7,14 @@ Edit weapon data in one place: `src/game/weapon/<NN>-<name>.js`. Each file owns 
 | --- | --- | --- |
 | Assault Rifle | AK-47 (2), K2 (10), AK SOPMOD (13), HK417 (16), XM8 (17) | `rifle` |
 | SMG | Kriss (7), Dual Kriss (8), MP7 (11), P90 (12), MP5K Ext (14), UMP45 Ext D (15) | `smg` / `dual` |
-| Sniper Rifle | AWP (9) | `sniper` |
+| Sniper Rifle | AWP (9), XM2010 (18) | `sniper` |
 | Shotgun | Shotgun (3) | `shotgun` |
 | Handgun | Handgun (1) | `pistol` |
 | Launcher | RPG (4) | `rocket` |
 | Melee | Knife (5) | `knife` |
 | Throwable | Grenade (6) | `grenade` |
 
-_Numbers in parentheses are the 1-based filenames, NOT weapon IDs. Actual weapon IDs are 0–16, starting with Handgun at 0. Don't renumber IDs: inventory save data and bots depend on them._
+_Numbers in parentheses are the 1-based filenames, NOT weapon IDs. Actual weapon IDs are 0–17, starting with Handgun at 0. Don't renumber IDs: inventory save data and bots depend on them._
 
 ## Shared modules
 - `00-registry.js` initializes arrays, the frozen class labels, and `DAMAGE_FALLOFF.referenceUnits` (currently 20 BLOCK BUDDIES world units per modifier interval).
@@ -42,7 +42,7 @@ CS:GO/CS2 uses 500 CS units per modifier interval. BLOCK BUDDIES has a much smal
 | UMP45 Ext D (inherits standard SMG modifier) | 0.85 |
 | Shotgun (each pellet) | 0.70 |
 | Handgun | 0.91 |
-| AWP | 0.99 |
+| AWP, XM2010 | 0.99 |
 | RPG, Knife, Grenade | N/A (no bullet falloff) |
 
 ## Tuning guide
@@ -83,3 +83,10 @@ CS:GO/CS2 uses 500 CS units per modifier interval. BLOCK BUDDIES has a much smal
 - RMB: compact circular red-dot reflex ADS using the existing tactical optics framework. The physical optic mesh hides during ADS to prevent blocking the view.
 - Fire audio: **same existing AK-47 preset** (`SFXI[16] === SFXI[1]`); no new SFX.
 - Shop, Inventory, loadout picker and HUD use the canonical weapon registry/ownership. Previous weapon IDs 0–15 and their saved ownership remain unchanged.
+
+## XM2010 (weapon ID 17)
+
+- Source: `src/game/weapon/18-xm2010.js`. Dedicated low-poly tan chassis with long suppressor, black optic, bipod, magazine, adjustable stock and animated bolt, following the user-supplied image.
+- Exact ratings: Damage 82, RPM rating **0**, Control 86, Speed 69, Vertical Recoil 64, Horizontal Recoil 60, Magazine 5, Reserve 30, Range 200. Existing sniper tuning maps rating 0 to its minimum cyclic rate, not to disabled shooting.
+- Uses the same AWP sniper scope, ADS sensitivity, WebAudio firing preset, bolt cocking animation and shell ejection. Shared sniper behavior now checks `WP[id].snp` rather than relying only on the original AWP ID.
+- A shot is blocked while the bolt cycles; automatic magazine reload remains deferred until after cocking is complete. The Shop, Inventory, loadout and saved-ownership rules are unchanged, preserving IDs 0–16.
