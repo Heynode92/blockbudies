@@ -1,6 +1,8 @@
-// Tactical optics: dedicated single-Kriss/MP7/P90/AK SOPMOD reticles; Dual Kriss is hip-fire only.
+// ADS visuals: unscoped K2/Shotgun use a clear crosshair; RPG gets a non-magnified launcher reticle.
+ // Single Kriss/MP7/P90/AK SOPMOD retain their own reflex sights; Dual Kriss is hip-fire only.
 // Different from AWP scope: no opaque full-screen sniper mask and RMB is held.
 var TACTICAL_OPTICS={
+ 3:{style:"rpg",name:"RPG"},
  6:{style:"kriss",name:"Kriss"},
  10:{style:"mp7",name:"MP7"},
  11:{style:"p90",name:"P90"},

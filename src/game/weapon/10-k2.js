@@ -3,8 +3,9 @@ WEAPON_PROFILES[9]=Object.freeze({name:"K2",damage:36,rpm:96,control:75,speed:79
 WEAPON_RANGE_MODIFIERS[9]=0.98;
 WEAPON_MODEL_BUILDERS[9]=function(g,a){
  {
-    // K2: silver rifle receiver with black rail, polymer telescopic stock,
-    // ventilated handguard, 40-round curved magazine and compact sight.
+    // K2: unscoped silver rifle with low-profile iron sights, black rail,
+    // ventilated handguard, 40-round curved magazine and telescopic stock.
+    // Keep the centerline clear when aiming; this rifle has no reflex optic.
     // The provided reference informs this dedicated low-poly mesh.
     a(
       bx(.105,.12,.48,0x969f9e,0,0,-.23),      // receiver
@@ -14,9 +15,9 @@ WEAPON_MODEL_BUILDERS[9]=function(g,a){
       cy(.022,.022,.40,0x20272b,0,.005,-1.03),// long exposed barrel
       cy(.031,.031,.10,0x101719,0,.005,-1.27),// muzzle
       bx(.08,.045,.19,0x343b40,0,-.015,-1.01),// gas block
-      bx(.095,.035,.14,0x303c40,0,.09,-.24),  // sight mount
-      bx(.055,.045,.075,0x1a2024,0,.138,-.24),// reflex sight
-      bx(.07,.014,.10,0x525e61,0,.158,-.25),  // sight top
+      bx(.012,.025,.03,0x303c40,-.038,.102,-.22), // low rear iron sight ear
+      bx(.012,.025,.03,0x303c40,.038,.102,-.22),  // low rear iron sight ear
+      bx(.012,.037,.024,0x303c40,0,.105,-.91),    // small front iron post
       bx(.07,.08,.12,0x30373b,0,-.17,-.19,.26), // grip
       bx(.082,.20,.10,0x1e2428,0,-.22,-.46,-.22),// curved magazine
       bx(.084,.045,.1,0x424d50,0,-.32,-.50,-.3), // magazine base

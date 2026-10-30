@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-30 — K2 and Shotgun unscoped ADS, RPG launcher aiming
+
+- **K2 (ID 9):** removed its artificial reflex sight mesh; added low-profile iron sight posts. Lowered only its ADS viewmodel so the rifle receiver and rails stay below the aim center. No scope overlay is shown.
+- **Shotgun (ID 2):** maintained natural no-scope right-mouse ADS, moving the barrel/receiver below the crosshair so they do not obscure the target. Kept the standard game crosshair.
+- **RPG (ID 3):** added a transparent amber launcher rangefinder reticle on hold-right-click (no full-screen sniper scope). Off-center and lowered the RPG launcher while aimed and relaxed only its visual ADS FOV from 50 to 58 for a usable sight picture.
+- Existing single Kriss, MP7, P90, AK SOPMOD, AWP and Dual Kriss ADS constraints remain unchanged. No profile damage, ammunition, recoil, fire rate, range, or ballistic changes.
+- Added ADS regression tests, maintained source/compiled bundle parity for all 46 game modules.
+
 ## 2026-10-30 — Single Kriss tactical ADS fix (Dual remains hip-fire)
 
 - Added a dedicated compact red-dot/reflex sight for **Kriss (weapon ID 6)** when holding right mouse button, with clear centered aiming dot and unobstructed view.

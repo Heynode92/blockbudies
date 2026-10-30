@@ -654,8 +654,9 @@ WEAPON_PROFILES[9]=Object.freeze({name:"K2",damage:36,rpm:96,control:75,speed:79
 WEAPON_RANGE_MODIFIERS[9]=0.98;
 WEAPON_MODEL_BUILDERS[9]=function(g,a){
  {
-    // K2: silver rifle receiver with black rail, polymer telescopic stock,
-    // ventilated handguard, 40-round curved magazine and compact sight.
+    // K2: unscoped silver rifle with low-profile iron sights, black rail,
+    // ventilated handguard, 40-round curved magazine and telescopic stock.
+    // Keep the centerline clear when aiming; this rifle has no reflex optic.
     // The provided reference informs this dedicated low-poly mesh.
     a(
       bx(.105,.12,.48,0x969f9e,0,0,-.23),      // receiver
@@ -665,9 +666,9 @@ WEAPON_MODEL_BUILDERS[9]=function(g,a){
       cy(.022,.022,.40,0x20272b,0,.005,-1.03),// long exposed barrel
       cy(.031,.031,.10,0x101719,0,.005,-1.27),// muzzle
       bx(.08,.045,.19,0x343b40,0,-.015,-1.01),// gas block
-      bx(.095,.035,.14,0x303c40,0,.09,-.24),  // sight mount
-      bx(.055,.045,.075,0x1a2024,0,.138,-.24),// reflex sight
-      bx(.07,.014,.10,0x525e61,0,.158,-.25),  // sight top
+      bx(.012,.025,.03,0x303c40,-.038,.102,-.22), // low rear iron sight ear
+      bx(.012,.025,.03,0x303c40,.038,.102,-.22),  // low rear iron sight ear
+      bx(.012,.037,.024,0x303c40,0,.105,-.91),    // small front iron post
       bx(.07,.08,.12,0x30373b,0,-.17,-.19,.26), // grip
       bx(.082,.20,.10,0x1e2428,0,-.22,-.46,-.22),// curved magazine
       bx(.084,.045,.1,0x424d50,0,-.32,-.50,-.3), // magazine base
@@ -857,7 +858,7 @@ var bG=new T.SphereGeometry(.15,8,8),rG=new T.SphereGeometry(.3,10,10),
 // The flag guards BOTH crate sources: the random airdrop in update() and the loot crate dropped where a bot dies (killE).
 // (Dead characters still toss their gun model as a visual effect, but it can NOT be picked up.)
 var DM_RULES={crates:false};
-var mt={t:60,cd:0,over:true},ts=[0,0],rq=[],ROS=[],curK=null,pl,en,bl,cr,fx,sk,score,run=false,spawnT,crateT,tt=0,toastT=0,adsT=0,sprT=0,ADF=[56,44,58,50,70,70,50,70,14,44,42,44,36],AP=[[0,-.066,-.5],[0,-.125,-.5],[0,-.078,-.5],[0,-.16,-.5],[0,-.1,-.5],[0,-.1,-.5],[0,-.21,-.55],[0,-.13,-.5],[0,-.14,-.5],[0,-.125,-.5],[0,-.25,-.58],[0,-.27,-.56],[0,-.18,-.64]],bobP=0,bobL=performance.now(),lob=true;
+var mt={t:60,cd:0,over:true},ts=[0,0],rq=[],ROS=[],curK=null,pl,en,bl,cr,fx,sk,score,run=false,spawnT,crateT,tt=0,toastT=0,adsT=0,sprT=0,ADF=[56,44,58,58,70,70,50,70,14,44,42,44,36],AP=[[0,-.066,-.5],[0,-.125,-.5],[0,-.22,-.56],[.22,-.24,-.62],[0,-.1,-.5],[0,-.1,-.5],[0,-.21,-.55],[0,-.13,-.5],[0,-.14,-.5],[0,-.215,-.53],[0,-.25,-.58],[0,-.27,-.56],[0,-.18,-.64]],bobP=0,bobL=performance.now(),lob=true;
 // mkPm()/pm: the visible body of the player (seen when dead/spectating). Its gun is hidden because the viewmodel is used instead.
 function mkPm(tm){var m=terro(tm);if(m.g.userData.gun)m.g.userData.gun.visible=false;return m;}
 var pm=mkPm(0);pm.g.visible=false;function resetPm(){pm.g.visible=false;if(pm.hm)pm.hm.visible=true;if(pm.hg)pm.hg.visible=true;if(pm.body){pm.body.rotation.set(0,0,0);pm.body.position.y=0;}(pm.arms||[]).concat(pm.legs||[]).forEach(function(q){q.rotation.z=0;});}
@@ -1653,9 +1654,11 @@ function altBtn(){if(!run||pl.dead||mt.over)return;if(pl.w===8){if(mt.cd<=0&&pl.
 abEl.addEventListener("pointerdown",function(e){e.stopPropagation();e.preventDefault();altBtn();});
 // abUpd(): shows/updates the touch alt button text (SCOPE/UNSCOPE, DUAL/SINGLE).
 function abUpd(){var show=touch&&run&&!pl.dead&&!lob&&!mt.over&&(pl.w===6||pl.w===7||pl.w===8);abEl.style.display=show?"block":"none";if(show){var t=pl.w===8?(scopeOn?"UNSCOPE":"SCOPE"):(pl.w===6?"DUAL":"SINGLE");if(abEl.textContent!==t)abEl.textContent=t;}}
-// Tactical optics: dedicated single-Kriss/MP7/P90/AK SOPMOD reticles; Dual Kriss is hip-fire only.
+// ADS visuals: unscoped K2/Shotgun use a clear crosshair; RPG gets a non-magnified launcher reticle.
+ // Single Kriss/MP7/P90/AK SOPMOD retain their own reflex sights; Dual Kriss is hip-fire only.
 // Different from AWP scope: no opaque full-screen sniper mask and RMB is held.
 var TACTICAL_OPTICS={
+ 3:{style:"rpg",name:"RPG"},
  6:{style:"kriss",name:"Kriss"},
  10:{style:"mp7",name:"MP7"},
  11:{style:"p90",name:"P90"},

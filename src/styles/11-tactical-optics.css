@@ -1,4 +1,5 @@
-/* Tactical reflex overlays for single Kriss, MP7, P90 and SOPMOD — never AWP scope or Dual Kriss. */
+/* Dedicated ADS visuals: RPG launcher reticle, Kriss/MP7/P90/SOPMOD optics.
+   K2 and Shotgun have no 2D scope frame; Dual Kriss cannot ADS. */
 .tactical-aim{position:fixed;inset:0;z-index:6;display:none;pointer-events:none;
  transition:opacity .08s linear;color:#d4e4ec}
 .tactical-aim::before{content:"";position:absolute;inset:0;
@@ -20,6 +21,21 @@
 .tactical-aim .ta-cross::after{height:1px;top:50%;width:7px;right:-8px;}
 /* Single Kriss: compact open reflex sight, distinct from the MP7 rectangular holo.
    Frame and red dot align with the optic built into weapon/07-kriss.js. */
+/* RPG launcher rangefinder: open, unobstructed center with amber ranging marks.
+   Not a sniper scope and not an optical sight attached to the physical launcher. */
+.tactical-aim-rpg{--ta-size:176px;--ta-cross-size:62px;--ta-color:#ffc35d;--ta-dot:4px;}
+.tactical-aim-rpg .ta-frame{width:176px;height:126px;border:none;border-radius:0;background:none;box-shadow:none;}
+.tactical-aim-rpg .ta-frame::before{inset:0;border:0;border-radius:0;
+ background:linear-gradient(#ffc35d,#ffc35d) center 14px / 1px 12px no-repeat,
+ linear-gradient(#ffc35d,#ffc35d) center calc(100% - 14px) / 1px 12px no-repeat,
+ linear-gradient(90deg,#ffc35d,#ffc35d) left 16px center / 21px 1px no-repeat,
+ linear-gradient(90deg,#ffc35d,#ffc35d) right 16px center / 21px 1px no-repeat;opacity:.74;}
+.tactical-aim-rpg .ta-frame::after{box-shadow:0 0 7px 1px rgba(255,195,93,.75);}
+.tactical-aim-rpg .ta-cross{width:55px;height:55px;border:1px dashed rgba(255,195,93,.60);
+ border-radius:50%;opacity:.85;}
+.tactical-aim-rpg .ta-cross::before{width:34px;height:1px;left:10px;top:67px;background:#ffc35d;
+ box-shadow:0 8px 0 rgba(255,195,93,.55);}
+.tactical-aim-rpg .ta-cross::after{width:1px;height:12px;left:26px;top:54px;background:#ffc35d;}
 .tactical-aim-kriss{--ta-size:94px;--ta-cross-size:15px;--ta-color:#ff3737;--ta-dot:5px;}
 .tactical-aim-kriss .ta-frame{width:98px;height:72px;border-radius:9px;border:3px solid #333d43;
  background:radial-gradient(ellipse,rgba(8,23,29,.025),rgba(8,19,24,.10) 70%,rgba(5,12,17,.2));
