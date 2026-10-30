@@ -4,7 +4,7 @@ import {readFileSync} from "node:fs";
 import {runInNewContext} from "node:vm";
 import {dirname,resolve} from "node:path";
 import {fileURLToPath} from "node:url";
-const root=resolve(dirname(fileURLToPath(import.meta.url)),".."),read=p=>readFileSync(resolve(root,p),"utf8");
+const root=resolve(dirname(fileURLToPath(import.meta.url)),".."),read=p=>readFileSync(resolve(root,p),"utf8").replace(/\r\n/g,'\n');
 const audio=read("src/game/65-audio.js"),hud=read("src/game/70-kills-and-damage-hud.js"),combat=read("src/game/45-combat.js"),bomb=read("src/game/86-bomb-mission.js");
 function extract(code,start,end){
  const a=code.indexOf(start),b=code.indexOf(end,a+start.length);

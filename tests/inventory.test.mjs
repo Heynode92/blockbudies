@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {resolve,dirname} from "node:path";
 import {fileURLToPath} from "node:url";
-const root=resolve(dirname(fileURLToPath(import.meta.url)),".."),read=p=>readFileSync(resolve(root,p),"utf8");
+const root=resolve(dirname(fileURLToPath(import.meta.url)),".."),read=p=>readFileSync(resolve(root,p),"utf8").replace(/\r\n/g,'\n');
 const html=read("index.html"),inventory=read("src/game/89-inventory.js"),lobby=read("src/game/85-lobby-and-match.js"),slots=read("src/game/75-weapon-controls.js"),m=JSON.parse(read("tools/source-manifest.json"));
 test("Inventory menu, 3D preview and six tabs are connected",()=>{
  for(const id of ["lbin","lbiv","ivpreview","ivcards","ivuse","ivtabs","ivback"])assert.ok(html.includes('id="'+id+'"'));

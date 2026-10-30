@@ -5,7 +5,7 @@ import {runInNewContext} from "node:vm";
 import {resolve,dirname} from "node:path";
 import {fileURLToPath} from "node:url";
 const root=resolve(dirname(fileURLToPath(import.meta.url)),"..");
-const read=path=>readFileSync(resolve(root,path),"utf8");
+const read=path=>readFileSync(resolve(root,path),"utf8").replace(/\r\n/g,'\n');
 const weapon=JSON.parse(read("tools/source-manifest.json")).parts.filter(p=>p.startsWith("src/game/weapon/")&&!p.endsWith("30-viewmodels.js")).map(read).join("");
 const inventory=read("src/game/89-inventory.js");
 const bot=read("src/game/41-bot-weapons.js");

@@ -4,7 +4,7 @@ import {readFileSync} from "node:fs";
 import {resolve,dirname} from "node:path";
 import {fileURLToPath} from "node:url";
 
-const root=resolve(dirname(fileURLToPath(import.meta.url)),".."),read=p=>readFileSync(resolve(root,p),"utf8");
+const root=resolve(dirname(fileURLToPath(import.meta.url)),".."),read=p=>readFileSync(resolve(root,p),"utf8").replace(/\r\n/g,'\n');
 const code=read("src/game/89-inventory.js"),css=read("src/styles/09-inventory.css");
 test("Inventory Kriss is a single owned item while V mode remains in gameplay",()=>{
  const main=code.slice(code.indexOf('key:"main"'),code.indexOf('key:"secondary"'));

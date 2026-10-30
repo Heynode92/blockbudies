@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
-const read=p=>readFile(resolve(root,p),'utf8');
+const read=async p=>(await readFile(resolve(root,p),'utf8')).replace(/\r\n/g,'\n');
 const m=JSON.parse(await read('tools/source-manifest.json'));
 const original=await read('tests/fixtures/source-original.html');
 const index=await read('index.html');

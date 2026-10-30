@@ -5,7 +5,7 @@ import {runInNewContext} from "node:vm";
 import {fileURLToPath} from "node:url";
 import {resolve,dirname} from "node:path";
 const root=resolve(dirname(fileURLToPath(import.meta.url)),"..");
-const read=p=>readFileSync(resolve(root,p),"utf8");
+const read=p=>readFileSync(resolve(root,p),"utf8").replace(/\r\n/g,'\n');
 const m=JSON.parse(read("tools/source-manifest.json"));
 const defs=m.parts.filter(p=>p.startsWith("src/game/weapon/")&&!p.endsWith("30-viewmodels.js")).map(read).join("");
 const impact=read("src/game/42-projectile-defense.js");

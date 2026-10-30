@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-30 — Windows CRLF test and build compatibility
+
+- Normalize CRLF to LF in test source readers before strict bundle parity, legacy fixture checks and source regex assertions; actual source and historical fixture files remain untouched.
+- Normalize line endings when generating/checking the browser game bundle on Windows so checkout line endings do not falsely fail `node tools/build.mjs --check`.
+- Correct the tactical weapon profile test to read the K2 starter from its scoped profile array instead of an undefined identifier.
+- No weapon stats, asset meshes, gameplay rules or browser bundle content changed.
+
 ## 2026-10-30 — MP7 Micro Red Dot ADS Fix
 
 - Registered all five MP7 3D optic pieces for hiding during tactical ADS, reusing the existing P90/SOPMOD optic visibility mechanism.

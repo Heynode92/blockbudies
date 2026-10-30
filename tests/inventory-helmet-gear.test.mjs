@@ -4,7 +4,7 @@ import {readFileSync} from "node:fs";
 import {resolve,dirname} from "node:path";
 import {fileURLToPath} from "node:url";
 const root=resolve(dirname(fileURLToPath(import.meta.url)),"..");
-const read=path=>readFileSync(resolve(root,path),"utf8");
+const read=path=>readFileSync(resolve(root,path),"utf8").replace(/\r\n/g,'\n');
 const script=read("src/game/89-inventory.js"),css=read("src/styles/09-inventory.css");
 test("Standard Helmet is owned gear, separate from weapon profiles and always equipped",()=>{
  assert.match(script,/\{key:"helm",label:"HELM",kinds:\[\]\}/);

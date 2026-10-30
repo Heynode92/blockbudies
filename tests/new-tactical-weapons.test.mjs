@@ -5,7 +5,7 @@ import {runInNewContext} from 'node:vm';
 import {fileURLToPath} from 'node:url';
 import {dirname,resolve} from 'node:path';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
-const read=p=>readFileSync(resolve(root,p),'utf8');
+const read=p=>readFileSync(resolve(root,p),'utf8').replace(/\r\n/g,'\n');
 const weapon=JSON.parse(read('tools/source-manifest.json')).parts.filter(p=>p.startsWith('src/game/weapon/')&&!p.endsWith('30-viewmodels.js')).map(read).join(''),control=read('src/game/75-weapon-controls.js'),optic=read('src/game/76-tactical-optics.js');
 const viewmodels=read('src/game/weapon/30-viewmodels.js');
 const shop=read('src/game/89-shop.js'),inventory=read('src/game/89-inventory.js'),sim=read('src/game/95-simulation.js');
@@ -28,7 +28,7 @@ test('MP7, P90 and AK SOPMOD exactly match requested ratings and ammo',()=>{
    assert.equal(WP[id].moveMult,exp.speed/100);
    assert.ok(Math.abs(WP[id].spd*WP[id].life-exp.range)<1e-8);
  }
- assert.equal(WEAPON_PROFILES[9].name,'K2');
+ assert.equal(p[9].name,'K2');
 });
 test('Dedicated weapon meshes have correct reference-driven silhouettes, textures and mechanisms',()=>{
  for(const [n,path] of [[10,'11-mp7.js'],[11,'12-p90.js'],[12,'13-ak-sopmod.js']])assert.match(read('src/game/weapon/'+path),new RegExp('WEAPON_MODEL_BUILDERS\\['+n+'\\]'));
