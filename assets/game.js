@@ -1437,7 +1437,7 @@ function bloodHit(x,y,z,dx,dz,head){
 // reset(): clears the whole world state (bullets, bots, particles, decals) and re-creates the player object `pl` for a fresh match.
 function reset(){
   [].concat(en||[],bl||[],cr||[],fx||[],sk||[],dead||[],grs||[],dg||[],chutes||[]).forEach(function(o){S.remove(o.g||o.m);});document.getElementById("kn").innerHTML="";DC.forEach(function(m){S.remove(m);});DC=[];CH.forEach(function(c){S.remove(c.m);});CH=[];cs.k=cs.s=cs.kv=cs.y=cs.yv=cs.r=cs.rv=0;clrSm();clrFD();mzf.forEach(function(q){S.remove(q.m);});mzf=[];
-  bloodPoolClear();bloodActive=0;pl={helm:true,vest:DEFENSE_RULES.vestMax,dead:false,dt:0,rt:0,life:0,x:0,z:10,hp:DEFENSE_RULES.maxHp,w:1,mag:30,res:90,rl:0,pump:0,pumpEjected:false,cd:0,face:Math.PI,pitch:0,y:0,vy:0,slot:0,prim:1,sw:0,stab:0,sth:false,thr:0,pend:false,ghide:0,ammo:(function(){var o={};WP.forEach(function(w,i){o[i]={mag:w.mag,res:w.res};});return o;})()};en=[];bl=[];cr=[];fx=[];sk=[];dead=[];dg=[];grs=[];chutes=[];resetKillStreak();shakeT=0;score=0;spawnT=1;crateT=.5;adsT=sprT=0;resetPm();hlms.forEach(function(h){S.remove(h.m);});hlms=[];setHm();document.body.classList.remove("dead");
+  bloodPoolClear();bloodActive=0;if(typeof botIntelReset==='function')botIntelReset();pl={helm:true,vest:DEFENSE_RULES.vestMax,dead:false,dt:0,rt:0,life:0,x:0,z:10,hp:DEFENSE_RULES.maxHp,w:1,mag:30,res:90,rl:0,pump:0,pumpEjected:false,cd:0,face:Math.PI,pitch:0,y:0,vy:0,slot:0,prim:1,sw:0,stab:0,sth:false,thr:0,pend:false,ghide:0,ammo:(function(){var o={};WP.forEach(function(w,i){o[i]={mag:w.mag,res:w.res};});return o;})()};en=[];bl=[];cr=[];fx=[];sk=[];dead=[];dg=[];grs=[];chutes=[];resetKillStreak();shakeT=0;score=0;spawnT=1;crateT=.5;adsT=sprT=0;resetPm();hlms.forEach(function(h){S.remove(h.m);});hlms=[];setHm();document.body.classList.remove("dead");
 }
 // toast(): shows a short message in the middle of the screen (toastT = time left).
 function toast(t){var e=document.getElementById("toast");e.textContent=t;e.style.opacity=1;toastT=1.4;}
@@ -1446,7 +1446,9 @@ function toast(t){var e=document.getElementById("toast");e.textContent=t;e.style
 //  Player bullets start at the visible muzzle (hold.position + MZ) and are aimed at the crosshair distance D.
 //  Dual Kriss: shotSide flips each shot (0 = right gun, 1 = left gun at x-0.52) and the bullet spawns from that gun.
 //  Tracers are only visible for every 3rd bullet of rapid-fire weapons (performance); collision still happens for all bullets.
-function fire(o,face,w,own,adv){var D=w.snp?90:w.dual?45:20,
+function fire(o,face,w,own,adv){
+  if(typeof botSoundEmit==='function')botSoundEmit(o,'gunshot');
+  var D=w.snp?90:w.dual?45:20,
       patternedShotgun=w.pel>1&&w.stats&&w.stats.kind==="shotgun";
   for(var i=0;i<w.pel;i++){
     // Fixed shotgun pattern on both axes; other weapons keep their original RNG.
@@ -2002,6 +2004,7 @@ function footstepAdvance(actor,dist,grounded,sprint,local){
  if(actor.stepTrail>=stride){
   actor.stepTrail-=stride;
   actor.stepIndex=(actor.stepIndex||0)+1;
+  if(typeof botSoundEmit==='function')botSoundEmit(actor,'footstep');
   footstepPlay(actor,local,sprint);
  }
 }
@@ -2911,6 +2914,109 @@ function modePreviewDraw(now){
  // Only read WebGL pixels synchronously after this frame's R.render().
  if(inLive&&roomStartFlow.active&&roomStartFlow.phase==="loading")roomStartCaptureMap();
 }
+// M1 BOT perception: evidence-only sight, acoustic cues and bounded team radio.
+// Never expose hidden live enemy objects via tactical goal helpers.
+var BOT_SENSE=Object.freeze({
+ sightRange:45,memorySeconds:3.6,radioSeconds:2.4,
+ radioInterval:.35,footstepRange:17,gunshotRange:37,
+ soundSeconds:1.35,maxSounds:28,hearingCooldown:.45,
+ auditoryUncertainty:2.4
+});
+var botSoundEvents=[],botTeamReports=[null,null];
+function botIntelReset(){
+ botSoundEvents.length=0;botTeamReports=[null,null];
+ // Also clear per-life evidence when a match/round is rebuilt.
+ if(typeof en!=='undefined'&&en)en.forEach(function(e){
+  if(e){e.lastSeen=null;e.heard=null;e.tg=null;e.lok=false;}
+ });
+}
+function botIntelVisible(e,foe){
+ return !!(e&&foe&&e!==foe&&!e.dead&&!foe.dead&&e.tm!==foe.tm&&
+  Math.hypot(foe.x-e.x,foe.z-e.z)<=BOT_SENSE.sightRange&&
+  los(e.x,e.z,foe.x,foe.z));
+}
+function botIntelObserve(e,foe){
+ if(!botIntelVisible(e,foe))return false;
+ // Capture coordinates at observation time; do not retain enemy object pointers.
+ var report={x:foe.x,z:foe.z,seenAt:tt,until:tt+BOT_SENSE.memorySeconds,
+  source:'sight',team:e.tm,observer:e.idx};
+ e.lastSeen=report;
+ var old=botTeamReports[e.tm];
+ if(!old||old.until<=tt||tt-old.seenAt>=BOT_SENSE.radioInterval||
+    Math.hypot(old.x-report.x,old.z-report.z)>2){
+  botTeamReports[e.tm]={x:report.x,z:report.z,seenAt:tt,
+   until:tt+BOT_SENSE.radioSeconds,source:'radio',team:e.tm,observer:e.idx};
+ }
+ return true;
+}
+function botIntelAcquire(e){
+ var target=null,best=Infinity;
+ en.forEach(function(o){if(botIntelVisible(e,o)){
+  var d=Math.hypot(o.x-e.x,o.z-e.z);if(d<best){best=d;target=o;}
+ }});
+ if(!pl.dead&&botIntelVisible(e,pl)){
+  var dist=Math.hypot(pl.x-e.x,pl.z-e.z);
+  if(dist<best)target=pl;
+ }
+ if(target)botIntelObserve(e,target);
+ return target;
+}
+function botSoundEmit(actor,kind){
+ if(!actor||actor.dead||!run||lob||mt.over||mt.cd>0||
+    (kind!=='footstep'&&kind!=='gunshot'))return;
+ // Only auditory evidence: no actor reference, identity, HP, target or enemy pointer.
+ var item={x:actor.x,z:actor.z,at:tt,until:tt+BOT_SENSE.soundSeconds,
+  kind:kind,team:actor.tm};
+ botSoundEvents.push(item);
+ if(botSoundEvents.length>BOT_SENSE.maxSounds)botSoundEvents.shift();
+}
+function botIntelHearing(e){
+ if(!e||e.dead)return null;
+ var current=e.heard,nearest=null,weight=Infinity;
+ for(var i=botSoundEvents.length-1;i>=0;i--){
+  var a=botSoundEvents[i];
+  if(a.until<=tt)continue;
+  // Ignore allied sounds; team membership can be inferred from known squad roster,
+  // but never expose which individual produced an enemy noise.
+  if(a.team===e.tm)continue;
+  var d=Math.hypot(e.x-a.x,e.z-a.z),max=a.kind==='gunshot'?
+    BOT_SENSE.gunshotRange:BOT_SENSE.footstepRange;
+  // Walls attenuate hearing but never create perfect visual intel.
+  if(d>max||d>max*(los(e.x,e.z,a.x,a.z)?1:.6))continue;
+  var score=d+(tt-a.at)*3;
+  if(score<weight){weight=score;nearest=a;}
+ }
+ if(nearest&&(!current||current.until<=tt||nearest.at>current.heardAt)){
+  // Coarse-grid localization is intentionally not exact (no through-wall tracking).
+  var grid=BOT_SENSE.auditoryUncertainty;
+  e.heard={x:Math.round(nearest.x/grid)*grid,
+   z:Math.round(nearest.z/grid)*grid,heardAt:nearest.at,
+   until:Math.min(nearest.until,tt+BOT_SENSE.soundSeconds),
+   source:'sound',kind:nearest.kind};
+ }
+ return e.heard&&e.heard.until>tt?e.heard:null;
+}
+function botIntelKnown(e){
+ if(!e||e.dead)return null;
+ var own=e.lastSeen&&e.lastSeen.until>tt?e.lastSeen:null,
+     team=botTeamReports[e.tm],shared=team&&team.until>tt?team:null;
+ // Hearing cannot replace a fresh, confirmed sighting or become a shootable target.
+ return own||shared||(e.heard&&e.heard.until>tt?e.heard:null);
+}
+function botIntelNearest(e,x,z,radius){
+ if(!e||e.dead)return null;
+ // Evidence is immutable positional snapshots. It must never be a live enemy actor.
+ var own=e.lastSeen&&e.lastSeen.until>tt?e.lastSeen:null,
+     shared=botTeamReports[e.tm],radio=shared&&shared.until>tt?shared:null,
+     sound=e.heard&&e.heard.until>tt?e.heard:null,
+     best=null,distance=radius;
+ [own,radio,sound].forEach(function(q){
+  if(!q)return;
+  var d=Math.hypot(q.x-x,q.z-z);
+  if(d<distance){best=q;distance=d;}
+ });
+ return best;
+}
 // Five-star BOT decision layer: uses existing A* navigation, LOS, HP,
 // canonical weapon ammo, and Bomb Mission objectives. No duplicate combat engine.
 var BOT_TACTICS=Object.freeze({
@@ -2919,10 +3025,8 @@ var BOT_TACTICS=Object.freeze({
  retreatSpeed:1.22,approachSpeed:1.2,fightSpeed:.94,
  proactiveReloadFraction:.28,threatRange:24,coverRecheck:1.6
 });
-function botSmartSight(e,t){return !!(t&&!t.dead&&los(e.x,e.z,t.x,t.z));}
-function botSmartRemember(e,t){
- if(botSmartSight(e,t))e.lastSeen={x:t.x,z:t.z,until:tt+BOT_TACTICS.memorySeconds};
-}
+function botSmartSight(e,t){return botIntelVisible(e,t);}
+function botSmartRemember(e,t){return botIntelObserve(e,t);}
 function botSmartCover(e,threat){
  if(!threat||!GB)return null;
  var saved=e.coverGoal,stable=Math.hypot((e.coverThreatX||0)-threat.x,(e.coverThreatZ||0)-threat.z)<4;
@@ -2950,7 +3054,7 @@ function botSmartCover(e,threat){
  e.coverGoal=null;e.coverExpires=tt+.8;e.coverThreatX=threat.x;e.coverThreatZ=threat.z;return null;
 }
 function botSmartIntent(e,target){
- var out={retreat:false,goal:null,hold:false},last=e.lastSeen,
+ var out={retreat:false,goal:null,hold:false},last=botIntelKnown(e),
      threat=target||(last&&last.until>tt?last:null),
      distance=threat?Math.hypot(threat.x-e.x,threat.z-e.z):Infinity,
      critical=e.hp<=BOT_TACTICS.criticalHP,reloading=e.reloadId!==null,
@@ -3332,30 +3436,29 @@ var BOMB_AI=Object.freeze({
   clearSiteSpeedMultiplier:1.4,clearSiteSupportRadius:1.35,defuserSwapMargin:1.2
 });
 function bombLiving(team){return en.filter(function(e){return e.tm===team&&!e.dead;}).concat(!pl.dead&&pl.tm===team?[pl]:[]);}
-function bombNearestOpponent(e){var foes=bombLiving(1-e.tm),best=null,dist=Infinity;
-  foes.forEach(function(f){var d=Math.hypot(f.x-e.x,f.z-e.z);if(d<dist){dist=d;best=f;}});
-  return best;
+function bombNearestOpponent(e){
+  // Never return a living opponent: only timestamped, authorized observation data.
+  return botIntelNearest(e,e.x,e.z,Infinity);
 }
-// Threat assessment uses living enemy positions but does not allow firing through
-// geometry: normal shooting remains protected by the original LOS check.
-function bombNearestThreat(team,x,z,radius){var best=null,distance=radius;
-  bombLiving(1-team).forEach(function(foe){var d=Math.hypot(foe.x-x,foe.z-z);
-    if(d<distance){best=foe;distance=d;}});
-  return best;
+function bombNearestThreat(team,x,z,radius,observer){
+  // The observer is mandatory. Team- or site-wide perfect-knowledge scans
+  // are forbidden; teammate radio reports must come from legitimate sight.
+  if(!observer||observer.tm!==team)return null;
+  return botIntelNearest(observer,x,z,radius);
 }
 function bombSoloPoliceThreat(e){
   if(!bombMatch||bombMatch.done||bombMatch.state!=='planted'||e.tm!==0||
       bombLiving(0).length!==1)return null;
   var p=bombMatch.device.position;
-  return bombNearestThreat(0,p.x,p.z,BOMB_AI.soloDefuseThreatRadius);
+  return bombNearestThreat(0,p.x,p.z,BOMB_AI.soloDefuseThreatRadius,e);
 }
 function bombSmartCarrierThreat(e){var foe=bombPlantThreat(e);return !!(foe&&
  Math.hypot(foe.x-e.x,foe.z-e.z)<BOMB_AI.urgentThreatRange*1.5&&los(e.x,e.z,foe.x,foe.z));}
 function bombPlantThreat(e){
   if(!bombMatch||bombMatch.done||bombMatch.state!=='idle'||e.tm!==1)return null;
   // Threats in the plant site or close enough to engage the carrier must be cleared.
-  var near=bombNearestThreat(1,e.x,e.z,BOMB_AI.plantEngageRange),site=bombArea(e);
-  if(site>=0){var s=BOMB_SITES[site],atSite=bombNearestThreat(1,s.x,s.z,BOMB_AI.plantClearRadius);
+  var near=bombNearestThreat(1,e.x,e.z,BOMB_AI.plantEngageRange,e),site=bombArea(e);
+  if(site>=0){var s=BOMB_SITES[site],atSite=bombNearestThreat(1,s.x,s.z,BOMB_AI.plantClearRadius,e);
     if(atSite)return atSite;}
   return near;
 }
@@ -3469,7 +3572,7 @@ function bombTacticalGoal(e){
         b.device.position.z+Math.sin(angle)*radius,e);
     }
     if(stage==='intercept'){
-      foe=bombNearestThreat(1,site.x,site.z,BOMB_AI.roamRadius);
+      foe=bombNearestThreat(1,site.x,site.z,BOMB_AI.roamRadius,e);
       if(foe)return bombSafeGoal(foe.x,foe.z,e);
       radius=8+idx%3*2;
     }
@@ -4170,29 +4273,33 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
   for(i=rq.length-1;i>=0;i--){var q=rq[i];q.t-=dt;if(q.t<=0&&!mt.over&&!isBombMode()){var nb=newBot(q.b.tm,q.b.idx);nb.st=q.b.st;placeBot(nb);rq.splice(i,1);}}
   en.forEach(function(e){var t,dx=0,dz=0,d=99,f,mvx=0,mvz=0,sp=isBombMode()?BOMB_AI.navSpeed*(e.tm===0&&bombUncontestedRetake()?BOMB_AI.clearSiteSpeedMultiplier:1):4.8,ox=e.x,oz=e.z,combat,gx,gz,wp,ml,intent;
     botUpdateReload(e,dt);e.inv=Math.max(0,(e.inv||0)-(cdn?0:dt));e.vis=Math.max(0,(e.vis||0)-dt);e.tq=(e.tq||0)-dt;e.navT=Math.max(0,(e.navT||0)-dt);
-    if(e.tq<=0){e.tq=.22+Math.random()*.16;var bd=1e9,bt=null;
-      en.forEach(function(o){if(o.tm!==e.tm){var dd=Math.hypot(o.x-e.x,o.z-e.z);if(dd<bd&&dd<45&&los(e.x,e.z,o.x,o.z)){bd=dd;bt=o;}}});
-      if(pl.tm!==e.tm&&!pl.dead){var d2=Math.hypot(pl.x-e.x,pl.z-e.z);if(d2<bd&&d2<45&&los(e.x,e.z,pl.x,pl.z)){bd=d2;bt=pl;}}
-      e.tg=bt;e.lok=!!bt;
-      if(bt)botSmartRemember(e,bt);
+    if(e.tq<=0){e.tq=.22+Math.random()*.16;
+      // Target acquisition is an actual observation, never an unseen enemy pointer.
+      e.tg=botIntelAcquire(e);e.lok=!!e.tg;
+      botIntelHearing(e);
       if(isBombMode()){var objective=bombBotGoal(e);if(objective){e.wx=objective[0];e.wz=objective[1];}}
       if(!bt&&!isBombMode()){
         // Pursue the last visible contact, never unseen live player coordinates.
-        if(e.lastSeen&&e.lastSeen.until>tt){e.wx=e.lastSeen.x;e.wz=e.lastSeen.z;}
+        var clue=botIntelKnown(e);
+        if(clue){e.wx=clue.x;e.wz=clue.z;}
         else if(!e.patrolUntil||tt>e.patrolUntil||Math.hypot(e.wx-e.x,e.wz-e.z)<2){
           e.patrolUntil=tt+3+Math.random()*3;
           var side=e.idx%2?1:-1,angle=Math.atan2(e.z,e.x)+side*(.6+Math.random()*1.3);
           e.wx=Math.max(-A+3,Math.min(A-3,e.x+Math.cos(angle)*(9+Math.random()*11)));
           e.wz=Math.max(-A+3,Math.min(A-3,e.z+Math.sin(angle)*(9+Math.random()*11)));
         }}}
-    t=e.tg;if(t&&(t.dead||(t===pl&&pl.dead)))t=e.tg=null;
+    t=e.tg;
+    // Reject the old actor reference immediately after LOS loss. Even pathing
+    // must use the last observed snapshot, never new hidden coordinates.
+    if(t&&!botIntelVisible(e,t)){t=e.tg=null;e.lok=false;}
+    else if(t){botIntelObserve(e,t);e.lok=true;}
     // Bomb carriers and designated defusers prioritize the objective unless an enemy is close.
     if(t&&bombBotWantsObjective(e,t))t=null;
     // Post-plant guards do not pursue opponents far from the device.
     if(t&&isBombMode()&&bombMatch&&bombMatch.state==='planted'&&e.tm===1&&
        bombTacticalStage(e)==='hold'&&Math.hypot(t.x-bombMatch.device.position.x,t.z-bombMatch.device.position.z)>BOMB_AI.roamRadius)t=null;
     e.lt=(e.lt||0)-dt;if(t&&e.lt<=0){e.lt=.15;e.lok=los(e.x,e.z,t.x,t.z);}
-    if(t){dx=t.x-e.x;dz=t.z-e.z;d=Math.hypot(dx,dz)||1;botSmartRemember(e,t);}
+    if(t){dx=t.x-e.x;dz=t.z-e.z;d=Math.hypot(dx,dz)||1;}
     botSmartReload(e,t);intent=botSmartIntent(e,t);e.smartRetreat=intent.retreat;
     combat=!!t&&e.lok&&e.navT<=0&&!(intent.retreat&&intent.goal)&&!intent.hold;
     sp*=intent.retreat?BOT_TACTICS.retreatSpeed:combat?BOT_TACTICS.fightSpeed:BOT_TACTICS.approachSpeed;
