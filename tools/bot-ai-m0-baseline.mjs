@@ -11,6 +11,7 @@ const root=new URL('../',import.meta.url);
 const read=p=>readFileSync(new URL(p,root),'utf8').replace(/\r\n/g,'\n');
 const modules=[
   'src/game/41-bot-weapons.js',
+  'src/game/88-bot-perception.js',
   'src/game/89-bot-tactical-intelligence.js',
   'src/game/87-bomb-tactics.js'
 ];
