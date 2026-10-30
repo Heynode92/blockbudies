@@ -56,6 +56,7 @@ This log is intended as the **single handoff tracker** for future assistants and
 |---|---|---|---|---|
 | 2026-10-30 | Planning | Static audit of active BOT, weapons, Bomb tactics and tests; master upgrade specification established. | `docs/BOT_AI_MASTER_PLAN.md`, this tracker, documentation links | **PLAN ONLY**; no gameplay code changed |
 | 2026-10-30 | M0 | Created seeded real-function 10-BOT synthetic TDM/Bomb runner and six targeted regression checks; validated equivalent V8 replay (same-seed deterministic; blocked LOS emits 0 fire dispatches; both teams progress); wrote baseline and limitations. | `tools/bot-ai-m0-baseline.mjs`, `tests/bot-ai-m0-baseline.test.mjs`, `docs/BOT_AI_M0_BASELINE.md`; baseline commit `5e7bd58` | **IN PROGRESS**; no runtime change; Node full test, real browser playtests and true KPIs pending |
+| 2026-10-30 | M0 QA automation | Added Windows GitHub Actions on main/PR/manual dispatch with Node 22 and offline build/test checks. Run outcome not yet independently confirmed; no claim of CI success. | `.github/workflows/bot-ai-m0.yml`, commit `e5c6ba22` | **CHECK CONFIGURED / RESULT PENDING** |
 
 Append every future milestone entry, including failed attempts, reverted changes, measured regressions, decisions and outstanding risk. Never rewrite a past released outcome to hide a failure.
 
@@ -65,6 +66,8 @@ Append every future milestone entry, including failed attempts, reverted changes
 - [x] Existing `footstepAdvance` test mock verified repaired at `5e7bd58`.
 - [x] Seeded synthetic 5-vs-5 BOT TDM / Bomb fixture added (not the playable human+BOT configuration).
 - [x] Repeated controlled V8 source replay; six focused assertions passed in equivalent harness; synthetic observation table saved.
+- [x] Added Windows-only GitHub Actions verification workflow (`.github/workflows/bot-ai-m0.yml`): bundle, syntax, full Node suite, synthetic trace.
+- [ ] GitHub Actions workflow green run/job log independently confirmed (not yet observable through available CI results).
 - [ ] Native `node --test tests/*.test.mjs` and `node tools/build.mjs --check` output recorded.
 - [ ] Real Windows browser map scenarios, FPS/p95, valid hits/reaction/stuck metrics and completed Bomb rounds measured.
 - [ ] Final M0 acceptance review with same-seed baseline comparison and no gameplay regression.
