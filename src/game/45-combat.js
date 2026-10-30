@@ -25,10 +25,28 @@ var spG=new T.SphereGeometry(1,6,6),spM={};
 function spark(x,y,z,col,n,sp,sz){var m0=spM[col]||(spM[col]=new T.MeshBasicMaterial({color:col,transparent:true,opacity:.9,blending:T.AdditiveBlending,depthWrite:false}));
   for(var i=0;i<n;i++){var m=new T.Mesh(spG,m0),a=Math.random()*6.28,b=Math.random()*2-1,k=Math.sqrt(1-b*b),v=sp*(.4+Math.random()*.6);
     m.position.set(x,y,z);S.add(m);sk.push({m:m,vx:Math.cos(a)*k*v,vy:b*v+(n>1?2:.4),vz:Math.sin(a)*k*v,t:0,l:n>1?.3+Math.random()*.25:.5,sz:sz});}}
+// Character impact blood: small non-additive world-space droplets, never ammo or damage.
+// Share the existing particle update/reset path and cap live drops to protect frame time.
+var BLOOD_FX=Object.freeze({max:96,body:9,head:14}),bloodActive=0,
+ bloodM=new T.MeshBasicMaterial({color:0xa31124,transparent:true,opacity:.95,depthWrite:false});
+function bloodHit(x,y,z,dx,dz,head){
+ if(!Number.isFinite(x)||!Number.isFinite(y)||!Number.isFinite(z))return;
+ var length=Math.hypot(dx||0,dz||0)||1,n=Math.min(head?BLOOD_FX.head:BLOOD_FX.body,BLOOD_FX.max-bloodActive);
+ for(var i=0;i<n;i++){
+  var a=Math.random()*Math.PI*2,speed=1.2+Math.random()*2.6,
+   m=new T.Mesh(spG,bloodM),forward=1.5+Math.random()*1.8;
+  m.position.set(x+(Math.random()-.5)*.12,y+(Math.random()-.5)*.16,z+(Math.random()-.5)*.12);
+  S.add(m);
+  sk.push({m:m,vx:(dx||0)/length*forward+Math.cos(a)*speed*.6,
+   vy:.7+Math.random()*2.8,vz:(dz||0)/length*forward+Math.sin(a)*speed*.6,
+   t:0,l:.28+Math.random()*.23,sz:.045+Math.random()*(head?.085:.055),blood:true});
+  bloodActive++;
+ }
+}
 // reset(): clears the whole world state (bullets, bots, particles, decals) and re-creates the player object `pl` for a fresh match.
 function reset(){
   [].concat(en||[],bl||[],cr||[],fx||[],sk||[],dead||[],grs||[],dg||[],chutes||[]).forEach(function(o){S.remove(o.g||o.m);});document.getElementById("kn").innerHTML="";DC.forEach(function(m){S.remove(m);});DC=[];CH.forEach(function(c){S.remove(c.m);});CH=[];cs.k=cs.s=cs.kv=cs.y=cs.yv=cs.r=cs.rv=0;clrSm();clrFD();mzf.forEach(function(q){S.remove(q.m);});mzf=[];
-  pl={helm:true,vest:DEFENSE_RULES.vestMax,dead:false,dt:0,rt:0,life:0,x:0,z:10,hp:DEFENSE_RULES.maxHp,w:1,mag:30,res:90,rl:0,pump:0,pumpEjected:false,cd:0,face:Math.PI,pitch:0,y:0,vy:0,slot:0,prim:1,sw:0,stab:0,sth:false,thr:0,pend:false,ghide:0,ammo:(function(){var o={};WP.forEach(function(w,i){o[i]={mag:w.mag,res:w.res};});return o;})()};en=[];bl=[];cr=[];fx=[];sk=[];dead=[];dg=[];grs=[];chutes=[];resetKillStreak();shakeT=0;score=0;spawnT=1;crateT=.5;adsT=sprT=0;resetPm();hlms.forEach(function(h){S.remove(h.m);});hlms=[];setHm();document.body.classList.remove("dead");
+  bloodActive=0;pl={helm:true,vest:DEFENSE_RULES.vestMax,dead:false,dt:0,rt:0,life:0,x:0,z:10,hp:DEFENSE_RULES.maxHp,w:1,mag:30,res:90,rl:0,pump:0,pumpEjected:false,cd:0,face:Math.PI,pitch:0,y:0,vy:0,slot:0,prim:1,sw:0,stab:0,sth:false,thr:0,pend:false,ghide:0,ammo:(function(){var o={};WP.forEach(function(w,i){o[i]={mag:w.mag,res:w.res};});return o;})()};en=[];bl=[];cr=[];fx=[];sk=[];dead=[];dg=[];grs=[];chutes=[];resetKillStreak();shakeT=0;score=0;spawnT=1;crateT=.5;adsT=sprT=0;resetPm();hlms.forEach(function(h){S.remove(h.m);});hlms=[];setHm();document.body.classList.remove("dead");
 }
 // toast(): shows a short message in the middle of the screen (toastT = time left).
 function toast(t){var e=document.getElementById("toast");e.textContent=t;e.style.opacity=1;toastT=1.4;}

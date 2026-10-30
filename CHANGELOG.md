@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-30 — 3D character-hit blood, no BOT RPG, fixed grenade stock
+
+- Added short-lived red non-additive 3D blood droplets when Police/Terrorist characters take real damage, including headshot variants. Effects use the existing particle lifecycle, are capped at 96 live droplets, and are cleared on match reset. Damage, protection, armor and headshot calculations are unchanged.
+- Removed RPG weapon ID 3 from the actual BOT random-primary selection pool; player RPG, its weapon profile and projectile/explosion system are untouched.
+- Removed the every-four-player-kills grenade refill and its unused addGren helper. Grenades now only decrement when used and reset according to existing match/respawn/round equipment rules; weapon crates and dropped gun visuals remain unaffected.
+- Preserved existing HUD, team scoring, AI difficulty, 5v5 spawn and gameplay modes. Added regression tests and synchronized standalone assets/game.js.
+
+
 ## 2026-10-30 — Simplify Room Settings popup chrome
 
 - Removed the corner X button and its JavaScript listener; Cancel, Escape and backdrop remain valid dismiss actions.

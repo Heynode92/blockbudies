@@ -10,8 +10,6 @@ function swSlot(s){var id=[pl.prim,inventoryEquipped("secondary"),inventoryEquip
   if(id===pl.w){pl.slot=s;return;}
   if((id===5&&a.mag+a.res<=0)||(id===pl.prim&&a.mag+a.res<=0)){toast(id===5?"Out of grenades":"Out of ammo");return;}
   pl.slot=s;swW(id);if(id===5&&pl.mag===0&&pl.res>0)reload();}
-// addGren(): +1 grenade (max 6).
-function addGren(){var a=amo(5),w=WP[5];if(a.mag+a.res<w.mag+w.res){a.res++;toast("Grenade +1");}}
 // doStab(): knife attack: damages enemies in a short cone in front of the player.
 function doStab(){killW=4;curK=pl;var w=WP[4],fx=Math.sin(pl.face),fz=Math.cos(pl.face),hit=0;
   en.slice().forEach(function(e){if(e.tm===pl.tm)return;var dx=e.x-pl.x,dz=e.z-pl.z,d=Math.hypot(dx,dz)||1;if(d<WP[4].range+.8&&(dx*fx+dz*fz)/d>.3&&clearTo(pl.x,pl.z,e.x,e.z,0)){dmgE(e,w.dmg,fx,fz,0,"melee");hit++;}});

@@ -1,7 +1,7 @@
 // AI weapons share exactly the same WP profiles, ballistics, ammo and reload as players.
 // Only accuracy and loadout selection are AI-specific, not bullet damage.
 var BOT_WEAPONS=Object.freeze({
-  primaries:[1,1,1,2,2,6,6,6,7,8,3],
+  primaries:[1,1,1,2,2,6,6,6,7,8],
   sidearm:0,knife:4,grenade:5,
   meleeRange:1.7,grenadeMinDistance:9,grenadeMaxDistance:18,grenadeChance:.035,
   grenadeCooldown:12,aimNoise:.055,noisePerUnit:.0045,
