@@ -1615,37 +1615,26 @@ function slotUI(w){
   if(w.melee){E.mg.textContent="\u221e";E.rs.textContent="";}
 }
 // ===== PRIMARY WEAPON SELECT / KRISS <-> DUAL / AWP SCOPE =====
-// ===== primary weapon select / Kriss <-> Dual / AWP scope =====
-// WSEL = weapon ids offered in the pre-match select (keys 1-5). WDESC = descriptions shown on the cards.
-var WSEL=[],WDESC={1:"Balanced · mid range",2:"Close range · high burst",3:"Explosive splash",6:"Fast SMG · V = DUAL",8:"Bolt-action sniper · RMB scope",9:"Standard-issue assault rifle",10:"Rapid MP7 · HOLD RMB TO AIM",11:"P90 · HOLD RMB FOR TOP SIGHT",12:"AK SOPMOD · HOLD RMB FOR OPTIC"};
-// All tactical optics use RMB hold. AWP keeps its independent toggle scope.
-// The per-weapon optic map lives in src/game/76-tactical-optics.js.
+// Weapon behavior stays here. UI presentation and cursor lifecycle live in 77-loadout-picker.js.
+var WSEL=[],WDESC={1:"Balanced · Mid range",2:"Close range · High burst",3:"Explosive splash",
+ 6:"Fast fire rate",8:"High damage · Long range",9:"Standard-issue rifle",
+ 10:"Compact · Rapid fire",11:"High capacity · Fast SMG",12:"Tactical rifle · Optic"};
 function canAds(w){return w<4||w===6||w===8||w===WEAPON_STARTER_ID||!!tacticalOpticConfig(w);}
-// fall(b,p): damage falloff multiplier (0..1) for bullet b at hit point p from its start (sx,sz), using the weapon's r0/r1/rm.
 function fall(b,p){var f=b.fo;if(!f)return 1;var d=Math.max(0,Math.hypot(p.x-b.sx,p.z-b.sz));return Math.pow(f[0],d/f[1]);}
-// DOM references for the weapon-select screen, the scope overlay and the alt (V / scope) touch button.
-var wsEl=document.getElementById("wsel"),scopeEl=document.getElementById("scope"),abEl=document.getElementById("ab"),wsOn=false,wsCards=[],wsBar,wsT;
-(function(){wsEl.innerHTML='<div class="wt"></div><div class="wb"><i></i></div><div class="wc"></div>';wsT=wsEl.children[0];wsBar=wsEl.children[1].firstChild;})();
+var scopeEl=document.getElementById("scope"),abEl=document.getElementById("ab");
 function refreshWeaponSelection(){
-  // 1-5 remain keyboard shortcuts; additional owned primaries stay clickable.
-  var owned=inventoryOwned("main");
-  WSEL=[WEAPON_STARTER_ID].concat(owned.filter(function(id){return id!==WEAPON_STARTER_ID;}));
-  var box=wsEl.children[2];box.textContent="";wsCards=[];
-  WSEL.forEach(function(id,i){
-    var d=document.createElement("div");d.className="wcd";
-    d.innerHTML='<b class="k">'+(i<5?i+1:"•")+'</b>'+SV[id]+'<b>'+WP[id].n+'</b><small>'+WEAPON_CLASS_LABELS[WP[id].stats.kind]+" · "+(WDESC[id]||"Ready for battle")+'</small>';
-    d.addEventListener("pointerdown",function(e){e.stopPropagation();e.preventDefault();chooseWeapon(id);});
-    box.appendChild(d);wsCards.push(d);
-  });
+ var owned=inventoryOwned("main");
+ WSEL=[WEAPON_STARTER_ID].concat(owned.filter(function(id){return id!==WEAPON_STARTER_ID;}));
+ loadoutRender();
 }
-// chooseWeapon(id): picks the primary weapon during the pre-match countdown.
-function chooseWeapon(id){if(!run||pl.dead||!(mt.cd>0)||mt.over||WSEL.indexOf(id)<0||inventoryOwned("main").indexOf(id)<0)return;
-  favPrim=id;pl.prim=id;scopeOn=false;
-  if(pl.w!==id){pl.ammo[id]={mag:WP[id].mag,res:WP[id].res};swW(id);}else{pl.mag=WP[id].mag;pl.res=WP[id].res;}}
-// wselUpd(): shows/hides the weapon-select panel and updates its countdown bar.
-function wselUpd(){var sh=run&&!lob&&mt.cd>0&&!mt.over&&!pl.dead;if(wsOn!==sh){wsOn=sh;wsEl.classList.toggle("show",sh);}
-  if(sh){wsT.textContent="CHOOSE PRIMARY WEAPON \u00b7 "+Math.ceil(mt.cd)+"s";wsBar.style.width=Math.max(0,mt.cd/5*100)+"%";
-    for(var i=0;i<wsCards.length;i++){var id=WSEL[i],on=pl.prim===id||(id===6&&pl.prim===7);if(wsCards[i]._on!==on){wsCards[i]._on=on;wsCards[i].classList.toggle("on",on);}}}}
+function chooseWeapon(id){
+ if(!run||pl.dead||!(mt.cd>0)||mt.over||wsConfirmed||WSEL.indexOf(id)<0||inventoryOwned("main").indexOf(id)<0)return;
+ favPrim=id;pl.prim=id;scopeOn=false;
+ if(pl.w!==id){pl.ammo[id]={mag:WP[id].mag,res:WP[id].res};swW(id);}
+ else{pl.mag=WP[id].mag;pl.res=WP[id].res;}
+ loadoutRefreshSelected();
+}
+function wselUpd(){loadoutUpdate();}
 // V key: Kriss <-> Dual Kriss. Each mode keeps its OWN magazine and reserve ammo.
 // V: Kriss <-> Dual Kriss. Each mode keeps its own magazine + reserve
 function toggleDual(){if(!run||pl.dead||mt.over||(pl.w!==6&&pl.w!==7))return;
@@ -1676,6 +1665,113 @@ function tacticalOpticUpdate(){
  // The 2D overlay draws the sight, so hide the 3D optic frame while aiming (it would block the view and double the optic).
  guns.forEach(function(g,i){var parts=g.userData.opticParts;if(!parts)return;var hide=active&&pl.w===i&&adsT>.35;parts.forEach(function(m){m.visible=!hide;});});
 }
+// Mouse-first primary weapon picker shared by Team Deathmatch and Bomb Mission.
+// Weapon profiles, ballistics, inventory ownership and 4-slot HUD remain authoritative elsewhere.
+var wsEl=document.getElementById("wsel"),wsOn=false,wsCards=[],wsConfirmed=false,wsPage=0,wsCategory="rifle",WS_VISIBLE=5;
+var WS_ORDER=[9,1,2,6,8,10,11,12,3],WS_TABS=[
+ ["rifle","ASSAULT RIFLE"],["smg","SMG"],["sniper","SNIPER"],["shotgun","SHOTGUN"],["rocket","LAUNCHER"]];
+function loadoutCatalog(){
+ var all=inventoryCatalogMain();
+ return WS_ORDER.filter(function(id){return all.indexOf(id)>=0;}).concat(all.filter(function(id){return WS_ORDER.indexOf(id)<0;}));
+}
+function loadoutElement(tag,cls,label){
+ var el=document.createElement(tag);el.className=cls||"";if(label!==undefined)el.textContent=label;return el;
+}
+function loadoutPage(p){var all=loadoutCatalog();wsPage=Math.max(0,Math.min(Math.max(0,all.length-WS_VISIBLE),p));loadoutRender();}
+function loadoutCategory(kind){
+ var all=loadoutCatalog(),id=all.filter(function(i){return WP[i].stats.kind===kind;})[0];
+ if(id===undefined)return;
+ wsCategory=kind;loadoutPage(all.indexOf(id));
+}
+function loadoutRender(){
+ var ids=loadoutCatalog(),owned=inventoryOwned("main"),shell=loadoutElement("section","wp-shell");
+ wsEl.textContent="";wsCards=[];
+ var header=loadoutElement("header","wp-head"),title=loadoutElement("div","wp-title");
+ title.appendChild(loadoutElement("i","wp-mark"));
+ title.appendChild(loadoutElement("strong","","CHOOSE PRIMARY WEAPON"));
+ title.appendChild(loadoutElement("small","","Click weapon to select"));header.appendChild(title);
+ var tabs=loadoutElement("nav","wp-tabs");tabs.setAttribute("aria-label","Weapon categories");
+ WS_TABS.forEach(function(item){
+  var tab=loadoutElement("button","wp-tab"+(wsCategory===item[0]?" on":""),item[1]);tab.type="button";
+  tab.onclick=function(){loadoutCategory(item[0]);};tabs.appendChild(tab);
+ });
+ header.appendChild(tabs);shell.appendChild(header);
+ var rail=loadoutElement("div","wp-rail");
+ var prev=loadoutElement("button","wp-arrow","❮");prev.type="button";prev.disabled=wsPage===0;
+ prev.setAttribute("aria-label","Previous weapons");prev.onclick=function(){loadoutPage(wsPage-1);};rail.appendChild(prev);
+ var cards=loadoutElement("div","wp-cards");
+ ids.slice(wsPage,wsPage+WS_VISIBLE).forEach(function(id){
+  var w=WP[id],ownedNow=owned.indexOf(id)>=0;
+  var b=loadoutElement("button","wp-card"+(ownedNow?"":" locked"));b.type="button";b.disabled=!ownedNow;
+  b.setAttribute("aria-label",w.n+(ownedNow?"":" locked: unlock in Shop"));
+  var art=loadoutElement("span","wp-art");art.innerHTML=SV[id];b.appendChild(art);
+  b.appendChild(loadoutElement("strong","wp-name",w.n));
+  b.appendChild(loadoutElement("span","wp-kind",WEAPON_CLASS_LABELS[w.stats.kind]||w.stats.kind));
+  b.appendChild(loadoutElement("small","wp-desc",ownedNow?(WDESC[id]||"Ready for battle"):"UNLOCK IN SHOP"));
+  if(ownedNow)b.onclick=function(){chooseWeapon(id);};
+  cards.appendChild(b);wsCards.push({id:id,el:b});
+ });
+ rail.appendChild(cards);
+ var next=loadoutElement("button","wp-arrow","❯");next.type="button";
+ next.disabled=wsPage+WS_VISIBLE>=ids.length;next.setAttribute("aria-label","Next weapons");
+ next.onclick=function(){loadoutPage(wsPage+1);};rail.appendChild(next);shell.appendChild(rail);
+ var foot=loadoutElement("footer","wp-foot"),time=loadoutElement("div","wp-time");
+ time.appendChild(loadoutElement("span","","AUTO DEPLOY IN "));
+ time.appendChild(loadoutElement("b","wp-seconds","5s"));
+ var track=loadoutElement("div","wp-track");track.appendChild(loadoutElement("i","wp-track-fill"));time.appendChild(track);
+ foot.appendChild(time);
+ var confirm=loadoutElement("button","wp-confirm","CONFIRM LOADOUT");confirm.type="button";
+ confirm.onclick=function(){loadoutFinish(true);};foot.appendChild(confirm);
+ var enter=loadoutElement("div","wp-enter");enter.appendChild(loadoutElement("kbd","","ENTER"));
+ enter.appendChild(loadoutElement("span","","Press Enter to deploy"));foot.appendChild(enter);
+ shell.appendChild(foot);wsEl.appendChild(shell);loadoutRefreshSelected();
+}
+function loadoutRefreshSelected(){
+ wsCards.forEach(function(c){
+  var selected=pl&&(pl.prim===c.id||(pl.prim===7&&c.id===6));
+  c.el.classList.toggle("on",!!selected);c.el.setAttribute("aria-pressed",selected?"true":"false");
+ });
+}
+function loadoutPrepareRound(){
+ wsConfirmed=false;wsOn=false;wsEl.classList.remove("show");
+ wsCategory=WP[favPrim]?WP[favPrim].stats.kind:"rifle";
+ var ids=loadoutCatalog();wsPage=Math.min(Math.max(0,ids.length-WS_VISIBLE),Math.max(0,ids.indexOf(favPrim)-1));
+ loadoutRender();document.body.classList.remove("loadout-active","loadout-cursor-hidden");
+}
+function loadoutReleaseInput(){
+ mouse.down=false;mouse.right=false;fireHeld=false;
+ if(typeof lookStopDrag==="function")lookStopDrag();
+}
+function loadoutFinish(userGesture){
+ if(wsConfirmed||!run||mt.over||pl.dead)return;
+ wsConfirmed=true;
+ var id=pl.prim===7?6:pl.prim;
+ if(inventoryOwned("main").indexOf(id)>=0){inventoryState.equipped.main=id;inventorySave();}
+ loadoutReleaseInput();loadoutUpdate();
+ // Lock requests need browser user activation; on timeout hide the cursor and wait for a game click.
+ if(userGesture&&!touch&&!lob&&R.domElement.requestPointerLock){
+  try{var req=R.domElement.requestPointerLock();if(req&&req.catch)req.catch(function(){});}catch(e){}
+ }
+}
+function loadoutUpdate(){
+ if(wsOn&&!wsConfirmed&&mt.cd<=0)loadoutFinish(false);
+ var open=!!(run&&!lob&&!mt.over&&!pl.dead&&mt.cd>0&&!wsConfirmed);
+ if(open!==wsOn){
+  wsOn=open;wsEl.classList.toggle("show",open);
+  document.body.classList.toggle("loadout-active",open);
+  document.body.classList.toggle("loadout-cursor-hidden",!open&&run&&!lob);
+  if(open){
+   loadoutReleaseInput();
+   if(document.pointerLockElement===R.domElement&&document.exitPointerLock)document.exitPointerLock();
+  }
+ }
+ if(open){
+  var duration=isBombMode()?BOMB_RULES.freezeSeconds:5;
+  var seconds=wsEl.querySelector(".wp-seconds"),fill=wsEl.querySelector(".wp-track-fill");
+  if(seconds)seconds.textContent=Math.max(1,Math.ceil(mt.cd))+"s";
+  if(fill)fill.style.width=Math.min(100,Math.max(0,mt.cd/duration*100))+"%";
+ }
+}
 // Global first-person camera input (shared by Deathmatch and Bomb Mission).
 // Browser pointer lock can emit discontinuous movementX/Y values. Reject anomalous
 // individual events instead of letting one bad event rotate the view backwards.
@@ -1697,7 +1793,8 @@ function lookLockChanged(){
   lookSkipLockedMove=document.pointerLockElement===R.domElement;
 }
 function lookMove(e){
-  if(e.pointerType!=="mouse"||!run||lob||mt.over||!pl||pl.dead)return;
+  if(e.pointerType!=="mouse"||!run||lob||mt.over||!pl||pl.dead||
+     (typeof wsOn!=="undefined"&&wsOn))return;
   var locked=document.pointerLockElement===R.domElement,dragging=!!(e.buttons&1),dx,dy;
   if(!locked&&!dragging){lookStopDrag();return;}
   if(locked){
@@ -1721,11 +1818,11 @@ function lookMove(e){
 // keys = pressed KeyboardEvent.code map, mouse = {down,right}, ST = touch sticks, fireHeld/jumpHeld = touch buttons.
 // input
 var fireHeld=false,jumpHeld=false,keys={},mouse={x:innerWidth/2,y:0,down:false,right:false},ST={l:{x:0,y:0,on:false},r:{x:0,y:0,on:false}};
-addEventListener("keydown",function(e){if(e.code==="Space")e.preventDefault();keys[e.code]=true;if(mt.over&&e.code==="Enter"&&document.getElementById("dv").classList.contains("show")){again();return;}if(e.code==="KeyR"&&!(isBombMode()&&pl.bAction))reload();if(e.code==="KeyV")toggleDual();if(run&&!pl.dead){var dm=/^(Digit|Numpad)([1-5])$/.exec(e.code);if(dm){if(mt.cd>0&&!mt.over)chooseWeapon(WSEL[+dm[2]-1]);else if(+dm[2]<=4)swSlot(+dm[2]-1);}}});
+addEventListener("keydown",function(e){if(e.code==="Space")e.preventDefault();keys[e.code]=true;if(wsOn&&e.code==="Enter"){e.preventDefault();loadoutFinish(true);keys[e.code]=false;return;}if(mt.over&&e.code==="Enter"&&document.getElementById("dv").classList.contains("show")){again();return;}if(e.code==="KeyR"&&!(isBombMode()&&pl.bAction))reload();if(e.code==="KeyV")toggleDual();if(run&&!pl.dead){var dm=/^(Digit|Numpad)([1-5])$/.exec(e.code);if(dm){if(mt.cd>0&&!mt.over)chooseWeapon(WSEL[+dm[2]-1]);else if(+dm[2]<=4)swSlot(+dm[2]-1);}}});
 document.getElementById("rl").addEventListener("pointerdown",function(e){e.stopPropagation();reload();});
 (function(){var jb=document.getElementById("jb");jb.addEventListener("pointerdown",function(e){e.stopPropagation();jb.setPointerCapture(e.pointerId);jumpHeld=true;});["pointerup","pointercancel"].forEach(function(t){jb.addEventListener(t,function(){jumpHeld=false;});});var b=document.getElementById("fb");b.addEventListener("pointerdown",function(e){e.stopPropagation();b.setPointerCapture(e.pointerId);fireHeld=true;});["pointerup","pointercancel"].forEach(function(t){b.addEventListener(t,function(){fireHeld=false;});});})();addEventListener("keyup",function(e){keys[e.code]=false;});
 R.domElement.addEventListener("pointermove",function(e){if(e.pointerType==="mouse"){mouse.down=!!(e.buttons&1);mouse.right=!!(e.buttons&2);lookMove(e);}});
-R.domElement.addEventListener("pointerdown",function(e){if(e.pointerType==="mouse"){lookStartDrag(e);if(e.button===2){mouse.right=true;e.preventDefault();if(run&&!pl.dead&&pl.w===8&&mt.cd<=0&&!mt.over)scopeOn=!scopeOn;}else if(e.button===0)mouse.down=true;if(run&&!pl.dead&&!document.pointerLockElement&&R.domElement.requestPointerLock){try{R.domElement.requestPointerLock();}catch(x){}}}});
+R.domElement.addEventListener("pointerdown",function(e){if(e.pointerType==="mouse"){if(wsOn){e.preventDefault();return;}lookStartDrag(e);if(e.button===2){mouse.right=true;e.preventDefault();if(run&&!pl.dead&&pl.w===8&&mt.cd<=0&&!mt.over)scopeOn=!scopeOn;}else if(e.button===0)mouse.down=true;if(run&&!pl.dead&&!document.pointerLockElement&&R.domElement.requestPointerLock){try{R.domElement.requestPointerLock();}catch(x){}}}});
 addEventListener("pointerup",function(e){if(e.pointerType==="mouse"){mouse.down=!!(e.buttons&1);mouse.right=!!(e.buttons&2);if(!mouse.down)lookStopDrag();}});addEventListener("blur",function(){mouse.right=false;mouse.down=false;keys={};lookStopDrag();});
 document.addEventListener("pointerlockchange",lookLockChanged);
 R.domElement.addEventListener("contextmenu",function(e){e.preventDefault();});
@@ -1767,7 +1864,7 @@ var ov=document.getElementById("ov"),ovt=document.getElementById("ovt");
 // show(): shows the generic overlay card (title, body html, button label).
 function show(h,b,btn){document.querySelector("#card h1").textContent=h;ovt.innerHTML=b;document.getElementById("go").textContent=btn;ov.style.display="flex";}
 show("Blok Buddies FPS",'<p>Survive the terrorist assault. There are no drops in this mode: no weapons, ammo or medkits fall from the sky, so every fight is decided by aim.</p><p>'+
- (touch?"Left joystick to move, right joystick to look around. The Shoot, Jump, and Reload buttons are on the right.":"WASD to move, Space to jump, mouse to look around (click the screen first to lock the mouse, or hold left click and drag), left click or F to shoot, R to reload, hold Shift to sprint, hold right click to aim down sights. Press V to switch the Kriss between single and dual. With the AWP, right click once to scope and again to unscope. You get 5 seconds at match start to pick your primary weapon (keys 1-5).")+
+ (touch?"Left joystick to move, right joystick to look around. The Shoot, Jump, and Reload buttons are on the right.":"WASD to move, Space to jump, mouse to look around (click the screen first to lock the mouse, or hold left click and drag), left click or F to shoot, R to reload, hold Shift to sprint, hold right click to aim down sights. Press V to switch the Kriss between single and dual. With the AWP, right click once to scope and again to unscope. Choose your primary weapon with the mouse, confirm it, or wait for auto-deploy.")+
  '</p><p>Your weapon and ammo come from the primary weapon you pick at the start. You get full ammo again after every respawn.</p>',"Start");
 document.getElementById("go").onclick=function(){this.blur();reset();ov.style.display="none";run=true;};
 // Lobby (mode select screen). lobBest() reads the best score from localStorage key "bbfps_best" (try/catch).
@@ -1856,7 +1953,7 @@ function placeBot(b){var s=spawnPt(b.tm);b.x=s[0];b.z=s[1];b.y=0;defenseSpawn(b)
 function startMatch(tm){inventoryForNewMatch();starsReset();SPH=[[],[]];var s=spawnPt(tm);pl.tm=tm;pl.x=s[0];pl.z=s[1];pl.face=tm?0:Math.PI;pl.inv=2;ts=[0,0];rq=[];mt={t:60,cd:5,over:false};pl.prim=favPrim;pl.w=favPrim;pl.mag=WP[favPrim].mag;pl.res=WP[favPrim].res;scopeOn=false;ROS=[];pl.st={name:"You",tm:tm,k:0,d:0};ROS.push(pl.st);
   S.remove(pm.g);pm=mkPm(tm);pm.g.visible=false;[armR,armL].forEach(function(ar){ar.children[0].material.color.setHex(tm?0x4b5320:0x1c4a8a);ar.children[1].material.color.setHex(tm?0x23272b:0x142a52);});
   [0,1].forEach(function(t){for(var i=0;i<(isBombMode()?BOMB_RULES.teamSize-(t===tm?1:0):(t===tm?4:5));i++){var b=newBot(t,i);b.st={name:b.name,tm:t,k:0,d:0};ROS.push(b.st);placeBot(b);}});
-  if(isBombMode())bombStartMatch();toast("YOU ARE "+(tm?"TERRORIST":"POLICE"));}
+  if(isBombMode())bombStartMatch();loadoutPrepareRound();toast("YOU ARE "+(tm?"TERRORIST":"POLICE"));}
 // respawnPl(): respawns the player after the 5 s death timer with full ammo and spawn shield.
 function respawnPl(){var s=spawnPt(pl.tm);pl.dead=false;pl.dt=pl.rt=pl.rl=pl.cd=pl.sw=pl.stab=pl.thr=0;pl.pend=pl.sth=false;pl.ghide=0;defenseSpawn(pl);pl.x=s[0];pl.z=s[1];pl.y=pl.vy=0;pl.face=pl.tm?0:Math.PI;pl.pitch=0;pl.inv=2;pl.prim=favPrim;
   pl.ammo={};WP.forEach(function(w,i){pl.ammo[i]={mag:w.mag,res:w.res};});pl.w=favPrim;pl.mag=WP[favPrim].mag;pl.res=WP[favPrim].res;pl.slot=0;camY=0;scopeOn=false;resetPm();setHm();document.body.classList.remove("dead");toast("RESPAWNED");}
