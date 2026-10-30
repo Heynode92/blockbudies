@@ -7,23 +7,26 @@
  background:radial-gradient(ellipse at 44% 60%,rgba(19,65,102,.18),transparent 64%),linear-gradient(145deg,#07111d,#030912);overflow:hidden}
 #lbiv.on::before{opacity:.18}
 #lbiv.on::after{height:6px;opacity:1}
+/* Align header to the three underlying panels, with a dedicated Back action. */
 #lbiv .ivtop{grid-column:1/-1;grid-row:1;display:grid;grid-template-columns:minmax(225px,1.03fr) minmax(0,2.28fr) minmax(250px,1.08fr);
  gap:12px;min-width:0;align-items:center;min-height:86px;border-bottom:1px solid rgba(114,162,203,.25);
- background:linear-gradient(115deg,rgba(4,12,23,.78),rgba(15,26,43,.65));position:relative;padding:4px 10px 9px}
+ background:linear-gradient(115deg,rgba(4,12,23,.78),rgba(15,26,43,.65));position:relative;padding:8px 10px 11px}
 #lbiv .ivtop::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;
  background:linear-gradient(90deg,#ff7920 0 23%,transparent 23% 76%,#ff7920 76% 100%);opacity:.85}
 #lbiv .ivtop-title{min-width:0}
 #lbiv .ivtop h2{font:italic 900 clamp(42px,4.2vw,76px)/.96 Impact,"Arial Black",sans-serif;letter-spacing:.045em;
  color:#fff;margin:0;text-shadow:3px 4px 0 rgba(140,61,27,.8),0 6px 19px #000}
 #lbiv .ivtop-title>span{display:block;margin-top:6px;color:#a9c4e1;font:800 clamp(10px,.85vw,14px) Rajdhani,sans-serif;letter-spacing:.32em}
-#lbiv .ivtop-actions{display:flex;align-items:center;justify-content:flex-end;gap:12px;min-width:0}
-#lbiv .ivbrand{font:italic 900 clamp(19px,2vw,34px)/.86 Impact,"Arial Black",sans-serif;color:#fff;text-align:right;
- letter-spacing:.045em;text-shadow:0 2px #000;white-space:nowrap}
-#lbiv .ivbrand b{display:block;color:#ff8b21;font-weight:900}
-#lbiv #ivback{min-width:72px;padding:7px 10px;font-size:12px}
-#lbiv #ivtabs{min-width:0;display:flex;flex-wrap:nowrap;justify-content:space-between;align-items:center;gap:4px;overflow-x:auto;scrollbar-width:thin}
-#lbiv #ivtabs button{flex:0 0 auto;min-width:0;padding:12px clamp(8px,.8vw,16px);
- font-size:clamp(10px,.9vw,14px);background:linear-gradient(145deg,#263b55,#111e30);border:1px solid #344c69;color:#dde7f3}
+#lbiv .ivtop-actions{grid-column:3;grid-row:1;display:flex;align-items:center;justify-content:flex-end;min-width:0}
+#lbiv #ivback{display:inline-flex;align-items:center;justify-content:center;min-width:96px;height:44px;
+ box-sizing:border-box;padding:0 17px;border-radius:6px;font-size:13px;letter-spacing:.075em;white-space:nowrap}
+ /* The six inventory tabs share equal tracks instead of being spread unevenly. */
+#lbiv #ivtabs{grid-column:2;grid-row:1;min-width:0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));
+ align-items:stretch;gap:7px;overflow:visible}
+#lbiv #ivtabs button{display:flex;align-items:center;justify-content:center;min-width:0;min-height:46px;box-sizing:border-box;
+ padding:7px 5px;text-align:center;white-space:nowrap;letter-spacing:.04em;
+ font-size:clamp(10px,.78vw,14px);background:linear-gradient(145deg,#263b55,#111e30);
+ border:1px solid #344c69;border-radius:6px;color:#dde7f3}
 #lbiv #ivtabs button.on{background:linear-gradient(135deg,#ffa039,#f06b17);border-color:#ffab59;color:#fff;box-shadow:0 4px 13px rgba(245,102,17,.25)}
 #lbiv .ivleft,#lbiv .ivright,#lbiv .ivdetails{grid-row:2;grid-column:auto;min-width:0;min-height:0;height:100%;box-sizing:border-box;
  border:1px solid rgba(90,147,197,.46);background:linear-gradient(145deg,rgba(10,23,39,.96),rgba(4,12,22,.94));
@@ -46,20 +49,25 @@
  box-shadow:0 0 20px rgba(255,112,24,.16);text-shadow:0 1px 2px #472717}
 #lbiv #ivuse:disabled{background:linear-gradient(110deg,#075e48,#007554);color:#a4f7cc;
  border-color:#00c87d;text-shadow:none}
-#lbiv .ivright{grid-column:2;display:flex;flex-direction:column;gap:10px;padding:12px 10px;overflow:hidden;clip-path:none}
+#lbiv .ivright{grid-column:2;display:flex;flex-direction:column;gap:12px;padding:14px;overflow:hidden;clip-path:none}
 #lbiv .ivright::before{display:none}
-#lbiv .ivfilters{display:flex;justify-content:space-between;align-items:center;gap:9px;min-width:0;flex:none}
-#lbiv .ivclasses{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;overflow-x:auto;min-width:0;scrollbar-width:thin}
-#lbiv .ivclasses button{flex:none;border:1px solid #3e617e;border-radius:4px;
- background:linear-gradient(#142b44,#0a192b);color:#b6cde5;padding:8px clamp(8px,.8vw,14px);
- font:800 clamp(11px,.86vw,14px) Rajdhani,sans-serif;letter-spacing:.05em;cursor:pointer}
+/* A stable filter zone + a pinned tools group; no compressed select/grid buttons. */
+#lbiv .ivfilters{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;
+ gap:10px 12px;min-width:0;flex:none}
+#lbiv .ivclasses{display:flex;align-items:center;align-content:start;gap:6px;flex-wrap:wrap;
+ min-width:0;overflow:visible}
+#lbiv .ivclasses button{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;
+ min-height:44px;box-sizing:border-box;border:1px solid #3e617e;border-radius:6px;
+ background:linear-gradient(#142b44,#0a192b);color:#b6cde5;padding:8px 11px;white-space:nowrap;
+ font:800 clamp(11px,.82vw,14px) Rajdhani,sans-serif;letter-spacing:.055em;cursor:pointer}
 #lbiv .ivclasses button.on{background:linear-gradient(#ffa537,#f7801c);border-color:#ff9e38;color:#0b192a}
 #lbiv .ivclasses button:focus-visible,#lbiv .ivtools :focus-visible,#lbiv .ivcard:focus-visible{outline:2px solid #ff9f39;outline-offset:2px}
-#lbiv .ivtools{display:flex;gap:6px;flex:0 0 auto}
-#lbiv .ivtools select,#lbiv .ivtools button{height:36px;box-sizing:border-box;border:1px solid #385772;border-radius:5px;
+#lbiv .ivtools{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex:0 0 auto;min-width:0}
+#lbiv .ivtools select,#lbiv .ivtools button{height:44px;box-sizing:border-box;border:1px solid #385772;border-radius:6px;
  background:#101f33;color:#c2d4e8;font:800 12px Rajdhani,sans-serif;cursor:pointer}
-#lbiv .ivtools select{max-width:104px;padding:0 7px}
-#lbiv .ivtools button{width:35px;font-size:21px}
+#lbiv .ivtools select{flex:0 0 123px;width:123px;min-width:123px;max-width:123px;padding:0 8px}
+#lbiv .ivtools button{display:inline-flex;align-items:center;justify-content:center;flex:0 0 44px;
+ width:44px;min-width:44px;font-size:21px}
 #lbiv .ivhint{display:none}
 #lbiv:not(.iv-main) .ivhint{display:block;margin:0;padding:6px 9px;font-size:12px;line-height:1.1}
 #lbiv #ivcards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:clamp(142px,21vh,215px);
@@ -128,12 +136,21 @@
  #lbiv .ivstats{gap:4px}
  #lbiv #ivuse{min-height:52px}
 }
+/* At narrower desktop widths, allocate a full-width second row to tabs.
+   Tool buttons stay together on the next row when class filters run out of room. */
+@media(min-width:1161px) and (max-width:1399px){
+ #lbiv .ivfilters{grid-template-columns:minmax(0,1fr)}
+ #lbiv .ivtools{justify-content:flex-end}
+}
 @media(max-width:1160px){
  #lbiv.on{grid-template-columns:minmax(210px,.75fr) minmax(0,1.65fr);grid-template-rows:auto minmax(380px,1fr) auto;
  overflow-y:auto}
- #lbiv .ivtop{grid-template-columns:minmax(210px,.75fr) minmax(0,1.65fr);gap:9px;min-height:82px}
- #lbiv .ivtop-actions{grid-column:1/-1;justify-content:space-between}
- #lbiv .ivbrand b{display:inline}
+ #lbiv .ivtop{grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto;gap:9px 12px;min-height:90px}
+ #lbiv .ivtop-title{grid-column:1;grid-row:1}
+ #lbiv .ivtop-actions{grid-column:2;grid-row:1;justify-content:flex-end}
+ #lbiv #ivtabs{grid-column:1/-1;grid-row:2;grid-template-columns:repeat(6,minmax(0,1fr))}
+ #lbiv .ivfilters{grid-template-columns:minmax(0,1fr)}
+ #lbiv .ivtools{justify-content:flex-end}
  #lbiv .ivleft{grid-column:1;grid-row:2;height:100%}
  #lbiv .ivright{grid-column:2;grid-row:2;height:100%}
  #lbiv .ivdetails{grid-column:1/-1;grid-row:3;height:auto;max-height:none;min-height:250px;
@@ -146,18 +163,23 @@
 }
 @media(max-width:680px){
  #lbiv.on{grid-template-columns:1fr;grid-template-rows:auto auto auto auto;overflow-y:auto;padding:8px;gap:9px}
- #lbiv .ivtop{grid-column:1;grid-row:1;display:flex;flex-direction:column;align-items:stretch;gap:8px}
- #lbiv .ivtop-title{display:flex;justify-content:space-between;align-items:baseline;gap:9px}
- #lbiv .ivtop h2{font-size:41px}
+ #lbiv .ivtop{grid-column:1;grid-row:1;display:grid;grid-template-columns:minmax(0,1fr) auto;
+  grid-template-rows:auto auto;align-items:center;gap:8px;padding:10px}
+ #lbiv .ivtop-title{grid-column:1;grid-row:1;display:block;min-width:0}
+ #lbiv .ivtop h2{font-size:clamp(32px,8vw,41px)}
  #lbiv .ivtop-title>span{letter-spacing:.1em;font-size:10px}
- #lbiv #ivtabs{justify-content:flex-start}
- #lbiv .ivtop-actions{justify-content:space-between}
+ #lbiv #ivtabs{grid-column:1/-1;grid-row:2;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+ #lbiv #ivtabs button{min-height:40px;font-size:11px;padding:6px 3px}
+ #lbiv .ivtop-actions{grid-column:2;grid-row:1;justify-content:flex-end}
+ #lbiv #ivback{min-width:82px;height:40px;padding:0 10px}
  #lbiv .ivleft{grid-column:1;grid-row:2;min-height:360px}
  #lbiv .ivpreview{min-height:240px}
  #lbiv .ivright{grid-column:1;grid-row:3;min-height:425px}
  #lbiv #ivcards{height:auto;max-height:63vh;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:145px}
- #lbiv .ivfilters{flex-wrap:wrap}
- #lbiv .ivclasses{width:100%}
+ #lbiv .ivfilters{grid-template-columns:minmax(0,1fr);gap:9px}
+ #lbiv .ivclasses{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;width:100%}
+ #lbiv .ivclasses button{min-width:0;width:100%;padding:7px 3px;font-size:11px}
+ #lbiv .ivtools{width:100%;justify-content:flex-end}
  #lbiv .ivdetails{grid-column:1;grid-row:4;grid-template-columns:1fr 1fr;min-height:280px}
  #lbiv .ivdetail-art{grid-column:1;grid-row:2/4;height:170px}
  #lbiv .ivstats{grid-template-columns:1fr 1fr}

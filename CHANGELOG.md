@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-30 — Inventory toolbar alignment and clean Back header
+
+- Removed the redundant BLOCK BUDDIES wordmark from the Inventory header; retained one visible Back button at the upper right.
+- Aligned the six main Inventory category tabs into equal-height, equal-width tracks instead of uneven space-between placement.
+- Separated class filter pills from the Default sorting and grid/list controls; all controls have consistent heights, reliable widths, and aligned spacing.
+- Added explicit desktop, tablet, and mobile layout rules to prevent overlap, cropped tabs, or cramped tools. Preserved the original soldier/weapon previews, inventory ownership, Shop, weapon statistics, and game logic.
+- Added regression checks for header structure, responsive toolbars, functional controls, and bundle parity.
+
 ## 2026-10-30 — Tactical Armory Inventory redesign
 
 - Implemented the approved three-column Inventory screen: interactive real-3D soldier preview at left, compact three-column weapon grid and category controls in the center, and selected-item 3D thumbnail plus graphic stats on the right.
