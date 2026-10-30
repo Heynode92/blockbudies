@@ -30,6 +30,8 @@ function setup(){
    now=Math.min(end,now+100);
    const callbacks=Array.from(frames.values());frames.clear();
    callbacks.forEach(cb=>cb(now));
+   // Simulate the 3D frame rendered before the preview reads WebGL pixels.
+   if(vm.runInContext('roomStartFlow.phase',context)==='loading')vm.runInContext('roomStartCaptureMap()',context);
    for(const [id,t] of Array.from(timers.entries())){
     if(t.when<=now){timers.delete(id);t.callback();}
    }
@@ -105,7 +107,7 @@ test('TDM kill limit and match timer affect game rules only when Room Master sta
  call(context,'roomLaunch()');
  assert.equal(view.begunTeam,undefined,'pre-match remains in Room Lobby');
  assert.equal(doc.getElementById('roomPrestartNumber').textContent,'3');
- advance(4500);
+ advance(5300);
  assert.equal(call(context,'roomKillLimit()'),75);
  assert.equal(call(context,'roomMatchSeconds()'),180);
  assert.equal(view.begunTeam,0);assert.equal(call(context,'mt.cd'),0);
@@ -123,7 +125,7 @@ test('Bomb Mode uses existing map, correct max rounds, timer and wins majority',
  const {context,doc,view,advance}=setup();call(context,'roomLobbyOpen()');
  call(context,'roomCreateLocal()');call(context,'roomModeSelect(1)');
  doc.getElementById('roomRounds').value='5';doc.getElementById('roomRoundMinutes').value='3';
- call(context,'roomLaunch()');advance(4500);
+ call(context,'roomLaunch()');advance(5300);
  assert.equal(call(context,'roomRoundLimit()'),5);
  assert.equal(call(context,'roomRoundSeconds()'),180);
  assert.equal(call(context,'roomRoundsToWin()'),3);
@@ -261,7 +263,15 @@ test('loading reaches 100 only after match initialization and fades before simul
  advance(400);assert.equal(view.begunTeam,0);
  assert.equal(call(context,'run'),false,'paused behind the loading screen');
  advance(300);assert.equal(doc.getElementById('roomStartPercent').textContent,'100%');
- assert.equal(call(context,'run'),false,'no live gameplay while fading');
- advance(700);assert.equal(call(context,'run'),true);
+ assert.equal(call(context,'roomStartFlow.phase'),'ready','100% must stay visible before fade');
+ assert.equal(call(context,'run'),false,'gameplay stays frozen through 100%');
+ advance(1200);assert.equal(call(context,'run'),true);
  assert.equal(doc.getElementById('roomTransition').hidden,true);
+});
+
+test('map loading reads 3D pixels in the post-render preview hook',()=>{
+ const preview=read('src/game/84-live-map-preview.js'),room=read('src/game/83-room-lobby.js');
+ assert.match(preview,/if\(inLive&&roomStartFlow\.active&&roomStartFlow\.phase==="loading"\)roomStartCaptureMap\(\)/);
+ assert.doesNotMatch(room,/var captured=roomStartCaptureMap\(\)/);
+ assert.match(room,/if\(!flow\.mapReady\|\|elapsed<500\)/);
 });

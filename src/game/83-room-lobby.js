@@ -6,7 +6,7 @@ var roomList=[],roomCurrent=null,roomMatchConfig=null,roomDraftMode=0;
 
 /* Team slots preview the real 5v5 roster. AI is created by startMatch, never here. */
 var ROOM_START_COUNTDOWN=3,roomSide=0,roomSeat=0,roomLog=[];
-var roomStartFlow={active:false,phase:"idle",token:0,raf:0,timer:0,deadline:0,config:null,team:0};
+var roomStartFlow={active:false,phase:"idle",token:0,raf:0,timer:0,deadline:0,config:null,team:0,mapReady:false};
 function roomLiveLog(message){
  roomLog.push(String(message));if(roomLog.length>12)roomLog.shift();
  var root=document.getElementById("rmlLogLines");root.replaceChildren();
@@ -179,7 +179,7 @@ function roomStartAbort(){
  var flow=roomStartFlow;flow.token++;
  if(flow.raf)cancelAnimationFrame(flow.raf);
  if(flow.timer)clearTimeout(flow.timer);
- flow.raf=flow.timer=0;flow.active=false;flow.phase="idle";flow.config=null;
+ flow.raf=flow.timer=0;flow.active=false;flow.phase="idle";flow.config=null;flow.mapReady=false;
  document.getElementById("roomPrestart").hidden=true;
  var overlay=document.getElementById("roomTransition");
  overlay.classList.remove("on","leaving");overlay.hidden=true;
@@ -187,10 +187,11 @@ function roomStartAbort(){
 // Copy a *real* frame of the current 3D WebGL map, no fabricated loading image.
 function roomStartCaptureMap(){
  var source=R.domElement,dest=document.getElementById("roomStartMap"),ctx=dest.getContext("2d",{alpha:false});
- if(!source.width||!source.height)return false;
+ if(!source.width||!source.height||!ctx)return false;
  var sw=source.width,sh=source.height,ratio=dest.width/dest.height,
      cw=Math.min(sw,sh*ratio),ch=Math.min(sh,sw/ratio);
  ctx.drawImage(source,(sw-cw)/2,(sh-ch)/2,cw,ch,0,0,dest.width,dest.height);
+ roomStartFlow.mapReady=true;
  return true;
 }
 function roomStartCountdown(now,token){
@@ -202,7 +203,7 @@ function roomStartCountdown(now,token){
 }
 function roomStartLoading(token){
  var flow=roomStartFlow;if(!flow.active||token!==flow.token)return;
- flow.phase="loading";flow.raf=0;roomStartCaptureMap();
+ flow.phase="loading";flow.raf=0;flow.mapReady=false;
  var overlay=document.getElementById("roomTransition");
  overlay.hidden=false;overlay.classList.remove("leaving");
  roomStartMark(0,"CAPTURING 3D MAP");
@@ -214,9 +215,10 @@ function roomStartLoading(token){
 }
 function roomStartLoadingCover(token,openedAt){
  var flow=roomStartFlow;if(!flow.active||token!==flow.token||flow.phase!=="loading")return;
- var captured=roomStartCaptureMap();
- if(captured&&document.getElementById("roomStartPercent").textContent==="0%")roomStartMark(25,"3D MAP READY");
- if(performance.now()-openedAt<500){
+ if(flow.mapReady&&document.getElementById("roomStartPercent").textContent==="0%")roomStartMark(25,"3D MAP READY");
+ var elapsed=performance.now()-openedAt;
+ if(!flow.mapReady&&elapsed>5500){roomStartAbort();roomLiveLog("3D map is not ready. Try again.");return;}
+ if(!flow.mapReady||elapsed<500){
   flow.raf=requestAnimationFrame(function(){roomStartLoadingCover(token,openedAt);});
   return;
  }
@@ -249,13 +251,18 @@ function roomStartPrepareGame(token){
 }
 function roomStartReveal(token){
  var flow=roomStartFlow;if(!flow.active||token!==flow.token||flow.phase!=="preparing")return;
- flow.phase="fading";var overlay=document.getElementById("roomTransition");overlay.classList.add("leaving");
+ // Let the 100% progress bar actually finish rendering before fading out.
+ flow.phase="ready";
  flow.timer=setTimeout(function(){
-  if(!flow.active||token!==flow.token)return;
-  overlay.classList.remove("on","leaving");overlay.hidden=true;
-  document.getElementById("roomPrestart").hidden=true;
-  flow.active=false;flow.phase="idle";flow.timer=0;flow.config=null;run=true;
- },550);
+  if(!flow.active||token!==flow.token||flow.phase!=="ready")return;
+  flow.phase="fading";var overlay=document.getElementById("roomTransition");overlay.classList.add("leaving");
+  flow.timer=setTimeout(function(){
+   if(!flow.active||token!==flow.token||flow.phase!=="fading")return;
+   overlay.classList.remove("on","leaving");overlay.hidden=true;
+   document.getElementById("roomPrestart").hidden=true;
+   flow.active=false;flow.phase="idle";flow.timer=0;flow.config=null;run=true;
+  },550);
+ },600);
 }
 function roomLaunch(){
  if(roomStartFlow.active)return;

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-30 — Reliable 3D loading frame and visible 100%
+
+- Capture real map pixels synchronously from the existing post-WebGL-render preview callback; avoid a blank capture caused by reading the discarded buffer in a separate rAF.
+- Wait for a valid rendered map and abort safely when WebGL is not ready.
+- Keep 100% visibly complete before fading into gameplay; match simulation and timer remain paused until fade completes.
+- Regression tests and direct-open browser bundle updated.
+
+
 ## 2026-10-30 — Team-aware Room Preview and room-first pre-match loading
 
 - Police/Terrorists room slot clicks now change the actual 3D character skin while keeping the equipped Inventory primary; cache both existing team actors and reuse the same renderer and gun meshes.

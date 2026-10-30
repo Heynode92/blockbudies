@@ -73,3 +73,8 @@ START MATCH is a guarded, cancelable requestAnimationFrame state machine:
 
 Leaving/closing a room or page aborts pending countdown/transition callbacks.
 No new WebGL renderer, multiplayer server, weapon stat modification or dependency.
+
+The fullscreen loading map is captured immediately after WebGL renders in
+`modePreviewDraw()`, not an unrelated rAF that could read a cleared buffer.
+Missing map readiness aborts instead of faking a complete load. The 100%
+bar is held visibly before the fade starts.
