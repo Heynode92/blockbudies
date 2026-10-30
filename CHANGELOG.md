@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-10-30 — M0 Windows CI recovery and regression alignment (verified)
+
+- Investigated GitHub Actions failures using actual Windows job logs, not assumptions: earlier run #3 stopped at `node tools/build.mjs --check` due exactly one extra blank line in the committed `assets/game.js` between `65-audio.js` and `66-footsteps.js`. Updated only the generated bundle separator (commit `6664ee13`); no executable JavaScript instruction or gameplay behavior changed.
+- Added `tools/bot-ai-ci-diagnose.mjs` for read-only exact bundle mismatch diagnostics, and pinned LF checkout in `.github/workflows/bot-ai-m0.yml` without bypassing parity checks.
+- After parity was restored, full Windows regression revealed 41 old failures among 288 tests. Repaired missing isolated test mocks for canonical `WP`, LOS, visual hit effects and radar visibility; synchronized legacy test assumptions for 19 weapons, stable weapon indices, BOT RPG exclusion, current ADS/scope policy, tactical roles, and room preview layout. Kept all tests enabled and did not weaken bundle parity or change production game rules.
+- **Verified Windows GitHub Actions run #26 SUCCESS:** [M0 regression run](https://github.com/Heynode92/blockbudies/actions/runs/41096566590). Bundle parity, JavaScript syntax, complete Node regression suite, and synthetic BOT baseline execution all succeeded on Windows Node 22.
+- Updated `docs/BOT_AI_IMPLEMENTATION_LOG.md` milestone journal and checkboxes, plus `docs/BOT_AI_M0_BASELINE.md` for reproducible root cause and verification evidence. **M0 remains IN PROGRESS:** real browser FPS, sight-to-shot latency, collision/stuck time, true hit percentage and Bomb objective baselines are still unmeasured. M1–M7 remain NOT STARTED.
+- **Gameplay untouched:** production AI JS, weapon stats, map geometry, damage, inventory, UI, standalone build manifest, and Bomb rules were not changed by these test fixes. The only bundled asset edit was one surplus newline.
+
 ## 2026-10-30 — BOT intelligence M0 foundation: deterministic baseline and Windows CI
 
 - Added development-only `tools/bot-ai-m0-baseline.mjs`, which evaluates existing production BOT movement, A*, weapon dispatch and Bomb tactical goals in a fixed-seed 10-BOT synthetic arena. It changes **no gameplay runtime** and is not included in the browser source manifest.
