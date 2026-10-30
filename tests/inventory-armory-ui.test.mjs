@@ -13,7 +13,7 @@ test('all nine primary weapons appear while Shop retains ownership authority',()
  assert.match(inv,/locked\?"LOCKED":id===equipped\?"IN USE":""/);
  assert.match(inv,/if\(lockedSelection\)\{if\(typeof shopOpen==="function"\)shopOpen\(\);return;\}/);
 });
-test('main weapon filters and sorting operate only on display IDs',()=>{
+test('class filters operate on natural catalog order',()=>{
  const start=inv.indexOf('var inventoryClass="all"'),end=inv.indexOf('function inventoryCatalogMain(){',start);
  const data={1:['AK-47','rifle',33],2:['Shotgun','shotgun',168],3:['RPG','rocket',85],
   6:['Kriss','smg',21],8:['AWP','sniper',81],9:['K2','rifle',36],10:['MP7','smg',21],
@@ -24,16 +24,15 @@ test('main weapon filters and sorting operate only on display IDs',()=>{
  runInNewContext(inv.slice(start,end),ctx);
  assert.equal(ctx.inventoryViewIds().length,9);
  ctx.inventoryClass='smg';assert.deepEqual(Array.from(ctx.inventoryViewIds()),[6,10,11]);
- ctx.inventoryClass='all';ctx.inventorySort='damage';assert.equal(ctx.inventoryViewIds()[0],2);
- ctx.inventorySort='name';assert.equal(ctx.inventoryViewIds()[0],12);
+ ctx.inventoryClass='all';assert.deepEqual(Array.from(ctx.inventoryViewIds()),[1,2,3,6,8,9,10,11,12]);
 });
 test('approved three-column layout, live thumbnails and status controls are wired',()=>{
- for(const id of ['ivpreview','ivdetailthumb','ivdetailname','ivdetailclass','ivstats','ivsort','ivviewtoggle','ivclasses'])
+ for(const id of ['ivpreview','ivdetailthumb','ivdetailname','ivdetailclass','ivstats','ivclasses'])
   assert.ok(html.includes('id="'+id+'"'),id);
  assert.match(inv,/INVENTORY_THUMBS\[selected\]/);
  assert.match(inv,/inventoryShowModel\(selected\)/);
  assert.match(inv,/inventoryStatPercent\(pair\[0\],numeric,weapon\)/);
- assert.match(css,/#lbiv #ivcards\.iv-list/);
+ assert.doesNotMatch(css,/\.iv-list/);
  assert.match(css,/@media\(max-width:680px\)/);
 });
 test('all six categories and equipped values retain inventory persistence',()=>{

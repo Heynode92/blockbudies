@@ -10,7 +10,7 @@ const css=read('src/styles/12-inventory-armory.css'),oldCSS=read('src/styles/09-
 test('inventory displays the approved compact three-column armory with a shared top bar',()=>{
  assert.match(css,/#lbiv\.on\{[^}]*grid-template-columns:minmax\(225px,1\.03fr\) minmax\(0,2\.28fr\) minmax\(250px,1\.08fr\)/);
  assert.match(css,/#lbiv \.ivtop\{[^}]*grid-column:1\/-1/);
- for(const id of ['ivtabs','ivclasses','ivsort','ivviewtoggle','ivcards','ivpreview','ivdetailthumb','ivdetailname','ivstats','ivdescription','ivuse'])
+ for(const id of ['ivtabs','ivclasses','ivcards','ivpreview','ivdetailthumb','ivdetailname','ivstats','ivdescription','ivuse'])
    assert.ok(html.includes('id="'+id+'"'),id+' is present');
  assert.match(html,/CHOOSE YOUR LOADOUT/);
  assert.match(html,/WEAPON DETAILS/);
@@ -26,12 +26,10 @@ test('three-column weapon grid has fixed rows, a single scroller and status badg
  assert.match(css,/#lbiv \.ivcard\.locked\{opacity:/);
  assert.match(oldCSS,/#ivcards\{[^}]*overflow-y:auto/);
 });
-test('filters, sorting and list toggle work without altering ownership or saved equipment',()=>{
- assert.match(js,/var inventoryClass="all",inventorySort="default",inventoryList=false/);
+test('class filters preserve ownership, Shop and equipment',()=>{
+ assert.match(js,/var inventoryClass="all"/);
  for(const label of ['ASSAULT','SMG','SNIPER','SHOTGUN','LAUNCHER'])assert.ok(js.includes('"'+label+'"'));
  assert.match(js,/inventoryClass=item\[0\];inventoryScroll\[inventoryTab\]=0;inventoryRender\(\)/);
- assert.match(js,/inventorySort=this.value;inventoryScroll\[inventoryTab\]=0;inventoryRender\(\)/);
- assert.match(js,/inventoryList=!inventoryList;inventoryScroll\[inventoryTab\]=0;inventoryRender\(\)/);
  assert.match(js,/if\(inventoryTab!=="main"\)return ids/);
  assert.match(js,/var ids=inventoryViewIds\(\),owned=inventoryOwned\(inventoryTab\)/);
  assert.match(js,/lockedSelection\?\s*"UNLOCK IN SHOP"/);

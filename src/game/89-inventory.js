@@ -35,14 +35,12 @@ var INVENTORY_DESCRIPTIONS={
 };
 var inventoryTab="main",inventoryPick={},inventoryScroll={},inventoryState={equipped:{},unlockedMain:[]};
 // Inventory filters are visual-only. Shop ownership and equipped weapons remain authoritative.
-var inventoryClass="all",inventorySort="default",inventoryList=false;
+var inventoryClass="all";
 var INVENTORY_CLASSES=[["all","ALL"],["rifle","ASSAULT"],["smg","SMG"],["sniper","SNIPER"],["shotgun","SHOTGUN"],["rocket","LAUNCHER"]];
 function inventoryViewIds(){
  var ids=inventoryTab==="main"?inventoryCatalogMain():inventoryOwned(inventoryTab);
  if(inventoryTab!=="main")return ids;
  if(inventoryClass!=="all")ids=ids.filter(function(id){return WP[id].stats.kind===inventoryClass;});
- if(inventorySort==="name")ids.sort(function(a,b){return WP[a].n.localeCompare(WP[b].n);});
- if(inventorySort==="damage")ids.sort(function(a,b){return (WP[b].stats.damage||0)-(WP[a].stats.damage||0);});
  return ids;
 }
 function inventoryStatPercent(label,value,weapon){
@@ -286,17 +284,8 @@ function inventoryRender(){
    btn.onclick=function(){inventoryClass=item[0];inventoryScroll[inventoryTab]=0;inventoryRender();};
    classes.appendChild(btn);
  });
- var sort=document.getElementById("ivsort");sort.value=inventorySort;
- var layout=document.getElementById("ivviewtoggle");
- layout.innerHTML=inventoryList?
-  '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><span>GRID</span>':
-  '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 6h12M9 12h12M9 18h12M3 6h2M3 12h2M3 18h2"/></svg><span>LIST</span>';
- layout.setAttribute("aria-pressed",inventoryList?"true":"false");
- layout.setAttribute("aria-label",inventoryList?"Switch to grid view":"Switch to list view");
- layout.title=inventoryList?"Switch to grid view":"Switch to list view";
  cards.textContent="";
  cards.classList.toggle("ivcards-empty",!ids.length);
- cards.classList.toggle("iv-list",inventoryList);
  if(!ids.length){
    var empty=document.createElement("div");empty.className="ivempty ivempty-gear";
    if(inventoryTab==="main"){
@@ -382,7 +371,7 @@ function inventoryRender(){
  inventoryShowModel(selected);
 }
 function inventoryOpen(){
- inventoryTab="main";inventoryClass="all";inventorySort="default";inventoryList=false;
+ inventoryTab="main";inventoryClass="all";
  inventoryAngle=.14;lobP("lbiv");
  inventoryPreviewInit();inventoryBuildThumbnails();inventoryRender();inventoryStartPreview();
 }
@@ -390,11 +379,5 @@ inventoryLoad();
 document.getElementById("ivcards").addEventListener("scroll",function(){
  inventoryScroll[inventoryTab]=this.scrollTop;
 },{passive:true});
-document.getElementById("ivsort").addEventListener("change",function(){
- inventorySort=this.value;inventoryScroll[inventoryTab]=0;inventoryRender();
-});
-document.getElementById("ivviewtoggle").addEventListener("click",function(){
- inventoryList=!inventoryList;inventoryScroll[inventoryTab]=0;inventoryRender();
-});
 document.getElementById("lbin").addEventListener("click",inventoryOpen);
 document.getElementById("ivback").addEventListener("click",function(){lobP("lbs");});

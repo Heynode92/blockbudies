@@ -21,20 +21,15 @@ test('the six main navigation tabs have consistent equal-width slots and no spac
  assert.doesNotMatch(css,/#lbiv #ivtabs\{[^}]*justify-content:space-between/);
  assert.match(css,/#lbiv \.ivtop-actions\{grid-column:3;grid-row:1/);
 });
-test('category filters occupy their own row and tools align to a right-hand dock',()=>{
- assert.match(css,/#lbiv \.ivfilters\{display:grid;grid-template-columns:minmax\(0,1fr\);grid-template-rows:auto auto/);
- assert.match(css,/#lbiv \.ivclasses\{grid-column:1;grid-row:1/);
- assert.match(css,/#lbiv \.ivtools\{grid-column:1;grid-row:2/);
+test('the inventory filter row contains only weapon categories',()=>{
+ assert.match(panel,/<div id="ivfilters" class="ivfilters">\s*<nav id="ivclasses"/);
+ assert.match(css,/#lbiv \.ivfilters\{display:flex;align-items:center;min-width:0;flex:none\}/);
  assert.match(css,/#lbiv \.ivclasses\{[^}]*flex-wrap:wrap/);
- assert.match(css,/#lbiv \.ivtools\{display:flex;align-items:center;justify-content:flex-end/);
- assert.match(css,/#lbiv \.ivtools select\{flex:0 0 151px;width:151px;min-width:151px;max-width:151px/);
- assert.match(css,/#lbiv \.ivtools button\{[^}]*flex:0 0 96px/);
- assert.match(html,/class="ivsort-label">SORT BY/);
- assert.match(html,/aria-label="Switch to list view"/);
- assert.match(inv,/layout\.innerHTML=inventoryList\?/);
- assert.match(inv,/Switch to grid view/);
- assert.match(inv,/inventorySort=this.value;inventoryScroll\[inventoryTab\]=0;inventoryRender\(\)/);
- assert.match(inv,/inventoryList=!inventoryList;inventoryScroll\[inventoryTab\]=0;inventoryRender\(\)/);
+ for(const label of ['ALL','ASSAULT','SMG','SNIPER','SHOTGUN','LAUNCHER'])assert.ok(inv.includes('"'+label+'"'));
+ assert.doesNotMatch(panel,/id="ivsort"|id="ivviewtoggle"|class="ivtools"|SORT BY|DEFAULT/);
+ assert.doesNotMatch(inv,/inventorySort|inventoryList|ivsort|ivviewtoggle|iv-list/);
+ assert.doesNotMatch(css,/\.ivtools|\.ivsort-label|\.iv-list/);
+ assert.match(inv,/inventoryClass=item\[0\];inventoryScroll\[inventoryTab\]=0;inventoryRender\(\)/);
 });
 test('tablet and mobile use deterministic stacked toolbar and tab rows',()=>{
  assert.doesNotMatch(css,/@media\(min-width:1161px\) and \(max-width:1399px\)/);

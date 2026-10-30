@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-30 — Remove Inventory sort and Grid/List controls
+
+- Removed DEFAULT sorting dropdown, SORT BY label, and Grid/List toggle entirely from Inventory at user request.
+- Deleted their DOM, CSS, runtime event handlers, sort and list-view state. Weapon cards remain in the existing three-column grid with natural catalog order.
+- The six class filters (ALL, ASSAULT, SMG, SNIPER, SHOTGUN, LAUNCHER) remain functional in a single clean filter band.
+- Kept the three-column armory, 3D previews, equipment ownership, Shop unlock, and all gameplay intact; updated regression tests and regenerated the game bundle.
+
 ## 2026-10-30 — Separate inventory sort and view controls from category filters
 
 - Fixed the cramped Inventory toolbar: category filters are now a dedicated top row and SORT BY / DEFAULT / LIST–GRID controls form a separate, right-aligned bottom row at all screen widths.
