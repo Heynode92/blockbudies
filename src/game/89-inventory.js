@@ -29,10 +29,14 @@ var INVENTORY_HINTS={
 };
 var INVENTORY_DESCRIPTIONS={
  rifle:"A dependable pick for every firefight.",shotgun:"Make every close-range shot count.",
- rocket:"Bring heavy firepower to the fight.",smg:"Fast and agile. Press V in a match to switch to Dual Kriss.",
+ rocket:"Bring heavy firepower to the fight.",smg:"Compact automatic firepower for close engagements.",
  sniper:"Stay sharp and own the long sightlines.",pistol:"Your trusty backup when the fight gets close.",
  knife:"Move fast and finish the fight up close.",grenade:"Clear a path when the enemy has cover."
 };
+function inventoryWeaponDescription(id){
+ if(id===6)return "Fast and agile. Press V in a match to switch to Dual Kriss.";
+ return INVENTORY_DESCRIPTIONS[WP[id].stats.kind]||"Ready for your loadout.";
+}
 var inventoryTab="main",inventoryPick={},inventoryScroll={},inventoryState={equipped:{},unlockedMain:[]};
 // Inventory filters are visual-only. Shop ownership and equipped weapons remain authoritative.
 var inventoryClass="all";
@@ -337,7 +341,7 @@ function inventoryRender(){
  if(!detail.hidden){detail.src=INVENTORY_THUMBS[selected];detail.alt=name+" 3D gear preview";}
  document.getElementById("ivdescription").textContent=gear?gear.description:selected===null?
    "New utility gear will be available in future updates.":
-   (INVENTORY_DESCRIPTIONS[WP[selected].stats.kind]||"Ready for your loadout.");
+   inventoryWeaponDescription(selected);
  stats.textContent="";
  var rows=[];
  if(gear)rows=[["SLOT","HEAD"],["TYPE","STANDARD"],["STATUS","EQUIPPED"]];
