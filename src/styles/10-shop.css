@@ -142,3 +142,53 @@ background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent)}
 .shop-head{align-items:start}.shop-strap{flex-wrap:wrap}.shop-count{margin-left:0;width:100%}}
 @media(max-width:500px){.shop-head h2{font-size:39px}.shop-art{height:160px}.shop-strap{gap:5px}.shop-grid{grid-template-columns:1fr}
 .shop-chip{padding:7px 14px;font-size:14px}}
+
+/* 2026-10-30: Screenshot-matched cinematic tactical shop skin.
+ * Styling only; category, ownership, stats, unlock and thumbnails remain runtime-driven. */
+#lbshop.on{padding:0;background:radial-gradient(ellipse at 84% 4%,rgba(255,132,32,.23),transparent 40%),radial-gradient(ellipse at 10% 100%,rgba(23,80,128,.25),transparent 50%),linear-gradient(135deg,#040b13,#081523 48%,#020710)}
+#lbshop.on::before{opacity:.22;background:repeating-linear-gradient(125deg,transparent 0 30px,rgba(127,163,194,.06) 30px 32px)}
+#lbshop .shop-shell{max-width:none;padding:clamp(16px,2.2vw,32px) clamp(18px,3.2vw,60px) 20px;gap:clamp(12px,1.65vh,19px);border:0;border-top:0;clip-path:none;background:linear-gradient(180deg,rgba(5,13,23,.4),rgba(4,11,20,.96));}
+#lbshop .shop-shell::before{top:20px;left:22px;width:38px;height:22px;border-color:#ff912c;transform:skewX(-14deg)}
+#lbshop .shop-shell::after{display:none}
+#lbshop .shop-head{min-height:clamp(105px,15vh,145px);align-items:flex-start}
+#lbshop .shop-heading>span{font-size:clamp(10px,1vw,16px);letter-spacing:.26em}
+#lbshop .shop-heading h2{font-size:clamp(47px,6vw,91px);line-height:.97;margin:3px 0 8px;letter-spacing:.025em;text-shadow:2px 3px 0 rgba(196,80,23,.65)}
+#lbshop .shop-heading p{font-size:clamp(13px,1.2vw,17px);color:#c7d5e5}
+#lbshop #shopBack{min-width:150px;min-height:58px;padding:12px 28px;background:rgba(10,20,34,.88);border:1px solid #aa6325;box-shadow:inset 5px 0 0 #ff962e;clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%)}
+#lbshop .shop-issued{flex:0 0 auto;display:grid;grid-template-columns:minmax(145px,1fr) minmax(155px,.85fr) minmax(250px,2.6fr) minmax(190px,1.25fr);gap:16px;align-items:center;min-height:clamp(108px,15vh,160px);padding:10px 24px;border:1px solid rgba(109,157,193,.55);border-left:5px solid #ff952b;background:linear-gradient(110deg,rgba(8,23,38,.98),rgba(13,36,57,.86) 56%,rgba(6,20,35,.97));box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+#lbshop .shop-issued::after{opacity:.24;background:repeating-linear-gradient(115deg,transparent 0 32px,rgba(110,157,193,.12) 32px 43px)}
+#lbshop .shop-issued>*{position:relative;z-index:1}
+#lbshop .shop-feature-meta{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+#lbshop .shop-issued-label{color:#ff9c38;font:900 15px Rajdhani,sans-serif;letter-spacing:.16em;white-space:nowrap}
+#lbshop #shopFeatureName{font:italic 900 clamp(44px,5.1vw,73px)/1 Impact,sans-serif;text-shadow:3px 3px 0 #18283a}
+#lbshop .shop-feature-meta small{font:800 11px Rajdhani,sans-serif;letter-spacing:.19em;color:#8aa5bd}
+#lbshop .shop-feature-ready{display:flex;flex-direction:column;gap:8px;white-space:nowrap}
+#lbshop .shop-feature-ready b{color:#68e3ba;font:900 16px Rajdhani,sans-serif;letter-spacing:.1em}
+#lbshop .shop-feature-ready span{font:900 17px Rajdhani,sans-serif;letter-spacing:.08em;color:#e0eafa}
+#lbshop .shop-feature-art{height:clamp(100px,14vh,155px);min-width:0;display:flex;align-items:center;justify-content:center;overflow:hidden;background:radial-gradient(ellipse at center,rgba(240,137,36,.17),transparent 74%)}
+#lbshop .shop-feature-art img{display:block;width:96%;height:100%;object-fit:contain;filter:drop-shadow(0 12px 9px rgba(0,0,0,.7));transform:rotate(-3deg) scale(1.04)}
+#lbshop .shop-feature-description{font:700 15px/1.5 Rajdhani,sans-serif;color:#b7c8d9;border-left:1px solid rgba(123,159,194,.32);padding-left:17px;max-width:260px}
+#lbshop .shop-filter{flex:none;display:flex;gap:7px;flex-wrap:nowrap;min-width:0;margin-top:2px}
+#lbshop .shop-chip{justify-content:center;min-width:0;flex:1 1 auto;min-height:48px;padding:9px 8px;font-size:clamp(11px,1vw,15px);letter-spacing:.04em;white-space:nowrap;gap:7px}
+#lbshop .shop-chip:first-child{flex:0 0 100px}
+#lbshop .shop-count{flex:0 0 auto;align-self:center;margin-left:12px;white-space:nowrap;border-bottom:3px solid #6ce1b8;padding:5px 2px;color:#79ecc0}
+#lbshop .shop-count b{font-size:26px;margin-left:7px}
+#lbshop .shop-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(10px,1.4vw,23px);padding:3px 4px 8px;align-items:start}
+#lbshop .shop-weapon{height:100%;min-height:clamp(350px,48vh,490px);border:1px solid color-mix(in srgb,var(--acc) 72%,#14283c);background:linear-gradient(160deg,rgba(13,29,46,.97),rgba(5,15,27,.99));box-shadow:inset 0 0 0 1px rgba(255,255,255,.04);clip-path:polygon(12px 0,calc(100% - 14px) 0,100% 14px,100% calc(100% - 11px),calc(100% - 12px) 100%,0 100%,0 12px)}
+#lbshop .shop-weapon.shop-owned{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--acc) 50%,transparent)}
+#lbshop .shop-weapon.shop-owned::before{background:linear-gradient(90deg,var(--acc),transparent 85%)}
+#lbshop .shop-art{height:clamp(125px,19vh,205px);min-height:0;background:radial-gradient(ellipse at 50% 80%,color-mix(in srgb,var(--acc) 36%,transparent),transparent 70%),linear-gradient(140deg,rgba(19,38,56,.92),rgba(3,10,20,.8));border-bottom:1px solid var(--acc)}
+#lbshop .shop-art img{width:94%;height:85%;transform:rotate(-5deg) scale(1.02)}
+#lbshop .shop-num{font-size:33px;top:10px;left:15px}
+#lbshop .shop-tag{top:auto;bottom:0;right:auto;left:0;padding:5px 15px;font-size:12px;letter-spacing:.08em}
+#lbshop .shop-ribbon{display:none}
+#lbshop .shop-details{flex:1;padding:clamp(10px,1vw,18px) clamp(10px,1.2vw,19px) 10px}
+#lbshop .shop-details h3{font-size:clamp(26px,2.6vw,40px);margin-bottom:15px}
+#lbshop .shop-stat{grid-template-columns:clamp(62px,5.6vw,90px) minmax(0,1fr) 32px;gap:7px}
+#lbshop .shop-stat .ss-b{height:10px}
+#lbshop .shop-ammo{margin-top:13px}
+#lbshop .shop-action{min-height:49px;flex:none;margin:0 14px 14px;border:1px solid rgba(255,255,255,.15);font-size:clamp(16px,1.55vw,24px)}
+#lbshop .shop-action.shop-action-owned{background:linear-gradient(125deg,#07583e,#0c4335);color:#71efb5;border-color:#168866;clip-path:polygon(13px 0,100% 0,calc(100% - 13px) 100%,0 100%)}
+#lbshop .shop-note{padding-top:12px;border-color:rgba(101,145,182,.26);font-size:13px}
+@media(max-width:1200px){#lbshop .shop-issued{grid-template-columns:minmax(110px,1fr) minmax(130px,1fr) minmax(180px,2fr)}#lbshop .shop-feature-description{display:none}#lbshop .shop-filter{flex-wrap:wrap}#lbshop .shop-chip{flex:1 1 auto}#lbshop .shop-grid{grid-template-columns:repeat(2,minmax(0,1fr))}#lbshop .shop-weapon{min-height:360px}}
+@media(max-width:700px){#lbshop.on{overflow-y:auto}#lbshop .shop-shell{overflow:visible;padding:18px 12px}#lbshop .shop-head{min-height:0}#lbshop .shop-heading h2{font-size:45px}#lbshop #shopBack{min-width:75px;min-height:42px;padding:8px;font-size:14px}#lbshop .shop-issued{grid-template-columns:1fr 1fr;gap:8px;padding:12px}#lbshop .shop-feature-art{grid-column:1/-1;grid-row:2}#lbshop .shop-filter{flex-wrap:wrap}#lbshop .shop-chip,#lbshop .shop-chip:first-child{flex:1 1 125px;min-height:40px}#lbshop .shop-count{margin-left:0}#lbshop .shop-grid{overflow:visible;grid-template-columns:1fr}#lbshop .shop-weapon{min-height:370px}#lbshop .shop-art{height:185px}}
