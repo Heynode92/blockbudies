@@ -17,4 +17,6 @@ function tacticalOpticUpdate(){
    tacticalAimEl.querySelector(".ta-label").textContent=spec.label;
  }
  document.body.classList.toggle("tactical-ads",active&&adsT>.65);
+ // The 2D overlay draws the sight, so hide the 3D optic frame while aiming (it would block the view and double the optic).
+ guns.forEach(function(g,i){var parts=g.userData.opticParts;if(!parts)return;var hide=active&&pl.w===i&&adsT>.35;parts.forEach(function(m){m.visible=!hide;});});
 }

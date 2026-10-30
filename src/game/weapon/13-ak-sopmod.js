@@ -19,14 +19,20 @@ WEAPON_MODEL_BUILDERS[12]=function(g,a){
       bx(.040,.018,.25,0x555d63,0,.024,.27), // stock tube
       bx(.115,.112,.27,0x1e2529,0,-.032,.46), // adjustable stock
       bx(.130,.17,.031,0x151a1d,0,-.034,.65), // buttstock
+      bx(.055,.065,.13,0x31383a,0,-.018,-.38), // receiver controls
+      bx(.070,.023,.13,0x5d6260,0,-.02,-.16) // ejection cover
+    );
+    // Optic frame (base, roof, posts, top bar). Hidden while the 2D tactical sight overlay is active, otherwise the
+    // dark frame sits in the line of sight and covers the dot (see src/game/76-tactical-optics.js).
+    var opticParts=[
       bx(.08,.027,.21,0x59666a,0,.149,-.26),
       bx(.065,.02,.125,0x161c20,0,.210,-.26), // optic roof
       bx(.014,.09,.015,0x151b1e,-.043,.183,-.27),
       bx(.014,.09,.015,0x151b1e,.043,.183,-.27),
-      bx(.080,.014,.015,0x303d42,0,.232,-.27),
-      bx(.055,.065,.13,0x31383a,0,-.018,-.38), // receiver controls
-      bx(.070,.023,.13,0x5d6260,0,-.02,-.16) // ejection cover
-    );
+      bx(.080,.014,.015,0x303d42,0,.232,-.27)
+    ];
+    opticParts.forEach(function(m){a(m);});
+    g.userData.opticParts=opticParts;
     for(var sr=0;sr<8;sr++){
       a(bx(.018,.019,.026,0x596468,-.076,.096,-.88+sr*.070));
       a(bx(.018,.019,.026,0x596468,.076,.096,-.88+sr*.070));
