@@ -16,6 +16,9 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 15
     steps:
+      - name: Preserve LF line endings in Windows checkout
+        shell: pwsh
+        run: git config --global core.autocrlf false
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Set up Node.js LTS
@@ -24,6 +27,9 @@ jobs:
           node-version: '22'
       - name: Verify committed direct-open bundle is current
         run: node tools/build.mjs --check
+      - name: Diagnose any bundle mismatch without changing files
+        if: failure()
+        run: node tools/bot-ai-ci-diagnose.mjs
       - name: Verify JavaScript syntax
         run: node --check assets/game.js
       - name: Run complete regression suite
