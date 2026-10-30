@@ -12,7 +12,7 @@ function setup(){
  const scenes=[],draws=[],source={width:1920,height:1080};
  const canvas={width:960,height:540,getContext(){return{clearRect(){},drawImage(...a){draws.push(a);}}}};
  const body={classList:{contains(){return true;}}};
- const state={document:{hidden:false,getElementById(n){return n==='mapPreviewCanvas'?canvas:body;}},
+ const state={document:{hidden:false,getElementById(n){return n==='mapPreviewCanvas'?canvas:n==='lbm'?body:{classList:{contains(){return false;}}};}},
  R:{domElement:source},lob:true,run:false,selM:0,touch:false,Math,Number,selectGameMap(x){scenes.push(x);}};
  runInNewContext(preview,state);return{state,scenes,draws,source};
 }
