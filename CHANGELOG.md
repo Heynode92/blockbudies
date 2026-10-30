@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-10-31 WIB — M1 BOT Perception & Awareness: implementation and automated verification
+
+- Implemented `src/game/88-bot-perception.js` for both Police and Terrorist BOTs: genuine 45-unit LOS-limited sightings, time-stamped positional snapshots (3.6s personal memory), bounded 2.4s same-team radio reports and round-reset invalidation. No hidden opponent object reference is forwarded through tactical knowledge.
+- Added gameplay-event hearing for actual grounded footstep strides and actual gunfire: coarse/quantized sound location, footstep radius 17 and gunshot radius 37 (both attenuated by walls), short 1.35s clue validity and a capped 28-event queue. Sounds never create shootable identity targets; hearing is independent from user audio mute.
+- Updated active `botsUpd()` acquisition to use authorized evidence and immediately reject a stale target actor when LOS is lost. Deathmatch may investigate last sighting, radio or noise without pursuing unseen live coordinates.
+- Replaced Bomb tactical nearest-enemy perfect-knowledge coordinate scans with observer-required sight/radio/audio snapshots. Preserved publicly observable device positions, team elimination status and existing exact plant/defuse, retake, timer and scoring mechanics.
+- Added **8 M1 targeted tests** for occlusion and unseen movement, memory expiration, radio team isolation, acoustic localization/attenuation/expiry, Bomb enemy-knowledge isolation, and production footstep/gunshot integration. Updated affected legacy test fixtures to use sight-evidence state rather than omniscient world coordinates.
+- Rebuilt canonical offline `assets/game.js` from the extended source manifest using a temporary Windows GitHub Actions builder, then removed the temporary workflow after success; no runner, backend or manual build needed on the user's Windows PC.
+- **CI VERIFIED:** [Windows Actions run #67](https://github.com/Heynode92/blockbudies/actions/runs/41108118435), **297 tests PASS / 0 FAIL**, standalone browser bundle parity, syntax, seeded replay and synthetic CPU checks all pass.
+- Updated the professional [M1 Validation](docs/BOT_AI_M1_VALIDATION.md), [Implementation Log](docs/BOT_AI_IMPLEMENTATION_LOG.md), [Master Plan](docs/BOT_AI_MASTER_PLAN.md), and current BOT AI reference. **M1 = IMPLEMENTED + AUTOMATED VERIFIED, MANUAL WINDOWS PLAYTEST PENDING. M2–M7 NOT STARTED.**
+- Scope protected: no change to weapon damage, recoil, ammo, physics, collisions, HP/armor, UI/language, map geometry, room configuration, objective scoring or Bomb plant/defuse/fuse timing. **Real browser FPS/p95, true hit rate, reaction latency, navigation/stuck rate and statistical Bomb success rate remain unmeasured.**
+
 ## 2026-10-31 WIB — M0 foundational exit gate verified; M1 ready
 
 - Added **opt-in non-mutating timing callback** to developer-only `tools/bot-ai-m0-baseline.mjs` and a reproducible `tools/bot-ai-m0-performance.mjs` CPU benchmark for real active `botsUpd()` in 10-BOT **synthetic fixtures**. Added regression assertion ensuring timing instrumentation does not affect seeded BOT behavior.
