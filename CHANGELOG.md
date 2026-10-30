@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-31 WIB — M1 Perception & Awareness: owner manual PASS and milestone core gate VERIFIED
+
+- The repository owner reported **“M1 playtest pasa bro”** after the request to pull latest `main` and evaluate M1 gameplay in Deathmatch/Bomb. This is an **aggregate owner-reported qualitative manual PASS**, not independently reproduced browser testing or detailed per-map/per-faction/per-scenario evidence.
+- Final M1 code and integration checks previously passed **Windows GitHub Actions [run #72](https://github.com/Heynode92/blockbudies/actions/runs/41108545600): 297/297 Node tests PASS, 0 failed**, with standalone bundle parity, syntax, deterministic BOT scenario and synthetic CPU benchmark steps green.
+- **M1 CORE EXIT GATE: VERIFIED** using authorized perception source, focused LOS/expiry/hearing/radio/Bomb anti-omniscience tests, full Windows CI and the owner's post-update playtest acceptance. **M2: READY / NOT STARTED**; M3–M7 remain NOT STARTED.
+- Preserved **unchecked** future evidence requirements: individual map/faction/scenario manual details; actual browser FPS/frame-time p95, real hit%, reaction timing, quantitative path/stuck rate and statistical Bomb outcomes. No such metrics were inferred from the owner's PASS.
+- Updated `docs/BOT_AI_M1_VALIDATION.md`, `docs/BOT_AI_IMPLEMENTATION_LOG.md`, `docs/BOT_AI_MASTER_PLAN.md` and `src/game/BOT_AI.md`. **Documentation only** — no AI/gameplay runtime, weapon, Bomb, map, UI, bundle, dependency or test changes in this acceptance commit sequence.
+
 ## 2026-10-31 WIB — M1 BOT Perception & Awareness: implementation and automated verification
 
 - Implemented `src/game/88-bot-perception.js` for both Police and Terrorist BOTs: genuine 45-unit LOS-limited sightings, time-stamped positional snapshots (3.6s personal memory), bounded 2.4s same-team radio reports and round-reset invalidation. No hidden opponent object reference is forwarded through tactical knowledge.
