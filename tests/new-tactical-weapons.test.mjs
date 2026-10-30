@@ -123,7 +123,7 @@ test('ADS sights show only reticles, never text captions for MP7, P90 or AK SOPM
  for(const id of [10,11,12]){
   const cfg=loadProfiles();
   assert.ok(cfg.WEAPON_PROFILES[id]);
-  assert.match(optic,new RegExp(id+':\\\\{style:'));
+  assert.ok(optic.includes(id+':{style:'),'missing tactical sight for weapon '+id);
  }
  assert.match(html,/id="tacticalAim"/);
  assert.match(html,/class="ta-frame"/);
