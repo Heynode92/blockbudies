@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-30 — Bomb Mode map named LOCKDOWN
+
+- Renamed the Bomb Mode map preview from BOMB MISSION to **LOCKDOWN** in SELECT MODE.
+- Preserved the BOMB MODE gameplay mode title, original indoor map, 30 FPS preview, all combat rules and other UI.
+- Updated the preview regression test and regenerated the game bundle.
+
 ## 2026-10-30 — Cleaner live map preview and 30 FPS cap
 
 - Removed the unnecessary "LIVE 3D" badge from the SELECT MODE map preview; kept the map name and preview itself.

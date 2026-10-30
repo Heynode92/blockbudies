@@ -19,6 +19,8 @@ function setup(){
 test('the selected Deathmatch displays BLOCK DISTRICT with minimal map-centric text',()=>{
  for(const id of ['mapPreviewCanvas','mapName','mapCaption','mapOverview','mmap','mdm'])assert.ok(html.includes('id="'+id+'"'));
  assert.match(lobby,/name:"BLOCK DISTRICT"/);
+ assert.match(lobby,/name:"LOCKDOWN",caption:"Indoor Tactical Arena"/);
+ assert.doesNotMatch(lobby,/name:"BOMB MISSION",caption:/);
  assert.match(html,/PLAY NOW<kbd>ENTER<\/kbd>/);
  assert.doesNotMatch(html,/id="mds"|id="mhw"|id="mdf"/);
  assert.match(css,/#lbm \.mmap\{/);

@@ -1793,7 +1793,7 @@ var MODES=[
 // Presentation-only map briefing; original MODES owns all combat and mode rules.
 var MODE_MAP_PREVIEWS=[
  {name:"BLOCK DISTRICT",caption:"Urban Combat Zone",stats:[["PLAYERS","5 VS 5"],["TIME","1 MINUTE"],["RESPAWN","5 SECONDS"]],features:["Urban lanes","Elevated sightlines","Close-quarter fights"]},
- {name:"BOMB MISSION",caption:"Indoor Tactical Arena",stats:[["PLAYERS","5 VS 5"],["ROUNDS","12"],["RESPAWN","NONE"]],features:["Two bomb sites","Plant or defuse","Tactical rounds"]},
+ {name:"LOCKDOWN",caption:"Indoor Tactical Arena",stats:[["PLAYERS","5 VS 5"],["ROUNDS","12"],["RESPAWN","NONE"]],features:["Two bomb sites","Plant or defuse","Tactical rounds"]},
  {name:"COMING SOON",caption:"Map not available",stats:[["PLAYERS","SOLO"],["MAP","TBA"],["STATUS","SOON"]],features:["Last survivor","Shrinking zone","In development"]}
 ];
 var selM=0,miEl=document.querySelectorAll(".mi");
