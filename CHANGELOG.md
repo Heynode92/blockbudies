@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-30 — Shop category toolbar cleanup
+
+- Removed the redundant OWNED X / Y summary from the Shop filter bar, including its DOM generation and obsolete CSS.
+- Set ALL to a legible, consistent button width and aligned category filter dimensions; narrower widths wrap whole buttons instead of crushing their labels.
+- Kept dynamic per-category weapon counts, existing ownership checks, weapon selection, unlock flow, and gameplay unchanged.
+- Updated generated assets/game.js for direct local index.html launch without a build.
+
 ## 2026-10-30 — Shop preview arrows removed and selection layout corrected
 
 - Removed previous/next arrows from left-side weapon preview; weapon selection remains on clickable catalog cards.
