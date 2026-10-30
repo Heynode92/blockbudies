@@ -17,7 +17,7 @@ function game(){
  const banners=[],player={name:"You",tm:0,dead:false,st:{k:0}};
  const ctx={pl:player,en:[],curK:player,hsF:false,inBoom:false,boomN:0,killW:1,
    dead:[],rq:[],ts:[0,0],score:0,DM_RULES:{crates:false},
-   kFeed(){},bombDrop(){},detachGun(){},spark(){},starKill(){},addGren(){},
+   kFeed(){},bombDrop(){},detachGun(){},spark(){},starKill(){},bloodPoolSpawn(){return null;},
    mkCrate(){},gh(){return 0;},rci(){return 0;},isBombMode(){return false;},
    showKill(...args){banners.push(args);}
  };

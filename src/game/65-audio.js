@@ -56,7 +56,8 @@ function killE(e,kx,kz,ex){
   detachGun(e,kx,kz,ex);e.ms.forEach(function(m){m.emissive.setHex(0);});e.arms.forEach(function(q){q.rotation.set(0,0,0);q.scale.y=1;q.userData.fa.quaternion.set(0,0,0,1);});e.g.userData.gun.position.set(0,0,0);e.body.rotation.x=0;e.body.rotation.y=0;
   var m=Math.hypot(kx,kz);if(m<.01){kx=-Math.sin(e.g.rotation.y);kz=-Math.cos(e.g.rotation.y);m=1;}kx/=m;kz/=m;
   e.g.rotation.y=Math.atan2(-kx,-kz);
-  dead.push({g:e.g,body:e.body,legs:e.legs,arms:e.arms,x:e.x,z:e.z,y:e.y||0,by:e.y||0,vx:kx*(ex?7:2.6),vz:kz*(ex?7:2.6),vy:ex?8:0,t:0,T:ex?.73:.55,flip:ex?1:0,w:0,land:false});
+  var corpse={g:e.g,body:e.body,legs:e.legs,arms:e.arms,x:e.x,z:e.z,y:e.y||0,by:e.y||0,vx:kx*(ex?7:2.6),vz:kz*(ex?7:2.6),vy:ex?8:0,t:0,T:ex?.73:.55,flip:ex?1:0,w:0,land:false};
+  corpse.bloodPool=bloodPoolSpawn(e.x,e.y||0,e.z,corpse);dead.push(corpse);
   spark(e.x,1.2,e.z,0xff6b6b,8,4,.1);
   if(pk){registerPlayerKill(hsF);
   if(inBoom)boomN++;else killNotify(false);}
@@ -74,7 +75,7 @@ function updDead(dt){
     }else{
       var u=d.t-d.T;ang+=Math.exp(-u*7)*Math.abs(Math.sin(u*20))*.25;d.w+=dt;
       if(d.w>1.5){d.b=(d.b||0)+dt;d.g.visible=Math.floor(d.b*14)%2===0;
-        if(d.b>.6){spark(d.x,.4,d.z,0xb0b4ba,10,2.5,.18);S.remove(d.g);dead.splice(di,1);continue;}}
+        if(d.b>.6){spark(d.x,.4,d.z,0xb0b4ba,10,2.5,.18);bloodPoolRemove(d.bloodPool);S.remove(d.g);dead.splice(di,1);continue;}}
     }
     d.g.position.set(d.x,d.y,d.z);
     d.body.rotation.set(ang,0,0);d.body.position.y=.3*Math.abs(Math.sin(ang));

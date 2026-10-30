@@ -47,7 +47,7 @@ function update(dt){
   updChutes(dt);
   // enemies
   botsUpd(dt);
-  updDead(dt);
+  updDead(dt);bloodPoolUpdate(dt);
   // bullets
   for(i=bl.length-1;i>=0;i--){var b2=bl[i],p=b2.m.position,hit=false,ho=null,hn=null,ddt=dt+(b2.ad||0),ns=Math.max(1,Math.ceil(Math.hypot(b2.vx,b2.vz,b2.vy||0)*ddt/.2)),sd=ddt/ns;b2.ad=0;
     for(var ss=0;ss<ns&&!hit;ss++){

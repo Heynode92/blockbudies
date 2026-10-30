@@ -1437,7 +1437,7 @@ function bloodHit(x,y,z,dx,dz,head){
 // reset(): clears the whole world state (bullets, bots, particles, decals) and re-creates the player object `pl` for a fresh match.
 function reset(){
   [].concat(en||[],bl||[],cr||[],fx||[],sk||[],dead||[],grs||[],dg||[],chutes||[]).forEach(function(o){S.remove(o.g||o.m);});document.getElementById("kn").innerHTML="";DC.forEach(function(m){S.remove(m);});DC=[];CH.forEach(function(c){S.remove(c.m);});CH=[];cs.k=cs.s=cs.kv=cs.y=cs.yv=cs.r=cs.rv=0;clrSm();clrFD();mzf.forEach(function(q){S.remove(q.m);});mzf=[];
-  bloodActive=0;pl={helm:true,vest:DEFENSE_RULES.vestMax,dead:false,dt:0,rt:0,life:0,x:0,z:10,hp:DEFENSE_RULES.maxHp,w:1,mag:30,res:90,rl:0,pump:0,pumpEjected:false,cd:0,face:Math.PI,pitch:0,y:0,vy:0,slot:0,prim:1,sw:0,stab:0,sth:false,thr:0,pend:false,ghide:0,ammo:(function(){var o={};WP.forEach(function(w,i){o[i]={mag:w.mag,res:w.res};});return o;})()};en=[];bl=[];cr=[];fx=[];sk=[];dead=[];dg=[];grs=[];chutes=[];resetKillStreak();shakeT=0;score=0;spawnT=1;crateT=.5;adsT=sprT=0;resetPm();hlms.forEach(function(h){S.remove(h.m);});hlms=[];setHm();document.body.classList.remove("dead");
+  bloodPoolClear();bloodActive=0;pl={helm:true,vest:DEFENSE_RULES.vestMax,dead:false,dt:0,rt:0,life:0,x:0,z:10,hp:DEFENSE_RULES.maxHp,w:1,mag:30,res:90,rl:0,pump:0,pumpEjected:false,cd:0,face:Math.PI,pitch:0,y:0,vy:0,slot:0,prim:1,sw:0,stab:0,sth:false,thr:0,pend:false,ghide:0,ammo:(function(){var o={};WP.forEach(function(w,i){o[i]={mag:w.mag,res:w.res};});return o;})()};en=[];bl=[];cr=[];fx=[];sk=[];dead=[];dg=[];grs=[];chutes=[];resetKillStreak();shakeT=0;score=0;spawnT=1;crateT=.5;adsT=sprT=0;resetPm();hlms.forEach(function(h){S.remove(h.m);});hlms=[];setHm();document.body.classList.remove("dead");
 }
 // toast(): shows a short message in the middle of the screen (toastT = time left).
 function toast(t){var e=document.getElementById("toast");e.textContent=t;e.style.opacity=1;toastT=1.4;}
@@ -1472,6 +1472,82 @@ function boom(x,z,dmg,lab,by,shooter){var attacker=shooter||pl;curK=attacker;boo
   en.slice().forEach(function(e){if(e.tm===attacker.tm||e.dead)return;var dd=Math.hypot(e.x-x,e.z-z);if(dd<4.2&&clearTo(x,z,e.x,e.z,.45)){var k=dd||1;dmgE(e,dmg,(e.x-x)/k,(e.z-z)/k,1,"explosive");}});
   if(attacker!==pl&&!attacker.dead){var selfDistance=Math.hypot(attacker.x-x,attacker.z-z);if(selfDistance<4.2&&clearTo(x,z,attacker.x,attacker.z,.45))dmgE(attacker,Math.ceil(dmg*(1-selfDistance/4.2*.8)),0,0,1,"explosive");}
   inBoom=false;var pd=Math.hypot(pl.x-x,pl.z-z);if((pl.tm!==attacker.tm||attacker===pl)&&pd<4.2&&clearTo(x,z,pl.x,pl.z,.45))hurt(Math.ceil(dmg*(1-pd/4.2*.8)),x,z,"explosive");shakeT=Math.max(shakeT,.35);if(boomN>0)killNotify(boomN>2);
+}
+// Transient, animated blood pools on the ground under fallen characters.
+// Uses shared procedural geometry, capped and recycled mesh groups: no permanent decals.
+var BLOOD_POOL_RULES=Object.freeze({max:24,playerLifetime:4.6,playerFadeStart:3.3,corpseFadeStart:1.5,corpseFadeTime:.6}),
+ bloodPoolLive=[],bloodPoolFree=[];
+function bloodPoolShape(points){
+ var shape=new T.Shape();
+ for(var i=0;i<points.length;i++){
+  var a=i*Math.PI*2/points.length,x=Math.cos(a)*points[i],y=Math.sin(a)*points[i];
+  if(!i)shape.moveTo(x,y);else shape.lineTo(x,y);
+ }
+ shape.closePath();return new T.ShapeGeometry(shape);
+}
+var bloodPoolMainGeometry=bloodPoolShape([.91,.82,1.05,.93,.79,1.08,.9,1.02,.84,.98,.87,1.06,.83,.94,1.11,.89,.99,.8]),
+ bloodPoolFlowShape=new T.Shape();
+bloodPoolFlowShape.moveTo(.34,-.12);bloodPoolFlowShape.lineTo(.56,-.09);
+bloodPoolFlowShape.lineTo(.76,-.14);bloodPoolFlowShape.lineTo(.94,-.11);
+bloodPoolFlowShape.lineTo(1.12,-.19);bloodPoolFlowShape.lineTo(1.36,-.16);
+bloodPoolFlowShape.lineTo(1.49,-.12);bloodPoolFlowShape.lineTo(1.53,-.07);
+bloodPoolFlowShape.lineTo(1.33,-.05);bloodPoolFlowShape.lineTo(1.18,-.08);
+bloodPoolFlowShape.lineTo(.95,-.035);bloodPoolFlowShape.lineTo(.76,.005);
+bloodPoolFlowShape.lineTo(.5,-.01);bloodPoolFlowShape.closePath();
+var bloodPoolFlowGeometry=new T.ShapeGeometry(bloodPoolFlowShape);
+function bloodPoolMake(){
+ var baseMat=new T.MeshBasicMaterial({color:0x75121c,transparent:true,opacity:0,depthWrite:false,side:T.DoubleSide}),
+  flowMat=new T.MeshBasicMaterial({color:0x9a1c26,transparent:true,opacity:0,depthWrite:false,side:T.DoubleSide}),
+  group=new T.Group(),base=new T.Mesh(bloodPoolMainGeometry,baseMat),flows=[];
+ base.renderOrder=2;group.add(base);
+ for(var i=0;i<3;i++){
+  var m=new T.Mesh(bloodPoolFlowGeometry,flowMat);
+  m.rotation.z=i*Math.PI*2/3+(i===1?.34:-.19);
+  m.renderOrder=3;group.add(m);flows.push(m);
+ }
+ group.rotation.x=-Math.PI/2;group.visible=false;
+ return{g:group,base:base,flows:flows,baseMat:baseMat,flowMat:flowMat,age:0,corpse:null};
+}
+function bloodPoolSpawn(x,y,z,corpse){
+ if(!Number.isFinite(x)||!Number.isFinite(y)||!Number.isFinite(z)||bloodPoolLive.length>=BLOOD_POOL_RULES.max)return null;
+ var p=bloodPoolFree.pop()||bloodPoolMake();
+ p.age=0;p.corpse=corpse||null;p.x=x;p.y=y;p.z=z;
+ p.g.position.set(x,(corpse?y:gh(x,z,y))+.035,z);
+ p.g.rotation.z=Math.random()*Math.PI*2;
+ p.g.visible=false;p.baseMat.opacity=0;p.flowMat.opacity=0;
+ bloodPoolLive.push(p);S.add(p.g);return p;
+}
+function bloodPoolRemove(p){
+ if(!p)return;
+ var i=bloodPoolLive.indexOf(p);if(i<0)return;
+ bloodPoolLive.splice(i,1);S.remove(p.g);p.g.visible=false;
+ p.corpse=null;p.baseMat.opacity=0;p.flowMat.opacity=0;
+ bloodPoolFree.push(p);
+}
+function bloodPoolClear(){
+ while(bloodPoolLive.length)bloodPoolRemove(bloodPoolLive[bloodPoolLive.length-1]);
+}
+function bloodPoolUpdate(dt){
+ for(var i=bloodPoolLive.length-1;i>=0;i--){
+  var p=bloodPoolLive[i],c=p.corpse,fade=1;
+  if(c){
+   p.g.position.set(c.x,(c.by===undefined?p.y:c.by)+.035,c.z);
+   if(!c.land){p.g.visible=false;continue;}
+   fade=Math.max(0,Math.min(1,1-Math.max(0,(c.w||0)-BLOOD_POOL_RULES.corpseFadeStart)/BLOOD_POOL_RULES.corpseFadeTime));
+  }else{
+   fade=Math.max(0,Math.min(1,(BLOOD_POOL_RULES.playerLifetime-p.age)/(BLOOD_POOL_RULES.playerLifetime-BLOOD_POOL_RULES.playerFadeStart)));
+  }
+  p.age+=dt;
+  if(!c&&p.age>=BLOOD_POOL_RULES.playerLifetime){bloodPoolRemove(p);continue;}
+  var grow=Math.min(1,p.age/1.4),smooth=grow*grow*(3-2*grow),emerge=Math.min(1,p.age/.3),a=fade*emerge;
+  p.g.visible=a>.005;
+  p.base.scale.set(.12+1.0*smooth,.09+.78*smooth,1);
+  for(var j=0;j<p.flows.length;j++){
+   var extra=Math.max(0,Math.min(1,(p.age-.2-j*.16)/1.15)),g=extra*extra*(3-2*extra);
+   p.flows[j].scale.set(.05+(j===0?1.08:.78)*g,.18+.75*g,1);
+  }
+  p.baseMat.opacity=.74*a;p.flowMat.opacity=.64*a;
+ }
 }
 // Parachute system for airdrop crates: mkChute builds one, updChutes animates the fall, dropChute detaches it on landing.
 var chutes=[],CHC=[0xf08c00,0x1c7ed6,0x7048e8,0xe03131];
@@ -1777,7 +1853,8 @@ function killE(e,kx,kz,ex){
   detachGun(e,kx,kz,ex);e.ms.forEach(function(m){m.emissive.setHex(0);});e.arms.forEach(function(q){q.rotation.set(0,0,0);q.scale.y=1;q.userData.fa.quaternion.set(0,0,0,1);});e.g.userData.gun.position.set(0,0,0);e.body.rotation.x=0;e.body.rotation.y=0;
   var m=Math.hypot(kx,kz);if(m<.01){kx=-Math.sin(e.g.rotation.y);kz=-Math.cos(e.g.rotation.y);m=1;}kx/=m;kz/=m;
   e.g.rotation.y=Math.atan2(-kx,-kz);
-  dead.push({g:e.g,body:e.body,legs:e.legs,arms:e.arms,x:e.x,z:e.z,y:e.y||0,by:e.y||0,vx:kx*(ex?7:2.6),vz:kz*(ex?7:2.6),vy:ex?8:0,t:0,T:ex?.73:.55,flip:ex?1:0,w:0,land:false});
+  var corpse={g:e.g,body:e.body,legs:e.legs,arms:e.arms,x:e.x,z:e.z,y:e.y||0,by:e.y||0,vx:kx*(ex?7:2.6),vz:kz*(ex?7:2.6),vy:ex?8:0,t:0,T:ex?.73:.55,flip:ex?1:0,w:0,land:false};
+  corpse.bloodPool=bloodPoolSpawn(e.x,e.y||0,e.z,corpse);dead.push(corpse);
   spark(e.x,1.2,e.z,0xff6b6b,8,4,.1);
   if(pk){registerPlayerKill(hsF);
   if(inBoom)boomN++;else killNotify(false);}
@@ -1795,7 +1872,7 @@ function updDead(dt){
     }else{
       var u=d.t-d.T;ang+=Math.exp(-u*7)*Math.abs(Math.sin(u*20))*.25;d.w+=dt;
       if(d.w>1.5){d.b=(d.b||0)+dt;d.g.visible=Math.floor(d.b*14)%2===0;
-        if(d.b>.6){spark(d.x,.4,d.z,0xb0b4ba,10,2.5,.18);S.remove(d.g);dead.splice(di,1);continue;}}
+        if(d.b>.6){spark(d.x,.4,d.z,0xb0b4ba,10,2.5,.18);bloodPoolRemove(d.bloodPool);S.remove(d.g);dead.splice(di,1);continue;}}
     }
     d.g.position.set(d.x,d.y,d.z);
     d.body.rotation.set(ang,0,0);d.body.position.y=.3*Math.abs(Math.sin(ang));
@@ -1871,7 +1948,7 @@ function hdUpd(dt){var R=Math.min(innerWidth,innerHeight)*.3,sf=Math.sin(pl.face
 // hurt(): damages the PLAYER by d (from position sx,sz). Ignored while dead or spawn-protected. Calls die() at 0 HP.
 function hurt(d,sx,sz,kind){if(pl.dead||pl.inv>0)return;if(isBombMode())bombInterruptPlant(pl);d=defenseDamage(pl,d,kind||"bullet-body");if(sx!==undefined&&Math.hypot(sx-pl.x,sz-pl.z)>.6)hdHit(sx,sz);if(d>0)bloodHit(pl.x,(pl.y||0)+(kind==="head"?1.65:1.12),pl.z,(sx===undefined?0:pl.x-sx),(sz===undefined?0:pl.z-sz),kind==="head");pl.hp-=d;pm.fl=.1;cs.s=Math.max(cs.s,.55);var hs2=0;if(sx!==undefined){var ddx=sx-pl.x,ddz=sz-pl.z;hs2=Math.sign(-ddx*Math.cos(pl.face)+ddz*Math.sin(pl.face));}cs.kv+=.7;cs.yv+=hs2*1.5;cs.rv+=hs2*.5+(Math.random()-.5)*.4;document.getElementById("hit").style.opacity=1;if(pl.hp<=0){pl.hp=0;die();}}
 // die(): player death: starts the 5 s respawn timer, drops the gun, updates stats and the killer credit.
-function die(){pl.dead=true;resetKillStreak();pl.rsT=5;pl.st.d++;pl.kb=curK&&curK!==pl?curK.name:"";if(curK&&curK!==pl){curK.st.k++;if(!isBombMode())ts[curK.tm]++;}kFeed(curK,1,false,pl);mouse.right=false;mouse.down=false;fireHeld=false;kn.innerHTML="";pm.g.visible=true;if(pm.hg)pm.hg.visible=false;dropPlayerGun();if(isBombMode()){bombDrop(pl);document.body.classList.add("bomb-spectator");}else document.body.classList.add("dead");
+function die(){pl.dead=true;resetKillStreak();pl.rsT=5;pl.st.d++;pl.kb=curK&&curK!==pl?curK.name:"";if(curK&&curK!==pl){curK.st.k++;if(!isBombMode())ts[curK.tm]++;}kFeed(curK,1,false,pl);mouse.right=false;mouse.down=false;fireHeld=false;kn.innerHTML="";pm.g.visible=true;if(pm.hg)pm.hg.visible=false;pl.bloodPool=bloodPoolSpawn(pl.x,pl.y||0,pl.z,null);dropPlayerGun();if(isBombMode()){bombDrop(pl);document.body.classList.add("bomb-spectator");}else document.body.classList.add("dead");
   try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();tn(260,40,1.2,"sawtooth",.12);tn(120,30,1.6,"sine",.3);}catch(e){}}
 // mmss(): formats seconds as m:ss.
 function mmss(t){t=Math.floor(t);return Math.floor(t/60)+":"+("0"+t%60).slice(-2);}
@@ -2882,7 +2959,7 @@ function startMatch(tm){inventoryForNewMatch();starsReset();SPH=[[],[]];var s=sp
   [0,1].forEach(function(t){for(var i=0;i<BOMB_RULES.teamSize-(t===tm?1:0);i++){var b=newBot(t,i);b.st={name:b.name,tm:t,k:0,d:0};ROS.push(b.st);placeBot(b);}});
   if(isBombMode())bombStartMatch();loadoutPrepareRound();toast("YOU ARE "+(tm?"TERRORIST":"POLICE"));}
 // respawnPl(): respawns the player after the 5 s death timer with full ammo and spawn shield.
-function respawnPl(){var s=spawnPt(pl.tm);pl.dead=false;pl.dt=pl.rt=pl.rl=pl.cd=pl.sw=pl.stab=pl.thr=0;pl.pend=pl.sth=false;pl.ghide=0;defenseSpawn(pl);pl.x=s[0];pl.z=s[1];pl.y=pl.vy=0;pl.face=pl.tm?0:Math.PI;pl.pitch=0;pl.inv=2;pl.prim=favPrim;
+function respawnPl(){bloodPoolRemove(pl.bloodPool);pl.bloodPool=null;var s=spawnPt(pl.tm);pl.dead=false;pl.dt=pl.rt=pl.rl=pl.cd=pl.sw=pl.stab=pl.thr=0;pl.pend=pl.sth=false;pl.ghide=0;defenseSpawn(pl);pl.x=s[0];pl.z=s[1];pl.y=pl.vy=0;pl.face=pl.tm?0:Math.PI;pl.pitch=0;pl.inv=2;pl.prim=favPrim;
   pl.ammo={};WP.forEach(function(w,i){pl.ammo[i]={mag:w.mag,res:w.res};});pl.w=favPrim;pl.mag=WP[favPrim].mag;pl.res=WP[favPrim].res;pl.slot=0;camY=0;scopeOn=false;resetPm();setHm();document.body.classList.remove("dead");toast("RESPAWNED");}
 // tmUpd(): updates the top HUD (timer, scores, respawn text, spawn-shield text).
 function tmUpd(){var g=function(i){return document.getElementById(i);},r=g("rsp");g("imm").style.display=(pl.inv>0&&!pl.dead&&!mt.over)?"block":"none";var sp0=g("tp"),sq0=g("tq");if(sp0.textContent!=ts[0]){sp0.textContent=ts[0];sp0.classList.remove("pop");void sp0.offsetWidth;sp0.classList.add("pop");}if(sq0.textContent!=ts[1]){sq0.textContent=ts[1];sq0.classList.remove("pop");void sq0.offsetWidth;sq0.classList.add("pop");}g("tt").textContent=mmss(Math.max(0,Math.ceil(mt.t)));g("tbf").style.width=Math.max(0,Math.min(100,mt.t/(isBombMode()?(bombMatch&&bombMatch.state==="planted"?BOMB_RULES.fuseSeconds:roomRoundSeconds()):roomMatchSeconds())*100))+"%";g("tm").classList.toggle("lo",mt.t<=10&&mt.cd<=0&&!mt.over);g("tmP").classList.toggle("you",pl.tm===0);g("tmT").classList.toggle("you",pl.tm===1);
@@ -4134,7 +4211,7 @@ function update(dt){
   updChutes(dt);
   // enemies
   botsUpd(dt);
-  updDead(dt);
+  updDead(dt);bloodPoolUpdate(dt);
   // bullets
   for(i=bl.length-1;i>=0;i--){var b2=bl[i],p=b2.m.position,hit=false,ho=null,hn=null,ddt=dt+(b2.ad||0),ns=Math.max(1,Math.ceil(Math.hypot(b2.vx,b2.vz,b2.vy||0)*ddt/.2)),sd=ddt/ns;b2.ad=0;
     for(var ss=0;ss<ns&&!hit;ss++){

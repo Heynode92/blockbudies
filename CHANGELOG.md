@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-30 — Temporary flowing blood pools on character death
+
+- Added a standalone 3D blood pool module (`46-blood-pools.js`) with an irregular procedural floor shape and three gradually extending runnels. Shared geometry and capped, reusable mesh groups (maximum 24).
+- BOT deaths display blood only after the body reaches the ground; it flows, follows corpse position, fades with the existing corpse blink and is removed exactly when the body is cleaned up.
+- Player deaths use the same pool effect, which fades before the existing respawn; reset and respawn remove any remaining effects. No blood permanently marks the floor.
+- Ground height, animation timing and existing gameplay state are respected; damage, AI, armor, inventory, scoring and weapon mechanics are unchanged. Added lifecycle tests and synchronized the direct-launch bundle.
+
+
 ## 2026-10-30 — 3D character-hit blood, no BOT RPG, fixed grenade stock
 
 - Added short-lived red non-additive 3D blood droplets when Police/Terrorist characters take real damage, including headshot variants. Effects use the existing particle lifecycle, are capped at 96 live droplets, and are cleared on match reset. Damage, protection, armor and headshot calculations are unchanged.

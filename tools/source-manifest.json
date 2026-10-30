@@ -33,6 +33,7 @@
     "src/game/42-projectile-defense.js",
     "src/game/43-movement.js",
     "src/game/45-combat.js",
+    "src/game/46-blood-pools.js",
     "src/game/50-items-and-drops.js",
     "src/game/60-impact-effects.js",
     "src/game/65-audio.js",
