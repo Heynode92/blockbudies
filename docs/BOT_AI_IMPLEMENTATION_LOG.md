@@ -11,11 +11,11 @@
 
 This log is intended as the **single handoff tracker** for future assistants and maintainers. The 2026-10-30 request authorized **planning and documentation only**. The existing AI, weapon balance, UI, audio, modes, and runtime were **not upgraded** by creating these documents.
 
-**ACTIVE MILESTONE: M0 — Baseline & harness (IN PROGRESS).** The seeded synthetic 10-BOT harness and initial traces are recorded in [M0 Baseline](BOT_AI_M0_BASELINE.md). Native Windows regression and bundle checks are now **VERIFIED GREEN**; real playable-map accuracy/reaction/stuck/objective measurements and browser performance remain pending **before** marking M0 verified or beginning M1.
+**ACTIVE MILESTONE: M0 — Baseline & harness (IN PROGRESS).** Synthetic 10-BOT traces: [M0 Baseline](BOT_AI_M0_BASELINE.md). Windows Node CI: **PASS** ([run #30](https://github.com/Heynode92/blockbudies/actions/runs/41097051520)). The owner reported a **manual basic smoke test 8/8 PASS** on 2026-10-31 WIB (4 Deathmatch + 4 Bomb Mission checks). **Quantitative real-game FPS/p95, hit%, reaction latency and navigation/stuck KPIs are NOT MEASURED**, and per-map/team coverage was not supplied. Keep M0 IN PROGRESS until acceptance gates are met; M1 NOT STARTED.
 
 | ID | Priority | Milestone | Status | Evidence / blocker |
 |---|---|---|---|---|
-| M0 | P0 | Baseline, deterministic tests and performance harness | IN PROGRESS | Seeded synthetic TDM/Bomb harness + initial metrics: [M0 Baseline](BOT_AI_M0_BASELINE.md); Windows CI PASS ([run #26](https://github.com/Heynode92/blockbudies/actions/runs/41096566590)); real browser/performance gates remain open |
+| M0 | P0 | Baseline, deterministic tests and performance harness | IN PROGRESS | Seeded synthetic TDM/Bomb harness + initial metrics: [M0 Baseline](BOT_AI_M0_BASELINE.md); Windows CI PASS ([run #30](https://github.com/Heynode92/blockbudies/actions/runs/41097051520)); owner-reported 8/8 basic smoke PASS; measured per-map/performance/aim/navigation gates remain open |
 | M1 | P0 | Legitimate perception, acoustic events, memory and team intel | NOT STARTED | Requires M0 |
 | M2 | P0 | Real 3D aiming, reaction and per-weapon firing discipline | NOT STARTED | Requires M1 |
 | M3 | P1 | Locomotion, dodge, peek, reposition and offensive cover | NOT STARTED | Requires M1–M2 |
@@ -39,7 +39,7 @@ This log is intended as the **single handoff tracker** for future assistants and
 - `src/game/66-footsteps.js` — audio playback only, not an AI hearing system.
 - `tests/bot-five-star.test.mjs` — `footstepAdvance()` mock was repaired in `5e7bd587`; M0 fixture reuses the active AI sources. The complete Node suite and bundle checks passed in Windows Actions run #26.
 
-**Measured real-game KPIs:** NONE RECORDED. **Synthetic dispatch/navigation observations:** [M0 Baseline](BOT_AI_M0_BASELINE.md) (not real hits, plant/defuse outcomes or browser FPS). **Full Node regression suite:** VERIFIED SUCCESS on Windows Actions [run #26](https://github.com/Heynode92/blockbudies/actions/runs/41096566590), following repair of test fixture dependencies and historically stale assertions. These are explicit gaps, not implicit passes.
+**Measured real-game KPIs:** NONE RECORDED (manual qualitative smoke observations are not quantitative KPI data). **Owner-reported manual smoke:** 8/8 basic TDM/Bomb checks PASS, 2026-10-31 WIB. **Synthetic dispatch/navigation observations:** [M0 Baseline](BOT_AI_M0_BASELINE.md) (not real hits, plant/defuse outcomes or browser FPS). **Full Node regression suite:** VERIFIED SUCCESS on Windows Actions [run #26](https://github.com/Heynode92/blockbudies/actions/runs/41096566590), following repair of test fixture dependencies and historically stale assertions. These are explicit gaps, not implicit passes.
 
 ## 3. Immutable ownership and review gates
 
@@ -60,6 +60,8 @@ This log is intended as the **single handoff tracker** for future assistants and
 | 2026-10-30 | M0 bundle sync | Reproduced exact one-extra-newline mismatch between `65-audio.js` and `66-footsteps.js` in generated `assets/game.js`; corrected only generated separator (one deleted blank line). CI bundle and syntax checks then passed. | `assets/game.js`, `tools/bot-ai-ci-diagnose.mjs`, workflow; commit `6664ee13`; [run #6](https://github.com/Heynode92/blockbudies/actions/runs/41094812497) | **BUNDLE PASS**; game logic unchanged |
 | 2026-10-30 | M0 legacy regression recovery | Full Windows suite revealed 41 failures/288 tests, including missing test mocks (`WP`, `los`, `bloodHit`, radar dependency), stale weapon count/array position assertions, outdated ADS syntax and removed BOT RPG expectation. Updated **test fixtures and assertions only** to preserve actual approved game contracts; no gameplay mechanics changed. | `tests/*.test.mjs` regression fixes; [run #6](https://github.com/Heynode92/blockbudies/actions/runs/41094812497) → [run #26](https://github.com/Heynode92/blockbudies/actions/runs/41096566590) | **FULL WINDOWS CI SUCCESS**; automated checks and baseline JSON step green |
 
+| 2026-10-30 UTC / 2026-10-31 WIB | M0 manual smoke test | Repository owner reports 4/4 Deathmatch and 4/4 Bomb Mission basic playtest observations PASS; details below. This is a **user-reported qualitative result**, not independently instrumented telemetry. | Owner report in project conversation; current Windows CI [run #30](https://github.com/Heynode92/blockbudies/actions/runs/41097051520) SUCCESS at pre-report head `4df8c9f` | **MANUAL CORE SMOKE 8/8 PASS; M0 STILL IN PROGRESS** — browser/OS version, maps, rounds, seeds, KPI samples and performance trace not recorded |
+
 Append every future milestone entry, including failed attempts, reverted changes, measured regressions, decisions and outstanding risk. Never rewrite a past released outcome to hide a failure.
 
 ## M0 partial checklist (2026-10-30)
@@ -71,10 +73,30 @@ Append every future milestone entry, including failed attempts, reverted changes
 - [x] Added Windows-only GitHub Actions verification workflow (`.github/workflows/bot-ai-m0.yml`): bundle, syntax, full Node suite, synthetic trace.
 - [x] GitHub Actions Windows run green, every job step verified: [run #26](https://github.com/Heynode92/blockbudies/actions/runs/41096566590).
 - [x] Native Windows `node --test` complete regression suite succeeded, `node tools/build.mjs --check` and `node --check assets/game.js` passed in Actions run #26. The six new M0 tests also passed.
+- [x] **Owner-reported basic manual smoke test:** 4/4 Deathmatch + 4/4 Bomb Mission core checks PASS (2026-10-31 WIB); this is qualitative manual evidence only.
 - [ ] Real Windows browser map scenarios, FPS/p95, valid hits/reaction/stuck metrics and completed Bomb rounds measured.
 - [ ] Final M0 acceptance review with same-seed baseline comparison and no gameplay regression.
 
 See [M0 Baseline](BOT_AI_M0_BASELINE.md) for scenario inputs, numbers, command line and explicit unknown metrics.
+
+## M0 owner-reported manual smoke test (2026-10-31 WIB)
+
+**Evidence class:** owner self-report in project conversation; no automated instrumentation, recorded browser telemetry or independent gameplay reproduction. **Result:** 8/8 core smoke checks reported PASS.
+
+| Mode | Owner-reported observation | Status |
+|---|---|---|
+| Deathmatch | Police and Terrorist BOTs can move and attack | PASS (reported) |
+| Deathmatch | No BOT stuck in walls or objects observed | PASS (reported; no automated stuck metric) |
+| Deathmatch | Shots and damage function | PASS (reported; no actual hit-rate measurement) |
+| Deathmatch | No freeze or significant lag noticed | PASS (reported; no FPS/p95 measurement) |
+| Bomb Mission | Terrorist BOT can plant a bomb | PASS (reported) |
+| Bomb Mission | Police BOT can defuse the bomb | PASS (reported) |
+| Bomb Mission | BOTs can attack and defend the bomb site | PASS (reported) |
+| Bomb Mission | Rounds end according to the rules | PASS (reported) |
+
+**Missing metadata:** exact Windows/browser version, map(s) visited, session duration, rounds/matches, player team(s), BOT count per live match, reproducible scenario seed, telemetry/logs. Do **not** infer coverage of both maps or both player factions from this report.
+
+**Still OPEN (not checked):** actual FPS/frametime p95 and AI tick cost; shots fired vs hit percentage; target detection-to-action/reaction time; quantitative stuck/collision/path success; sample-based Bomb objective outcomes; reproducible per-map/per-team runs. No M1 code authorized/executed by logging this manual result.
 
 ## 5. Mandatory future entry template
 
