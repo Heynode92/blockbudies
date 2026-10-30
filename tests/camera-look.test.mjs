@@ -80,6 +80,7 @@ function inputWiringHarness(){
   document.getElementById=id=>{if(!elements.has(id))elements.set(id,target());return elements.get(id);};
   document.pointerLockElement=canvas;
   const ctx={console,Math,Number,document,R:{domElement:canvas},
+    WP:Array.from({length:19},(_,i)=>({snp:i===8})),
     pl:{face:1,pitch:0,w:1,dead:false},adsT:0,run:true,lob:false,mt:{over:false},
     addEventListener:window.addEventListener.bind(window),innerWidth:1280,
     T:{Raycaster:class{},Plane:FakePlane,Vector3:FakeVec,Vector2:FakeVec},
