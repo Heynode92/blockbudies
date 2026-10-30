@@ -5,6 +5,7 @@ import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {resolve} from 'node:path';
 import vm from 'node:vm';
+import {performance} from 'node:perf_hooks';
 
 const root=new URL('../',import.meta.url);
 const read=p=>readFileSync(new URL(p,root),'utf8').replace(/\r\n/g,'\n');
@@ -42,11 +43,12 @@ const round=n=>Number(n.toFixed(4));
  * Do not interpret fire() dispatch as a real hit or a successful bomb action.
  */
 export function runBotM0Baseline({
-  seed=42,mode='tdm',visibility='open',critical=false,frames=60,dt=.05
+  seed=42,mode='tdm',visibility='open',critical=false,frames=60,dt=.05,onTick=null
 }={}){
   if(!Number.isSafeInteger(seed)||!Number.isInteger(frames)||frames<1||frames>300||
      !Number.isFinite(dt)||dt<=0||dt>.1||
-     !['tdm','bomb'].includes(mode)||!['open','blocked'].includes(visibility))
+     !['tdm','bomb'].includes(mode)||!['open','blocked'].includes(visibility)||
+     (onTick!==null&&typeof onTick!=='function'))
     throw new RangeError('Invalid bounded baseline scenario');
   const seededMath=Object.create(Math);
   seededMath.random=seededRandom(seed);
@@ -93,7 +95,13 @@ export function runBotM0Baseline({
   const initial=c.en.map(e=>[e.x,e.z]);
   for(let frame=0;frame<frames;frame++){
     c.tt=frame*dt;
-    vm.runInContext('botsUpd('+dt+')',c,{timeout:5000});
+    if(onTick){
+      const start=performance.now();
+      vm.runInContext('botsUpd('+dt+')',c,{timeout:5000});
+      onTick(performance.now()-start);
+    }else{
+      vm.runInContext('botsUpd('+dt+')',c,{timeout:5000});
+    }
   }
   const teamShots=[0,1].map(team=>shots.filter(s=>s.team===team).length);
   const teamDistance=[0,1].map(team=>round(c.en.reduce((sum,e,i)=>
