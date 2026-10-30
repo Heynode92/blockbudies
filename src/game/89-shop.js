@@ -35,7 +35,7 @@ function shopBuildFilter(roles,ids,ownedCount){
     var chip=shopEl("button","shop-chip"+(r===shopFilter?" shop-chip-on":""),r);
     chip.type="button";chip.style.setProperty("--acc",r==="ALL"?"#ff922b":shopAccent(r));
     chip.appendChild(shopEl("span","",n));
-    chip.onclick=function(){shopFilter=r;shopAnim=true;shopRender();};
+    chip.onclick=function(){shopFilter=r;shopAnim=true;grid.scrollTop=0;shopRender();};
     bar.appendChild(chip);
   });
   var count=shopEl("div","shop-count","OWNED ");
@@ -44,7 +44,7 @@ function shopBuildFilter(roles,ids,ownedCount){
 }
 function shopRender(){
   var grid=document.getElementById("shopGrid"),ids=shopCatalog(),owned=inventoryOwned("main"),
-      roles=[],max={d:1,s:1,m:1},ownedCount=0,flash=shopFlashId,shown=0;
+      roles=[],max={d:1,s:1,m:1},ownedCount=0,flash=shopFlashId,shown=0,scrollPosition=grid.scrollTop;
   shopFlashId=-1;
   // Bar lengths are relative to the strongest weapon in the shop, so no assumptions about stat scales.
   ids.forEach(function(id){
@@ -65,7 +65,7 @@ function shopRender(){
     var w=WP[id],role=shopRole(id);
     if(shopFilter!=="ALL"&&role!==shopFilter)return;
     var isOwned=owned.indexOf(id)>=0;
-    var tile=shopEl("article","shop-weapon"+(id===shopSelectedId?" shop-selected":"")+(isOwned?" shop-owned":"")+(shopAnim?" shop-enter":"")+(id===flash?" shop-unlocked":""));
+    var tile=shopEl("article","shop-weapon"+(id===shopSelectedId?" shop-weapon-active":"")+(isOwned?" shop-owned":"")+(shopAnim?" shop-enter":"")+(id===flash?" shop-unlocked":""));
     tile.style.setProperty("--acc",shopAccent(role));tile.style.setProperty("--i",shown);
     tile.tabIndex=0;tile.setAttribute("role","button");tile.setAttribute("aria-pressed",String(id===shopSelectedId));
     tile.onclick=function(){shopSelectedId=id;shopAnim=false;shopRender();};
@@ -98,13 +98,16 @@ function shopRender(){
     tile.appendChild(media);tile.appendChild(details);tile.appendChild(action);
     grid.appendChild(tile);shown++;
   });
+  grid.scrollTop=scrollPosition;
   shopAnim=false;
 }
 function shopRenderSelection(ids,owned,max){
  var id=shopSelectedId,host=document.getElementById("shopSelected");
  if(!host||id===undefined||!WP[id])return;
  var w=WP[id],role=shopRole(id),isOwned=owned.indexOf(id)>=0;
+ var changed=host.dataset.selected!==String(id);
  host.textContent="";host.style.setProperty("--acc",shopAccent(role));
+ host.dataset.selected=String(id);if(changed)host.scrollTop=0;
  var head=shopEl("div","shop-sel-heading");
  head.appendChild(shopEl("span","shop-sel-role",role));
  head.appendChild(shopEl("span","shop-sel-badge",isOwned?"OWNED":"AVAILABLE"));
@@ -114,9 +117,7 @@ function shopRenderSelection(ids,owned,max){
  var preview=shopEl("div","shop-sel-preview");
  if(INVENTORY_THUMBS[id]){var img=document.createElement("img");img.src=INVENTORY_THUMBS[id];img.alt=w.n+" model preview";preview.appendChild(img);}
  else preview.appendChild(shopEl("span","","PREVIEW UNAVAILABLE"));
- var nav=shopEl("div","shop-sel-nav"),pos=ids.indexOf(id);
- [-1,1].forEach(function(step){var btn=shopEl("button","",step<0?"‹":"›");btn.type="button";btn.setAttribute("aria-label",step<0?"Previous weapon":"Next weapon");btn.onclick=function(){shopSelectedId=ids[(pos+step+ids.length)%ids.length];shopRender();};nav.appendChild(btn);});
- preview.appendChild(nav);host.appendChild(preview);
+ host.appendChild(preview);
  host.appendChild(shopEl("h4","shop-sel-stats-title","WEAPON STATS"));
  var stats=shopEl("div","shop-sel-stats");
  [["DAMAGE",w.stats.damage],["FIRE RATE",w.stats.rpm],["CONTROL",w.stats.control],["SPEED",w.stats.speed],["VERTICAL RECOIL",w.stats.vRecoil],["HORIZONTAL RECOIL",w.stats.hRecoil],["RANGE",w.stats.range],["MAGAZINE",w.mag]].forEach(function(pair){
@@ -132,7 +133,7 @@ function shopRenderSelection(ids,owned,max){
  host.appendChild(action);
 }
 function shopOpen(){
-  lobP("lbshop");shopAnim=true;inventoryBuildThumbnails();shopRender();
+  lobP("lbshop");shopAnim=true;inventoryBuildThumbnails();document.getElementById("shopGrid").scrollTop=0;shopRender();
 }
 document.getElementById("lshop").addEventListener("click",shopOpen);
 document.getElementById("shopBack").addEventListener("click",function(){lobP("lbs");});
