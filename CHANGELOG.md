@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-30 — Bomb and Inventory test harness compatibility
+
+- Load the production defense module in the isolated Bomb Mission tests so the real player/BOT damage handlers can call `defenseDamage`; maintain original planting interruption and HP assertions.
+- Fix Inventory CSS rule lookup to skip a selector occurring only inside a combined rule, so the dedicated `.ivright` grid layout is inspected.
+- No gameplay source, weapon models, CSS assets or generated browser bundle changed.
+
 ## 2026-10-30 — Windows CRLF test and build compatibility
 
 - Normalize CRLF to LF in test source readers before strict bundle parity, legacy fixture checks and source regex assertions; actual source and historical fixture files remain untouched.

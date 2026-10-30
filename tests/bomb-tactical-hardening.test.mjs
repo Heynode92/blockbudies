@@ -10,6 +10,7 @@ const tactics=read('src/game/87-bomb-tactics.js');
 const mission=read('src/game/86-bomb-mission.js');
 const audio=read('src/game/65-audio.js');
 const damage=read('src/game/70-kills-and-damage-hud.js');
+const defense=read('src/game/39-defense.js');
 
 function makeState(){
   const bomb={x:25,y:0,z:5};
@@ -30,6 +31,8 @@ function makeState(){
   ctx.bombActionFor=function(e){if(ctx.bombMatch.state==='planted'&&e.tm===0)return {type:'defuse',site:1};
     if(ctx.bombMatch.state==='idle'&&e.tm===1&&ctx.bombMatch.carrier===e&&ctx.bombArea(e)>=0)return {type:'plant',site:1};return null;};
   runInNewContext(tactics,ctx);
+  // The actual damage handlers depend on defenseDamage; include its production implementation.
+  runInNewContext(defense,ctx);
   const part=mission.slice(mission.indexOf('function bombInterruptPlant('),mission.indexOf('function bombPlant('));
   runInNewContext(part,ctx);
   return {ctx,cop,terror,pl};

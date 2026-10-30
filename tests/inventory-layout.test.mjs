@@ -6,7 +6,10 @@ import {fileURLToPath} from 'node:url';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..'),read=p=>readFileSync(resolve(root,p),'utf8').replace(/\r\n/g,'\n');
 const css=read('src/styles/09-inventory.css'),js=read('src/game/89-inventory.js');
 const rule=selector=>{
- const start=css.indexOf(selector+'{');
+ const key=selector+'{';
+ let start=css.indexOf(key);
+ // Skip a selector when it occurs only as the trailing member of a comma-separated rule.
+ while(start>0&&css[start-1]===',')start=css.indexOf(key,start+key.length);
  assert.ok(start>=0,'CSS selector exists: '+selector);
  return css.slice(start,css.indexOf('}',start)+1);
 };
