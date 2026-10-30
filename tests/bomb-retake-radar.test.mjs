@@ -54,7 +54,7 @@ test('Police push visible enemies in Bomb Mode while legacy TDM combat expressio
   assert.match(ai,/d>16\?1:d<7\?-\.6:0/);
 });
 test('radar keeps standard range without bomb and grows to reveal distant planted devices',()=>{
-  const ctx={Math,Object,bombMatch:{state:'planted',done:false,device:{position:{x:100,z:-30}}},isBombMode(){return true;}};
+  const ctx={Math,Object,bombMatch:{state:'planted',done:false,device:{position:{x:100,z:-30}}},isBombMode(){return true;},bombDroppedSignalVisible(){return false;}};
   runInNewContext(radarHelpers,ctx);
   const radius=ctx.bombRadarRange({x:-60,z:50});
   assert.ok(radius>Math.hypot(160,80),'entire offset to the planted device must fit in the radar');
