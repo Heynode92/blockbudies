@@ -318,11 +318,9 @@ test('Room popup CANCEL discards draft changes without closing room or changing 
  assert.equal(JSON.parse(data.get('bbfps_local_rooms_v1'))[0].rounds,original.rounds);
  assert.equal(view.page,'lbroomlive','room remains open');
 });
-test('Room popup X, Escape, backdrop and missing name are handled safely',()=>{
+test('Room popup Escape, backdrop and missing name are handled safely',()=>{
  const {context,doc,view}=setup();call(context,'roomLobbyOpen()');call(context,'roomCreateLocal()');
  const modal=doc.getElementById('roomSettingsModal');
- doc.getElementById('rmlSettings').click();doc.getElementById('roomModalClose').click();
- assert.equal(modal.hidden,true);
  doc.getElementById('rmlSettings').click();
  view.documentHandlers.keydown({key:'Escape',preventDefault(){}});
  assert.equal(modal.hidden,true,'Escape closes dialog');
@@ -375,6 +373,10 @@ test('popup follows real map and source layout, not a new map or hardcoded timer
  assert.match(html,/id="roomSettingsModal"/);
  assert.match(html,/aria-modal="true"/);
  assert.match(html,/id="roomModalMapPreview"/);
+ assert.doesNotMatch(html,/id="roomModalClose"|room-modal-help|Only existing playable maps are available for each mode\./);
+ assert.doesNotMatch(read('src/styles/04-lobby.css'),/\.room-modal-x\{|\.room-modal-help\{/);
+ assert.match(read('src/styles/04-lobby.css'),/\.room-modal-map\{[^}]*margin-top:10px/);
+ assert.doesNotMatch(src,/getElementById\("roomModalClose"\)/);
  assert.match(preview,/modalCtx.drawImage\(src/);
  assert.match(src,/ROOM_LIMITS\[key\]/);
  assert.match(src,/function roomShowSettings\(\)/);

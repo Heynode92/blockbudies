@@ -382,7 +382,6 @@ document.getElementById("roomClose").addEventListener("click",roomCloseLocal);
 document.getElementById("roomStart").addEventListener("click",roomLaunch);
 
 document.getElementById("rmlSettings").addEventListener("click",roomShowSettings);
-document.getElementById("roomModalClose").addEventListener("click",function(){roomModalHide(true);});
 document.getElementById("roomModalCancel").addEventListener("click",function(){roomModalHide(true);});
 document.getElementById("roomModalSave").addEventListener("click",roomModalSave);
 document.getElementById("roomModalTdm").addEventListener("click",function(){roomModalChooseMode(0);});

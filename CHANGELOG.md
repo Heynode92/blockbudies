@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-30 — Simplify Room Settings popup chrome
+
+- Removed the corner X button and its JavaScript listener; Cancel, Escape and backdrop remain valid dismiss actions.
+- Removed the redundant "Only existing playable maps are available for each mode." helper line.
+- Shifted the modal's 3D map preview down by 10px to improve spacing below the MAP label and aligned the header without the X.
+- Preserved the existing dropdown controls, room state, BOT slots, gameplay, and launch sequence. Updated tests, documentation and standalone bundle.
+
+
 ## 2026-10-30 — Simplify Room Settings modal to per-mode dropdowns
 
 - Removed the +/- steppers and simultaneous two-mode settings layout. ROOM SETTINGS now shows only the two fields relevant to the currently selected mode: TDM Kill Limit + Match Time, or Bomb Max Rounds + Round Time.

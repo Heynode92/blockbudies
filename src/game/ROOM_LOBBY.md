@@ -114,7 +114,7 @@ and the existing WebGL preview in `84-live-map-preview.js`.
 
 SAVE CHANGES validates/normalizes with the shared `roomSaveDraft` path,
 persists to the same browser-local room record, refreshes the existing Room
-Information panel and remains in the room. Cancel, X, Escape and backdrop
+Information panel and remains in the room. Cancel, Escape and backdrop
 click discard draft changes and restore the original 3D map preview. The modal
 blocks Start Match while open; leaving a room also closes the popup. The
 player's selected Police/Terrorist slot and equipped Inventory weapon are
@@ -122,3 +122,10 @@ unchanged by the room-settings modal. The dialog supports keyboard focus,
 Escape and Tab cycling and scales to smaller screens.
 
 No multiplayer network, simulated map or new backend is introduced.
+
+### Settings popup chrome adjustment (2026-10-30)
+
+Removed the redundant corner X and the playable-map helper caption; Cancel,
+Escape and backdrop-click still dismiss the modal. The current 3D map preview
+is offset 10px below its label for more breathing room. All room settings,
+validation, and match behavior are unchanged.
