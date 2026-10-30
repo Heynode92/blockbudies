@@ -2,13 +2,13 @@
 // GS = synthesized gun sound presets {f frequency, v volume, d decay, t type}. SFXI maps weapon id -> preset index (AWP uses preset 4).
 // No audio files: sounds are generated with WebAudio. SND = master sound switch.
 // --- sound & muzzle flash ---
-var GS=[{f:1800,v:.22,d:.09,t:180},{f:1400,v:.2,d:.1,t:140},{f:900,v:.45,d:.22,t:100},{f:500,v:.5,d:.4,t:70},{f:700,v:.8,d:.6,t:55}],SFXI=[0,1,2,3,3,3,1,1,4,1,1,1,1];
+var GS=[{f:1800,v:.22,d:.09,t:180},{f:1400,v:.2,d:.1,t:140},{f:900,v:.45,d:.22,t:100},{f:500,v:.5,d:.4,t:70},{f:700,v:.8,d:.6,t:55},{f:720,v:.15,d:.073,t:92,suppressed:true}],SFXI=[0,1,2,3,3,3,1,1,4,1,1,1,1,5];
 // gunSfx(): plays a synthesized gun/explosion sound from preset k at volume vol (does nothing if sound is off or too quiet).
 function gunSfx(k,vol){if(!SND||vol<=.02)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state==="suspended")AC.resume();
   if(!nbuf){nbuf=AC.createBuffer(1,Math.floor(AC.sampleRate*.25),AC.sampleRate);var dd=nbuf.getChannelData(0);for(var i=0;i<dd.length;i++)dd[i]=Math.random()*2-1;}
   var t=AC.currentTime,sr=AC.createBufferSource(),fl=AC.createBiquadFilter(),g=AC.createGain(),o=AC.createOscillator(),g2=AC.createGain(),v=vol*k.v;
-  sr.buffer=nbuf;fl.type="bandpass";fl.frequency.value=k.f*(.9+Math.random()*.2);fl.Q.value=.7;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+k.d);sr.connect(fl);fl.connect(g);g.connect(AC.destination);sr.start(t);sr.stop(t+k.d+.02);
-  o.type="sine";o.frequency.setValueAtTime(k.t,t);o.frequency.exponentialRampToValueAtTime(40,t+k.d);g2.gain.setValueAtTime(v*.9,t);g2.gain.exponentialRampToValueAtTime(.0001,t+k.d);o.connect(g2);g2.connect(AC.destination);o.start(t);o.stop(t+k.d+.02);}catch(e){}}
+  sr.buffer=nbuf;fl.type=k.suppressed?"lowpass":"bandpass";fl.frequency.value=k.f*(.9+Math.random()*.2);fl.Q.value=k.suppressed?.48:.7;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+k.d);sr.connect(fl);fl.connect(g);g.connect(AC.destination);sr.start(t);sr.stop(t+k.d+.02);
+  o.type=k.suppressed?"triangle":"sine";o.frequency.setValueAtTime(k.t,t);o.frequency.exponentialRampToValueAtTime(40,t+k.d);g2.gain.setValueAtTime(v*(k.suppressed?.5:.9),t);g2.gain.exponentialRampToValueAtTime(.0001,t+k.d);o.connect(g2);g2.connect(AC.destination);o.start(t);o.stop(t+k.d+.02);}catch(e){}}
 // enemyShotFx(): muzzle flash and sound for a bot shot (volume depends on distance to the player).
 function enemyShotFx(o,x,y,z){var m=new T.Mesh(spG,mzfM);m.position.set(x,y,z);m.scale.setScalar(.14+Math.random()*.1);S.add(m);mzf.push({m:m,t:.05});
   if(sndN<3){sndN++;gunSfx(GS[SFXI[o.weapon]||1],.45*Math.max(0,1-Math.hypot(pl.x-o.x,pl.z-o.z)/20));}}
