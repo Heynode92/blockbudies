@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-31 WIB — M0 owner playtest smoke test (8/8 basic checks reported PASS)
+
+- The owner reported all eight **manual qualitative** checks PASS after playtesting: Deathmatch (Police/Terrorist BOT movement and combat, no visible stuck movement, firing/damage operating, no noticeable freeze/severe lag); Bomb Mission (Terrorist plant, Police defuse, site attack/defense and correct round completion).
+- The report documents basic gameplay functionality, **not** numeric FPS/p95, accuracy or actual hit rate, sight-to-action reaction latency, collision/stuck rate, navigation success or statistically measured Bomb completion. Specific maps, player faction, number of rounds, browser version and performance traces were not provided; those gates remain **UNCHECKED**.
+- GitHub Actions Windows test suite/bundle/syntax/baseline remains confirmed SUCCESS at [run #30](https://github.com/Heynode92/blockbudies/actions/runs/41097051520), commit `4df8c9f` preceding this documentation-only entry.
+- Recorded individual reported checks and evidence limitations in `docs/BOT_AI_IMPLEMENTATION_LOG.md` and `docs/BOT_AI_M0_BASELINE.md`. **M0 stays IN PROGRESS, M1 NOT STARTED. No source gameplay, AI behavior, runtime bundle, tests or UI changes from this playtest logging.**
+
 ## 2026-10-30 — M0 Windows CI recovery and regression alignment (verified)
 
 - Investigated GitHub Actions failures using actual Windows job logs, not assumptions: earlier run #3 stopped at `node tools/build.mjs --check` due exactly one extra blank line in the committed `assets/game.js` between `65-audio.js` and `66-footsteps.js`. Updated only the generated bundle separator (commit `6664ee13`); no executable JavaScript instruction or gameplay behavior changed.
