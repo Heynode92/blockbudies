@@ -55,3 +55,13 @@ test('M0: record fire dispatch rather than inventing real hit rate or reaction l
   }
   assert.ok(baseline.nonzeroPitchShots>=0);
 });
+
+test('M0: optional measured BOT tick callback is bounded and does not change game trace',()=>{
+  const calls=[];
+  const observed=runBotM0Baseline({mode:'bomb',seed:42,onTick:ms=>calls.push(ms)});
+  const unchanged=runBotM0Baseline({mode:'bomb',seed:42});
+  assert.deepEqual(observed,unchanged,'timing observation must not modify bot state');
+  assert.equal(calls.length,60);
+  assert.ok(calls.every(ms=>Number.isFinite(ms)&&ms>=0));
+  assert.throws(()=>runBotM0Baseline({onTick:123}),RangeError);
+});
