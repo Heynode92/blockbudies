@@ -108,7 +108,7 @@ function shopRenderSelection(ids,owned,max){
  head.appendChild(shopEl("span","shop-sel-role",role));
  head.appendChild(shopEl("span","shop-sel-badge",isOwned?"OWNED":"AVAILABLE"));
  head.appendChild(shopEl("h3","",w.n));
- head.appendChild(shopEl("p","",INVENTORY_DESCRIPTIONS[w.stats.kind]||""));
+ head.appendChild(shopEl("p","",inventoryWeaponDescription(id)));
  host.appendChild(head);
  var preview=shopEl("div","shop-sel-preview");
  if(INVENTORY_THUMBS[id]){var img=document.createElement("img");img.src=INVENTORY_THUMBS[id];img.alt=w.n+" model preview";preview.appendChild(img);}
