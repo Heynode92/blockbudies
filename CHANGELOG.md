@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10-30 — Isolated camera-input compatibility
+
+- Guard the optional loadout flag in keyboard and canvas input handlers, preserving the existing standalone camera-look tests.
+- No changes to weapons, gameplay, UI layout or selection behavior.
+
 ## 2026-10-30 — Mouse-first weapon loadout for Deathmatch and Bomb Mission
 
 - Replaced the small countdown strip with the approved five-card tactical loadout dock: large clickable weapon icons, category navigation, carousel arrows, countdown and CONFIRM LOADOUT.

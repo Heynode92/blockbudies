@@ -94,8 +94,8 @@ test("next round resets selection for both game modes and keeps last confirmed p
 });
 test("closed pointer lock and input cannot steal a loadout click",()=>{
  assert.match(look,/typeof wsOn!=="undefined"&&wsOn/);
- assert.match(input,/if\(wsOn&&e.code==="Enter"\)/);
- assert.match(input,/if\(wsOn\)\{e.preventDefault\(\);return;\}/);
+ assert.match(input,/typeof wsOn!=="undefined"&&wsOn&&e.code==="Enter"/);
+ assert.match(input,/typeof wsOn!=="undefined"&&wsOn\)\{e.preventDefault\(\);return;\}/);
  assert.match(picker,/document.exitPointerLock\(\)/);
  assert.match(picker,/document.body.classList.toggle\("loadout-cursor-hidden"/);
  const hud=read("src/game/70-kills-and-damage-hud.js");
