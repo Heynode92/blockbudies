@@ -39,6 +39,7 @@ function createSightRuntime(){
   document:{getElementById(){return overlay},body:{classList:{toggle(key,val){bodyFlags[key]=val;}}}},
   pl:{w:9,dead:false,rl:0,sw:0,bAction:false},
   mt:{over:false,cd:0},lob:false,run:true,adsT:1,WEAPON_STARTER_ID:9,
+  WP:Array.from({length:19},(_,i)=>({snp:i===8})),
   isBombMode(){return false},
   guns:Array.from({length:13},()=>({userData:{}}))
  };
