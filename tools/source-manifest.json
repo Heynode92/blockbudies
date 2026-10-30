@@ -48,6 +48,7 @@
     "src/game/88-spectator-camera.js",
     "src/game/89-inventory.js",
     "src/game/89-shop.js",
+    "src/game/89-bot-tactical-intelligence.js",
     "src/game/90-bot-ai.js",
     "src/game/95-simulation.js",
     "src/game/96-hud-and-radar.js",
