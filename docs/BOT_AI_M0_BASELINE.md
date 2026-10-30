@@ -1,7 +1,7 @@
 # BLOCK BUDDIES — M0 Synthetic BOT Baseline (2026-10-30)
 
 > **Milestone:** M0 — Baseline & Harness  
-> **Status:** PARTIAL / VALIDATED SYNTHETIC REPLAY; NOT A RELEASE GATE  
+> **Status:** PARTIAL / WINDOWS NODE CI VERIFIED; REAL-GAME BASELINE PENDING  
 > **Source starting point:** `5e7bd5871ee828ca9690a25d1d994e4c5f130c2d`  
 > **Harness:** [`tools/bot-ai-m0-baseline.mjs`](../tools/bot-ai-m0-baseline.mjs)  
 > **Regression tests:** [`tests/bot-ai-m0-baseline.test.mjs`](../tests/bot-ai-m0-baseline.test.mjs)
@@ -16,7 +16,7 @@ The M0 fixture executes **real production** `botAttack`/`botCombatTick`, `BOT_TA
 - `shotsDispatched` counts calls to the canonical `fire` entry point. It **does not** count physical hits, kills, hit percentage, recoil, bullet accuracy or damage.
 - `footstepCalls` counts calls to a stub, **not** audible footsteps. `clampCorrections` count synthetic arena bounds clamping, **not** actual 3D collisions.
 - Bomb fixture exercises tactical goal selection but **does not** simulate plant/defuse, real round outcomes or timers.
-- The isolated replay was evaluated against GitHub source with equivalent V8 function execution; six new test assertions passed in that evaluation. The real Node test command / full repository suite / playable browser were **not run** in that evaluation environment. This remains a verification gap.
+- The initial isolated replay was evaluated against GitHub source with equivalent V8 execution. Subsequently, [Windows GitHub Actions run #26](https://github.com/Heynode92/blockbudies/actions/runs/41096566590) verified `node --test`, bundle parity, JS syntax and JSON trace execution successfully. **Playable browser matches, real hit/reaction/Bomb outcome metrics and FPS were not measured.**
 
 ## Reproducible fixture trace (seed 42)
 
@@ -45,19 +45,25 @@ node --check assets/game.js
 
 The CLI prints JSON. The regression tests verify fixed-seed replay equality, blocked LOS, critical-HP retreat, both Bomb factions, seed variation and strict separation of fire dispatch from unknown real hit metrics.
 
+## Native Windows CI recovery (2026-10-30)
+
+- Early [run #3](https://github.com/Heynode92/blockbudies/actions/runs/41085174072) failed `node tools/build.mjs --check` because the generated bundle contained one extraneous newline between production modules `65-audio.js` and `66-footsteps.js`. Removing that separator made bundle check and syntax check pass in [run #6](https://github.com/Heynode92/blockbudies/actions/runs/41094812497).
+- Once the full Node suite executed, it exposed 41/288 failing pre-existing regression tests, mostly from outdated isolated test mocks or old assumptions (e.g. 13/17 weapons versus 19 today, BOT RPG inclusion after its approved removal, ADS selectors and viewmodel indexing). The tests were aligned with **current verified source contracts**, without restoring removed gameplay features or modifying production AI.
+- [Run #26](https://github.com/Heynode92/blockbudies/actions/runs/41096566590) completed successfully on Windows with bundle verification, JavaScript syntax, full Node tests and M0 synthetic baseline output. This CI result validates test infrastructure; it is **not** evidence that real match accuracy, latency, navigation or FPS targets have passed.
+
 ## M0 verification checklist
 
 - [x] Confirm active BOT owner and current source functions (not `botsUpdOld`).
 - [x] Verify pre-existing `footstepAdvance` mock correction is present in `tests/bot-five-star.test.mjs`.
 - [x] Add **seeded synthetic 10-BOT** TDM and Bomb replay + targeted regression checks.
 - [x] Log precise synthetic observations and known limitations.
-- [ ] Execute actual `node --test tests/*.test.mjs` and bundle checks in a complete repository checkout; store command output and environment.
+- [x] Windows GitHub Actions `node --test` complete regression suite, `node tools/build.mjs --check`, `node --check assets/game.js` and synthetic baseline CLI all verified green: [run #26](https://github.com/Heynode92/blockbudies/actions/runs/41096566590), Node 22 / `windows-latest`.
 - [ ] Run real playable map scenarios with the human on Police and Terrorist in both modes and both maps; collect reliable samples.
 - [ ] Instrument **real** fire/hit rate, sight-to-action latency, path failure, collision/stuck time and Bomb completion, with scenario seeds and sample counts.
 - [ ] Measure actual browser frame time/p95 and BOT decision cost at playable 5v5, then compare after every upgrade.
 - [ ] Verify browser `index.html` launch and gameplay manually on Windows.
 
-M0 stays **IN PROGRESS** until all required acceptance gates are evidenced. M1–M7 remain **NOT STARTED**. No source gameplay, assets, damage, AI difficulty, rules, map geometry, manifest or standalone browser bundle was modified by this M0 harness.
+M0 stays **IN PROGRESS** until all required acceptance gates are evidenced. M1–M7 remain **NOT STARTED**. No gameplay logic, damage, difficulty, rules, map geometry or source manifest was modified by the M0 test harness. The committed standalone browser bundle `assets/game.js` later received **one newline-only synchronization correction** (commit `6664ee13`) to satisfy the canonical build; no executable gameplay statement changed.
 
 ## Reproducibility and future updates
 
