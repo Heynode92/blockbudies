@@ -109,3 +109,43 @@ test('M1: bomb plant/retake threat helpers accept sight evidence only',()=>{
  world.blocked=true;terrorist.x=40;terrorist.z=31;
  assert.equal(world.bombNearestOpponent(police).x,5);
 });
+
+test('M1: real footstep displacement emits cues even when audio output is muted',()=>{
+ const footsteps=read('src/game/66-footsteps.js');
+ const fn=footsteps.slice(footsteps.indexOf('function footstepAdvance('));
+ const cues=[];
+ const c={Math,Number,SND:false,run:true,lob:false,mt:{over:false,cd:0},
+   FOOTSTEP_RULES:{walkStride:2.05,sprintStride:1.78},
+   botSoundEmit(e,kind){cues.push({actor:e,kind});},
+   footstepPlay(){},};
+ vm.createContext(c);vm.runInContext(fn,c);
+ const actor={tm:0,x:2,z:3,dead:false};
+ c.footstepAdvance(actor,2.1,true,false,false);
+ assert.equal(cues.length,1);
+ assert.equal(cues[0].kind,'footstep');
+ assert.equal(cues[0].actor,actor);
+ c.footstepAdvance(actor,0,false,false,false);
+ assert.equal(cues.length,1,'ungrounded steps produce no sound evidence');
+});
+
+test('M1: real bullet dispatch emits one sound cue per trigger, not per pellet',()=>{
+ const combat=read('src/game/45-combat.js');
+ const fn=combat.slice(combat.indexOf('function fire(o,face,w,own,adv){'),combat.indexOf('// boom():'));
+ const events=[],bl=[];
+ const weapon={pel:6,spr:.01,spd:100,life:1,dmg:20,
+   stats:{kind:'shotgun'},rangeModifier:.7,rangeUnit:20};
+ const c={Math,A:60,tt:0,pl:{},WP:[weapon],bl,shotSide:0,
+   botSoundEmit(e,kind){events.push({actor:e,kind});},
+   shotgunPelletSpread(i){return[i/100,0];},
+   tracer(){return{visible:false,rotation:{order:'',set(){}},
+     position:{set(){}},};},
+   S:{add(){}},enemyShotFx(){},sweepObs(){return false;},
+   sweepLT(){return false;},obsAt(){return false;}};
+ vm.createContext(c);vm.runInContext(fn,c);
+ const actor={x:1,z:2,y:0,tm:1};
+ c.fire(actor,0,weapon,'e',0);
+ assert.equal(events.length,1);
+ assert.equal(events[0].kind,'gunshot');
+ assert.equal(events[0].actor,actor);
+ assert.equal(bl.length,6,'real pellet count and ballistics remain unchanged');
+});
