@@ -36,3 +36,5 @@ jobs:
         run: node --test
       - name: Emit synthetic M0 baseline for artifact-free evidence
         run: node tools/bot-ai-m0-baseline.mjs
+      - name: Measure seeded BOT update CPU time (not browser FPS)
+        run: node tools/bot-ai-m0-performance.mjs
