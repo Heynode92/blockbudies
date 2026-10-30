@@ -147,7 +147,7 @@ function inventoryPreviewInit(){
  renderer.domElement.addEventListener("pointermove",function(e){if(down){inventoryAngle+=(e.clientX-x)*.012;x=e.clientX;}});
  renderer.domElement.addEventListener("pointerup",function(){down=false;});
  renderer.domElement.addEventListener("pointercancel",function(){down=false;});
- inventoryPreview={host:host,actor:actor,mount:mount,guns:guns,renderer:renderer,scene:scene,camera:camera,selected:null};
+ inventoryPreview={host:host,actor:actor,actors:[actor,null],side:0,mount:mount,guns:guns,renderer:renderer,scene:scene,camera:camera,selected:null};
 }
 // Reuse ONE renderer/scene and move its canvas between Inventory and Room Lobby.
 function inventoryPreviewMount(hostId){
@@ -158,12 +158,29 @@ function inventoryPreviewMount(hostId){
   p.host=host;
  }
 }
+// Reuse the same renderer and weapon meshes for both real gameplay team actors.
+function inventoryPreviewSetSide(side){
+ inventoryPreviewInit();
+ var p=inventoryPreview,next=side===1?1:0;
+ if(p.side===next)return;
+ var actor=p.actors[next];
+ if(!actor){
+  actor=terro(next);S.remove(actor.g);p.scene.add(actor.g);
+  if(actor.g.userData.rg)actor.g.userData.gun.remove(actor.g.userData.rg);
+  p.actors[next]=actor;
+ }
+ p.actor.g.visible=false;
+ var mount=actor.g.userData.gun;
+ p.guns.forEach(function(g){mount.add(g);});
+ p.actor=actor;p.mount=mount;p.side=next;actor.g.visible=true;
+}
 // Room always displays the primary weapon actually equipped (IN USE), not a
 // highlighted catalog item, guessed weapon ID, or temporary in-match pickup.
-function inventoryRoomPreviewOpen(){
+function inventoryRoomPreviewOpen(side){
  var id=inventoryEquipped("main"),weapon=id===null?null:WP[id];
  document.getElementById("rmlWeaponName").textContent=weapon?weapon.n:"NO PRIMARY";
  document.getElementById("rmlWeaponClass").textContent=weapon?inventoryWeaponRole(weapon.stats.kind):"PRIMARY";
+ inventoryPreviewSetSide(side);
  inventoryShowModel(weapon?id:null);
  inventoryPreviewMount("rmlpreview");
  inventoryStartPreview();
@@ -204,8 +221,10 @@ function inventoryPoseFrame(p,now){
  aimA(a.arms[0],-.55,1.3,l[0],l[1]+y,l[2],-1);
 }
 function inventoryPreviewFrame(now){
- var inInventory=document.getElementById("lbiv").classList.contains("on"),
-     inRoom=document.getElementById("lbroomlive").classList.contains("on");
+ // The lobby class may remain on its page while #lb is hidden in a match.
+ // Do not spend GPU time rendering an invisible Inventory/Room 3D preview.
+ var inInventory=lob&&document.getElementById("lbiv").classList.contains("on"),
+     inRoom=lob&&document.getElementById("lbroomlive").classList.contains("on");
  if(!inInventory&&!inRoom){inventoryPreviewLive=false;return;}
  var p=inventoryPreview,hostId=inRoom?"rmlpreview":"ivpreview";
  inventoryPreviewMount(hostId);
@@ -405,7 +424,7 @@ function inventoryRender(){
 function inventoryOpen(){
  inventoryTab="main";inventoryClass="all";
  inventoryAngle=.14;lobP("lbiv");
- inventoryPreviewMount("ivpreview");inventoryBuildThumbnails();inventoryRender();inventoryStartPreview();
+ inventoryPreviewMount("ivpreview");inventoryPreviewSetSide(0);inventoryBuildThumbnails();inventoryRender();inventoryStartPreview();
 }
 inventoryLoad();
 document.getElementById("ivcards").addEventListener("scroll",function(){

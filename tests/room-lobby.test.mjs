@@ -9,11 +9,12 @@ const module=read('src/game/83-room-lobby.js');
 
 class FakeElement{
  constructor(){
-  this.value='';this.textContent='';this.hidden=false;this.style={};this.children=[];this.attributes={};this.events={};
+  this.value='';this.textContent='';this.hidden=false;this.style={};this.children=[];this.attributes={};this.events={};this.width=1280;this.height=720;
   this.classes=new Set();
   this.classList={add:name=>this.classes.add(name),remove:name=>this.classes.delete(name),
    toggle:(name,yes)=>{if(yes)this.classes.add(name);else this.classes.delete(name);}};
  }
+ getContext(){return {drawImage(){}};}
  addEventListener(type,fn){this.events[type]=fn;}
  setAttribute(name,value){this.attributes[name]=value;}
  replaceChildren(...items){this.children=items;}
@@ -21,7 +22,20 @@ class FakeElement{
  click(){if(this.events.click)this.events.click();}
 }
 function setup(){
- const nodes=new Map(),data=new Map(),view={page:'',previews:[]};
+ const nodes=new Map(),data=new Map(),view={page:'',previews:[],previewSides:[],frames:0};
+ let now=0,nextId=0;const frames=new Map(),timers=new Map();
+ function advance(ms){
+  const end=now+ms;
+  while(now<end){
+   now=Math.min(end,now+100);
+   const callbacks=Array.from(frames.values());frames.clear();
+   callbacks.forEach(cb=>cb(now));
+   for(const [id,t] of Array.from(timers.entries())){
+    if(t.when<=now){timers.delete(id);t.callback();}
+   }
+  }
+ }
+
  const doc={getElementById:id=>{
   if(!nodes.has(id))nodes.set(id,new FakeElement());
   return nodes.get(id);
@@ -34,9 +48,17 @@ function setup(){
   modePreviewSelect:mode=>view.previews.push(mode),lobP:page=>{view.page=page;},
   selM:0,BOMB_RULES:{teamSize:5,rounds:12,roundSeconds:120,wins:7},ts:[0,0],mt:{cd:5},
   BN:[['Jack','Mike','Ryan','Alex','Owen'],['Viper','Razor','Hawk','Shadow','Ghost']],
-  begin:tm=>{view.begunTeam=tm;},inventoryRoomPreviewOpen:()=>{view.previewOpens=(view.previewOpens||0)+1;},addEventListener:()=>{}};
+  begin:tm=>{view.begunTeam=tm;context.mt.cd=5;context.run=true;},inventoryRoomPreviewOpen:side=>{view.previewOpens=(view.previewOpens||0)+1;view.previewSides.push(side);},
+  performance:{now:()=>now},
+  requestAnimationFrame:fn=>{const id=++nextId;frames.set(id,fn);return id;},
+  cancelAnimationFrame:id=>frames.delete(id),
+  setTimeout:(callback,delay)=>{const id=++nextId;timers.set(id,{when:now+delay,callback});return id;},
+  clearTimeout:id=>timers.delete(id),
+  R:{domElement:{width:1280,height:720}},
+  lb:{style:{}},run:false,lob:true,documentBodyUnused:null,
+  addEventListener:()=>{}};
  vm.createContext(context);vm.runInContext(module,context,{filename:'83-room-lobby.js'});
- return {context,doc,data,view};
+ return {context,doc,data,view,advance};
 }
 function call(c,expression){return vm.runInContext(expression,c);}
 
@@ -76,14 +98,19 @@ test('creating room grants Room Master, creates a safe local listing and persist
 });
 
 test('TDM kill limit and match timer affect game rules only when Room Master starts',()=>{
- const {context,doc,view}=setup();call(context,'roomLobbyOpen()');
+ const {context,doc,view,advance}=setup();call(context,'roomLobbyOpen()');
  doc.getElementById('roomKills').value='75';doc.getElementById('roomMinutes').value='3';
  call(context,'roomCreateLocal()');
  assert.equal(call(context,'roomMatchSeconds()'),60,'legacy duration remains default until launch');
  call(context,'roomLaunch()');
+ assert.equal(view.begunTeam,undefined,'pre-match remains in Room Lobby');
+ assert.equal(doc.getElementById('roomPrestartNumber').textContent,'3');
+ advance(4500);
  assert.equal(call(context,'roomKillLimit()'),75);
  assert.equal(call(context,'roomMatchSeconds()'),180);
- assert.equal(view.begunTeam,0);assert.equal(call(context,'mt.cd'),3);
+ assert.equal(view.begunTeam,0);assert.equal(call(context,'mt.cd'),0);
+ assert.equal(doc.getElementById('roomStartPercent').textContent,'100%');
+ assert.equal(call(context,'run'),true);
  assert.equal(doc.getElementById('rmlPoliceSlots').children.length,5);
  assert.equal(doc.getElementById('rmlTerrorSlots').children.length,5);
  call(context,'ts[0]=74;ts[1]=31');
@@ -93,10 +120,10 @@ test('TDM kill limit and match timer affect game rules only when Room Master sta
 });
 
 test('Bomb Mode uses existing map, correct max rounds, timer and wins majority',()=>{
- const {context,doc,view}=setup();call(context,'roomLobbyOpen()');
+ const {context,doc,view,advance}=setup();call(context,'roomLobbyOpen()');
  call(context,'roomCreateLocal()');call(context,'roomModeSelect(1)');
  doc.getElementById('roomRounds').value='5';doc.getElementById('roomRoundMinutes').value='3';
- call(context,'roomLaunch()');
+ call(context,'roomLaunch()');advance(4500);
  assert.equal(call(context,'roomRoundLimit()'),5);
  assert.equal(call(context,'roomRoundSeconds()'),180);
  assert.equal(call(context,'roomRoundsToWin()'),3);
@@ -153,7 +180,9 @@ test('existing 5v5 engine stays authoritative, no fabricated maps or public play
  assert.match(read('src/game/86-bomb-mission.js'),/mt\.t=roomRoundSeconds\(\)/);
  assert.match(read('src/game/95-simulation.js'),/roomReachedKillLimit\(\)/);
  assert.match(read('src/styles/04-lobby.css'),/\.room-empty\[hidden\]\{display:none\}/);
- assert.match(read('src/game/83-room-lobby.js'),/begin\(roomSide\);mt.cd=ROOM_START_COUNTDOWN/);
+ assert.match(read('src/game/83-room-lobby.js'),/roomStartCountdown\(now,token\)/);
+ assert.match(read('src/game/83-room-lobby.js'),/mt.cd=0;run=false/);
+ assert.doesNotMatch(read('src/game/85-lobby-and-match.js'),/mt.t>59.2\?"GO!"/);
 });
 
 test('direct-launch browser bundle exactly mirrors ordered sources without startup regression',()=>{
@@ -167,8 +196,8 @@ test('direct-launch browser bundle exactly mirrors ordered sources without start
  new vm.Script(read('assets/game.js'));
 });
 
-test('team slot click drives the actual selected team and the 3-2-1 opening freeze',()=>{
- const {context,doc,view}=setup();call(context,'roomLobbyOpen()');call(context,'roomCreateLocal()');
+test('team slot click drives selected team and pre-match Room-only countdown',()=>{
+ const {context,doc,view,advance}=setup();call(context,'roomLobbyOpen()');call(context,'roomCreateLocal()');
  const police=doc.getElementById('rmlPoliceSlots'),terror=doc.getElementById('rmlTerrorSlots');
  assert.equal(police.children.length,5);assert.equal(terror.children.length,5);
  assert.match(police.children[0].children[1].textContent,/YOU/);
@@ -176,7 +205,11 @@ test('team slot click drives the actual selected team and the 3-2-1 opening free
  assert.equal(call(context,'roomSide'),1);assert.equal(call(context,'roomSeat'),3);
  assert.match(terror.children[3].children[1].textContent,/YOU/);
  assert.match(police.children[0].children[1].textContent,/BOT/);
- call(context,'roomLaunch()');assert.equal(view.begunTeam,1);assert.equal(call(context,'mt.cd'),3);
+ assert.equal(view.previewSides.at(-1),1,'3D preview must switch to the Terrorist skin');
+ call(context,'roomLaunch()');assert.equal(view.begunTeam,undefined);
+ advance(1100);assert.equal(doc.getElementById('roomPrestartNumber').textContent,'2');
+ advance(1000);assert.equal(doc.getElementById('roomPrestartNumber').textContent,'1');
+ advance(2400);assert.equal(view.begunTeam,1);assert.equal(call(context,'mt.cd'),0);
 });
 test('Room Master leaving closes the local room and removes it from browser storage',()=>{
  const {context,doc,data,view}=setup();call(context,'roomLobbyOpen()');call(context,'roomCreateLocal()');
@@ -208,4 +241,27 @@ test('Create Room and Room Settings save refresh the shared 3D soldier preview',
  doc.getElementById('roomSave').click();
  assert.equal(view.previewOpens,2);
  assert.equal(doc.getElementById('rmlRoomName').textContent,'My Test Room');
+});
+
+test('double-click START cannot spawn two matches and abort closes countdown',()=>{
+ const {context,doc,view,advance}=setup();call(context,'roomLobbyOpen()');call(context,'roomCreateLocal()');
+ call(context,'roomLaunch()');call(context,'roomLaunch()');
+ advance(1500);call(context,'roomCloseLocal()');advance(5000);
+ assert.equal(view.begunTeam,undefined);
+ assert.equal(doc.getElementById('roomPrestart').hidden,true);
+ assert.equal(doc.getElementById('roomTransition').hidden,true);
+ assert.equal(call(context,'roomStartFlow.active'),false);
+});
+test('loading reaches 100 only after match initialization and fades before simulation begins',()=>{
+ const {context,doc,view,advance}=setup();call(context,'roomLobbyOpen()');call(context,'roomCreateLocal()');
+ call(context,'roomLaunch()');
+ advance(3000);assert.equal(view.begunTeam,undefined);
+ advance(300);assert.equal(view.begunTeam,undefined);
+ assert.equal(doc.getElementById('roomTransition').hidden,false);
+ advance(400);assert.equal(view.begunTeam,0);
+ assert.equal(call(context,'run'),false,'paused behind the loading screen');
+ advance(300);assert.equal(doc.getElementById('roomStartPercent').textContent,'100%');
+ assert.equal(call(context,'run'),false,'no live gameplay while fading');
+ advance(700);assert.equal(call(context,'run'),true);
+ assert.equal(doc.getElementById('roomTransition').hidden,true);
 });

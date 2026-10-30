@@ -134,12 +134,26 @@
   <section class="rml-log"><h3>ROOM LOG</h3><div id="rmlLogLines" aria-live="polite"></div><footer>LOCAL SESSION · NO ONLINE CHAT</footer></section>
   <nav class="rml-actions" aria-label="Room Master actions"><button id="rmlSettings" type="button">⚙ ROOM SETTINGS</button><button id="rmlLeave" type="button">LEAVE ROOM</button><button id="rmlStart" type="button">▶ START MATCH</button></nav>
  </div>
+ <div id="roomPrestart" class="room-prestart" role="status" aria-live="polite" hidden>
+  <div class="room-prestart-content"><span>MATCH STARTING</span><strong id="roomPrestartNumber">3</strong><small>PREPARE YOUR TEAM</small></div>
+ </div>
 </section>
 <div id="lbm" class="lbp"><div class="mcol"><div class="mhd">SELECT MODE</div><div class="msub">CHOOSE YOUR BATTLEFIELD</div><div class="mlist"><button class="mi on" data-m="0"><span class="mn">01</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="7"/><path d="M12 1v6M12 17v6M1 12h6M17 12h6"/></svg><div class="mt"><strong>TEAM DEATH MATCH</strong><small>SOLO · SURVIVAL</small></div><em>PLAY</em></button><button class="mi" data-m="1"><span class="mn">02</span><svg viewBox="0 0 24 24"><circle cx="11" cy="14" r="7.5" fill="currentColor"/><path d="M16 6l2-2" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="20" cy="3" r="1.5" fill="#ffd43b"/></svg><div class="mt"><strong>BOMB MODE</strong><small>TEAM · TACTICAL</small></div><em>PLAY</em></button><button class="mi lock" data-m="2"><span class="mn">03</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-dasharray="3 3"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg><div class="mt"><strong>BATTLEGROUND</strong><small>SOLO · LAST STANDING</small></div><em>SOON</em></button></div><button class="bk" id="lbb">&lsaquo; BACK</button></div>
 <div class="mdt sw" id="mdt"><div class="mk" id="mk" aria-hidden="true"></div><div class="mtp"><h3 id="mnm">TEAM DEATH MATCH</h3><span class="mst" id="mst">AVAILABLE</span><div class="mtg" id="mtg">5 VS 5 · POLICE VS TERRORIST</div></div>
 <div class="mmap" id="mmap"><canvas id="mapPreviewCanvas" width="960" height="540" aria-label="Live 3D map preview"></canvas><div class="mmap-shade"></div><div class="mmap-title"><span>MAP</span><strong id="mapName">BLOCK DISTRICT</strong><small id="mapCaption">Urban Combat Zone</small></div></div>
 <div class="msp" id="msp"></div><div class="moverview"><span class="moverview-head">MAP OVERVIEW</span><div id="mapOverview" class="moverview-facts"></div></div>
 <div class="mbt"><button id="mdm">PLAY NOW<kbd>ENTER</kbd></button></div></div></div>
+<div id="roomTransition" class="room-transition" aria-live="polite" hidden>
+  <canvas id="roomStartMap" width="1280" height="720" aria-label="Actual 3D match map"></canvas>
+  <div class="room-transition-shade"></div>
+  <div class="room-transition-center">
+    <span class="room-transition-kicker">BLOCK BUDDIES · MATCH DEPLOYMENT</span>
+    <h2 id="roomStartPhase">CAPTURING 3D MAP</h2>
+    <div class="room-transition-progress"><span>LOADING MATCH</span><strong id="roomStartPercent">0%</strong></div>
+    <div class="room-transition-track"><i id="roomStartBar"></i></div>
+    <small>PREPARING YOUR BATTLEFIELD</small>
+  </div>
+</div>
 <div id="ov"><div id="card"><h1>Blok Buddies FPS</h1><div id="ovt"></div><button id="go">Start</button></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="./assets/game.js"></script>

@@ -52,3 +52,24 @@ preview pick. The Room panel displays the canonical weapon name and class.
 No new renderer, player model, weapon ID mapping, network dependency or gameplay
 stat logic is introduced; the preview loop pauses when neither Inventory nor
 Room Lobby is visible and maintains the inventory camera separately.
+
+## Room-only 3–2–1, team-synchronized preview and 3D loading (2026-10-30)
+
+Switching between Police and Terrorists now selects each faction's real
+`terro(side)` character appearance. Both actors are cached and swap the *same*
+Inventory preview renderer/weapon meshes; the `inventoryEquipped("main")` gun
+remains in use. Reopening Inventory restores the Police preview.
+
+START MATCH is a guarded, cancelable requestAnimationFrame state machine:
+- 3–2–1 is shown only over the Room Lobby before any match initialization.
+- Fullscreen transition captures actual WebGL map frames. Loading percentage tracks
+  map capture, synchronous match initialization, and first rendered gameplay frame,
+  not random percentages or fake requests.
+- The original begin() creates maps, BOTs and inventory primary under the opaque
+  transition. The old initial in-match countdown is suppressed. Gameplay simulation
+  does not run until loading reaches 100% and the fade completes.
+- Following Bomb Mode rounds retain their canonical freeze period. The previous
+  TDM `mt.t>59.2` check that caused the stuck GO banner is removed.
+
+Leaving/closing a room or page aborts pending countdown/transition callbacks.
+No new WebGL renderer, multiplayer server, weapon stat modification or dependency.

@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-10-30 — Team-aware Room Preview and room-first pre-match loading
+
+- Police/Terrorists room slot clicks now change the actual 3D character skin while keeping the equipped Inventory primary; cache both existing team actors and reuse the same renderer and gun meshes.
+- START MATCH uses a guarded 3–2–1 countdown in Room Lobby, then a fullscreen captured 3D map transition tracking real setup milestones until 100%, fading out before match simulation begins.
+- Suppress the old first-round countdown only for Room Start; later Bomb Mode freezes remain unchanged.
+- Fix the TDM GO banner stuck for extended match timers by removing its incorrect time-left condition.
+- Clean up pending launch callbacks on room close/pagehide. Added preview, countdown, loading, double-start and cancel regression tests; synchronized browser bundle.
+
+
 ## 2026-10-30 — Room Lobby preview shares real Inventory soldier + IN USE weapon
 
 - Removed the static fake operator SVG from the active Room Lobby, replacing it with the genuine animated, drag-to-turn Three.js Inventory soldier preview.

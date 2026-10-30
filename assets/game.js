@@ -2243,6 +2243,7 @@ var roomList=[],roomCurrent=null,roomMatchConfig=null,roomDraftMode=0;
 
 /* Team slots preview the real 5v5 roster. AI is created by startMatch, never here. */
 var ROOM_START_COUNTDOWN=3,roomSide=0,roomSeat=0,roomLog=[];
+var roomStartFlow={active:false,phase:"idle",token:0,raf:0,timer:0,deadline:0,config:null,team:0};
 function roomLiveLog(message){
  roomLog.push(String(message));if(roomLog.length>12)roomLog.shift();
  var root=document.getElementById("rmlLogLines");root.replaceChildren();
@@ -2265,7 +2266,7 @@ function roomLiveTeams(){
     row.appendChild(num);row.appendChild(name);row.appendChild(hint);
     row.addEventListener("click",function(){
      if(!roomCurrent||roomSide===team&&roomSeat===seat)return;
-     roomSide=team;roomSeat=seat;roomLiveTeams();
+     roomSide=team;roomSeat=seat;roomLiveTeams();inventoryRoomPreviewOpen(roomSide);
      roomLiveLog("You moved to "+(team===0?"Police":"Terrorists")+" slot "+(seat+1)+".");
     });
     target.appendChild(row);
@@ -2286,7 +2287,7 @@ function roomLiveOpen(room){
  roomText("rmlTime",(room.mode===1?room.roundMinutes:room.minutes)+" MINUTES");
  roomLiveTeams();lobP("lbroomlive");
  // Inventory owns the soldier, real mkGun models, equipped weapon and 3D renderer.
- inventoryRoomPreviewOpen();
+ inventoryRoomPreviewOpen(roomSide);
 }
 function roomShowSettings(){if(!roomCurrent)return;roomEditState(roomCurrent);lobP("lbrooms");}
 function roomLeaveLive(){roomCloseLocal();lobP("lbrooms");}
@@ -2400,17 +2401,111 @@ function roomSaveLocal(){
  roomSetMessage("Room settings saved.");return next;
 }
 function roomCloseLocal(){
+ roomStartAbort();
  if(!roomCurrent)return;
  roomList=roomList.filter(function(r){return r.id!==roomCurrent.id;});roomPersist();roomRender();
  roomEditState(null);roomMatchConfig=null;roomLog=[];roomSetMessage("Local room closed.");
 }
-function roomLaunch(){
- var room=roomSaveLocal();if(!room)return;
- // This is not network multiplayer: 5v5 engine retains the existing nine AI soldiers.
- roomMatchConfig=Object.assign({},room);selM=room.mode;
- // begin uses the existing map selection, 5v5 BOT spawn and loadout pipeline.
- begin(roomSide);mt.cd=ROOM_START_COUNTDOWN;
+
+function roomStartMark(percent,label){
+ document.getElementById("roomStartPercent").textContent=percent+"%";
+ document.getElementById("roomStartBar").style.width=percent+"%";
+ document.getElementById("roomStartPhase").textContent=label;
 }
+function roomStartAbort(){
+ var flow=roomStartFlow;flow.token++;
+ if(flow.raf)cancelAnimationFrame(flow.raf);
+ if(flow.timer)clearTimeout(flow.timer);
+ flow.raf=flow.timer=0;flow.active=false;flow.phase="idle";flow.config=null;
+ document.getElementById("roomPrestart").hidden=true;
+ var overlay=document.getElementById("roomTransition");
+ overlay.classList.remove("on","leaving");overlay.hidden=true;
+}
+// Copy a *real* frame of the current 3D WebGL map, no fabricated loading image.
+function roomStartCaptureMap(){
+ var source=R.domElement,dest=document.getElementById("roomStartMap"),ctx=dest.getContext("2d",{alpha:false});
+ if(!source.width||!source.height)return false;
+ var sw=source.width,sh=source.height,ratio=dest.width/dest.height,
+     cw=Math.min(sw,sh*ratio),ch=Math.min(sh,sw/ratio);
+ ctx.drawImage(source,(sw-cw)/2,(sh-ch)/2,cw,ch,0,0,dest.width,dest.height);
+ return true;
+}
+function roomStartCountdown(now,token){
+ var flow=roomStartFlow;if(!flow.active||token!==flow.token||flow.phase!=="countdown")return;
+ var seconds=Math.max(0,Math.ceil((flow.deadline-now)/1000));
+ if(!seconds){roomStartLoading(token);return;}
+ document.getElementById("roomPrestartNumber").textContent=String(seconds);
+ flow.raf=requestAnimationFrame(function(next){roomStartCountdown(next,token);});
+}
+function roomStartLoading(token){
+ var flow=roomStartFlow;if(!flow.active||token!==flow.token)return;
+ flow.phase="loading";flow.raf=0;roomStartCaptureMap();
+ var overlay=document.getElementById("roomTransition");
+ overlay.hidden=false;overlay.classList.remove("leaving");
+ roomStartMark(0,"CAPTURING 3D MAP");
+ flow.raf=requestAnimationFrame(function(){
+  if(!flow.active||token!==flow.token)return;
+  overlay.classList.add("on");
+  roomStartLoadingCover(token,performance.now());
+ });
+}
+function roomStartLoadingCover(token,openedAt){
+ var flow=roomStartFlow;if(!flow.active||token!==flow.token||flow.phase!=="loading")return;
+ var captured=roomStartCaptureMap();
+ if(captured&&document.getElementById("roomStartPercent").textContent==="0%")roomStartMark(25,"3D MAP READY");
+ if(performance.now()-openedAt<500){
+  flow.raf=requestAnimationFrame(function(){roomStartLoadingCover(token,openedAt);});
+  return;
+ }
+ flow.raf=0;roomStartPrepareGame(token);
+}
+function roomStartPrepareGame(token){
+ var flow=roomStartFlow;if(!flow.active||token!==flow.token||flow.phase!=="loading")return;
+ var room=flow.config;
+ if(!roomCurrent||roomCurrent.id!==room.id){roomStartAbort();return;}
+ flow.phase="preparing";roomStartMark(50,"PREPARING MATCH");
+ try{
+  // Existing engine builds actual map, 5v5 BOTs and equipped weapon behind an opaque cover.
+  roomMatchConfig=Object.assign({},room);selM=room.mode;begin(flow.team);
+  mt.cd=0;run=false;document.getElementById("rsp").textContent="";
+  roomStartMark(85,"INITIALIZING GAMEPLAY");
+ }catch(err){
+  run=false;lob=true;lb.style.display="flex";document.body.classList.add("lobby");
+  lobP("lbroomlive");roomStartAbort();roomSetMessage("Match could not start. Please retry.");
+  if(typeof console!=="undefined")console.error("Room launch failed",err);
+  return;
+ }
+ // Let the render loop draw gameplay frames but never simulate the match until fade finishes.
+ flow.raf=requestAnimationFrame(function(){
+  if(!flow.active||token!==flow.token)return;
+  flow.raf=requestAnimationFrame(function(){
+   if(!flow.active||token!==flow.token)return;
+   flow.raf=0;roomStartMark(100,"READY TO DEPLOY");roomStartReveal(token);
+  });
+ });
+}
+function roomStartReveal(token){
+ var flow=roomStartFlow;if(!flow.active||token!==flow.token||flow.phase!=="preparing")return;
+ flow.phase="fading";var overlay=document.getElementById("roomTransition");overlay.classList.add("leaving");
+ flow.timer=setTimeout(function(){
+  if(!flow.active||token!==flow.token)return;
+  overlay.classList.remove("on","leaving");overlay.hidden=true;
+  document.getElementById("roomPrestart").hidden=true;
+  flow.active=false;flow.phase="idle";flow.timer=0;flow.config=null;run=true;
+ },550);
+}
+function roomLaunch(){
+ if(roomStartFlow.active)return;
+ var room=roomSaveLocal();if(!room)return;
+ var flow=roomStartFlow;flow.active=true;flow.phase="countdown";flow.token++;
+ flow.team=roomSide;flow.config=Object.assign({},room);
+ flow.deadline=performance.now()+ROOM_START_COUNTDOWN*1000;
+ document.getElementById("roomPrestartNumber").textContent=String(ROOM_START_COUNTDOWN);
+ document.getElementById("roomPrestart").hidden=false;
+ var token=flow.token;
+ flow.raf=requestAnimationFrame(function(now){roomStartCountdown(now,token);});
+}
+
 function roomMatchSeconds(){return roomMatchConfig&&roomMatchConfig.mode===0?roomMatchConfig.minutes*60:60;}
 function roomKillLimit(){return roomMatchConfig&&roomMatchConfig.mode===0?roomMatchConfig.kills:0;}
 function roomReachedKillLimit(){var n=roomKillLimit();return !!(n>0&&(ts[0]>=n||ts[1]>=n));}
@@ -2436,7 +2531,7 @@ document.getElementById("roomStart").addEventListener("click",roomLaunch);
 document.getElementById("rmlSettings").addEventListener("click",roomShowSettings);
 document.getElementById("rmlLeave").addEventListener("click",roomLeaveLive);
 document.getElementById("rmlStart").addEventListener("click",roomLaunch);
-addEventListener("pagehide",function(){if(roomCurrent)roomCloseLocal();});
+addEventListener("pagehide",function(){roomStartAbort();if(roomCurrent)roomCloseLocal();});
 // Live mode-map video reuses the same WebGL canvas as the 3D lobby.
 // Capture a center-cropped 2D frame at up to 30 FPS while SELECT MODE is open, on desktop and touch.
 var mapPreviewCanvas=document.getElementById("mapPreviewCanvas"),
@@ -2641,7 +2736,7 @@ function respawnPl(){var s=spawnPt(pl.tm);pl.dead=false;pl.dt=pl.rt=pl.rl=pl.cd=
   pl.ammo={};WP.forEach(function(w,i){pl.ammo[i]={mag:w.mag,res:w.res};});pl.w=favPrim;pl.mag=WP[favPrim].mag;pl.res=WP[favPrim].res;pl.slot=0;camY=0;scopeOn=false;resetPm();setHm();document.body.classList.remove("dead");toast("RESPAWNED");}
 // tmUpd(): updates the top HUD (timer, scores, respawn text, spawn-shield text).
 function tmUpd(){var g=function(i){return document.getElementById(i);},r=g("rsp");g("imm").style.display=(pl.inv>0&&!pl.dead&&!mt.over)?"block":"none";var sp0=g("tp"),sq0=g("tq");if(sp0.textContent!=ts[0]){sp0.textContent=ts[0];sp0.classList.remove("pop");void sp0.offsetWidth;sp0.classList.add("pop");}if(sq0.textContent!=ts[1]){sq0.textContent=ts[1];sq0.classList.remove("pop");void sq0.offsetWidth;sq0.classList.add("pop");}g("tt").textContent=mmss(Math.max(0,Math.ceil(mt.t)));g("tbf").style.width=Math.max(0,Math.min(100,mt.t/(isBombMode()?(bombMatch&&bombMatch.state==="planted"?BOMB_RULES.fuseSeconds:roomRoundSeconds()):roomMatchSeconds())*100))+"%";g("tm").classList.toggle("lo",mt.t<=10&&mt.cd<=0&&!mt.over);g("tmP").classList.toggle("you",pl.tm===0);g("tmT").classList.toggle("you",pl.tm===1);
-  r.innerHTML=isBombMode()?(mt.cd>0?Math.ceil(mt.cd):(pl.dead&&!mt.over?"SPECTATING":(bombMatch&&bombMatch.done?"ROUND OVER":""))):mt.cd>0?Math.ceil(mt.cd):mt.t>59.2?"GO!":(pl.dead&&!mt.over?"RESPAWN IN "+Math.max(1,Math.ceil(pl.rsT))+(pl.kb?"<small>KILLED BY "+pl.kb.toUpperCase()+"</small>":""):"");}
+  r.innerHTML=isBombMode()?(mt.cd>0?Math.ceil(mt.cd):(pl.dead&&!mt.over?"SPECTATING":(bombMatch&&bombMatch.done?"ROUND OVER":""))):mt.cd>0?Math.ceil(mt.cd):(pl.dead&&!mt.over?"RESPAWN IN "+Math.max(1,Math.ceil(pl.rsT))+(pl.kb?"<small>KILLED BY "+pl.kb.toUpperCase()+"</small>":""):"");}
 // BOMB MISSION match state (isolated from Team Deathmatch logic).
 var bombMatch=null,bombHold=false,bombSpectatorIndex=0,bombSpectatorView='team';
 var bombInfo=document.getElementById('bombInfo'),bombStatus=document.getElementById('bombStatus'),
@@ -3267,7 +3362,7 @@ function inventoryPreviewInit(){
  renderer.domElement.addEventListener("pointermove",function(e){if(down){inventoryAngle+=(e.clientX-x)*.012;x=e.clientX;}});
  renderer.domElement.addEventListener("pointerup",function(){down=false;});
  renderer.domElement.addEventListener("pointercancel",function(){down=false;});
- inventoryPreview={host:host,actor:actor,mount:mount,guns:guns,renderer:renderer,scene:scene,camera:camera,selected:null};
+ inventoryPreview={host:host,actor:actor,actors:[actor,null],side:0,mount:mount,guns:guns,renderer:renderer,scene:scene,camera:camera,selected:null};
 }
 // Reuse ONE renderer/scene and move its canvas between Inventory and Room Lobby.
 function inventoryPreviewMount(hostId){
@@ -3278,12 +3373,29 @@ function inventoryPreviewMount(hostId){
   p.host=host;
  }
 }
+// Reuse the same renderer and weapon meshes for both real gameplay team actors.
+function inventoryPreviewSetSide(side){
+ inventoryPreviewInit();
+ var p=inventoryPreview,next=side===1?1:0;
+ if(p.side===next)return;
+ var actor=p.actors[next];
+ if(!actor){
+  actor=terro(next);S.remove(actor.g);p.scene.add(actor.g);
+  if(actor.g.userData.rg)actor.g.userData.gun.remove(actor.g.userData.rg);
+  p.actors[next]=actor;
+ }
+ p.actor.g.visible=false;
+ var mount=actor.g.userData.gun;
+ p.guns.forEach(function(g){mount.add(g);});
+ p.actor=actor;p.mount=mount;p.side=next;actor.g.visible=true;
+}
 // Room always displays the primary weapon actually equipped (IN USE), not a
 // highlighted catalog item, guessed weapon ID, or temporary in-match pickup.
-function inventoryRoomPreviewOpen(){
+function inventoryRoomPreviewOpen(side){
  var id=inventoryEquipped("main"),weapon=id===null?null:WP[id];
  document.getElementById("rmlWeaponName").textContent=weapon?weapon.n:"NO PRIMARY";
  document.getElementById("rmlWeaponClass").textContent=weapon?inventoryWeaponRole(weapon.stats.kind):"PRIMARY";
+ inventoryPreviewSetSide(side);
  inventoryShowModel(weapon?id:null);
  inventoryPreviewMount("rmlpreview");
  inventoryStartPreview();
@@ -3324,8 +3436,10 @@ function inventoryPoseFrame(p,now){
  aimA(a.arms[0],-.55,1.3,l[0],l[1]+y,l[2],-1);
 }
 function inventoryPreviewFrame(now){
- var inInventory=document.getElementById("lbiv").classList.contains("on"),
-     inRoom=document.getElementById("lbroomlive").classList.contains("on");
+ // The lobby class may remain on its page while #lb is hidden in a match.
+ // Do not spend GPU time rendering an invisible Inventory/Room 3D preview.
+ var inInventory=lob&&document.getElementById("lbiv").classList.contains("on"),
+     inRoom=lob&&document.getElementById("lbroomlive").classList.contains("on");
  if(!inInventory&&!inRoom){inventoryPreviewLive=false;return;}
  var p=inventoryPreview,hostId=inRoom?"rmlpreview":"ivpreview";
  inventoryPreviewMount(hostId);
@@ -3525,7 +3639,7 @@ function inventoryRender(){
 function inventoryOpen(){
  inventoryTab="main";inventoryClass="all";
  inventoryAngle=.14;lobP("lbiv");
- inventoryPreviewMount("ivpreview");inventoryBuildThumbnails();inventoryRender();inventoryStartPreview();
+ inventoryPreviewMount("ivpreview");inventoryPreviewSetSide(0);inventoryBuildThumbnails();inventoryRender();inventoryStartPreview();
 }
 inventoryLoad();
 document.getElementById("ivcards").addEventListener("scroll",function(){

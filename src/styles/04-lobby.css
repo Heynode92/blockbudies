@@ -290,3 +290,24 @@ body.lobby #gl{filter:brightness(.55) saturate(.8)}
 @media(max-width:680px){.rml-top{gap:9px;flex-wrap:wrap}.rml-brand{font-size:18px;padding-right:10px}.rml-heading h2{font-size:32px}.rml-heading p{font-size:9px;letter-spacing:.1em}.rml-local{font-size:10px;margin-left:auto}.rml-layout{grid-template-columns:1fr}.rml-hero{display:none}.rml-info,.rml-teams,.rml-log,.rml-actions{grid-column:1}.rml-info{min-height:350px}.rml-teams{min-height:410px}.rml-hint{flex-wrap:wrap}.rml-team-grid{gap:7px}.rml-team header{padding:0 6px}.rml-team h3{font-size:23px}.rml-slot em{display:none}.rml-log{min-height:150px}.rml-actions{min-height:125px}}
 @media(max-height:720px) and (min-width:1131px){.rml-top{min-height:58px}.rml-info{gap:4px}.rml-info-line{padding:4px}.rml-team header{min-height:46px}.rml-slots{gap:4px}.rml-layout{grid-template-rows:minmax(0,1fr) 145px}}
 @media(prefers-reduced-motion:reduce){#lbroomlive.on{animation:none}}
+
+/* 3–2–1 appears only within the Room Lobby, not the live match HUD. */
+#lbroomlive .room-prestart[hidden],.room-transition[hidden]{display:none!important}
+#lbroomlive .room-prestart{position:absolute;inset:0;z-index:8;display:flex;align-items:center;justify-content:center;background:rgba(2,9,20,.78);backdrop-filter:blur(5px);pointer-events:all}
+.room-prestart-content{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+.room-prestart-content span{font:900 clamp(15px,1.8vw,24px) Rajdhani,sans-serif;letter-spacing:.35em;color:#ff9a34}
+.room-prestart-content strong{font:italic 900 clamp(110px,18vw,240px)/.9 Impact,"Arial Black",sans-serif;color:#fff;text-shadow:6px 8px 0 #923e16,0 0 60px rgba(250,128,40,.35)}
+.room-prestart-content small{font:800 14px Rajdhani,sans-serif;letter-spacing:.24em;color:#b7cbe3}
+.room-transition{position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:all;background:#060f1f;transition:opacity .5s ease-in-out;overflow:hidden;color:#fff;font-family:Rajdhani,"Trebuchet MS",sans-serif}
+.room-transition.on{opacity:1}.room-transition.leaving{opacity:0}
+#roomStartMap{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(.8) saturate(.85)}
+.room-transition-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(3,9,19,.48),rgba(5,12,25,.7) 55%,rgba(2,8,18,.92))}
+.room-transition-center{position:relative;z-index:1;width:min(640px,86vw);text-align:center;display:flex;flex-direction:column;gap:14px}
+.room-transition-kicker{font:900 12px Rajdhani,sans-serif;letter-spacing:.33em;color:#ff9c34}
+.room-transition-center h2{font:italic 900 clamp(36px,4.5vw,70px) Impact,"Arial Black",sans-serif;letter-spacing:.075em;margin:0;text-shadow:0 5px 14px #000}
+.room-transition-progress{display:flex;justify-content:space-between;align-items:baseline;gap:15px;font-size:15px;font-weight:900;letter-spacing:.15em}
+.room-transition-progress strong{font:italic 900 clamp(26px,3vw,42px) Impact,sans-serif;color:#ff9c35}
+.room-transition-track{height:15px;border:1px solid #527493;background:#0c1b31;overflow:hidden;box-shadow:0 0 17px #090f1d}
+.room-transition-track i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ff7017,#ffc16a);transition:width .22s ease-out}
+.room-transition-center small{font-size:12px;letter-spacing:.22em;color:#a9bfd7;font-weight:800}
+@media(prefers-reduced-motion:reduce){.room-transition{transition:none}.room-transition-track i{transition:none}}
