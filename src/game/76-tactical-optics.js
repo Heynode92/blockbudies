@@ -8,7 +8,8 @@ var TACTICAL_OPTICS={
  11:{style:"p90",name:"P90"},
  12:{style:"sopmod",name:"AK SOPMOD"},
  15:{style:"hk417",name:"HK417"},
- 16:{style:"xm8",name:"XM8",hideViewmodelOnAds:true}
+ 16:{style:"xm8",name:"XM8",hideViewmodelOnAds:true},
+ 18:{style:"saiga12",name:"Saiga-12",hideViewmodelOnAds:true}
 };
 function tacticalOpticConfig(w){return TACTICAL_OPTICS[w]||null;}
 // XM8 uses a centered 2D circular reflex sight. Its tall 3D receiver/carry handle

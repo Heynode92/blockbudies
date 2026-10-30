@@ -97,7 +97,7 @@ function setW(i){pl.w=i;pl.mag=WP[i].mag;pl.res=WP[i].res;pl.rl=0;}
 // reload(): starts a reload of the current weapon if allowed (needs reserve ammo, magazine not full, not already reloading).
 //  Dual Kriss (7) cannot reload: when empty the player must press V to go back to the single Kriss.
 //  AWP (8) does NOT reload after each shot (it uses the bolt cycle); reload() is only called when its magazine is empty.
-function reload(){var w=WP[pl.w];if(!run||pl.dead||pl.rl>0||pl.mag>=w.mag||w.melee)return;if(pl.w===7){if(pl.mag<=0&&toastT<=0)toast("DUAL EMPTY - PRESS V");return;}if(pl.res<=0){if(pl.mag<=0&&toastT<=0)toast("NO AMMO");return;}pl.rl=w.rt;}
+function reload(){var w=WP[pl.w];if(!run||pl.dead||pl.rl>0||(w.pump&&pl.pump>0)||pl.mag>=w.mag||w.melee)return;if(pl.w===7){if(pl.mag<=0&&toastT<=0)toast("DUAL EMPTY - PRESS V");return;}if(pl.res<=0){if(pl.mag<=0&&toastT<=0)toast("NO AMMO");return;}pl.rl=w.rt;}
 // pick(ci): player collects crate type ci: medkit (3) heals, otherwise resupplies or swaps the primary weapon.
 function pick(ci){
   if(ci===3){pl.hp=Math.min(100,pl.hp+40);toast("Medkit +40 HP");return;}

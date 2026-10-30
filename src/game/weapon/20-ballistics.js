@@ -30,6 +30,7 @@ function weaponProfile(p,id){var t=WEAPON_TUNING[p.kind],pel=t.pellets||1;
   if(p.kind==='grenade')w.gr=1;
   if(p.kind==='dual')w.dual=1;
   if(p.kind==='sniper')w.snp=1;
+  if(p.pump===true){w.pump=1;w.pumpDuration=Math.min(.68,w.cd*.8);}
   return w;
 }
 var WP=WEAPON_PROFILES.map(weaponProfile);

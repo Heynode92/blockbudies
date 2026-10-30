@@ -76,5 +76,11 @@
 .tactical-aim-xm8 .ta-frame::after{box-shadow:0 0 6px #ff3038,0 0 17px 4px rgba(255,48,56,.62);}
 .tactical-aim-xm8 .ta-cross{width:22px;height:22px;border:1px solid rgba(255,48,56,.28);border-radius:50%;opacity:.52;}
 .tactical-aim-xm8 .ta-cross::before,.tactical-aim-xm8 .ta-cross::after{display:none;}
+/* Saiga box red-dot ADS, using the same unobstructed 2D optic system. */
+.tactical-aim-saiga12{--ta-size:118px;--ta-cross-size:18px;--ta-color:#ff4545;--ta-dot:5px;}
+.tactical-aim-saiga12 .ta-frame{width:126px;height:93px;border-radius:9px;border:4px solid #283238;box-shadow:0 0 0 2px #586368,0 0 0 7px rgba(11,22,29,.64),inset 0 0 10px rgba(0,0,0,.38);background:radial-gradient(ellipse at center,rgba(20,44,49,.018),rgba(11,28,35,.12));}
+.tactical-aim-saiga12 .ta-frame::before{inset:6px;border-radius:5px;border-color:rgba(158,191,197,.22);}
+.tactical-aim-saiga12 .ta-cross{width:18px;height:18px;border-radius:3px;border-color:rgba(255,69,69,.36);opacity:.7;}
+.tactical-aim-saiga12 .ta-cross::before,.tactical-aim-saiga12 .ta-cross::after{display:none;}
 body.tactical-ads #ch{opacity:0}
 @media(max-width:650px){.tactical-aim{transform:scale(.8)}}
