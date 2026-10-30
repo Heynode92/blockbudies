@@ -29,7 +29,8 @@ function createProfiles(){
 function getAdsArrays(){
  const match=viewmodel.match(/ADF=(\[[^\]]+\]),AP=(\[\[[^\n]+?\]\]),bobP=/);
  assert.ok(match,'ADS field of view and viewmodel arrays must be present');
- return{fov:JSON.parse(match[1]),pos:JSON.parse(match[2])};
+ const state={};runInNewContext('var ADF='+match[1]+';var AP='+match[2]+';',state);
+ return{fov:state.ADF,pos:state.AP};
 }
 function createSightRuntime(){
  const overlay={style:{display:'none'},className:''};
@@ -37,7 +38,7 @@ function createSightRuntime(){
  const env={
   document:{getElementById(){return overlay},body:{classList:{toggle(key,val){bodyFlags[key]=val;}}}},
   pl:{w:9,dead:false,rl:0,sw:0,bAction:false},
-  mt:{over:false,cd:0},lob:false,run:true,adsT:1,
+  mt:{over:false,cd:0},lob:false,run:true,adsT:1,WEAPON_STARTER_ID:9,
   isBombMode(){return false},
   guns:Array.from({length:13},()=>({userData:{}}))
  };
@@ -68,7 +69,7 @@ test('K2 and Shotgun ADS bodies stay beneath center screen and preserve original
  for(const id of [9,2]){
   assert.equal(pos[id][0],0);
   const parts=make(id).meshes;
-  const highest=Math.max(...parts.map(p=>p.params[5]+p.params[1]/2));
+  const highest=Math.max(...parts.map(p=>p.params[5]+(p.type==='cylinder'?p.params[0]:p.params[1]/2)));
   assert.ok(pos[id][1]+highest<-.08,'weapon '+id+' top surface must remain below aim center');
  }
  assert.equal(pos[9][1],-.215);
