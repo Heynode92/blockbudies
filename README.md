@@ -2,6 +2,12 @@
 
 Modular source code for the original Three.js r128 browser FPS. **Team Deathmatch and Bomb Mission are playable in a local browser against AI bots.** No multiplayer backend has been added.
 
+## BOT intelligence upgrade roadmap (planned; not implemented)
+
+A professional, staged modernization plan for **Police and Terrorist BOTs**—aggressive movement, fair 3D aiming, perception, cover, squad coordination, TDM and Bomb Mission tactics—is documented in [BOT AI Master Plan](docs/BOT_AI_MASTER_PLAN.md). Track real implementation status and test evidence in [BOT AI Implementation Log](docs/BOT_AI_IMPLEMENTATION_LOG.md).
+
+**Documentation only as of 2026-10-30.** This roadmap does not mean the new AI is already live, and the current five-star indicator is not a measured skill benchmark.
+
 ## Windows: run with Git pull only
 
 ```powershell

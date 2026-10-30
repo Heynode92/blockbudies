@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-30 — BOT intelligence modernization roadmap and implementation tracker (documentation only)
+
+- Published `docs/BOT_AI_MASTER_PLAN.md`: source-verified baseline, both-faction TDM/Bomb scope, aggressive/natural combat goals, fair 3D aim and perception design, locomotion/cover, team strategy, anti-omniscience rules, milestones M0–M7, performance targets, full regression/acceptance gates and next-maintainer instructions.
+- Published `docs/BOT_AI_IMPLEMENTATION_LOG.md`: workstream status, audit notes, required measurements, change-journal template and explicit next action. **All M0–M7 milestones remain NOT STARTED.**
+- Linked both documents from `README.md` and `src/game/BOT_AI.md` for discoverability.
+- **No gameplay, BOT behavior, source JS, assets, configuration, rules, difficulty labels, manifest or browser bundle changes.** AI implementation requires a separate approved update.
+
+
 ## 2026-10-30 — Surface-aware 3D positional footsteps for player and BOTs
 
 - Added `src/game/66-footsteps.js` for live distance-driven footstep timing on actual player/BOT movement (collision-adjusted, grounded, no idle/airborne/wall-push steps); all teams use identical footstep hearing rules.

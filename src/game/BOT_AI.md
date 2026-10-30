@@ -1,5 +1,7 @@
 # BLOCK BUDDIES — Five-star BOT AI
 
+> **Current implementation reference.** For the future top-tier BOT modernization requirements, read [BOT AI Master Plan](../../docs/BOT_AI_MASTER_PLAN.md) and [BOT AI Implementation Log](../../docs/BOT_AI_IMPLEMENTATION_LOG.md). The 2026-10-30 roadmap is **PLANNED ONLY**; the capabilities described there have **not** been shipped. An existing five-star difficulty label is a configuration/UI value, not a validated competitive-bot benchmark.
+
 ## Existing engine remains authoritative
 The AI uses the current A* navigation (`gPath`), `los`, collision `resolve`, weapon registry `WP`, ammo/reload timers, hit logic `fire`, and Bomb Mission plant/defuse rules. No new combat system, network service, ML runtime or external dependency has been added.
 
