@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-30 — 5-star tactical BOT intelligence: Deathmatch & Bomb Mission
+
+- Both playable modes now display five-star BOT difficulty. Kept match rules, score, player damage, weapon profiles, bomb timers, teams and respawn rules unchanged.
+- Introduced `89-bot-tactical-intelligence.js` as a separate tactical layer: reachable LOS-breaking cover, evasive movement at critical HP, short-lived last-seen-target memory, differentiated pursuit, and caching of failed cover searches to protect frame rate.
+- Improved ammo use: proactive reload when safe, real reserve consumption and reload timers, sidearm use during primary reload, plus grenade safety around teammates. All gunshots still use the canonical `fire()` system.
+- Bomb Mission: an elected dropped-bomb recoverer and separate escorts, planting prioritized except against an immediately visible threat, post-plant guards/interceptors, and the original Police A/B site defense and retake/defuser logic.
+- Added dedicated regression tests and `src/game/BOT_AI.md`. Updated `assets/game.js` remains directly playable from local `index.html`.
+
 ## 2026-10-30 — Fix Saiga-12 shot freeze and new-weapon death drops
 
 - Fixed a runtime exception on Saiga-12's first shot (including ADS fire). `ejectShell()` had incorrectly used the weapon's ID 18 to index `CSP[18]`, although `CSP` only has three **casing types**. The resulting undefined access stopped the requestAnimationFrame game loop.
