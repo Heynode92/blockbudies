@@ -65,12 +65,13 @@ function round(dead){
  const ctx={pl:{tm:1,dead},ck:{n:dead?0:4,hs:dead?0:1},bombMatch:{keepRound:false},ts:[1,2],
   ROS:[{tm:1,name:"You",k:5,d:dead?1:0}],bombCleanup(){},
   reset(){ctx.ck.n=0;ctx.ck.hs=0;ctx.ROS=[];},
-  startMatch(){ctx.ROS=[{tm:1,name:"You",k:0,d:0}];}};
+  startMatch(){ctx.ROS=[{tm:1,name:"You",k:0,d:0}];},
+  resetKillStreak(){ctx.ck.n=0;ctx.ck.hs=0;}};
  runInNewContext(extract(bomb,"function bombNextRound(){","// The tactical director"),ctx);
  ctx.bombNextRound();return ctx;
 }
-test("Bomb Mission survivor carries life streak across a round",()=>{
- const c=round(false);assert.equal(c.ck.n,4);assert.equal(c.ck.hs,1);
+test("Bomb Mission surviving player starts every round with a fresh multi-kill streak",()=>{
+ const c=round(false);assert.equal(c.ck.n,0);assert.equal(c.ck.hs,0);
  assert.equal(c.ROS[0].k,5);assert.equal(c.bombMatch.keepRound,true);
 });
 test("Bomb Mission death resets streak for the next round",()=>{

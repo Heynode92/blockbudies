@@ -20,7 +20,7 @@ function fakeThree(){
 }
 function makeContext(){
   const T=fakeThree();
-  const dom={};for(const id of ['bombInfo','bombStatus','bombActionLabel','bombActionBar','bombTouch','bombSpec','bombNext']){
+  const dom={};for(const id of ['bombInfo','bombDropMarker','bombStatus','bombActionLabel','bombActionBar','bombTouch','bombSpec','bombNext']){
     dom[id]={style:{},textContent:'',addEventListener(){},setPointerCapture(){},userData:{}};
   }
   const fakeCanvas={width:0,height:0,getContext(){return {fillRect(){},fillText(){},fillStyle:'',font:'',textAlign:''};}};

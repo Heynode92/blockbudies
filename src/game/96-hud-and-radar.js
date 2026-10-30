@@ -9,9 +9,12 @@ var RS=320,RC=160,RO=156,RI=116,RWD=30,CDN=["N","NE","E","SE","S","SW","W","NW"]
 var BOMB_RADAR=Object.freeze({baseRange:50,padding:1.25,pulseHz:1.8,
   ringPixels:11,ringGrowthPixels:11,dotPixels:4,color:'#ff4d4d',core:'#fff0bd'});
 function bombRadarRange(observer){
-  if(!isBombMode()||!bombMatch||bombMatch.state!=='planted'||bombMatch.done)return BOMB_RADAR.baseRange;
+  if(!isBombMode()||!bombMatch||bombMatch.done)return BOMB_RADAR.baseRange;
+  var p=bombMatch.state==='planted'?bombMatch.device.position:
+    bombDroppedSignalVisible()?bombMatch.dropped:null;
+  if(!p)return BOMB_RADAR.baseRange;
   return Math.max(BOMB_RADAR.baseRange,
-    Math.hypot(bombMatch.device.position.x-observer.x,bombMatch.device.position.z-observer.z)*BOMB_RADAR.padding);
+    Math.hypot(p.x-observer.x,p.z-observer.z)*BOMB_RADAR.padding);
 }
 function bombRadarBeacon(X,k,now){
   if(!isBombMode()||!bombMatch||bombMatch.state!=='planted'||bombMatch.done)return;
@@ -22,6 +25,16 @@ function bombRadarBeacon(X,k,now){
   X.globalAlpha=1-p;X.beginPath();X.arc(pos.x,pos.z,BOMB_RADAR.ringPixels/k,0,6.2832);X.stroke();
   X.globalAlpha=1;X.fillStyle=BOMB_RADAR.core;X.beginPath();X.arc(pos.x,pos.z,BOMB_RADAR.dotPixels/k,0,6.2832);X.fill();
   X.restore();
+}
+// Only Terrorists see the dropped bomb. Both teams retain the planted-bomb beacon.
+function bombDroppedRadarBeacon(X,k,now){
+ if(!bombDroppedSignalVisible())return;
+ var pos=bombMatch.dropped,p=(now*1.8)%1,r=(7+p*10)/k,s=5/k;
+ X.save();X.shadowColor='#ffb938';X.shadowBlur=12;X.strokeStyle='#ffb938';X.lineWidth=2/k;
+ X.beginPath();X.arc(pos.x,pos.z,r,0,6.2832);X.stroke();
+ X.fillStyle='#fff0b0';X.beginPath();
+ X.moveTo(pos.x,pos.z-s);X.lineTo(pos.x+s,pos.z);X.lineTo(pos.x,pos.z+s);X.lineTo(pos.x-s,pos.z);
+ X.closePath();X.fill();X.restore();
 }
 // cfont(): returns the CSS font string used on the radar canvas.
 function cfont(n){return "700 "+n+'px Rajdhani,"Trebuchet MS",sans-serif';}
@@ -61,10 +74,10 @@ function radar(){
   X.strokeStyle="rgba(255,110,50,.95)";X.lineWidth=2.5/k;X.strokeRect(-A,-A,2*A,2*A);
   X.fillStyle="#69db7c";X.shadowColor="#2fe06a";X.shadowBlur=8;
   cr.forEach(function(q){if(q.ci===3&&q.land&&Math.hypot(q.x-rp.x,q.z-rp.z)<range*.95){var m=2.6/k;X.fillRect(q.x-m,q.z-m*.35,m*2,m*.7);X.fillRect(q.x-m*.35,q.z-m,m*.7,m*2);}});
-  if(isBombMode()){BOMB_SITES.forEach(function(site){X.fillStyle="#ffe066";X.shadowBlur=0;X.font=cfont(12/k);X.textAlign="center";X.fillText(site.id,site.x,site.z);});if(bombMatch&&bombMatch.dropped){X.fillStyle="#ff5555";X.beginPath();X.arc(bombMatch.dropped.x,bombMatch.dropped.z,1.4,0,6.283);X.fill();}}
+  if(isBombMode()){BOMB_SITES.forEach(function(site){X.fillStyle="#ffe066";X.shadowBlur=0;X.font=cfont(12/k);X.textAlign="center";X.fillText(site.id,site.x,site.z);});}
   en.forEach(function(q){var al=q.tm===pl.tm;if(!al&&!(q.vis>0))return;var ddx=q.x-rp.x,ddz=q.z-rp.z,dl=Math.hypot(ddx,ddz),mxr=range*.93,px=q.x,pz=q.z;if(dl>mxr){px=rp.x+ddx/dl*mxr;pz=rp.z+ddz/dl*mxr;}X.shadowColor=al?"#4dabf7":"#ff4d4d";X.shadowBlur=al?10:0;X.fillStyle=al?"#4dabf7":"#ff4d4d";X.strokeStyle="#fff";X.lineWidth=2/k;X.beginPath();X.arc(px,pz,(al?8:6)/k,0,6.29);X.fill();X.stroke();});
   // Draw after character dots, at the planted device world coordinates.
-  bombRadarBeacon(X,k,now);
+  bombRadarBeacon(X,k,now);bombDroppedRadarBeacon(X,k,now);
   X.shadowBlur=0;X.setTransform(1,0,0,1,0,0);
   // range rings + cross lines
   X.strokeStyle="rgba(120,200,255,.2)";X.lineWidth=1.5;

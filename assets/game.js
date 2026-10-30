@@ -1838,6 +1838,31 @@ var bombMatch=null,bombHold=false,bombSpectatorIndex=0,bombSpectatorView='team';
 var bombInfo=document.getElementById('bombInfo'),bombStatus=document.getElementById('bombStatus'),
   bombActionLabel=document.getElementById('bombActionLabel'),bombActionBar=document.getElementById('bombActionBar'),
   bombTouch=document.getElementById('bombTouch'),bombSpec=document.getElementById('bombSpec');
+// A dropped, unplanted bomb is visible only to the Terrorist team.
+var bombDropMarker=document.getElementById('bombDropMarker');
+function bombDroppedSignalVisible(){
+ return !!(isBombMode()&&bombMatch&&!bombMatch.done&&bombMatch.state==='idle'&&bombMatch.dropped&&pl&&pl.tm===1);
+}
+// Track the actual dropped position in the camera, clamping the indicator to screen edges.
+function bombDropMarkerUpdate(){
+ var visible=bombDroppedSignalVisible()&&run&&!mt.over;
+ bombDropMarker.style.display=visible?'flex':'none';
+ if(!visible)return;
+ var pos=bombMatch.dropped,target=new T.Vector3(pos.x,1.2,pos.z),
+     fwd=C.getWorldDirection(new T.Vector3()),
+     behind=target.clone().sub(C.position).dot(fwd)<=0;
+ target.project(C);
+ var w=innerWidth,h=innerHeight,sx=(target.x+1)*w/2,sy=(1-target.y)*h/2;
+ if(behind){sx=w-sx;sy=h-sy;}
+ if(!Number.isFinite(sx)||!Number.isFinite(sy)){sx=w/2;sy=h+100;}
+ if(behind&&Math.abs(sx-w/2)<4&&Math.abs(sy-h/2)<4)sy=h+100;
+ var x=Math.max(90,Math.min(w-90,sx)),y=Math.max(100,Math.min(h-115,sy)),
+     edge=behind||sx!==x||sy!==y;
+ bombDropMarker.style.left=x+'px';bombDropMarker.style.top=y+'px';
+ bombDropMarker.classList.toggle('edge',edge);
+ bombDropMarker.style.setProperty('--bomb-bearing',Math.atan2(sx-w/2,h/2-sy)*180/Math.PI+'deg');
+ bombDropMarker.querySelector('.bomb-drop-distance').textContent=Math.round(Math.hypot(pos.x-pl.x,pos.z-pl.z))+' UNITS';
+}
 function bombCandidates(){return en.filter(function(b){return b.tm===1&&!b.dead;}).concat(pl.tm===1&&!pl.dead?[pl]:[]);}
 function bombCreateDevice(){
   var g=new T.Group(),base=new T.MeshLambertMaterial({color:0x28323e}),screen=new T.MeshBasicMaterial({color:0xf85d48});
@@ -1887,7 +1912,7 @@ function bombStartMatch(){
 function bombDrop(holder){
   if(!isBombMode()||!bombMatch||bombMatch.state!=='idle')return;
   if(holder===bombMatch.carrier){bombMatch.carrier=null;bombMatch.dropped={x:holder.x,z:holder.z};bombMatch.device.visible=true;
-    bombMatch.device.position.set(holder.x,0,holder.z);toast(BOMB_TEXT.dropped);}
+    bombMatch.device.position.set(holder.x,0,holder.z);if(pl.tm===1)toast(BOMB_TEXT.dropped);}
   holder.bAction=null;
 }
 function bombArea(e){
@@ -1931,12 +1956,11 @@ function bombFinish(winner,reason){var b=bombMatch;if(!b||b.done)return;
   toast((winner?BOMB_TEXT.terrorWin:BOMB_TEXT.policeWin)+' - '+reason);
 }
 function bombNextRound(){var old=bombMatch,team=pl.tm,wins=ts.slice(),stats={};
-  // Reset rebuilds the world. Preserve a surviving player's life streak only.
-  var survivorStreak=pl.dead?null:{n:ck.n,hs:ck.hs};
+  // Kill notifications restart for every round, including surviving players.
+  // Preserve match-wide career kills and team scores without carrying the streak.
   ROS.forEach(function(s){stats[s.tm+':'+s.name]={k:s.k,d:s.d};});
   bombCleanup();old.keepRound=true;
-  reset();startMatch(team);
-  if(survivorStreak){ck.n=survivorStreak.n;ck.hs=survivorStreak.hs;}
+  reset();startMatch(team);resetKillStreak();
   ts=wins;ROS.forEach(function(s){var h=stats[s.tm+':'+s.name];if(h){s.k=h.k;s.d=h.d;}});
 }
 // The tactical director assigns moving, separate objectives to every team member.
@@ -1996,6 +2020,7 @@ function bombHudUpdate(){
   var show=isBombMode()&&run&&bombMatch&&!mt.over;
   bombInfo.style.display=show?'flex':'none';bombStatus.style.display=show?'block':'none';bombTouch.style.display='none';bombSpec.style.display='none';
   bombHands.visible=false;
+  bombDropMarkerUpdate();
   if(!show)return;
   var b=bombMatch,roundLabel=BOMB_TEXT.round+' '+b.round+' / '+BOMB_RULES.rounds;
   bombInfo.textContent=roundLabel+(b.state==='planted'?'  |  '+BOMB_TEXT.planted+' '+BOMB_SITES[b.site].id:'');
@@ -2899,9 +2924,12 @@ var RS=320,RC=160,RO=156,RI=116,RWD=30,CDN=["N","NE","E","SE","S","SW","W","NW"]
 var BOMB_RADAR=Object.freeze({baseRange:50,padding:1.25,pulseHz:1.8,
   ringPixels:11,ringGrowthPixels:11,dotPixels:4,color:'#ff4d4d',core:'#fff0bd'});
 function bombRadarRange(observer){
-  if(!isBombMode()||!bombMatch||bombMatch.state!=='planted'||bombMatch.done)return BOMB_RADAR.baseRange;
+  if(!isBombMode()||!bombMatch||bombMatch.done)return BOMB_RADAR.baseRange;
+  var p=bombMatch.state==='planted'?bombMatch.device.position:
+    bombDroppedSignalVisible()?bombMatch.dropped:null;
+  if(!p)return BOMB_RADAR.baseRange;
   return Math.max(BOMB_RADAR.baseRange,
-    Math.hypot(bombMatch.device.position.x-observer.x,bombMatch.device.position.z-observer.z)*BOMB_RADAR.padding);
+    Math.hypot(p.x-observer.x,p.z-observer.z)*BOMB_RADAR.padding);
 }
 function bombRadarBeacon(X,k,now){
   if(!isBombMode()||!bombMatch||bombMatch.state!=='planted'||bombMatch.done)return;
@@ -2912,6 +2940,16 @@ function bombRadarBeacon(X,k,now){
   X.globalAlpha=1-p;X.beginPath();X.arc(pos.x,pos.z,BOMB_RADAR.ringPixels/k,0,6.2832);X.stroke();
   X.globalAlpha=1;X.fillStyle=BOMB_RADAR.core;X.beginPath();X.arc(pos.x,pos.z,BOMB_RADAR.dotPixels/k,0,6.2832);X.fill();
   X.restore();
+}
+// Only Terrorists see the dropped bomb. Both teams retain the planted-bomb beacon.
+function bombDroppedRadarBeacon(X,k,now){
+ if(!bombDroppedSignalVisible())return;
+ var pos=bombMatch.dropped,p=(now*1.8)%1,r=(7+p*10)/k,s=5/k;
+ X.save();X.shadowColor='#ffb938';X.shadowBlur=12;X.strokeStyle='#ffb938';X.lineWidth=2/k;
+ X.beginPath();X.arc(pos.x,pos.z,r,0,6.2832);X.stroke();
+ X.fillStyle='#fff0b0';X.beginPath();
+ X.moveTo(pos.x,pos.z-s);X.lineTo(pos.x+s,pos.z);X.lineTo(pos.x,pos.z+s);X.lineTo(pos.x-s,pos.z);
+ X.closePath();X.fill();X.restore();
 }
 // cfont(): returns the CSS font string used on the radar canvas.
 function cfont(n){return "700 "+n+'px Rajdhani,"Trebuchet MS",sans-serif';}
@@ -2951,10 +2989,10 @@ function radar(){
   X.strokeStyle="rgba(255,110,50,.95)";X.lineWidth=2.5/k;X.strokeRect(-A,-A,2*A,2*A);
   X.fillStyle="#69db7c";X.shadowColor="#2fe06a";X.shadowBlur=8;
   cr.forEach(function(q){if(q.ci===3&&q.land&&Math.hypot(q.x-rp.x,q.z-rp.z)<range*.95){var m=2.6/k;X.fillRect(q.x-m,q.z-m*.35,m*2,m*.7);X.fillRect(q.x-m*.35,q.z-m,m*.7,m*2);}});
-  if(isBombMode()){BOMB_SITES.forEach(function(site){X.fillStyle="#ffe066";X.shadowBlur=0;X.font=cfont(12/k);X.textAlign="center";X.fillText(site.id,site.x,site.z);});if(bombMatch&&bombMatch.dropped){X.fillStyle="#ff5555";X.beginPath();X.arc(bombMatch.dropped.x,bombMatch.dropped.z,1.4,0,6.283);X.fill();}}
+  if(isBombMode()){BOMB_SITES.forEach(function(site){X.fillStyle="#ffe066";X.shadowBlur=0;X.font=cfont(12/k);X.textAlign="center";X.fillText(site.id,site.x,site.z);});}
   en.forEach(function(q){var al=q.tm===pl.tm;if(!al&&!(q.vis>0))return;var ddx=q.x-rp.x,ddz=q.z-rp.z,dl=Math.hypot(ddx,ddz),mxr=range*.93,px=q.x,pz=q.z;if(dl>mxr){px=rp.x+ddx/dl*mxr;pz=rp.z+ddz/dl*mxr;}X.shadowColor=al?"#4dabf7":"#ff4d4d";X.shadowBlur=al?10:0;X.fillStyle=al?"#4dabf7":"#ff4d4d";X.strokeStyle="#fff";X.lineWidth=2/k;X.beginPath();X.arc(px,pz,(al?8:6)/k,0,6.29);X.fill();X.stroke();});
   // Draw after character dots, at the planted device world coordinates.
-  bombRadarBeacon(X,k,now);
+  bombRadarBeacon(X,k,now);bombDroppedRadarBeacon(X,k,now);
   X.shadowBlur=0;X.setTransform(1,0,0,1,0,0);
   // range rings + cross lines
   X.strokeStyle="rgba(120,200,255,.2)";X.lineWidth=1.5;

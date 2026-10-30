@@ -3,6 +3,31 @@ var bombMatch=null,bombHold=false,bombSpectatorIndex=0,bombSpectatorView='team';
 var bombInfo=document.getElementById('bombInfo'),bombStatus=document.getElementById('bombStatus'),
   bombActionLabel=document.getElementById('bombActionLabel'),bombActionBar=document.getElementById('bombActionBar'),
   bombTouch=document.getElementById('bombTouch'),bombSpec=document.getElementById('bombSpec');
+// A dropped, unplanted bomb is visible only to the Terrorist team.
+var bombDropMarker=document.getElementById('bombDropMarker');
+function bombDroppedSignalVisible(){
+ return !!(isBombMode()&&bombMatch&&!bombMatch.done&&bombMatch.state==='idle'&&bombMatch.dropped&&pl&&pl.tm===1);
+}
+// Track the actual dropped position in the camera, clamping the indicator to screen edges.
+function bombDropMarkerUpdate(){
+ var visible=bombDroppedSignalVisible()&&run&&!mt.over;
+ bombDropMarker.style.display=visible?'flex':'none';
+ if(!visible)return;
+ var pos=bombMatch.dropped,target=new T.Vector3(pos.x,1.2,pos.z),
+     fwd=C.getWorldDirection(new T.Vector3()),
+     behind=target.clone().sub(C.position).dot(fwd)<=0;
+ target.project(C);
+ var w=innerWidth,h=innerHeight,sx=(target.x+1)*w/2,sy=(1-target.y)*h/2;
+ if(behind){sx=w-sx;sy=h-sy;}
+ if(!Number.isFinite(sx)||!Number.isFinite(sy)){sx=w/2;sy=h+100;}
+ if(behind&&Math.abs(sx-w/2)<4&&Math.abs(sy-h/2)<4)sy=h+100;
+ var x=Math.max(90,Math.min(w-90,sx)),y=Math.max(100,Math.min(h-115,sy)),
+     edge=behind||sx!==x||sy!==y;
+ bombDropMarker.style.left=x+'px';bombDropMarker.style.top=y+'px';
+ bombDropMarker.classList.toggle('edge',edge);
+ bombDropMarker.style.setProperty('--bomb-bearing',Math.atan2(sx-w/2,h/2-sy)*180/Math.PI+'deg');
+ bombDropMarker.querySelector('.bomb-drop-distance').textContent=Math.round(Math.hypot(pos.x-pl.x,pos.z-pl.z))+' UNITS';
+}
 function bombCandidates(){return en.filter(function(b){return b.tm===1&&!b.dead;}).concat(pl.tm===1&&!pl.dead?[pl]:[]);}
 function bombCreateDevice(){
   var g=new T.Group(),base=new T.MeshLambertMaterial({color:0x28323e}),screen=new T.MeshBasicMaterial({color:0xf85d48});
@@ -52,7 +77,7 @@ function bombStartMatch(){
 function bombDrop(holder){
   if(!isBombMode()||!bombMatch||bombMatch.state!=='idle')return;
   if(holder===bombMatch.carrier){bombMatch.carrier=null;bombMatch.dropped={x:holder.x,z:holder.z};bombMatch.device.visible=true;
-    bombMatch.device.position.set(holder.x,0,holder.z);toast(BOMB_TEXT.dropped);}
+    bombMatch.device.position.set(holder.x,0,holder.z);if(pl.tm===1)toast(BOMB_TEXT.dropped);}
   holder.bAction=null;
 }
 function bombArea(e){
@@ -96,12 +121,11 @@ function bombFinish(winner,reason){var b=bombMatch;if(!b||b.done)return;
   toast((winner?BOMB_TEXT.terrorWin:BOMB_TEXT.policeWin)+' - '+reason);
 }
 function bombNextRound(){var old=bombMatch,team=pl.tm,wins=ts.slice(),stats={};
-  // Reset rebuilds the world. Preserve a surviving player's life streak only.
-  var survivorStreak=pl.dead?null:{n:ck.n,hs:ck.hs};
+  // Kill notifications restart for every round, including surviving players.
+  // Preserve match-wide career kills and team scores without carrying the streak.
   ROS.forEach(function(s){stats[s.tm+':'+s.name]={k:s.k,d:s.d};});
   bombCleanup();old.keepRound=true;
-  reset();startMatch(team);
-  if(survivorStreak){ck.n=survivorStreak.n;ck.hs=survivorStreak.hs;}
+  reset();startMatch(team);resetKillStreak();
   ts=wins;ROS.forEach(function(s){var h=stats[s.tm+':'+s.name];if(h){s.k=h.k;s.d=h.d;}});
 }
 // The tactical director assigns moving, separate objectives to every team member.
@@ -161,6 +185,7 @@ function bombHudUpdate(){
   var show=isBombMode()&&run&&bombMatch&&!mt.over;
   bombInfo.style.display=show?'flex':'none';bombStatus.style.display=show?'block':'none';bombTouch.style.display='none';bombSpec.style.display='none';
   bombHands.visible=false;
+  bombDropMarkerUpdate();
   if(!show)return;
   var b=bombMatch,roundLabel=BOMB_TEXT.round+' '+b.round+' / '+BOMB_RULES.rounds;
   bombInfo.textContent=roundLabel+(b.state==='planted'?'  |  '+BOMB_TEXT.planted+' '+BOMB_SITES[b.site].id:'');

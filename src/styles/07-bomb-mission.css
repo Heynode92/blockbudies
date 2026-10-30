@@ -14,3 +14,22 @@ body.bomb-spectator #rsp{display:none!important}
 .touch #bombStatus{bottom:35%;font-size:17px}
 .touch #bombSpec{font-size:12px;bottom:17%;padding:6px 10px}
 .touch.bomb-spectator:not(.lobby):not(.over) #bombNext{display:block}
+
+/* Terrorist-only dropped-bomb waypoint in camera space, with an off-screen bearing arrow. */
+#bombDropMarker{display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-100%);
+ flex-direction:column;align-items:center;gap:2px;min-width:108px;padding:9px 11px;
+ background:rgba(20,25,31,.83);border:1px solid rgba(255,190,75,.78);border-radius:8px;
+ box-shadow:0 0 20px rgba(255,164,37,.24),0 4px 15px rgba(0,0,0,.45);
+ color:#fff1c2;z-index:8;pointer-events:none;text-align:center;white-space:nowrap;
+ font:800 12px Rajdhani,sans-serif;letter-spacing:.1em;text-shadow:0 1px 3px #000}
+#bombDropMarker strong{font-size:13px;color:#ffd06c;letter-spacing:.14em}
+#bombDropMarker .bomb-drop-distance{font-size:11px;color:#ffe8bc}
+#bombDropMarker .bomb-drop-pointer{display:none;font-size:20px;line-height:1;color:#ffb938;
+ transform:rotate(var(--bomb-bearing,0deg))}
+#bombDropMarker.edge .bomb-drop-pointer{display:block}
+#bombDropMarker:not(.edge)::before{content:"◆";font-size:13px;color:#ffba46;
+ text-shadow:0 0 12px rgba(255,177,46,.9);animation:bomb-drop-pulse 1.35s ease-in-out infinite}
+@keyframes bomb-drop-pulse{50%{opacity:.45;transform:scale(.8)}}
+.lobby #bombDropMarker,.over #bombDropMarker{display:none!important}
+@media(max-width:650px){#bombDropMarker{min-width:88px;padding:6px 8px;font-size:10px}
+ #bombDropMarker strong{font-size:11px}}

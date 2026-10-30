@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-30 — Bomb Mission round kill streak and Terrorist-only dropped-bomb signal
+
+- Reset Double/Triple/Chain Kill streak at the start of every Bomb Mission round, including when the player survives. Team round wins, accumulated kills/deaths and Deathmatch life streaks are unchanged.
+- Added a position-accurate dropped-bomb screen waypoint with distance and off-screen direction plus a pulsing minimap beacon, only for Terrorists while the bomb is on the ground.
+- Police receive no bomb-drop toast or dropped-location minimap signal. Both teams retain the existing planted-bomb beacon.
+- The dropped indicator disappears after pickup, plant, round completion or mode change. Added regression tests and regenerated assets/game.js.
+
 ## 2026-10-30 — MP7 rectangular reflex sight
 
 - Replaced the round MP7 tactical ADS frame with a 128×88px rectangular reflex window and 10px rounded corners, matching its blocky low-poly optic.
