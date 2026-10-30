@@ -6,10 +6,8 @@ var BOT_TACTICS=Object.freeze({
  retreatSpeed:1.22,approachSpeed:1.2,fightSpeed:.94,
  proactiveReloadFraction:.28,threatRange:24,coverRecheck:1.6
 });
-function botSmartSight(e,t){return !!(t&&!t.dead&&los(e.x,e.z,t.x,t.z));}
-function botSmartRemember(e,t){
- if(botSmartSight(e,t))e.lastSeen={x:t.x,z:t.z,until:tt+BOT_TACTICS.memorySeconds};
-}
+function botSmartSight(e,t){return botIntelVisible(e,t);}
+function botSmartRemember(e,t){return botIntelObserve(e,t);}
 function botSmartCover(e,threat){
  if(!threat||!GB)return null;
  var saved=e.coverGoal,stable=Math.hypot((e.coverThreatX||0)-threat.x,(e.coverThreatZ||0)-threat.z)<4;
@@ -37,7 +35,7 @@ function botSmartCover(e,threat){
  e.coverGoal=null;e.coverExpires=tt+.8;e.coverThreatX=threat.x;e.coverThreatZ=threat.z;return null;
 }
 function botSmartIntent(e,target){
- var out={retreat:false,goal:null,hold:false},last=e.lastSeen,
+ var out={retreat:false,goal:null,hold:false},last=botIntelKnown(e),
      threat=target||(last&&last.until>tt?last:null),
      distance=threat?Math.hypot(threat.x-e.x,threat.z-e.z):Infinity,
      critical=e.hp<=BOT_TACTICS.criticalHP,reloading=e.reloadId!==null,
