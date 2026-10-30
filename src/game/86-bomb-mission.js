@@ -68,7 +68,7 @@ function bombStartMatch(){
     site:-1,roundWins:old?old.roundWins:[0,0],fuseLeft:BOMB_RULES.fuseSeconds,
     done:false,finishDelay:0,keepRound:false,winner:null};
   bombMatch.device.visible=false;
-  mt.t=BOMB_RULES.roundSeconds;mt.cd=BOMB_RULES.freezeSeconds;
+  mt.t=roomRoundSeconds();mt.cd=BOMB_RULES.freezeSeconds;
   var options=bombCandidates();bombMatch.carrier=options[(Math.random()*options.length)|0]||null;
   en.concat([pl]).forEach(function(e){e.bAction=null;});
   if(bombMatch.carrier===pl)toast(BOMB_TEXT.carrier);
@@ -155,7 +155,7 @@ function bombSpectatorTarget(){
 function bombSpectatorNext(d){if(isBombMode()&&pl.dead){bombSpectatorIndex+=d;bombResetSpectatorCamera();}}
 function bombUpdate(dt){if(!isBombMode()||!bombMatch||mt.over)return;
   var b=bombMatch;
-  if(b.done){b.finishDelay-=dt;if(b.finishDelay<=0){if(ts[0]>=BOMB_RULES.wins||ts[1]>=BOMB_RULES.wins||b.round>=BOMB_RULES.rounds)endMatch();else bombNextRound();}return;}
+  if(b.done){b.finishDelay-=dt;if(b.finishDelay<=0){if(ts[0]>=roomRoundsToWin()||ts[1]>=roomRoundsToWin()||b.round>=roomRoundLimit())endMatch();else bombNextRound();}return;}
   if(mt.cd>0)return;
   if(b.state==='idle'&&b.dropped){
     var candidates=bombCandidates();
@@ -187,7 +187,7 @@ function bombHudUpdate(){
   bombHands.visible=false;
   bombDropMarkerUpdate();
   if(!show)return;
-  var b=bombMatch,roundLabel=BOMB_TEXT.round+' '+b.round+' / '+BOMB_RULES.rounds;
+  var b=bombMatch,roundLabel=BOMB_TEXT.round+' '+b.round+' / '+roomRoundLimit();
   bombInfo.textContent=roundLabel+(b.state==='planted'?'  |  '+BOMB_TEXT.planted+' '+BOMB_SITES[b.site].id:'');
   var action=!pl.dead?bombActionFor(pl):null;
   var label='',progress=0;

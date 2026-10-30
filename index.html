@@ -67,6 +67,52 @@
     <p class="shop-note">Weapons unlocked here stay in your Inventory on this browser. Choose one there before your next match.</p>
   </div>
 </section>
+
+<section id="lbrooms" class="lbp" aria-label="Local room lobby">
+  <header class="room-top">
+    <button id="roomBack" type="button" class="room-back">‹ BACK</button>
+    <div class="room-headings">
+      <h2>ROOM LOBBY</h2>
+      <p>BLOCK BUDDIES ARMORY <span>·</span> CREATE OR SELECT A LOCAL MATCH</p>
+    </div>
+    <span class="room-local-flag">LOCAL · VS AI</span>
+  </header>
+  <div class="room-grid">
+    <section class="room-list-panel" aria-label="Available local rooms">
+      <div class="room-panel-head"><div><h3>AVAILABLE ROOMS</h3><small>ROOMS SAVED IN THIS BROWSER</small></div><button type="button" id="roomRefresh">↻ REFRESH</button></div>
+      <div class="room-cols" aria-hidden="true"><span>ID</span><span>ROOM NAME</span><span>MAP / MODE</span><span>PLAYERS</span><span>STATUS</span><span></span></div>
+      <div id="roomEntries" class="room-entries" aria-live="polite"></div>
+      <div id="roomEmpty" class="room-empty"><strong>NO LOCAL ROOMS YET</strong><p>Create a room on the right to start a match against bots.</p></div>
+      <footer class="room-list-footer"><span>LOCAL ROOMS ONLY · NO ONLINE SERVER CONNECTED</span><strong id="roomCount">0 ROOMS</strong></footer>
+    </section>
+    <section class="room-create-panel" aria-label="Create room controls">
+      <header class="room-create-head"><span class="room-gear">⚙</span><div><h3 id="roomPanelTitle">CREATE ROOM</h3><p id="roomPanelSub">BECOME ROOM MASTER</p></div></header>
+      <div class="room-form-scroll">
+        <label class="room-field"><span>ROOM NAME <small>MAX 32 CHARACTERS</small></span><input id="roomName" maxlength="32" autocomplete="off" spellcheck="false" value="My Room" aria-label="Room name"></label>
+        <div class="room-field"><span>MAP</span><div class="room-map-preview">
+          <canvas id="roomMapPreview" width="720" height="320" aria-label="Actual in-game map preview"></canvas>
+          <div class="room-map-title"><b id="roomMapName">BLOCK DISTRICT</b><small id="roomMapCaption">Urban Combat Zone</small></div>
+        </div><select id="roomMap" aria-label="Available maps" disabled></select><small class="room-help">Only existing playable maps are selectable for each mode.</small></div>
+        <div class="room-field"><span>GAME MODE</span><div class="room-mode-switch" role="group" aria-label="Game mode"><button id="roomTdm" class="active" type="button" aria-pressed="true">TEAM DEATH MATCH</button><button id="roomBomb" type="button" aria-pressed="false">BOMB MODE</button></div></div>
+        <div id="roomTdmSettings" class="room-fields-two">
+          <label class="room-field"><span>KILL LIMIT</span><select id="roomKills"><option value="20">20 KILLS</option><option value="30">30 KILLS</option><option value="50" selected>50 KILLS</option><option value="75">75 KILLS</option><option value="100">100 KILLS</option></select></label>
+          <label class="room-field"><span>MATCH TIME</span><select id="roomMinutes"><option value="1">1 MINUTE</option><option value="3">3 MINUTES</option><option value="5">5 MINUTES</option><option value="10" selected>10 MINUTES</option><option value="15">15 MINUTES</option></select></label>
+        </div>
+        <div id="roomBombSettings" class="room-fields-two" hidden>
+          <label class="room-field"><span>MAX ROUNDS</span><select id="roomRounds"><option value="3">3 ROUNDS</option><option value="5">5 ROUNDS</option><option value="7">7 ROUNDS</option><option value="9">9 ROUNDS</option><option value="12" selected>12 ROUNDS</option></select></label>
+          <label class="room-field"><span>ROUND TIME</span><select id="roomRoundMinutes"><option value="1">1 MINUTE</option><option value="2" selected>2 MINUTES</option><option value="3">3 MINUTES</option><option value="4">4 MINUTES</option></select></label>
+        </div>
+        <div class="room-fixed-size"><span>PLAYERS</span><b>5 VS 5</b><small>1 PLAYER + 9 BOTS · OFFLINE</small></div>
+        <div id="roomMasterStatus" class="room-master-status" hidden><strong>★ ROOM MASTER</strong><span>YOU CONTROL THE ROOM SETTINGS</span></div>
+        <p id="roomMessage" class="room-message" aria-live="polite"></p>
+      </div>
+      <footer class="room-create-actions">
+        <button id="roomCreate" class="room-primary" type="button">＋ CREATE ROOM</button>
+        <div id="roomMasterActions" class="room-master-actions" hidden><button id="roomSave" type="button">SAVE SETTINGS</button><button id="roomClose" type="button">CLOSE ROOM</button><button id="roomStart" class="room-primary" type="button">▶ START MATCH</button></div>
+      </footer>
+    </section>
+  </div>
+</section>
 <div id="lbm" class="lbp"><div class="mcol"><div class="mhd">SELECT MODE</div><div class="msub">CHOOSE YOUR BATTLEFIELD</div><div class="mlist"><button class="mi on" data-m="0"><span class="mn">01</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="7"/><path d="M12 1v6M12 17v6M1 12h6M17 12h6"/></svg><div class="mt"><strong>TEAM DEATH MATCH</strong><small>SOLO · SURVIVAL</small></div><em>PLAY</em></button><button class="mi" data-m="1"><span class="mn">02</span><svg viewBox="0 0 24 24"><circle cx="11" cy="14" r="7.5" fill="currentColor"/><path d="M16 6l2-2" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="20" cy="3" r="1.5" fill="#ffd43b"/></svg><div class="mt"><strong>BOMB MODE</strong><small>TEAM · TACTICAL</small></div><em>PLAY</em></button><button class="mi lock" data-m="2"><span class="mn">03</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-dasharray="3 3"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg><div class="mt"><strong>BATTLEGROUND</strong><small>SOLO · LAST STANDING</small></div><em>SOON</em></button></div><button class="bk" id="lbb">&lsaquo; BACK</button></div>
 <div class="mdt sw" id="mdt"><div class="mk" id="mk" aria-hidden="true"></div><div class="mtp"><h3 id="mnm">TEAM DEATH MATCH</h3><span class="mst" id="mst">AVAILABLE</span><div class="mtg" id="mtg">5 VS 5 · POLICE VS TERRORIST</div></div>
 <div class="mmap" id="mmap"><canvas id="mapPreviewCanvas" width="960" height="540" aria-label="Live 3D map preview"></canvas><div class="mmap-shade"></div><div class="mmap-title"><span>MAP</span><strong id="mapName">BLOCK DISTRICT</strong><small id="mapCaption">Urban Combat Zone</small></div></div>

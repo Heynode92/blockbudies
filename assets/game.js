@@ -2235,6 +2235,150 @@ function stick(el,st){var kn=el.firstChild,id=null;
 stick(document.getElementById("stl"),ST.l);stick(document.getElementById("str"),ST.r);
 // Raycaster/plane helpers for converting screen touches to world positions.
 var ray=new T.Raycaster(),plane=new T.Plane(new T.Vector3(0,1,0),-1),tv=new T.Vector3(),v2=new T.Vector2();
+// Room Lobby: browser-local room master flow; no network rooms or invented pings.
+// Uses existing mode maps, 5v5 bots, and canonical combat/plant/defuse systems.
+var ROOM_STORAGE_KEY="bbfps_local_rooms_v1";
+var ROOM_LIMITS=Object.freeze({kills:[20,30,50,75,100],minutes:[1,3,5,10,15],rounds:[3,5,7,9,12],roundMinutes:[1,2,3,4]});
+var roomList=[],roomCurrent=null,roomMatchConfig=null,roomDraftMode=0;
+function roomAllowed(value,list,fallback){var n=Number(value);return list.indexOf(n)>=0?n:fallback;}
+function roomNormalize(obj){
+ if(!obj||typeof obj!=="object"||typeof obj.id!=="string"||!/^[0-9]{8,20}$/.test(obj.id))return null;
+ if(obj.mode!==0&&obj.mode!==1)return null;
+ var name=String(obj.name||"").trim().slice(0,32);
+ if(!name)return null;
+ return{id:obj.id,name:name,mode:obj.mode,kills:roomAllowed(obj.kills,ROOM_LIMITS.kills,50),
+ minutes:roomAllowed(obj.minutes,ROOM_LIMITS.minutes,10),
+ rounds:roomAllowed(obj.rounds,ROOM_LIMITS.rounds,12),
+ roundMinutes:roomAllowed(obj.roundMinutes,ROOM_LIMITS.roundMinutes,2)};
+}
+function roomLoad(){
+ var data=[];try{data=JSON.parse(localStorage.getItem(ROOM_STORAGE_KEY)||"[]");}catch(err){}
+ roomList=Array.isArray(data)?data.slice(0,40).map(roomNormalize).filter(Boolean):[];
+}
+function roomPersist(){try{localStorage.setItem(ROOM_STORAGE_KEY,JSON.stringify(roomList));return true;}catch(err){return false;}}
+function roomMapsForMode(mode){
+ // The existing map data and map selection engine are authoritative.
+ var m=MODE_MAP_PREVIEWS[mode];
+ return m?{name:m.name,caption:m.caption}:null;
+}
+function roomText(id,value){document.getElementById(id).textContent=String(value);}
+function roomModeSelect(mode){
+ roomDraftMode=mode===1?1:0;
+ ["roomTdm","roomBomb"].forEach(function(id,i){
+  var active=i===roomDraftMode,btn=document.getElementById(id);
+  btn.classList.toggle("active",active);btn.setAttribute("aria-pressed",String(active));
+ });
+ document.getElementById("roomTdmSettings").hidden=roomDraftMode!==0;
+ document.getElementById("roomBombSettings").hidden=roomDraftMode!==1;
+ var map=roomMapsForMode(roomDraftMode),mapSelect=document.getElementById("roomMap");
+ mapSelect.replaceChildren();
+ if(map){var option=document.createElement("option");option.value=String(roomDraftMode);option.textContent=map.name;mapSelect.appendChild(option);}
+ roomText("roomMapName",map?map.name:"UNAVAILABLE");
+ roomText("roomMapCaption",map?map.caption:"");
+ selM=roomDraftMode;
+ modePreviewSelect(roomDraftMode);
+}
+function roomFormData(){
+ var name=document.getElementById("roomName").value.trim().slice(0,32);
+ if(!name)return null;
+ return{name:name,mode:roomDraftMode,
+  kills:roomAllowed(document.getElementById("roomKills").value,ROOM_LIMITS.kills,50),
+  minutes:roomAllowed(document.getElementById("roomMinutes").value,ROOM_LIMITS.minutes,10),
+  rounds:roomAllowed(document.getElementById("roomRounds").value,ROOM_LIMITS.rounds,12),
+  roundMinutes:roomAllowed(document.getElementById("roomRoundMinutes").value,ROOM_LIMITS.roundMinutes,2)};
+}
+function roomRender(){
+ var list=document.getElementById("roomEntries");list.replaceChildren();
+ document.getElementById("roomEmpty").hidden=roomList.length>0;
+ roomText("roomCount",roomList.length+" LOCAL ROOM"+(roomList.length===1?"":"S"));
+ roomList.forEach(function(r){
+  var row=document.createElement("div");row.className="room-entry";
+  function cell(tag,text,className){var el=document.createElement(tag);el.textContent=text;if(className)el.className=className;row.appendChild(el);return el;}
+  cell("span","#"+r.id.slice(-4));
+  cell("strong",r.name);
+  var map=document.createElement("div");map.className="rm-map";
+  var mapTitle=document.createElement("span");mapTitle.textContent=(roomMapsForMode(r.mode)||{}).name||"UNKNOWN";
+  var mode=document.createElement("small");mode.textContent=r.mode===1?"BOMB MODE":"TDM";
+  map.appendChild(mapTitle);map.appendChild(mode);row.appendChild(map);
+  cell("span","1 / 10");cell("span","WAITING","rm-status");
+  var open=document.createElement("button");open.type="button";open.textContent="OPEN";open.addEventListener("click",function(){roomOpenSaved(r.id);});row.appendChild(open);
+  list.appendChild(row);
+ });
+}
+function roomSetMessage(message){roomText("roomMessage",message||"");}
+function roomEditState(room){
+ roomCurrent=room||null;
+ var owned=!!room;
+ document.getElementById("roomCreate").hidden=owned;
+ document.getElementById("roomMasterActions").hidden=!owned;
+ document.getElementById("roomMasterStatus").hidden=!owned;
+ roomText("roomPanelTitle",owned?"ROOM SETTINGS":"CREATE ROOM");
+ roomText("roomPanelSub",owned?"YOU ARE ROOM MASTER":"BECOME ROOM MASTER");
+ if(owned){
+  document.getElementById("roomName").value=room.name;
+  document.getElementById("roomKills").value=String(room.kills);
+  document.getElementById("roomMinutes").value=String(room.minutes);
+  document.getElementById("roomRounds").value=String(room.rounds);
+  document.getElementById("roomRoundMinutes").value=String(room.roundMinutes);
+  roomModeSelect(room.mode);
+ }else roomModeSelect(roomDraftMode);
+}
+function roomOpenSaved(id){
+ var match=roomList.find(function(r){return r.id===id;});
+ if(!match){roomSetMessage("Room not found in this browser.");return;}
+ roomEditState(match);roomSetMessage("Room ready. Adjust settings or start a match.");
+}
+function roomCreateLocal(){
+ var draft=roomFormData();if(!draft){roomSetMessage("Enter a room name before creating.");return;}
+ if(roomList.length>=40){roomSetMessage("Maximum 40 saved local rooms. Close one first.");return;}
+ var id=String(Date.now())+String(Math.floor(Math.random()*90000)+10000);
+ var room=roomNormalize(Object.assign({id:id},draft));
+ if(!room){roomSetMessage("Invalid room settings.");return;}
+ roomList.unshift(room);roomPersist();roomRender();roomEditState(room);
+ roomSetMessage("Room created locally. You are the Room Master.");
+}
+function roomSaveLocal(){
+ if(!roomCurrent)return null;
+ var draft=roomFormData();if(!draft){roomSetMessage("Room name cannot be empty.");return null;}
+ var next=roomNormalize(Object.assign({id:roomCurrent.id},draft));
+ if(!next)return null;
+ var i=roomList.findIndex(function(r){return r.id===roomCurrent.id;});
+ if(i<0){roomSetMessage("Room no longer exists.");roomEditState(null);return null;}
+ roomList[i]=next;roomCurrent=next;roomPersist();roomRender();
+ roomSetMessage("Room settings saved.");return next;
+}
+function roomCloseLocal(){
+ if(!roomCurrent)return;
+ roomList=roomList.filter(function(r){return r.id!==roomCurrent.id;});roomPersist();roomRender();
+ roomEditState(null);roomSetMessage("Local room closed.");
+}
+function roomLaunch(){
+ var room=roomSaveLocal();if(!room)return;
+ // This is not network multiplayer: 5v5 engine retains the existing nine AI soldiers.
+ roomMatchConfig=Object.assign({},room);selM=room.mode;
+ document.getElementById("tsel").style.display="flex";
+}
+function roomMatchSeconds(){return roomMatchConfig&&roomMatchConfig.mode===0?roomMatchConfig.minutes*60:60;}
+function roomKillLimit(){return roomMatchConfig&&roomMatchConfig.mode===0?roomMatchConfig.kills:0;}
+function roomReachedKillLimit(){var n=roomKillLimit();return !!(n>0&&(ts[0]>=n||ts[1]>=n));}
+function roomRoundLimit(){return roomMatchConfig&&roomMatchConfig.mode===1?roomMatchConfig.rounds:BOMB_RULES.rounds;}
+function roomRoundSeconds(){return roomMatchConfig&&roomMatchConfig.mode===1?roomMatchConfig.roundMinutes*60:BOMB_RULES.roundSeconds;}
+function roomRoundsToWin(){return roomMatchConfig&&roomMatchConfig.mode===1?Math.floor(roomRoundLimit()/2)+1:BOMB_RULES.wins;}
+function roomLobbyOpen(){
+ roomLoad();roomRender();
+ if(roomCurrent){var found=roomList.find(function(r){return r.id===roomCurrent.id;});roomEditState(found||null);}
+ else roomEditState(null);
+ roomSetMessage("");
+ lobP("lbrooms");
+}
+document.getElementById("roomBack").addEventListener("click",function(){lobP("lbs");});
+document.getElementById("roomRefresh").addEventListener("click",function(){roomLoad();roomRender();roomSetMessage("Local room list refreshed.");});
+document.getElementById("roomTdm").addEventListener("click",function(){roomModeSelect(0);});
+document.getElementById("roomBomb").addEventListener("click",function(){roomModeSelect(1);});
+document.getElementById("roomCreate").addEventListener("click",roomCreateLocal);
+document.getElementById("roomSave").addEventListener("click",roomSaveLocal);
+document.getElementById("roomClose").addEventListener("click",roomCloseLocal);
+document.getElementById("roomStart").addEventListener("click",roomLaunch);
 // Live mode-map video reuses the same WebGL canvas as the 3D lobby.
 // Capture a center-cropped 2D frame at up to 30 FPS while SELECT MODE is open, on desktop and touch.
 var mapPreviewCanvas=document.getElementById("mapPreviewCanvas"),
@@ -2248,13 +2392,18 @@ function modePreviewSelect(i){
  mapPreviewCtx.clearRect(0,0,mapPreviewCanvas.width,mapPreviewCanvas.height);
 }
 function modePreviewDraw(now){
- if(!lob||run||document.hidden||selM===2||!document.getElementById("lbm").classList.contains("on"))return;
+ if(!lob||run||document.hidden||selM===2)return;
+ var inMode=document.getElementById("lbm").classList.contains("on"),
+     inRoom=document.getElementById("lbrooms").classList.contains("on");
+ if(!inMode&&!inRoom)return;
  if(now-mapPreviewLastFrame<mapPreviewFrameMs)return;
  var src=R.domElement,sw=src.width,sh=src.height,dw=mapPreviewCanvas.width,dh=mapPreviewCanvas.height;
  if(!sw||!sh)return;
  mapPreviewLastFrame=now;
  var ratio=dw/dh,ww=Math.min(sw,sh*ratio),hh=Math.min(sh,sw/ratio);
- mapPreviewCtx.drawImage(src,(sw-ww)/2,(sh-hh)/2,ww,hh,0,0,dw,dh);
+ if(inMode)mapPreviewCtx.drawImage(src,(sw-ww)/2,(sh-hh)/2,ww,hh,0,0,dw,dh);
+ if(inRoom){var c=document.getElementById("roomMapPreview"),ctx=c.getContext("2d",{alpha:false});
+   ctx.drawImage(src,(sw-ww)/2,(sh-hh)/2,ww,hh,0,0,c.width,c.height);}
 }
 // Five-star BOT decision layer: uses existing A* navigation, LOS, HP,
 // canonical weapon ammo, and Bomb Mission objectives. No duplicate combat engine.
@@ -2344,7 +2493,7 @@ document.getElementById("go").onclick=function(){this.blur();reset();ov.style.di
 // Lobby (mode select screen). lobBest() reads the best score from localStorage key "bbfps_best" (try/catch).
 var lb=document.getElementById("lb");
 function lobBest(){var b=0;try{b=+localStorage.getItem("bbfps_best")||0;}catch(e){}document.getElementById("lbbest").textContent=b;}
-function lobP(id){["lbs","lbm","lbiv","lbshop"].forEach(function(i){document.getElementById(i).classList.toggle("on",i===id);});if(id==="lbs")lobBest();document.getElementById("lbn").classList.remove("on");}
+function lobP(id){["lbs","lbm","lbrooms","lbiv","lbshop"].forEach(function(i){document.getElementById(i).classList.toggle("on",i===id);});if(id==="lbs")lobBest();document.getElementById("lbn").classList.remove("on");}
 lobBest();
 (function(){var n=document.getElementById("lbn"),nt=document.getElementById("lbnt"),tm=0;[].forEach.call(document.querySelectorAll(".mb[data-n]"),function(b){b.onclick=function(){this.blur();nt.textContent=this.getAttribute("data-n");n.classList.remove("on","shk");void n.offsetWidth;n.classList.add("on","shk");clearTimeout(tm);tm=setTimeout(function(){n.classList.remove("on");},2800);};});})();
 // MODES: lobby cards. Only TEAM DEATH MATCH is playable (lock:0). BOMB MODE and BATTLEGROUND are "coming soon" placeholders (lock:1).
@@ -2386,7 +2535,7 @@ addEventListener("keydown",function(e){var l=document.getElementById("lbm");if(l
   if(e.code==="ArrowDown"||e.code==="KeyS")selMode((selM+1)%3);else if(e.code==="ArrowUp"||e.code==="KeyW")selMode((selM+2)%3);
   else if(e.code==="Enter")document.getElementById("mdm").click();else if(e.code==="Escape"||e.code==="Backspace")lobP("lbs");});
 selMode(0);
-document.getElementById("lbst").onclick=function(){this.blur();lobP("lbm");selMode(selM);};
+document.getElementById("lbst").onclick=function(){this.blur();roomLobbyOpen();};
 document.getElementById("lbb").onclick=function(){lobP("lbs");};
 document.getElementById("mdm").onclick=function(){if(MODES[selM].lock){this.classList.remove("shk");void this.offsetWidth;this.classList.add("shk");return;}document.getElementById("tsel").style.display="flex";};
 [].forEach.call(document.querySelectorAll(".md.lock"),function(c){c.onclick=function(){c.classList.remove("shk");void c.offsetWidth;c.classList.add("shk");};});
@@ -2424,7 +2573,7 @@ function newBot(tm,i){var b=terro(tm);b.tm=tm;b.idx=i;b.name=BN[tm][i];b.ph=Math
 // placeBot(b): (re)spawns bot b at a spawn point with full HP and short invulnerability.
 function placeBot(b){var s=spawnPt(b.tm);b.x=s[0];b.z=s[1];b.y=0;defenseSpawn(b);if(b.hm)b.hm.visible=true;b.inv=2;b.cd=1+Math.random();b.dead=false;b.tg=null;b.bn=0;b.wx=b.x;b.wz=b.z;b.stk=0;b.lastSeen=null;b.coverGoal=null;b.coverExpires=0;b.coverHoldUntil=0;b.smartRetreat=false;b.siteChoice=undefined;b.g.rotation.y=b.tm?0:Math.PI;botInitialLoadout(b);en.push(b);}
 // startMatch(tm): sets up scores, timer (60 s) and the countdown, spawns the player and 4+5 bots, resets weapons to the chosen primary.
-function startMatch(tm){inventoryForNewMatch();starsReset();SPH=[[],[]];var s=spawnPt(tm);pl.tm=tm;pl.x=s[0];pl.z=s[1];pl.face=tm?0:Math.PI;pl.inv=2;ts=[0,0];rq=[];mt={t:60,cd:5,over:false};pl.prim=favPrim;pl.w=favPrim;pl.mag=WP[favPrim].mag;pl.res=WP[favPrim].res;scopeOn=false;ROS=[];pl.st={name:"You",tm:tm,k:0,d:0};ROS.push(pl.st);
+function startMatch(tm){inventoryForNewMatch();starsReset();SPH=[[],[]];var s=spawnPt(tm);pl.tm=tm;pl.x=s[0];pl.z=s[1];pl.face=tm?0:Math.PI;pl.inv=2;ts=[0,0];rq=[];mt={t:roomMatchSeconds(),cd:5,over:false};pl.prim=favPrim;pl.w=favPrim;pl.mag=WP[favPrim].mag;pl.res=WP[favPrim].res;scopeOn=false;ROS=[];pl.st={name:"You",tm:tm,k:0,d:0};ROS.push(pl.st);
   S.remove(pm.g);pm=mkPm(tm);pm.g.visible=false;[armR,armL].forEach(function(ar){ar.children[0].material.color.setHex(tm?0x4b5320:0x1c4a8a);ar.children[1].material.color.setHex(tm?0x23272b:0x142a52);});
   [0,1].forEach(function(t){for(var i=0;i<(isBombMode()?BOMB_RULES.teamSize-(t===tm?1:0):(t===tm?4:5));i++){var b=newBot(t,i);b.st={name:b.name,tm:t,k:0,d:0};ROS.push(b.st);placeBot(b);}});
   if(isBombMode())bombStartMatch();loadoutPrepareRound();toast("YOU ARE "+(tm?"TERRORIST":"POLICE"));}
@@ -2432,7 +2581,7 @@ function startMatch(tm){inventoryForNewMatch();starsReset();SPH=[[],[]];var s=sp
 function respawnPl(){var s=spawnPt(pl.tm);pl.dead=false;pl.dt=pl.rt=pl.rl=pl.cd=pl.sw=pl.stab=pl.thr=0;pl.pend=pl.sth=false;pl.ghide=0;defenseSpawn(pl);pl.x=s[0];pl.z=s[1];pl.y=pl.vy=0;pl.face=pl.tm?0:Math.PI;pl.pitch=0;pl.inv=2;pl.prim=favPrim;
   pl.ammo={};WP.forEach(function(w,i){pl.ammo[i]={mag:w.mag,res:w.res};});pl.w=favPrim;pl.mag=WP[favPrim].mag;pl.res=WP[favPrim].res;pl.slot=0;camY=0;scopeOn=false;resetPm();setHm();document.body.classList.remove("dead");toast("RESPAWNED");}
 // tmUpd(): updates the top HUD (timer, scores, respawn text, spawn-shield text).
-function tmUpd(){var g=function(i){return document.getElementById(i);},r=g("rsp");g("imm").style.display=(pl.inv>0&&!pl.dead&&!mt.over)?"block":"none";var sp0=g("tp"),sq0=g("tq");if(sp0.textContent!=ts[0]){sp0.textContent=ts[0];sp0.classList.remove("pop");void sp0.offsetWidth;sp0.classList.add("pop");}if(sq0.textContent!=ts[1]){sq0.textContent=ts[1];sq0.classList.remove("pop");void sq0.offsetWidth;sq0.classList.add("pop");}g("tt").textContent=mmss(Math.max(0,Math.ceil(mt.t)));g("tbf").style.width=Math.max(0,Math.min(100,mt.t/(isBombMode()?(bombMatch&&bombMatch.state==="planted"?BOMB_RULES.fuseSeconds:BOMB_RULES.roundSeconds):60)*100))+"%";g("tm").classList.toggle("lo",mt.t<=10&&mt.cd<=0&&!mt.over);g("tmP").classList.toggle("you",pl.tm===0);g("tmT").classList.toggle("you",pl.tm===1);
+function tmUpd(){var g=function(i){return document.getElementById(i);},r=g("rsp");g("imm").style.display=(pl.inv>0&&!pl.dead&&!mt.over)?"block":"none";var sp0=g("tp"),sq0=g("tq");if(sp0.textContent!=ts[0]){sp0.textContent=ts[0];sp0.classList.remove("pop");void sp0.offsetWidth;sp0.classList.add("pop");}if(sq0.textContent!=ts[1]){sq0.textContent=ts[1];sq0.classList.remove("pop");void sq0.offsetWidth;sq0.classList.add("pop");}g("tt").textContent=mmss(Math.max(0,Math.ceil(mt.t)));g("tbf").style.width=Math.max(0,Math.min(100,mt.t/(isBombMode()?(bombMatch&&bombMatch.state==="planted"?BOMB_RULES.fuseSeconds:roomRoundSeconds()):roomMatchSeconds())*100))+"%";g("tm").classList.toggle("lo",mt.t<=10&&mt.cd<=0&&!mt.over);g("tmP").classList.toggle("you",pl.tm===0);g("tmT").classList.toggle("you",pl.tm===1);
   r.innerHTML=isBombMode()?(mt.cd>0?Math.ceil(mt.cd):(pl.dead&&!mt.over?"SPECTATING":(bombMatch&&bombMatch.done?"ROUND OVER":""))):mt.cd>0?Math.ceil(mt.cd):mt.t>59.2?"GO!":(pl.dead&&!mt.over?"RESPAWN IN "+Math.max(1,Math.ceil(pl.rsT))+(pl.kb?"<small>KILLED BY "+pl.kb.toUpperCase()+"</small>":""):"");}
 // BOMB MISSION match state (isolated from Team Deathmatch logic).
 var bombMatch=null,bombHold=false,bombSpectatorIndex=0,bombSpectatorView='team';
@@ -2504,7 +2653,7 @@ function bombStartMatch(){
     site:-1,roundWins:old?old.roundWins:[0,0],fuseLeft:BOMB_RULES.fuseSeconds,
     done:false,finishDelay:0,keepRound:false,winner:null};
   bombMatch.device.visible=false;
-  mt.t=BOMB_RULES.roundSeconds;mt.cd=BOMB_RULES.freezeSeconds;
+  mt.t=roomRoundSeconds();mt.cd=BOMB_RULES.freezeSeconds;
   var options=bombCandidates();bombMatch.carrier=options[(Math.random()*options.length)|0]||null;
   en.concat([pl]).forEach(function(e){e.bAction=null;});
   if(bombMatch.carrier===pl)toast(BOMB_TEXT.carrier);
@@ -2591,7 +2740,7 @@ function bombSpectatorTarget(){
 function bombSpectatorNext(d){if(isBombMode()&&pl.dead){bombSpectatorIndex+=d;bombResetSpectatorCamera();}}
 function bombUpdate(dt){if(!isBombMode()||!bombMatch||mt.over)return;
   var b=bombMatch;
-  if(b.done){b.finishDelay-=dt;if(b.finishDelay<=0){if(ts[0]>=BOMB_RULES.wins||ts[1]>=BOMB_RULES.wins||b.round>=BOMB_RULES.rounds)endMatch();else bombNextRound();}return;}
+  if(b.done){b.finishDelay-=dt;if(b.finishDelay<=0){if(ts[0]>=roomRoundsToWin()||ts[1]>=roomRoundsToWin()||b.round>=roomRoundLimit())endMatch();else bombNextRound();}return;}
   if(mt.cd>0)return;
   if(b.state==='idle'&&b.dropped){
     var candidates=bombCandidates();
@@ -2623,7 +2772,7 @@ function bombHudUpdate(){
   bombHands.visible=false;
   bombDropMarkerUpdate();
   if(!show)return;
-  var b=bombMatch,roundLabel=BOMB_TEXT.round+' '+b.round+' / '+BOMB_RULES.rounds;
+  var b=bombMatch,roundLabel=BOMB_TEXT.round+' '+b.round+' / '+roomRoundLimit();
   bombInfo.textContent=roundLabel+(b.state==='planted'?'  |  '+BOMB_TEXT.planted+' '+BOMB_SITES[b.site].id:'');
   var action=!pl.dead?bombActionFor(pl):null;
   var label='',progress=0;
@@ -3591,7 +3740,7 @@ document.getElementById("escB").onclick=function(){
 // update
 function update(dt){
   tt+=dt;sndN=0;if(mt.cd<=0)pl.inv=Math.max(0,(pl.inv||0)-dt);
-  if(mt.cd>0)mt.cd-=dt;else if(!mt.over){mt.t-=dt;if(mt.t<=0&&!isBombMode()){endMatch();return;}}
+  if(mt.cd>0)mt.cd-=dt;else if(!mt.over){mt.t-=dt;if(!isBombMode()&&(mt.t<=0||roomReachedKillLimit())){endMatch();return;}}
   var mx=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0)+ST.l.x,mz=(keys.KeyS||keys.ArrowDown?1:0)-(keys.KeyW||keys.ArrowUp?1:0)+ST.l.y,ml=Math.hypot(mx,mz);
   if(pl.dead||mt.cd>0||(isBombMode()&&pl.bAction)){mx=mz=ml=0;}if(ml>1){mx/=ml;mz/=ml;ml=1;}
   var shoot=!pl.dead&&mt.cd<=0&&!(isBombMode()&&pl.bAction)&&(!!keys.KeyF||fireHeld||(mouse.down&&document.pointerLockElement===R.domElement));

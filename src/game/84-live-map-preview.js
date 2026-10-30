@@ -11,11 +11,16 @@ function modePreviewSelect(i){
  mapPreviewCtx.clearRect(0,0,mapPreviewCanvas.width,mapPreviewCanvas.height);
 }
 function modePreviewDraw(now){
- if(!lob||run||document.hidden||selM===2||!document.getElementById("lbm").classList.contains("on"))return;
+ if(!lob||run||document.hidden||selM===2)return;
+ var inMode=document.getElementById("lbm").classList.contains("on"),
+     inRoom=document.getElementById("lbrooms").classList.contains("on");
+ if(!inMode&&!inRoom)return;
  if(now-mapPreviewLastFrame<mapPreviewFrameMs)return;
  var src=R.domElement,sw=src.width,sh=src.height,dw=mapPreviewCanvas.width,dh=mapPreviewCanvas.height;
  if(!sw||!sh)return;
  mapPreviewLastFrame=now;
  var ratio=dw/dh,ww=Math.min(sw,sh*ratio),hh=Math.min(sh,sw/ratio);
- mapPreviewCtx.drawImage(src,(sw-ww)/2,(sh-hh)/2,ww,hh,0,0,dw,dh);
+ if(inMode)mapPreviewCtx.drawImage(src,(sw-ww)/2,(sh-hh)/2,ww,hh,0,0,dw,dh);
+ if(inRoom){var c=document.getElementById("roomMapPreview"),ctx=c.getContext("2d",{alpha:false});
+   ctx.drawImage(src,(sw-ww)/2,(sh-hh)/2,ww,hh,0,0,c.width,c.height);}
 }

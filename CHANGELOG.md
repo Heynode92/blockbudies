@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-30 — Start opens local Room Lobby / Room Master
+
+- Replaced the Start button's direct SELECT MODE route with a cinematic two-column **Room Lobby**, following the approved visual: saved room list on the left and Create Room controls on the right. The old mode DOM remains available internally for compatibility but is no longer the normal Start destination.
+- Browser-local room creation, opening, editing, saving, and closing are implemented with defensive localStorage access and safe DOM text rendering. The creator becomes **Room Master** and may launch the normal Police/Terrorist team selection. There are **no fake public rooms, pings, joinable online players, or remote network service claims**.
+- Only the currently playable maps are listed: Block District for Team Death Match and Lockdown for Bomb Mode; a live 3D map preview reuses the existing renderer. Match teams remain the actual 5v5 composition (1 player + 9 existing AI).
+- Room Master sets **TDM team kill goal and match duration**, or **Bomb Mode max rounds and minutes per round**. Rules are validated against centralized `ROOM_LIMITS` and feed the original timers, score termination, bomb round state and HUD. Bomb rounds-to-win derives from the selected round limit. No changes to weapon stats, damage, bot AI or bomb interaction timing.
+- Added `src/game/83-room-lobby.js` and scoped Room Lobby styles; bundled `assets/game.js` remains directly runnable from the local Windows `index.html`. No server or build command required to play.
+
 ## 2026-10-30 — Shotgun pellet impacts now spread in 2D (CS:GO-inspired)
 
 - Fixed the previous regression where deterministic shotgun impacts formed one horizontal line. Both standard Shotgun and Saiga-12 retain **six pellets**, but they now use fixed two-dimensional radial pellet directions with distinct yaw and elevation.

@@ -42,6 +42,7 @@
     "src/game/77-loadout-picker.js",
     "src/game/79-camera-look.js",
     "src/game/80-input.js",
+    "src/game/83-room-lobby.js",
     "src/game/84-live-map-preview.js",
     "src/game/89-bot-tactical-intelligence.js",
     "src/game/85-lobby-and-match.js",
