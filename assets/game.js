@@ -1471,10 +1471,17 @@ function mkCasing(w){var g=new T.Group();function c(a,b,l,m,y){var q=new T.Mesh(
   else if(w===1){c(.026,.026,.012,CSM.bl,-.061);c(.024,.022,.08,CSM.br,-.012);c(.012,.022,.03,CSM.br,.043);} // rifle: long bottleneck brass
   else{c(.037,.037,.045,CSM.bl,-.05);c(.034,.034,.11,CSM.rd,.03);}                                      // shotgun: red plastic hull + brass base
   g.scale.setScalar(.5);return g;}
-// ejectShell(w, side): throws a spent casing from the gun port. Supports weapons 0-2, Kriss (6), Dual Kriss (7) and AWP (8).
-//  side = +1 throws to the player's RIGHT, -1 to the LEFT. Single guns always use +1. Dual Kriss uses -1 for the left gun (shotSide = 1).
-//  The AWP casing is thrown from the bolt (called mid bolt-cycle from animHands(), not from the shot itself).
-function ejectShell(w,side){var kind=WP[w]&&WP[w].stats.kind,sm=kind==="smg"||kind==="dual";if(["rifle","smg","dual","sniper","shotgun","pistol"].indexOf(kind)<0)return;side=side||1;var cw=sm?0:(kind==="sniper"||kind==="rifle"?1:w);
+// side = +1 for right and -1 for dual left. AWP's special bolt ejection is unchanged.
+// Weapon IDs are NOT casing types. Reuse the three existing casing meshes by class.
+function weaponCasingType(w){
+  var kind=WP[w]&&WP[w].stats.kind;
+  if(kind==="pistol"||kind==="smg"||kind==="dual")return 0;
+  if(kind==="rifle"||kind==="sniper")return 1;
+  if(kind==="shotgun")return 2;
+  return -1;
+}
+// ejectShell(w, side): throw the matching casing from any supported weapon ID.
+function ejectShell(w,side){var kind=WP[w]&&WP[w].stats.kind,sm=kind==="smg"||kind==="dual",cw=weaponCasingType(w);if(cw<0)return;side=side||1;
   var v=new T.Vector3(CSP[cw][0],CSP[cw][1],CSP[cw][2]);if(sm){v.x=side<0?-.52-CSP[0][0]:CSP[0][0];}if(w===8)v.set(.09,.06,-.08);hold.localToWorld(v);
   var k=Math.tan(35*Math.PI/180)/Math.tan(C.fov*Math.PI/360);v.x*=k;v.y*=k;C.localToWorld(v);
   var d=new T.Vector3((2.5+Math.random()*.4)*side,1.1+Math.random()*.25,.02+Math.random()*.06).applyQuaternion(C.quaternion);
@@ -1483,13 +1490,20 @@ function ejectShell(w,side){var kind=WP[w]&&WP[w].stats.kind,sm=kind==="smg"||ki
   var q=dg[dg.length-1];q.sp=8+Math.random()*3;q.life=1;q.cs=1;
   m.traverse(function(o){o.castShadow=false;});
   var n=0;for(var i=dg.length-1;i>=0;i--)if(dg[i].cs&&++n>20){S.remove(dg[i].m);dg.splice(i,1);}}
-// GSC = size of a dropped gun model per weapon id, GH = rest height of a dropped gun per weapon id.
+// GSC = original dropped-gun scales; GH = rest heights. New weapons reuse the
+// earliest legacy entry in their weapon class instead of indexing beyond these arrays.
 var GSC=[1.5,1.2,1.2,1,2,2,1.2,1,1.2,1.2,1.2,1.18,1.23],GH=[.07,.09,.09,.17,.03,.1,.09,.09,.09,.09,.08,.08,.09];
+function dropVisualIndex(w){
+  if(GSC[w]!==undefined&&GH[w]!==undefined)return w;
+  var kind=WP[w]&&WP[w].stats.kind;
+  for(var i=0;i<GSC.length;i++)if(WP[i]&&WP[i].stats.kind===kind)return i;
+  return 0;
+}
 // dropPlayerGun(): when the player dies, throws the current weapon model onto the ground.
-function dropPlayerGun(){var w=pl.w,g=mkGun(w),f=pl.face,s=Math.sin(f),c=Math.cos(f);
-  g.scale.setScalar(GSC[w]);g.rotation.order="YXZ";g.rotation.y=f+Math.PI;
+function dropPlayerGun(){var w=pl.w,visual=dropVisualIndex(w),g=mkGun(w),f=pl.face,s=Math.sin(f),c=Math.cos(f);
+  g.scale.setScalar(GSC[visual]);g.rotation.order="YXZ";g.rotation.y=f+Math.PI;
   g.position.set(pl.x+.55*c+.4*s,1.05,pl.z-.55*s+.4*c);S.add(g);
-  addDrop(g,s*1.8+c*.9,2.4,c*1.8-s*.9,GH[w],true,(w===4||w===5)?0:(w===3?.6:Math.PI/2));}
+  addDrop(g,s*1.8+c*.9,2.4,c*1.8-s*.9,GH[visual],true,(w===4||w===5)?0:(w===3?.6:Math.PI/2));}
 // detachGun(): when a bot dies, its gun flies off. kx/kz = knock direction, ex = exaggerated (explosion) throw.
 function detachGun(e,kx,kz,ex){var rg=e.g.userData.rg;if(!rg)return;e.g.userData.rg=null;
   var gm=Math.hypot(kx||0,kz||0)||1,k=ex?5:1.6;rg.rotation.order="YXZ";S.attach(rg);

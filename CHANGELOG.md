@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-30 — Fix Saiga-12 shot freeze and new-weapon death drops
+
+- Fixed a runtime exception on Saiga-12's first shot (including ADS fire). `ejectShell()` had incorrectly used the weapon's ID 18 to index `CSP[18]`, although `CSP` only has three **casing types**. The resulting undefined access stopped the requestAnimationFrame game loop.
+- Introduced `weaponCasingType(w)`, derived from the existing `WP[w].stats.kind`, to map all current and future shotguns to casing type 2, rifles/snipers to type 1, and pistols/SMGs to type 0. Preserved AWP bolt timing and the dual-SMG ejection side.
+- Fixed `dropPlayerGun()` for weapon IDs not covered by the legacy `GSC` and `GH` arrays: use the earliest existing visual size/rest-height for the same weapon class instead of passing `undefined` into Three.js.
+- No changes to Saiga-12 stats, ammo, damage, ADS, pump classification, recoil, sound or ownership. Added runtime regression tests and synchronized `assets/game.js`.
+
 ## 2026-10-30 — Saiga-12 and pump-action shotgun animation
 
 - Added Saiga-12, stable weapon ID 18, in `src/game/weapon/19-saiga12.js`, using user-specified ratings (Damage 100, RPM 53, Control 0, Speed 78, V.Recoil 100, H.Recoil 58, ammunition 6 / 30, Range 70).

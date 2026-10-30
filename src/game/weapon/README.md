@@ -99,3 +99,8 @@ CS:GO/CS2 uses 500 CS units per modifier interval. BLOCK BUDDIES has a much smal
 - The **original Shotgun (ID 2)** is the only `pump:true` profile. Its pump duration derives from the already-calculated cooldown. After a shot the wooden fore-end moves rearward and forward, the support hand follows, the ejected shell appears during the pull, and shooting is gated until the action completes. Automatic reload after empty magazine occurs after the pump.
 - Existing shotgun statistics, ammo capacity and reload mode stay unchanged. All IDs 0–17 and saved ownership remain untouched; Shop, Inventory and category counts are registry-driven.
 
+
+## Saiga-12 fire-freeze regression guard
+
+- `src/game/50-items-and-drops.js`: weapon IDs differ from physical casing type IDs (0 pistol/SMG, 1 rifle/sniper, 2 shotgun). All shotguns—including Saiga-12 ID 18—use the existing shotgun shell mesh/port; shell ejection remains triggered by the established simulation logic. Invalid casing table indices must never stop the render loop.
+- Dropped-gun scale/rest-height falls back to the first legacy weapon of the same class for newer IDs. Existing ID 0–12 sizes and positions remain unchanged.
