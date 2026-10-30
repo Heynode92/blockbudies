@@ -1,7 +1,7 @@
 # BLOCK BUDDIES — BOT Intelligence Modernization Master Plan
 
 > **Document ID:** BB-AI-ROADMAP-001  
-> **Status:** GAMEPLAY UPGRADE NOT IMPLEMENTED / M0 SYNTHETIC TEST HARNESS IN PROGRESS  
+> **Status:** M0 FOUNDATION VERIFIED / M1 READY (NOT STARTED) / NO AI GAMEPLAY UPGRADE IMPLEMENTED  
 > **Baseline reviewed:** `main` at `23cd2bb71a2535de86ba49ccdfc3d23455be2ff9` (2026-10-30)  
 > **Scope:** Police and Terrorist BOTs in Team Deathmatch (TDM) and Bomb Mission  
 > **Source of truth:** repository production sources, `docs/ARCHITECTURE.md`, original-game fixture, existing test suite  
@@ -16,7 +16,7 @@ All improvements must apply to **both teams**. Team-specific differences are lim
 
 **Quality criteria:** challenging but readable, responsive but not instantaneous, adaptive but not random jitter, aggressive but not suicidal, accurate but beatable, and tactical without cheating.
 
-This document is a **future gameplay implementation specification**, not evidence that any of the proposed behaviors exist today. On 2026-10-30, only a development-only synthetic M0 fixture and initial trace have been added; real-game KPI validation and M0 completion remain pending.
+This document is a **future gameplay implementation specification**, not evidence that any of the proposed behaviors exist today. M0 is now **verified for its foundational exit gate** using the deterministic synthetic active-BOT fixture, recorded behavior traces, sampled CPU tick timings, Windows CI [run #38](https://github.com/Heynode92/blockbudies/actions/runs/41105582716) (289/289 tests passing), and an owner-reported 8/8 core gameplay smoke test. No AI gameplay improvements have been implemented. Real-game browser FPS/p95, true hit-rate, reaction latency, navigation/stuck rate, per-map/faction coverage and Bomb success-rate measurements are **still open**, not asserted done.
 
 ## 2. Hard constraints and non-goals
 
@@ -163,11 +163,11 @@ Mark a milestone complete **only after its acceptance gates pass**. Each milesto
 
 ### M0 — Foundations and measurement
 
-**Current tracking (2026-10-30):** **IN PROGRESS**. See [synthetic M0 trace and unfinished gates](BOT_AI_M0_BASELINE.md). The `footstepAdvance` isolated test mock is already fixed; seeded TDM/Bomb replay exists and native Windows CI bundle/syntax/full Node regression succeeded in [run #26](https://github.com/Heynode92/blockbudies/actions/runs/41096566590). An owner-reported core manual playtest has **8/8 PASS** on 2026-10-31 WIB (4 Deathmatch + 4 Bomb Mission), recorded as qualitative smoke evidence. Real playable-map/browser hit-rate, reaction-time, navigation/stuck, sample-based Bomb outcome and frame-time KPI validation are still **not evidenced**. M0 remains IN PROGRESS; M1 remains NOT STARTED.
+**Current tracking (2026-10-31 WIB):** **VERIFIED (FOUNDATION ONLY)** — active-code seeded 10-BOT TDM/Bomb fixture, reproducible behavior trace, 3 × 720 synthetic CPU update samples, 289/289 Node regression tests and Windows [CI #38](https://github.com/Heynode92/blockbudies/actions/runs/41105582716) all PASS; owner-reported basic manual gameplay smoke 8/8 PASS. These establish the original M0 **exit gate**, not a full live-game quality/performance evaluation. Browser FPS/frametime, real hit percentage, reaction latency, automatic stuck/navigation outcomes, per-map/faction sample matrix and Bomb completion rates remain **UNMEASURED**. **M1 READY but NOT STARTED.**
 
 **Work:** capture the existing BOT update behavior from `main` for fixed seeds and the 5v5 Police/Terrorist combinations; verify `node --test` isolation and missing `footstepAdvance` test mock; measure behavior and frame time on the existing runtime. Build a developer-only debug overlay/logging mode *only if needed*, disabled by default.
 
-**Exit gate:** automated test harness runs the active code, deterministic scenarios yield reproducible outcome traces, pre-change metrics are recorded and legacy UI/gameplay remain unchanged.
+**Exit gate (VERIFIED for foundational M0):** automated test harness runs the active code, deterministic scenarios yield reproducible outcome traces, pre-change synthetic behavior and CPU measurements are recorded, and legacy UI/gameplay remain unchanged. **Not covered by this sign-off:** browser FPS/p95, real hit-rate/reaction/stuck measurements and Bomb outcome rates. Those remain required for comparative improvement and final M7 readiness; see [M0 Baseline](BOT_AI_M0_BASELINE.md).
 
 ### M1 — Perception and legitimate knowledge
 
