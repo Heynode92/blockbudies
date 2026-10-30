@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-30 — HOTFIX: restore lobby after five-star BOT update
+
+- Fixed the startup `TypeError` caused by `src/game/85-lobby-and-match.js` reading `BOT_TACTICS.difficulty` before `src/game/89-bot-tactical-intelligence.js` initialized that config. This previously halted menu script execution and left the introductory overlay visible with unusable menu buttons/background.
+- Moved the existing BOT tactical module in `tools/source-manifest.json` to execute **immediately before the lobby module**, preserving its contents and all upgraded AI behavior.
+- Regenerated `assets/game.js` in the corrected order for direct local `index.html` launch. Added regression test for initialization, menu ordering, and exact bundle/source consistency.
+- No rollback of the earlier stable Saiga-12, XM2010, HK417, XM8, Shop, Inventory, or older gameplay fixes. No damage or weapon stats changed.
+
 ## 2026-10-30 — 5-star tactical BOT intelligence: Deathmatch & Bomb Mission
 
 - Both playable modes now display five-star BOT difficulty. Kept match rules, score, player damage, weapon profiles, bomb timers, teams and respawn rules unchanged.

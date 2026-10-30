@@ -83,6 +83,8 @@ test('both playable modes display 5 stars and browser bundle matches all modules
  const lobby=read('src/game/85-lobby-and-match.js');
  assert.equal(lobby.split('lock:0,df:BOT_TACTICS.difficulty').length-1,2);
  const m=JSON.parse(read('tools/source-manifest.json'));
- assert.equal(m.parts.indexOf('src/game/89-bot-tactical-intelligence.js')+1,m.parts.indexOf('src/game/90-bot-ai.js'));
+ // All BOT_TACTICS references in lobby must execute after the tactical config initializes.
+ assert.equal(m.parts.indexOf('src/game/89-bot-tactical-intelligence.js')+1,m.parts.indexOf('src/game/85-lobby-and-match.js'));
+ assert.ok(m.parts.indexOf('src/game/89-bot-tactical-intelligence.js')<m.parts.indexOf('src/game/90-bot-ai.js'));
  assert.equal(read('assets/game.js'),'(function(){\n'+m.parts.map(read).join('')+'})();\n');
 });
