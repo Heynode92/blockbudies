@@ -10,6 +10,7 @@ const source=readFileSync(resolve(root,'src/game/79-camera-look.js'),'utf8');
 function setup(){
   const canvas={},document={pointerLockElement:canvas};
   const ctx={console,Math,Number,document,R:{domElement:canvas},
+    WP:Array.from({length:19},(_,i)=>({snp:i===8})),
     pl:{face:1,pitch:0,w:1,dead:false},adsT:0,run:true,lob:false,mt:{over:false}};
   runInNewContext(source,ctx);
   return {ctx,document,canvas};
