@@ -53,7 +53,7 @@ test('MP5K Ext is wired into the same ADS, reload, sound and HUD tables',()=>{
  const sounds=bracketArray(audio,/var GS=(\[.*?\]),SFXI=/s,'audio presets');
  assert.equal(sounds[5].suppressed,true);
  assert.ok(sounds[5].v<sounds[1].v,'suppressed MP5K has a softer shot than standard SMGs');
- assert.match(controls,/w===13\|\|!!tacticalOpticConfig\(w\)/);
+ assert.match(controls,/w===13\|\|w===14\|\|!!tacticalOpticConfig\(w\)/);
  assert.match(controls,/\b13:'<svg/);
  assert.match(loadout,/WS_ORDER=\[[^\]]*13/);
  assert.doesNotMatch(optics,/^\s*13\s*:/m,'MP5K does not acquire a sniper or red-dot overlay');
