@@ -66,37 +66,26 @@ function slotUI(w){
   if(w.melee){E.mg.textContent="\u221e";E.rs.textContent="";}
 }
 // ===== PRIMARY WEAPON SELECT / KRISS <-> DUAL / AWP SCOPE =====
-// ===== primary weapon select / Kriss <-> Dual / AWP scope =====
-// WSEL = weapon ids offered in the pre-match select (keys 1-5). WDESC = descriptions shown on the cards.
-var WSEL=[],WDESC={1:"Balanced · mid range",2:"Close range · high burst",3:"Explosive splash",6:"Fast SMG · V = DUAL",8:"Bolt-action sniper · RMB scope",9:"Standard-issue assault rifle",10:"Rapid MP7 · HOLD RMB TO AIM",11:"P90 · HOLD RMB FOR TOP SIGHT",12:"AK SOPMOD · HOLD RMB FOR OPTIC"};
-// All tactical optics use RMB hold. AWP keeps its independent toggle scope.
-// The per-weapon optic map lives in src/game/76-tactical-optics.js.
+// Weapon behavior stays here. UI presentation and cursor lifecycle live in 77-loadout-picker.js.
+var WSEL=[],WDESC={1:"Balanced · Mid range",2:"Close range · High burst",3:"Explosive splash",
+ 6:"Fast fire rate",8:"High damage · Long range",9:"Standard-issue rifle",
+ 10:"Compact · Rapid fire",11:"High capacity · Fast SMG",12:"Tactical rifle · Optic"};
 function canAds(w){return w<4||w===6||w===8||w===WEAPON_STARTER_ID||!!tacticalOpticConfig(w);}
-// fall(b,p): damage falloff multiplier (0..1) for bullet b at hit point p from its start (sx,sz), using the weapon's r0/r1/rm.
 function fall(b,p){var f=b.fo;if(!f)return 1;var d=Math.max(0,Math.hypot(p.x-b.sx,p.z-b.sz));return Math.pow(f[0],d/f[1]);}
-// DOM references for the weapon-select screen, the scope overlay and the alt (V / scope) touch button.
-var wsEl=document.getElementById("wsel"),scopeEl=document.getElementById("scope"),abEl=document.getElementById("ab"),wsOn=false,wsCards=[],wsBar,wsT;
-(function(){wsEl.innerHTML='<div class="wt"></div><div class="wb"><i></i></div><div class="wc"></div>';wsT=wsEl.children[0];wsBar=wsEl.children[1].firstChild;})();
+var scopeEl=document.getElementById("scope"),abEl=document.getElementById("ab");
 function refreshWeaponSelection(){
-  // 1-5 remain keyboard shortcuts; additional owned primaries stay clickable.
-  var owned=inventoryOwned("main");
-  WSEL=[WEAPON_STARTER_ID].concat(owned.filter(function(id){return id!==WEAPON_STARTER_ID;}));
-  var box=wsEl.children[2];box.textContent="";wsCards=[];
-  WSEL.forEach(function(id,i){
-    var d=document.createElement("div");d.className="wcd";
-    d.innerHTML='<b class="k">'+(i<5?i+1:"•")+'</b>'+SV[id]+'<b>'+WP[id].n+'</b><small>'+WEAPON_CLASS_LABELS[WP[id].stats.kind]+" · "+(WDESC[id]||"Ready for battle")+'</small>';
-    d.addEventListener("pointerdown",function(e){e.stopPropagation();e.preventDefault();chooseWeapon(id);});
-    box.appendChild(d);wsCards.push(d);
-  });
+ var owned=inventoryOwned("main");
+ WSEL=[WEAPON_STARTER_ID].concat(owned.filter(function(id){return id!==WEAPON_STARTER_ID;}));
+ loadoutRender();
 }
-// chooseWeapon(id): picks the primary weapon during the pre-match countdown.
-function chooseWeapon(id){if(!run||pl.dead||!(mt.cd>0)||mt.over||WSEL.indexOf(id)<0||inventoryOwned("main").indexOf(id)<0)return;
-  favPrim=id;pl.prim=id;scopeOn=false;
-  if(pl.w!==id){pl.ammo[id]={mag:WP[id].mag,res:WP[id].res};swW(id);}else{pl.mag=WP[id].mag;pl.res=WP[id].res;}}
-// wselUpd(): shows/hides the weapon-select panel and updates its countdown bar.
-function wselUpd(){var sh=run&&!lob&&mt.cd>0&&!mt.over&&!pl.dead;if(wsOn!==sh){wsOn=sh;wsEl.classList.toggle("show",sh);}
-  if(sh){wsT.textContent="CHOOSE PRIMARY WEAPON \u00b7 "+Math.ceil(mt.cd)+"s";wsBar.style.width=Math.max(0,mt.cd/5*100)+"%";
-    for(var i=0;i<wsCards.length;i++){var id=WSEL[i],on=pl.prim===id||(id===6&&pl.prim===7);if(wsCards[i]._on!==on){wsCards[i]._on=on;wsCards[i].classList.toggle("on",on);}}}}
+function chooseWeapon(id){
+ if(!run||pl.dead||!(mt.cd>0)||mt.over||wsConfirmed||WSEL.indexOf(id)<0||inventoryOwned("main").indexOf(id)<0)return;
+ favPrim=id;pl.prim=id;scopeOn=false;
+ if(pl.w!==id){pl.ammo[id]={mag:WP[id].mag,res:WP[id].res};swW(id);}
+ else{pl.mag=WP[id].mag;pl.res=WP[id].res;}
+ loadoutRefreshSelected();
+}
+function wselUpd(){loadoutUpdate();}
 // V key: Kriss <-> Dual Kriss. Each mode keeps its OWN magazine and reserve ammo.
 // V: Kriss <-> Dual Kriss. Each mode keeps its own magazine + reserve
 function toggleDual(){if(!run||pl.dead||mt.over||(pl.w!==6&&pl.w!==7))return;

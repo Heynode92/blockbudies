@@ -19,7 +19,8 @@ function lookLockChanged(){
   lookSkipLockedMove=document.pointerLockElement===R.domElement;
 }
 function lookMove(e){
-  if(e.pointerType!=="mouse"||!run||lob||mt.over||!pl||pl.dead)return;
+  if(e.pointerType!=="mouse"||!run||lob||mt.over||!pl||pl.dead||
+     (typeof wsOn!=="undefined"&&wsOn))return;
   var locked=document.pointerLockElement===R.domElement,dragging=!!(e.buttons&1),dx,dy;
   if(!locked&&!dragging){lookStopDrag();return;}
   if(locked){
