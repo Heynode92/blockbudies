@@ -35,29 +35,33 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
   for(i=rq.length-1;i>=0;i--){var q=rq[i];q.t-=dt;if(q.t<=0&&!mt.over&&!isBombMode()){var nb=newBot(q.b.tm,q.b.idx);nb.st=q.b.st;placeBot(nb);rq.splice(i,1);}}
   en.forEach(function(e){var t,dx=0,dz=0,d=99,f,mvx=0,mvz=0,sp=isBombMode()?BOMB_AI.navSpeed*(e.tm===0&&bombUncontestedRetake()?BOMB_AI.clearSiteSpeedMultiplier:1):4.8,ox=e.x,oz=e.z,combat,gx,gz,wp,ml,intent;
     botUpdateReload(e,dt);e.inv=Math.max(0,(e.inv||0)-(cdn?0:dt));e.vis=Math.max(0,(e.vis||0)-dt);e.tq=(e.tq||0)-dt;e.navT=Math.max(0,(e.navT||0)-dt);
-    if(e.tq<=0){e.tq=.22+Math.random()*.16;var bd=1e9,bt=null;
-      en.forEach(function(o){if(o.tm!==e.tm){var dd=Math.hypot(o.x-e.x,o.z-e.z);if(dd<bd&&dd<45&&los(e.x,e.z,o.x,o.z)){bd=dd;bt=o;}}});
-      if(pl.tm!==e.tm&&!pl.dead){var d2=Math.hypot(pl.x-e.x,pl.z-e.z);if(d2<bd&&d2<45&&los(e.x,e.z,pl.x,pl.z)){bd=d2;bt=pl;}}
-      e.tg=bt;e.lok=!!bt;
-      if(bt)botSmartRemember(e,bt);
+    if(e.tq<=0){e.tq=.22+Math.random()*.16;
+      // Target acquisition is an actual observation, never an unseen enemy pointer.
+      e.tg=botIntelAcquire(e);e.lok=!!e.tg;
+      botIntelHearing(e);
       if(isBombMode()){var objective=bombBotGoal(e);if(objective){e.wx=objective[0];e.wz=objective[1];}}
       if(!bt&&!isBombMode()){
         // Pursue the last visible contact, never unseen live player coordinates.
-        if(e.lastSeen&&e.lastSeen.until>tt){e.wx=e.lastSeen.x;e.wz=e.lastSeen.z;}
+        var clue=botIntelKnown(e);
+        if(clue){e.wx=clue.x;e.wz=clue.z;}
         else if(!e.patrolUntil||tt>e.patrolUntil||Math.hypot(e.wx-e.x,e.wz-e.z)<2){
           e.patrolUntil=tt+3+Math.random()*3;
           var side=e.idx%2?1:-1,angle=Math.atan2(e.z,e.x)+side*(.6+Math.random()*1.3);
           e.wx=Math.max(-A+3,Math.min(A-3,e.x+Math.cos(angle)*(9+Math.random()*11)));
           e.wz=Math.max(-A+3,Math.min(A-3,e.z+Math.sin(angle)*(9+Math.random()*11)));
         }}}
-    t=e.tg;if(t&&(t.dead||(t===pl&&pl.dead)))t=e.tg=null;
+    t=e.tg;
+    // Reject the old actor reference immediately after LOS loss. Even pathing
+    // must use the last observed snapshot, never new hidden coordinates.
+    if(t&&!botIntelVisible(e,t)){t=e.tg=null;e.lok=false;}
+    else if(t){botIntelObserve(e,t);e.lok=true;}
     // Bomb carriers and designated defusers prioritize the objective unless an enemy is close.
     if(t&&bombBotWantsObjective(e,t))t=null;
     // Post-plant guards do not pursue opponents far from the device.
     if(t&&isBombMode()&&bombMatch&&bombMatch.state==='planted'&&e.tm===1&&
        bombTacticalStage(e)==='hold'&&Math.hypot(t.x-bombMatch.device.position.x,t.z-bombMatch.device.position.z)>BOMB_AI.roamRadius)t=null;
     e.lt=(e.lt||0)-dt;if(t&&e.lt<=0){e.lt=.15;e.lok=los(e.x,e.z,t.x,t.z);}
-    if(t){dx=t.x-e.x;dz=t.z-e.z;d=Math.hypot(dx,dz)||1;botSmartRemember(e,t);}
+    if(t){dx=t.x-e.x;dz=t.z-e.z;d=Math.hypot(dx,dz)||1;}
     botSmartReload(e,t);intent=botSmartIntent(e,t);e.smartRetreat=intent.retreat;
     combat=!!t&&e.lok&&e.navT<=0&&!(intent.retreat&&intent.goal)&&!intent.hold;
     sp*=intent.retreat?BOT_TACTICS.retreatSpeed:combat?BOT_TACTICS.fightSpeed:BOT_TACTICS.approachSpeed;
