@@ -3437,13 +3437,15 @@ var BOMB_AI=Object.freeze({
 });
 function bombLiving(team){return en.filter(function(e){return e.tm===team&&!e.dead;}).concat(!pl.dead&&pl.tm===team?[pl]:[]);}
 function bombNearestOpponent(e){
+  // Public elimination state can invalidate stale clues, never reveal coordinates.
+  if(!bombLiving(1-e.tm).length)return null;
   // Never return a living opponent: only timestamped, authorized observation data.
   return botIntelNearest(e,e.x,e.z,Infinity);
 }
 function bombNearestThreat(team,x,z,radius,observer){
   // The observer is mandatory. Team- or site-wide perfect-knowledge scans
   // are forbidden; teammate radio reports must come from legitimate sight.
-  if(!observer||observer.tm!==team)return null;
+  if(!observer||observer.tm!==team||!bombLiving(1-team).length)return null;
   return botIntelNearest(observer,x,z,radius);
 }
 function bombSoloPoliceThreat(e){
@@ -3455,7 +3457,8 @@ function bombSoloPoliceThreat(e){
 function bombSmartCarrierThreat(e){var foe=bombPlantThreat(e);return !!(foe&&
  Math.hypot(foe.x-e.x,foe.z-e.z)<BOMB_AI.urgentThreatRange*1.5&&los(e.x,e.z,foe.x,foe.z));}
 function bombPlantThreat(e){
-  if(!bombMatch||bombMatch.done||bombMatch.state!=='idle'||e.tm!==1)return null;
+  if(!bombMatch||bombMatch.done||bombMatch.state!=='idle'||e.tm!==1||
+     !bombLiving(0).length)return null;
   // Threats in the plant site or close enough to engage the carrier must be cleared.
   var near=bombNearestThreat(1,e.x,e.z,BOMB_AI.plantEngageRange,e),site=bombArea(e);
   if(site>=0){var s=BOMB_SITES[site],atSite=bombNearestThreat(1,s.x,s.z,BOMB_AI.plantClearRadius,e);
