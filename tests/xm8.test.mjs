@@ -30,7 +30,7 @@ test('XM8 profile matches requested stats, uses existing rifle falloff and an or
  assert.ok(model.userData.opticParts.every(part=>parts.includes(part)));
 });
 
-test('XM8 uses 17-entry gameplay tables, round red-dot ADS and AK-47 shot audio',()=>{
+test('XM8 uses extended gameplay tables, round red-dot ADS and AK-47 shot audio',()=>{
  const view=source('src/game/weapon/30-viewmodels.js');
  const combat=source('src/game/45-combat.js');
  const audio=source('src/game/65-audio.js');
@@ -50,7 +50,7 @@ test('XM8 uses 17-entry gameplay tables, round red-dot ADS and AK-47 shot audio'
   SFXI:array(audio,/SFXI=(\[[^\]]+\])/,'audio mapping')
  };
  for(const [label,values] of Object.entries(tables))
-  assert.equal(values.length,19,label+' covers all IDs 0–16');
+  assert.equal(values.length,19,label+' covers all IDs 0–18');
  assert.equal(tables.SFXI[16],tables.SFXI[1],'XM8 shot matches AK-47');
  assert.equal(tables.SFXI[16],1);
  assert.ok(tables.MZ[16]<-1.35,'XM8 muzzle offset matches barrel tip');
