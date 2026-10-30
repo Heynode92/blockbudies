@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-30 — MP7 rectangular reflex sight
+
+- Replaced the round MP7 tactical ADS frame with a 128×88px rectangular reflex window and 10px rounded corners, matching its blocky low-poly optic.
+- Kept the red dot centered and reshaped the surrounding reticle to a small square; the sight frame is still transparent.
+- Scoped the change to MP7 CSS only: P90 ring sight, AK SOPMOD holographic sight, optic switching and weapon gameplay are unchanged.
+- Added a test for the MP7 rectangular frame and for the unchanged P90/SOPMOD sight shapes.
+
 ## 2026-10-30 — Remove ADS optic captions
 
 - Removed the text captions beneath the tactical sights for MP7, P90 and AK SOPMOD while aiming.

@@ -129,3 +129,18 @@ test('ADS sights show only reticles, never text captions for MP7, P90 or AK SOPM
  assert.match(html,/class="ta-frame"/);
  assert.match(html,/class="ta-cross"/);
 });
+
+test('MP7 ADS optic is rectangular while P90 and SOPMOD retain their own sight shapes',()=>{
+ const css=read('src/styles/11-tactical-optics.css');
+ const mp7Frame=css.match(/\.tactical-aim-mp7 \.ta-frame\{[^}]*\}/)?.[0];
+ const mp7Cross=css.match(/\.tactical-aim-mp7 \.ta-cross\{[^}]*\}/)?.[0];
+ assert.ok(mp7Frame,'MP7-specific optic frame rule exists');
+ assert.match(mp7Frame,/width:128px;height:88px;border-radius:10px/);
+ assert.match(mp7Frame,/border-width:4px/);
+ assert.match(css,/\.tactical-aim-mp7 \.ta-frame::before\{inset:8px;border-radius:6px/);
+ assert.ok(mp7Cross,'MP7-specific reticle rule exists');
+ assert.match(mp7Cross,/width:22px;height:22px;border-radius:3px/);
+ assert.match(css,/\.tactical-aim-p90 \.ta-frame\{border-radius:36%/);
+ assert.match(css,/\.tactical-aim-sopmod \.ta-frame\{border-radius:18%/);
+ assert.doesNotMatch(css,/\.ta-label|--ta-label-offset/);
+});
