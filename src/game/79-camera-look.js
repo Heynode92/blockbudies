@@ -56,7 +56,7 @@ function lookMove(e){
   if(!Number.isFinite(dx)||!Number.isFinite(dy)||
       Math.abs(dx)>LOOK_CONFIG.maxMouseDeltaPerEvent||
       Math.abs(dy)>LOOK_CONFIG.maxMouseDeltaPerEvent)return;
-  var sn=LOOK_CONFIG.sensitivity*(1-(pl.w===8?LOOK_CONFIG.sniperAdsReduction:LOOK_CONFIG.otherAdsReduction)*adsT);
+  var sn=LOOK_CONFIG.sensitivity*(1-(WP[pl.w].snp?LOOK_CONFIG.sniperAdsReduction:LOOK_CONFIG.otherAdsReduction)*adsT);
   pl.face-=dx*sn;
   pl.pitch=Math.max(-1.2,Math.min(1.2,pl.pitch-dy*sn));
 }

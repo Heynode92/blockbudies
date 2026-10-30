@@ -1,6 +1,6 @@
 // BOLT_T = AWP bolt-action cycle length in seconds (must stay <= the AWP fire cooldown so the next shot is possible when it ends).
 // MZ = per-weapon muzzle z offset in viewmodel space (where bullets and muzzle flash start). kick = recoil offset. flashT = muzzle flash time left.
-var BOLT_T=1.1,MZ=[-.7,-1,-1.15,-1.2,-.9,-.3,-.9,-.9,-1.62,-1.3,-1.04,-1.00,-1.38,-1.51,-1.02,-1.63,-1.49],kick=0,flashT=0;
+var BOLT_T=1.1,MZ=[-0.7,-1,-1.15,-1.2,-0.9,-0.3,-0.9,-0.9,-1.62,-1.3,-1.04,-1,-1.38,-1.51,-1.02,-1.63,-1.49,-2.43],kick=0,flashT=0;
 // mkPick(): small floating weapon model shown on top of a crate. ci = crate type (weapon id = ci + 1).
 function mkPick(ci){var g=new T.Group(),gn=mkGun(ci+1);gn.scale.setScalar(ci===2?1.2:1.5);gn.position.z=[0,.5,.45,.72][ci+1];g.add(gn);
   g.add(new T.Mesh(new T.SphereGeometry(.85,16,12),new T.MeshBasicMaterial({color:CC[ci],transparent:true,opacity:.22,depthWrite:false})));return g;}

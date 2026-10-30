@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-30 — XM2010 bolt-action sniper (weapon ID 17)
+
+- Added XM2010 tan low-poly model (`src/game/weapon/18-xm2010.js`) with suppressor, scope, bipod, stock, magazine and moving bolt.
+- Applied requested ratings: Damage 82, RPM 0, Control 86, Speed 69, V.Recoil 64, H.Recoil 60, magazine 5 / reserve 30 and range 200. Sniper RPM 0 is interpreted through existing tuning as minimum cyclic rate.
+- Reused AWP scope, sound, recoil and bolt cycle. Converted sniper-only scope/ADS, input and hand animation from AWP-only ID checks to the canonical `WP[id].snp` state, including a bolt-firing gate.
+- Added loadout/HUD entry, synced precompiled browser bundle and source manifest. Existing IDs and ownership logic remain unchanged.
+
 ## 2026-10-30 — XM8 Assault Rifle (weapon ID 16)
 
 - Added **XM8** in dedicated `src/game/weapon/17-xm8.js` without renumbering existing weapons or changing saved inventory ownership.

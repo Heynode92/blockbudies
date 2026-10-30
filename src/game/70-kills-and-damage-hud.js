@@ -102,7 +102,7 @@ function reload(){var w=WP[pl.w];if(!run||pl.dead||pl.rl>0||pl.mag>=w.mag||w.mel
 function pick(ci){
   if(ci===3){pl.hp=Math.min(100,pl.hp+40);toast("Medkit +40 HP");return;}
   var w=ci+1;
-  if(pl.prim>=6){var pw=pl.prim,aa=amo(pw),ad=pw===8?10:pw===7?75:60;if(pw===7)aa.mag=Math.min(WP[7].mag,aa.mag+ad);else aa.res+=ad;toast("Resupplied: "+WP[pw].n+" +"+ad);return;}
+  if(pl.prim>=6){var pw=pl.prim,aa=amo(pw),ad=WP[pw].snp?10:pw===7?75:60;if(pw===7)aa.mag=Math.min(WP[7].mag,aa.mag+ad);else aa.res+=ad;toast("Resupplied: "+WP[pw].n+" +"+ad);return;}
   if(pl.prim===w){var a=amo(w);a.res+=WP[w].res;toast("Resupplied: "+WP[w].n+" +"+WP[w].res);}
   else{pl.prim=w;pl.ammo[w]={mag:WP[w].mag,res:WP[w].res};toast("Picked up "+WP[w].n+"!");swSlot(0);}
 }

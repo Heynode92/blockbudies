@@ -12,7 +12,7 @@ var bG=new T.SphereGeometry(.15,8,8),rG=new T.SphereGeometry(.3,10,10),
 // The flag guards BOTH crate sources: the random airdrop in update() and the loot crate dropped where a bot dies (killE).
 // (Dead characters still toss their gun model as a visual effect, but it can NOT be picked up.)
 var DM_RULES={crates:false};
-var mt={t:60,cd:0,over:true},ts=[0,0],rq=[],ROS=[],curK=null,pl,en,bl,cr,fx,sk,score,run=false,spawnT,crateT,tt=0,toastT=0,adsT=0,sprT=0,ADF=[56,44,58,58,70,70,50,70,14,44,42,44,36,54,54,42,46],AP=[[0,-.066,-.5],[0,-.125,-.5],[0,-.22,-.56],[.22,-.24,-.62],[0,-.1,-.5],[0,-.1,-.5],[0,-.21,-.55],[0,-.13,-.5],[0,-.14,-.5],[0,-.215,-.53],[0,-.25,-.58],[0,-.27,-.56],[0,-.18,-.64],[0,-.245,-.56],[0,-.235,-.54],[0,-.21,-.60],[0,-.245,-.57]],bobP=0,bobL=performance.now(),lob=true;
+var mt={t:60,cd:0,over:true},ts=[0,0],rq=[],ROS=[],curK=null,pl,en,bl,cr,fx,sk,score,run=false,spawnT,crateT,tt=0,toastT=0,adsT=0,sprT=0,ADF=[56,44,58,58,70,70,50,70,14,44,42,44,36,54,54,42,46,14],AP=[[0,-0.066,-0.5],[0,-0.125,-0.5],[0,-0.22,-0.56],[0.22,-0.24,-0.62],[0,-0.1,-0.5],[0,-0.1,-0.5],[0,-0.21,-0.55],[0,-0.13,-0.5],[0,-0.14,-0.5],[0,-0.215,-0.53],[0,-0.25,-0.58],[0,-0.27,-0.56],[0,-0.18,-0.64],[0,-0.245,-0.56],[0,-0.235,-0.54],[0,-0.21,-0.6],[0,-0.245,-0.57],[0,-0.14,-0.5]],bobP=0,bobL=performance.now(),lob=true;
 // mkPm()/pm: the visible body of the player (seen when dead/spectating). Its gun is hidden because the viewmodel is used instead.
 function mkPm(tm){var m=terro(tm);if(m.g.userData.gun)m.g.userData.gun.visible=false;return m;}
 var pm=mkPm(0);pm.g.visible=false;function resetPm(){pm.g.visible=false;if(pm.hm)pm.hm.visible=true;if(pm.hg)pm.hg.visible=true;if(pm.body){pm.body.rotation.set(0,0,0);pm.body.position.y=0;}(pm.arms||[]).concat(pm.legs||[]).forEach(function(q){q.rotation.z=0;});}
@@ -52,10 +52,10 @@ handL.add(magP,shP,rkP);hold.add(handR,handL,armR,armL);
 // Hand/anim tables, indexed by weapon id: RG = right-hand grip position, RL = left-hand rest position,
 // PT = left-hand "port" position for the reload animation, MODE = reload style (0 = mag swap, 1 = loop-load shells/rocket),
 // NC = number of loop cycles in a loop reload, DD = left-hand "drop" position (below the gun) used in reload animations.
-var RG=[[0,-.2,-.1],[0,-.2,-.15],[0,-.13,-.08],[0,-.14,-.2],[0,.02,-.09],[0,-.1,-.3],[0,-.22,-.1],[0,-.22,-.1],[0,-.19,-.06],[0,-.2,-.19],[0,-.22,-.10],[0,-.24,-.10],[0,-.205,-.15],[0,-.21,-.12],[0,-.21,-.12],[0,-.21,-.16],[0,-.21,-.10]],
- RL=[[-.03,-.22,-.22],[0,-.09,-.62],[0,-.1,-.58],[0,-.1,-.7],[-.3,-.5,-.1],[-.3,-.5,-.1],[0,-.09,-.5],[-.52,-.22,-.1],[0,-.1,-.62],[0,-.09,-.72],[0,-.16,-.54],[0,-.15,-.56],[0,-.18,-.84],[0,-.16,-.65],[0,-.17,-.66],[0,-.17,-.88],[0,-.18,-.74]],
- PT=[[0,-.2,-.28],[0,-.24,-.4],[0,-.12,-.2],[0,.02,-.95],[0,0,0],[0,0,0],[0,-.24,-.35],[0,0,0],[0,-.24,-.42],[0,-.24,-.43],[0,-.32,-.30],[0,-.23,-.42],[0,-.31,-.45],[0,-.29,-.30],[0,-.28,-.32],[0,-.30,-.40],[0,-.30,-.35]],
- MODE=[0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0],NC=[1,1,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1],DD=[-.1,-.34,-.28];
+var RG=[[0,-0.2,-0.1],[0,-0.2,-0.15],[0,-0.13,-0.08],[0,-0.14,-0.2],[0,0.02,-0.09],[0,-0.1,-0.3],[0,-0.22,-0.1],[0,-0.22,-0.1],[0,-0.19,-0.06],[0,-0.2,-0.19],[0,-0.22,-0.1],[0,-0.24,-0.1],[0,-0.205,-0.15],[0,-0.21,-0.12],[0,-0.21,-0.12],[0,-0.21,-0.16],[0,-0.21,-0.1],[0,-0.19,-0.06]],
+ RL=[[-0.03,-0.22,-0.22],[0,-0.09,-0.62],[0,-0.1,-0.58],[0,-0.1,-0.7],[-0.3,-0.5,-0.1],[-0.3,-0.5,-0.1],[0,-0.09,-0.5],[-0.52,-0.22,-0.1],[0,-0.1,-0.62],[0,-0.09,-0.72],[0,-0.16,-0.54],[0,-0.15,-0.56],[0,-0.18,-0.84],[0,-0.16,-0.65],[0,-0.17,-0.66],[0,-0.17,-0.88],[0,-0.18,-0.74],[0,-0.1,-0.62]],
+ PT=[[0,-0.2,-0.28],[0,-0.24,-0.4],[0,-0.12,-0.2],[0,0.02,-0.95],[0,0,0],[0,0,0],[0,-0.24,-0.35],[0,0,0],[0,-0.24,-0.42],[0,-0.24,-0.43],[0,-0.32,-0.3],[0,-0.23,-0.42],[0,-0.31,-0.45],[0,-0.29,-0.3],[0,-0.28,-0.32],[0,-0.3,-0.4],[0,-0.3,-0.35],[0,-0.24,-0.42]],
+ MODE=[0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],NC=[1,1,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],DD=[-.1,-.34,-.28];
 // xp(w): extra viewmodel offsets [x,y,z,rotX,rotY,rotZ] for weapon switch, knife stab and grenade throw animations.
 function xp(w){var r=[0,0,0,0,0,0],u,p,s,q,b,f;
   if(pl.sw>0){u=pl.sw/.28;u=u*u;r[1]-=u*.55;r[3]+=u*.7;r[4]+=u*.3;}
@@ -101,12 +101,12 @@ function animHands(){
   var a=canAds(w)?adsT*adsT*(3-2*adsT):0,sp=sprT*(1-a),bb=bm*(1-.85*a)*(1+.7*sp)*(1+.5*wtT),AA=AP[w]||AP[0];
   hold.position.set((.26+sw*.012*bb+X[0]-.09*sp)*(1-a)+AA[0]*a,(-.17-tilt*.12-Math.abs(sw)*.02*bb+idle*.004+X[1]-.07*sp)*(1-a)+AA[1]*a,(-.5+kick*(1-.5*a)+tilt*.06+X[2]+.03*sp)*(1-a)+AA[2]*a);
   hold.rotation.set((kick*.6+tilt*.45+idle*.004+X[3])*(1-.8*a)-.42*sp,(tilt*.3+X[4])*(1-a)+.55*sp,(-tilt*.35+sw*.012*bb+X[5])*(1-a)+.18*sp);
-  var bh8=guns[8].userData.bolt;
-  if(bh8){var bo=(w===8&&pl.rl<=0)?(pl.bolt||0):0;
+  var boltGun=WP[w]&&WP[w].snp?guns[w]:null,bh8=boltGun&&boltGun.userData.bolt;
+  if(bh8){var bo=pl.rl<=0?(pl.bolt||0):0;
     if(bo>0){var bp=1-bo/BOLT_T,hg=0,pu=0,lf=0;
       if(bp<.15)hg=bp/.15;else if(bp<.3){hg=1;lf=(bp-.15)/.15;}else if(bp<.5){hg=lf=1;pu=(bp-.3)/.2;}else if(bp<.6){hg=lf=pu=1;}else if(bp<.78){hg=lf=1;pu=1-(bp-.6)/.18;}else if(bp<.88){hg=1;lf=1-(bp-.78)/.1;}else hg=1-(bp-.88)/.12;
       hg=hg*hg*(3-2*hg);lf=lf*lf*(3-2*lf);pu=pu*pu*(3-2*pu);
-      if(bp>=.4&&!pl.bc){pl.bc=1;ejectShell(8,1);}
+      if(bp>=.4&&!pl.bc){pl.bc=1;ejectShell(w,1);}
       var by=.03+.04*lf,bz=-.08+.17*pu;bh8.position.set(.07,by,bz);
       handR.position.set(RG[8][0]+(.07-RG[8][0])*hg,RG[8][1]+(by-.04-RG[8][1])*hg,RG[8][2]+(bz-RG[8][2])*hg);}
     else bh8.position.set(.07,.03,-.08);}

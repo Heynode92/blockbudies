@@ -8,9 +8,9 @@ function update(dt){
   var mx=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0)+ST.l.x,mz=(keys.KeyS||keys.ArrowDown?1:0)-(keys.KeyW||keys.ArrowUp?1:0)+ST.l.y,ml=Math.hypot(mx,mz);
   if(pl.dead||mt.cd>0||(isBombMode()&&pl.bAction)){mx=mz=ml=0;}if(ml>1){mx/=ml;mz/=ml;ml=1;}
   var shoot=!pl.dead&&mt.cd<=0&&!(isBombMode()&&pl.bAction)&&(!!keys.KeyF||fireHeld||(mouse.down&&document.pointerLockElement===R.domElement));
-  var pb0=pl.bolt||0;pl.bolt=Math.max(0,pb0-dt);if(pl.w!==8||pl.dead)pl.bolt=0;if(pb0>0&&pl.bolt===0&&pl.w===8&&!pl.dead&&pl.mag<=0)reload();
-  if(pl.w!==8||pl.dead||pl.rl>0||pl.bolt>0)scopeOn=false;
-  var wA=!pl.dead&&(pl.w===8?scopeOn:mouse.right)&&canAds(pl.w)&&pl.rl<=0&&pl.sw<=0&&pl.thr<=0&&pl.stab<=0,wS=!pl.dead&&(keys.ShiftLeft||keys.ShiftRight)&&-mz>.25&&!wA&&!shoot;
+  var pb0=pl.bolt||0;pl.bolt=Math.max(0,pb0-dt);if(!WP[pl.w].snp||pl.dead)pl.bolt=0;if(pb0>0&&pl.bolt===0&&WP[pl.w].snp&&!pl.dead&&pl.mag<=0)reload();
+  if(!WP[pl.w].snp||pl.dead||pl.rl>0||pl.bolt>0)scopeOn=false;
+  var wA=!pl.dead&&(WP[pl.w].snp?scopeOn:mouse.right)&&canAds(pl.w)&&pl.rl<=0&&pl.sw<=0&&pl.thr<=0&&pl.stab<=0,wS=!pl.dead&&(keys.ShiftLeft||keys.ShiftRight)&&-mz>.25&&!wA&&!shoot;
   adsT+=((wA?1:0)-adsT)*Math.min(1,dt*12);sprT+=((wS?1:0)-sprT)*Math.min(1,dt*9);
   if(!pl.dead)pl.life+=dt;else{pl.dt+=dt;pl.rsT-=dt;if(pl.rsT<=0&&!mt.over&&!isBombMode())respawnPl();}
   var spd=weaponMovementSpeed(pl.w,sprT,adsT);
@@ -24,7 +24,7 @@ function update(dt){
   var rk=pl.dead?0:1;pl.face-=ST.r.x*2.4*dt*rk;pl.pitch=Math.max(-1.2,Math.min(1.2,pl.pitch-ST.r.y*1.6*dt*rk));
   var cdo=pl.cd;pl.cd-=dt;pl.ov=(cdo>0&&pl.cd<0)?-pl.cd:0;var w=WP[pl.w];pl.sw=Math.max(0,pl.sw-dt);pl.stab=Math.max(0,pl.stab-dt);pl.ghide=Math.max(0,pl.ghide-dt);if(pl.sth&&pl.stab<=.23){pl.sth=false;doStab();}if(pl.thr>0){pl.thr=Math.max(0,pl.thr-dt);if(pl.pend&&pl.thr<=.225){pl.pend=false;throwG();}}
   if(pl.rl>0){pl.rl-=dt;if(pl.rl<=0){var n=Math.min(w.mag-pl.mag,pl.res);pl.mag+=n;pl.res-=n;}}
-  for(var sn=0;sn<3&&shoot&&pl.cd<=0&&pl.rl<=0&&pl.thr<=0&&pl.sw<=0;sn++){if(sn>0)pl.ov=-pl.cd;if(w.melee){pl.cd=w.cd;pl.stab=.42;pl.sth=true;}else if(w.gr){if(pl.mag>0){pl.thr=.5;pl.pend=true;pl.cd=w.cd;}}else if(pl.mag>0){fire(pl,pl.face,w,"p",pl.ov);ejectShell(pl.w,(pl.w===7&&shotSide)?-1:1);pl.cd=w.cd-pl.ov;kick=Math.min(.26,kick+w.viewKick);flashT=Math.min(.06,w.cd*.75);camShot(pl.w);gunSfx(GS[SFXI[pl.w]],1);if(w.snp){scopeOn=false;pl.mag--;pl.bolt=BOLT_T;pl.bc=0;}else if(--pl.mag===0)reload();}else reload();}
+  for(var sn=0;sn<3&&shoot&&pl.cd<=0&&pl.rl<=0&&pl.thr<=0&&pl.sw<=0&&!(w.snp&&pl.bolt>0);sn++){if(sn>0)pl.ov=-pl.cd;if(w.melee){pl.cd=w.cd;pl.stab=.42;pl.sth=true;}else if(w.gr){if(pl.mag>0){pl.thr=.5;pl.pend=true;pl.cd=w.cd;}}else if(pl.mag>0){fire(pl,pl.face,w,"p",pl.ov);ejectShell(pl.w,(pl.w===7&&shotSide)?-1:1);pl.cd=w.cd-pl.ov;kick=Math.min(.26,kick+w.viewKick);flashT=Math.min(.06,w.cd*.75);camShot(pl.w);gunSfx(GS[SFXI[pl.w]],1);if(w.snp){scopeOn=false;pl.mag--;pl.bolt=BOLT_T;pl.bc=0;}else if(--pl.mag===0)reload();}else reload();}
   if(!pl.dead&&pl.w===7&&pl.mag<=0&&pl.res<=0){var kk=pl.ammo[6];if(kk&&kk.mag+kk.res>0)toggleDual();}
   if(!pl.dead&&pl.mag<=0&&pl.res<=0&&pl.rl<=0&&pl.thr<=0&&!WP[pl.w].melee&&!WP[pl.w].gr){
     var pistol=amo(0),next=pistol.mag+pistol.res>0?1:2;

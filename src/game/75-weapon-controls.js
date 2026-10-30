@@ -54,7 +54,8 @@ var SV={0:'<svg viewBox="0 0 48 20"><rect x="10" y="4" width="30" height="6" rx=
  13:'<svg viewBox="0 0 48 20"><rect x="1" y="8" width="17" height="4" rx="2"/><rect x="17" y="7" width="18" height="7" rx="1"/><rect x="34" y="8" width="9" height="5" rx="1"/><polygon points="24,13 29,13 30,20 25,20"/><polygon points="33,13 38,13 40,20 35,20"/><rect x="10" y="6" width="26" height="2"/><rect x="21" y="4" width="5" height="2"/></svg>',
  14:'<svg viewBox="0 0 48 20"><rect x="2" y="7" width="9" height="4" rx="1"/><rect x="10" y="6" width="24" height="8" rx="1"/><rect x="34" y="8" width="8" height="4" rx="1"/><path d="M42 8 L47 5 L47 17 L42 13 Z"/><rect x="12" y="4" width="24" height="2"/><polygon points="19,13 24,13 26,20 20,20"/><polygon points="11,12 15,12 13,18 10,18"/><rect x="22" y="2" width="3" height="2"/></svg>',
  15:'<svg viewBox="0 0 48 20"><rect x="1" y="9" width="7" height="4"/><rect x="7" y="7" width="19" height="6"/><rect x="26" y="7" width="13" height="7"/><rect x="39" y="8" width="7" height="3"/><rect x="7" y="5" width="32" height="2"/><rect x="20" y="2" width="6" height="3"/><rect x="21" y="0" width="1" height="3"/><rect x="25" y="0" width="1" height="3"/><polygon points="19,13 23,13 25,20 20,20"/><polygon points="31,13 34,13 34,19 31,19"/><path d="M42 7v9h-4V7" /></svg>',
- 16:'<svg viewBox="0 0 48 20"><path d="M1 10h7l3-4h19l5 3h10v5H34l-4-1H10l-2-2H1z"/><rect x="12" y="4" width="20" height="2"/><path d="M17 4l3-3h10l3 3" fill="none" stroke="currentColor" stroke-width="1.3"/><rect x="24" y="0" width="5" height="3" rx="1.5"/><polygon points="19,13 24,13 23,20 17,20"/><polygon points="31,13 35,13 38,20 33,20"/><path d="M41 13v4h4v-4"/></svg>'};
+ 16:'<svg viewBox="0 0 48 20"><path d="M1 10h7l3-4h19l5 3h10v5H34l-4-1H10l-2-2H1z"/><rect x="12" y="4" width="20" height="2"/><path d="M17 4l3-3h10l3 3" fill="none" stroke="currentColor" stroke-width="1.3"/><rect x="24" y="0" width="5" height="3" rx="1.5"/><polygon points="19,13 24,13 23,20 17,20"/><polygon points="31,13 35,13 38,20 33,20"/><path d="M41 13v4h4v-4"/></svg>',
+ 17:'<svg viewBox="0 0 48 20"><rect x="1" y="9" width="10" height="3"/><rect x="10" y="7" width="23" height="6" rx="1"/><path d="M33 9h9l5 2v6h-4v-4H33z"/><rect x="12" y="5" width="24" height="2"/><rect x="20" y="3" width="13" height="2"/><rect x="23" y="1" width="9" height="3" rx="2"/><polygon points="19,13 23,13 22,19 18,19"/><polygon points="27,13 30,13 32,18 29,19"/><path d="M42 13v5M38 14v4" stroke="currentColor" fill="none"/></svg>'};
 // Weapon-slot HUD elements and their cached keys (so the DOM is only touched when something changed).
 var slEls=[],slKey=[];
 (function(){var el=document.getElementById("wsb");for(var s=0;s<4;s++){(function(s){var d=document.createElement("div");d.className="sl";d.innerHTML='<b class="k">'+(s+1)+'</b><span class="ic"></span><span class="nm"></span><span class="sa"></span>';d.addEventListener("pointerdown",function(e){e.stopPropagation();e.preventDefault();if(run&&!pl.dead)swSlot(s);});el.appendChild(d);slEls.push(d);})(s);}})();
@@ -73,8 +74,8 @@ function slotUI(w){
 // Weapon behavior stays here. UI presentation and cursor lifecycle live in 77-loadout-picker.js.
 var WSEL=[],WDESC={1:"Balanced · Mid range",2:"Close range · High burst",3:"Explosive splash",
  6:"Fast fire rate",8:"High damage · Long range",9:"Standard-issue rifle",
- 10:"Compact · Rapid fire",11:"High capacity · Fast SMG",12:"Tactical rifle · Optic",13:"Suppressed · Iron sights",14:"UMP45 · Iron sights",15:"HK417 · Red-dot optic",16:"XM8 · Round red-dot sight"};
-function canAds(w){if(w===7)return false;return w<4||w===6||w===8||w===WEAPON_STARTER_ID||w===13||w===14||!!tacticalOpticConfig(w);}
+ 10:"Compact · Rapid fire",11:"High capacity · Fast SMG",12:"Tactical rifle · Optic",13:"Suppressed · Iron sights",14:"UMP45 · Iron sights",15:"HK417 · Red-dot optic",16:"XM8 · Round red-dot sight",17:"XM2010 · Bolt-action sniper"};
+function canAds(w){if(w===7)return false;return w<4||w===6||(WP[w]&&WP[w].snp)||w===WEAPON_STARTER_ID||w===13||w===14||!!tacticalOpticConfig(w);}
 function fall(b,p){var f=b.fo;if(!f)return 1;var d=Math.max(0,Math.hypot(p.x-b.sx,p.z-b.sz));return Math.pow(f[0],d/f[1]);}
 var scopeEl=document.getElementById("scope"),abEl=document.getElementById("ab");
 function refreshWeaponSelection(){
@@ -95,7 +96,7 @@ function wselUpd(){loadoutUpdate();}
 function toggleDual(){if(!run||pl.dead||mt.over||(pl.w!==6&&pl.w!==7))return;
   var to=pl.w===6?7:6;pl.prim=to;favPrim=to;scopeOn=false;swW(to);toast(to===7?"DUAL KRISS":"KRISS");}
 // altBtn(): the touch "alt" button: toggles the AWP scope, or Kriss <-> Dual for the Kriss.
-function altBtn(){if(!run||pl.dead||mt.over)return;if(pl.w===8){if(mt.cd<=0&&pl.rl<=0)scopeOn=!scopeOn;}else toggleDual();}
+function altBtn(){if(!run||pl.dead||mt.over)return;if(WP[pl.w].snp){if(mt.cd<=0&&pl.rl<=0&&!(pl.bolt>0))scopeOn=!scopeOn;}else toggleDual();}
 abEl.addEventListener("pointerdown",function(e){e.stopPropagation();e.preventDefault();altBtn();});
 // abUpd(): shows/updates the touch alt button text (SCOPE/UNSCOPE, DUAL/SINGLE).
-function abUpd(){var show=touch&&run&&!pl.dead&&!lob&&!mt.over&&(pl.w===6||pl.w===7||pl.w===8);abEl.style.display=show?"block":"none";if(show){var t=pl.w===8?(scopeOn?"UNSCOPE":"SCOPE"):(pl.w===6?"DUAL":"SINGLE");if(abEl.textContent!==t)abEl.textContent=t;}}
+function abUpd(){var show=touch&&run&&!pl.dead&&!lob&&!mt.over&&(pl.w===6||pl.w===7||WP[pl.w].snp);abEl.style.display=show?"block":"none";if(show){var t=WP[pl.w].snp?(scopeOn?"UNSCOPE":"SCOPE"):(pl.w===6?"DUAL":"SINGLE");if(abEl.textContent!==t)abEl.textContent=t;}}
