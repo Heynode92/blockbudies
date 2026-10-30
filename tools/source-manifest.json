@@ -20,6 +20,7 @@
     "src/game/weapon/11-mp7.js",
     "src/game/weapon/12-p90.js",
     "src/game/weapon/13-ak-sopmod.js",
+    "src/game/weapon/14-mp5k-ext.js",
     "src/game/weapon/20-ballistics.js",
     "src/game/weapon/30-viewmodels.js",
     "src/game/41-bot-weapons.js",
