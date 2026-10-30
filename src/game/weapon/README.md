@@ -6,7 +6,7 @@ Edit weapon data in one place: `src/game/weapon/<NN>-<name>.js`. Each file owns 
 | Class | Weapons | Source kind |
 | --- | --- | --- |
 | Assault Rifle | AK-47 (2), K2 (10), AK SOPMOD (13) | `rifle` |
-| SMG | Kriss (7), Dual Kriss (8), MP7 (11), P90 (12) | `smg` / `dual` |
+| SMG | Kriss (7), Dual Kriss (8), MP7 (11), P90 (12), MP5K Ext (14) | `smg` / `dual` |
 | Sniper Rifle | AWP (9) | `sniper` |
 | Shotgun | Shotgun (3) | `shotgun` |
 | Handgun | Handgun (1) | `pistol` |
@@ -35,7 +35,7 @@ CS:GO/CS2 uses 500 CS units per modifier interval. BLOCK BUDDIES has a much smal
 | AK SOPMOD | 0.97 |
 | MP7 | 0.85 |
 | P90 | 0.86 |
-| Kriss, Dual Kriss | 0.83 |
+| Kriss, Dual Kriss | 0.83 |\n| MP5K Ext (inherits standard SMG modifier) | 0.85 |
 | Shotgun (each pellet) | 0.70 |
 | Handgun | 0.91 |
 | AWP | 0.99 |
@@ -49,3 +49,10 @@ CS:GO/CS2 uses 500 CS units per modifier interval. BLOCK BUDDIES has a much smal
 - Body armor and helmets are independently configured in `src/game/39-defense.js` (`bodyReduction`, `vestMax`, `headshotMultiplier`). They remain unchanged in this release.
 - For local damage/TTK tables: `node tools/damage-sim.mjs`. It assumes every bullet/pellet lands, and excludes misses, reload and movement.
 - After any edit run `node tools/build.mjs && node tools/build.mjs --check && node --check assets/game.js && node --test tests/*.test.mjs`, then commit updated `assets/game.js`. Never edit that generated bundle directly.
+
+## MP5K Ext (weapon ID 13)
+
+- Source: `src/game/weapon/14-mp5k-ext.js`. A low-poly model drawn from the supplied suppressed MP5K silhouette; no external texture or audio downloads.
+- Stats: damage 22, RPM rating 92, control 46, speed 86, vertical recoil 49, horizontal recoil 60, magazine 30, reserve 210, range 45. The displayed RPM rating is transformed into in-game cyclic rate by existing SMG tuning.
+- RMB: normal unscoped iron-sight aiming, no optic overlay. Audio: distinct soft, low-pass synthesized suppressed shot using the existing WebAudio engine.
+- Existing IDs 0–12 remain unchanged. MP5K Ext appears in Shop, Inventory, loadout picker and HUD through the canonical profile/owned state. No automatic unlock, credits or economy changes.
