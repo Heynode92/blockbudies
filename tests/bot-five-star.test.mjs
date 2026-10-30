@@ -56,6 +56,7 @@ test('Bomb Mission assigns one recoverer and separate post-plant defenders',()=>
  assert.equal(vm.runInContext('bombTacticalStage(en[1])',c),'intercept');
 });
 test('active bot frame runs and retreats from visible enemy when HP is critical',()=>{
+ let footstepCalls=0;
  const b={x:0,z:0,tm:0,idx:0,hp:25,dead:false,inv:0,vis:0,tq:0,cd:1,
  ammo:{1:{mag:2,res:90},0:{mag:10,res:90},5:{mag:1,res:0}},primary:1,weapon:1,
  reloadId:null,grenadeAt:9999,visualWeapon:1,wx:0,wz:0,stk:0,pi:0,pt:0,sd:0,bt:0,navT:0,lt:0,
@@ -65,6 +66,7 @@ test('active bot frame runs and retreats from visible enemy when HP is critical'
  const c={A:20,GB:null,en:[b],rq:[],tt:10,mt:{cd:0,over:false},
  pl:{x:8,z:0,tm:1,dead:false,hp:100},isBombMode:()=>false,
  inObs:()=>false,los:()=>true,gh:()=>0,resolve:()=>{},flash:()=>{},aimArms:()=>{},
+ footstepAdvance:()=>{footstepCalls++;},
  WP:Array.from({length:19},(_,i)=>({stats:{kind:i===0?'pistol':'rifle'},
  mag:30,res:90,rt:1.2,cd:.15,range:30,spd:120,pel:1,moveMult:1,life:1,viewKick:0})),
  BOMB_AI:{navSpeed:5,clearSiteSpeedMultiplier:1.3,teammateSpacing:2.5,repathGoalDistance:2},
@@ -76,6 +78,7 @@ test('active bot frame runs and retreats from visible enemy when HP is critical'
  vm.runInContext(tactics,c);
  vm.runInContext(read('src/game/90-bot-ai.js').split('// botsUpdOld(dt)')[0],c);
  assert.doesNotThrow(()=>vm.runInContext('botsUpd(.016)',c));
+ assert.equal(footstepCalls,1,'active BOT frame must update footstep cadence exactly once');
  assert.equal(b.smartRetreat,true);assert.ok(Number.isFinite(b.x)&&Number.isFinite(b.z));
  assert.ok(b.x<0,'severely wounded bot must evade, not blindly charge');
 });

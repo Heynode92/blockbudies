@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-30 — Fix BOT AI regression test after footstep integration
+
+- Repaired the isolated active-BOT test fixture in `tests/bot-five-star.test.mjs` by providing the missing `footstepAdvance` dependency and asserting it runs once per frame.
+- Reproduced `ReferenceError: footstepAdvance is not defined` in the old test harness and confirmed the production `botsUpd(.016)` frame executes with the corrected mock.
+- **Regression-test and changelog maintenance only.** Gameplay, AI behavior, audio, HTML, assets, and the direct-open browser bundle are unchanged. The BOT intelligence roadmap remains a plan, not an implementation.
+
+
 ## 2026-10-30 — BOT intelligence modernization roadmap and implementation tracker (documentation only)
 
 - Published `docs/BOT_AI_MASTER_PLAN.md`: source-verified baseline, both-faction TDM/Bomb scope, aggressive/natural combat goals, fair 3D aim and perception design, locomotion/cover, team strategy, anti-omniscience rules, milestones M0–M7, performance targets, full regression/acceptance gates and next-maintainer instructions.
