@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10-30 — ESC Back to Lobby transition ordering
+
+- Finish the lobby state transition before releasing any remaining pointer lock, preventing the pointerlockchange listener from reopening the ESC menu.
+- Added a regression scenario for the re-entrant event; FPS controls and weapon loadout remain unchanged.
+
 ## 2026-10-30 — Fix ESC menu cursor and FPS resume behavior
 
 - Restored the visible, clickable mouse cursor for GAME MENU (ESC), including Resume Game and Back to Lobby.

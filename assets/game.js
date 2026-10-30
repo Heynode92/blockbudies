@@ -3014,7 +3014,12 @@ document.addEventListener("pointerlockchange",function(){
 });
 addEventListener("keydown",function(e){if(e.code!=="Escape"||!run||mt.over||lob)return;if(escEl.style.display==="flex"){if(performance.now()-escT>300)escResume();}else escShow();});
 document.getElementById("escR").onclick=function(){this.blur();escResume();};
-document.getElementById("escB").onclick=function(){this.blur();escHide();if(document.exitPointerLock)document.exitPointerLock();document.getElementById("dmn").onclick();};
+document.getElementById("escB").onclick=function(){
+ this.blur();escHide();
+ // Switch to lobby first: pointerlockchange must not reopen GAME MENU mid-transition.
+ document.getElementById("dmn").onclick();
+ if(document.pointerLockElement&&document.exitPointerLock)document.exitPointerLock();
+};
 // ---- MAIN SIMULATION ----
 // update(dt): one simulation step (dt in seconds, capped at .05 in loop()). Order: timers -> player movement/jump ->
 // aiming (ADS) and weapon timers (AWP bolt) -> player shooting -> crates -> grenades -> bots -> bullets -> particles -> HUD.
