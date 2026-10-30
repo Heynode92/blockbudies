@@ -34,7 +34,7 @@ function setup(){
   modePreviewSelect:mode=>view.previews.push(mode),lobP:page=>{view.page=page;},
   selM:0,BOMB_RULES:{teamSize:5,rounds:12,roundSeconds:120,wins:7},ts:[0,0],mt:{cd:5},
   BN:[['Jack','Mike','Ryan','Alex','Owen'],['Viper','Razor','Hawk','Shadow','Ghost']],
-  begin:tm=>{view.begunTeam=tm;},addEventListener:()=>{}};
+  begin:tm=>{view.begunTeam=tm;},inventoryRoomPreviewOpen:()=>{view.previewOpens=(view.previewOpens||0)+1;},addEventListener:()=>{}};
  vm.createContext(context);vm.runInContext(module,context,{filename:'83-room-lobby.js'});
  return {context,doc,data,view};
 }
@@ -197,4 +197,15 @@ test('live team counts and human-vs-BOT total derive from shared gameplay capaci
  assert.equal(doc.getElementById('rmlBotSummary').textContent,'1 PLAYER + 9 BOTS ON START');
  assert.equal(doc.getElementById('rmlPoliceSlots').children.length,call(context,'BOMB_RULES.teamSize'));
  assert.match(read('src/game/85-lobby-and-match.js'),/i<BOMB_RULES\.teamSize-\(t===tm\?1:0\)/);
+});
+
+test('Create Room and Room Settings save refresh the shared 3D soldier preview',()=>{
+ const {context,doc,view}=setup();call(context,'roomLobbyOpen()');
+ call(context,'roomCreateLocal()');
+ assert.equal(view.previewOpens,1);
+ doc.getElementById('rmlSettings').click();
+ doc.getElementById('roomName').value='My Test Room';
+ doc.getElementById('roomSave').click();
+ assert.equal(view.previewOpens,2);
+ assert.equal(doc.getElementById('rmlRoomName').textContent,'My Test Room');
 });

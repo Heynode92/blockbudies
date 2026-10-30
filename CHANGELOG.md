@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-10-30 — Room Lobby preview shares real Inventory soldier + IN USE weapon
+
+- Removed the static fake operator SVG from the active Room Lobby, replacing it with the genuine animated, drag-to-turn Three.js Inventory soldier preview.
+- Shares one existing renderer, Three.js actor and weapon mesh set across Inventory and Room Lobby; switches the canvas host instead of creating extra WebGL contexts/models.
+- Each Room Lobby entry reads the current owned/equipped primary via `inventoryEquipped("main")` and shows the actual `WP[id]` weapon model, name and type, independent of Inventory's temporary catalog selection.
+- Retained original gameplay, teams, room ownership and weapon settings. Added scoped responsive preview layout and regression checks for canvas sharing and equipped-weapon sourcing.
+- Rebuilt committed standalone `assets/game.js` for Windows direct-open usage.
+
+
 ## 2026-10-30 — Direct Room Master lobby, click-to-switch teams, 3–2–1
 
 - CREATE ROOM and OPEN now enter an active room lobby with live map preview, settings, original tactical art, Police/Terrorist slot columns and a local-only room log.

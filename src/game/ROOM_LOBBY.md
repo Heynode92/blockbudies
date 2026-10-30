@@ -38,3 +38,17 @@ Bomb Mode round timers, bomb mechanics, AI and weapon settings are unchanged.
 
 Both modes now use `BOMB_RULES.teamSize` for the existing BOT spawn count. UI BOT totals
 are calculated from the same setting rather than embedded numeric assumptions.
+
+## Real Inventory soldier preview (2026-10-30)
+
+The active Room Lobby's left panel uses the SAME WebGL soldier preview as Inventory,
+not a static SVG. The shared `inventoryPreviewMount` moves the existing renderer
+canvas between `ivpreview` and `rmlpreview`, preserving the real `terro(0)`
+character, weapon meshes from `mkGun(id)`, animation/IK poses and drag-to-turn.
+On room entry/re-entry, `inventoryRoomPreviewOpen` reads the saved, ownership-validated
+`inventoryEquipped("main")` selection. This is the Inventory **IN USE** primary
+(and updates after player equips a different weapon), not the Inventory catalog
+preview pick. The Room panel displays the canonical weapon name and class.
+No new renderer, player model, weapon ID mapping, network dependency or gameplay
+stat logic is introduced; the preview loop pauses when neither Inventory nor
+Room Lobby is visible and maintains the inventory camera separately.

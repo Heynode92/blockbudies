@@ -2285,6 +2285,8 @@ function roomLiveOpen(room){
  roomText("rmlTimeLabel",room.mode===1?"ROUND TIME":"MATCH TIME");
  roomText("rmlTime",(room.mode===1?room.roundMinutes:room.minutes)+" MINUTES");
  roomLiveTeams();lobP("lbroomlive");
+ // Inventory owns the soldier, real mkGun models, equipped weapon and 3D renderer.
+ inventoryRoomPreviewOpen();
 }
 function roomShowSettings(){if(!roomCurrent)return;roomEditState(roomCurrent);lobP("lbrooms");}
 function roomLeaveLive(){roomCloseLocal();lobP("lbrooms");}
@@ -3267,6 +3269,25 @@ function inventoryPreviewInit(){
  renderer.domElement.addEventListener("pointercancel",function(){down=false;});
  inventoryPreview={host:host,actor:actor,mount:mount,guns:guns,renderer:renderer,scene:scene,camera:camera,selected:null};
 }
+// Reuse ONE renderer/scene and move its canvas between Inventory and Room Lobby.
+function inventoryPreviewMount(hostId){
+ inventoryPreviewInit();
+ var p=inventoryPreview,host=document.getElementById(hostId);
+ if(p.host!==host){
+  host.insertBefore(p.renderer.domElement,host.firstChild);
+  p.host=host;
+ }
+}
+// Room always displays the primary weapon actually equipped (IN USE), not a
+// highlighted catalog item, guessed weapon ID, or temporary in-match pickup.
+function inventoryRoomPreviewOpen(){
+ var id=inventoryEquipped("main"),weapon=id===null?null:WP[id];
+ document.getElementById("rmlWeaponName").textContent=weapon?weapon.n:"NO PRIMARY";
+ document.getElementById("rmlWeaponClass").textContent=weapon?inventoryWeaponRole(weapon.stats.kind):"PRIMARY";
+ inventoryShowModel(weapon?id:null);
+ inventoryPreviewMount("rmlpreview");
+ inventoryStartPreview();
+}
 function inventoryShowModel(id){
  inventoryPreviewInit();
  var p=inventoryPreview;p.selected=id;
@@ -3303,16 +3324,25 @@ function inventoryPoseFrame(p,now){
  aimA(a.arms[0],-.55,1.3,l[0],l[1]+y,l[2],-1);
 }
 function inventoryPreviewFrame(now){
- if(!document.getElementById("lbiv").classList.contains("on")){inventoryPreviewLive=false;return;}
- var p=inventoryPreview,w=Math.max(1,p.host.clientWidth),h=Math.max(1,p.host.clientHeight);
+ var inInventory=document.getElementById("lbiv").classList.contains("on"),
+     inRoom=document.getElementById("lbroomlive").classList.contains("on");
+ if(!inInventory&&!inRoom){inventoryPreviewLive=false;return;}
+ var p=inventoryPreview,hostId=inRoom?"rmlpreview":"ivpreview";
+ inventoryPreviewMount(hostId);
+ var w=Math.max(1,p.host.clientWidth),h=Math.max(1,p.host.clientHeight);
  if(p.renderer.domElement.width!==Math.round(w*p.renderer.getPixelRatio())||
     p.renderer.domElement.height!==Math.round(h*p.renderer.getPixelRatio())){
    p.renderer.setSize(w,h,false);p.camera.aspect=w/h;p.camera.updateProjectionMatrix();
  }
  inventoryPoseFrame(p,now);
- if(inventoryTab==="helm"){
+ if(inInventory&&inventoryTab==="helm"){
   p.camera.position.set(1.35,2.05,2.35);
   p.camera.lookAt(0,1.68,0);
+ }else if(inRoom){
+  // Keep the whole soldier and held weapon visible in tall, narrow room panels.
+  var pullback=Math.max(1,Math.min(1.75,.73/(w/h)));
+  p.camera.position.set(2.45*pullback,2.30+(pullback-1)*1.05,3.8*pullback);
+  p.camera.lookAt(0,1.22,0);
  }else{
   p.camera.position.set(2.45,2.30,3.8);
   p.camera.lookAt(0,1.22,0);
@@ -3495,7 +3525,7 @@ function inventoryRender(){
 function inventoryOpen(){
  inventoryTab="main";inventoryClass="all";
  inventoryAngle=.14;lobP("lbiv");
- inventoryPreviewInit();inventoryBuildThumbnails();inventoryRender();inventoryStartPreview();
+ inventoryPreviewMount("ivpreview");inventoryBuildThumbnails();inventoryRender();inventoryStartPreview();
 }
 inventoryLoad();
 document.getElementById("ivcards").addEventListener("scroll",function(){

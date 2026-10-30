@@ -48,6 +48,8 @@ function roomLiveOpen(room){
  roomText("rmlTimeLabel",room.mode===1?"ROUND TIME":"MATCH TIME");
  roomText("rmlTime",(room.mode===1?room.roundMinutes:room.minutes)+" MINUTES");
  roomLiveTeams();lobP("lbroomlive");
+ // Inventory owns the soldier, real mkGun models, equipped weapon and 3D renderer.
+ inventoryRoomPreviewOpen();
 }
 function roomShowSettings(){if(!roomCurrent)return;roomEditState(roomCurrent);lobP("lbrooms");}
 function roomLeaveLive(){roomCloseLocal();lobP("lbrooms");}
