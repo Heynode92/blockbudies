@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-10-31 WIB — M0 foundational exit gate verified; M1 ready
+
+- Added **opt-in non-mutating timing callback** to developer-only `tools/bot-ai-m0-baseline.mjs` and a reproducible `tools/bot-ai-m0-performance.mjs` CPU benchmark for real active `botsUpd()` in 10-BOT **synthetic fixtures**. Added regression assertion ensuring timing instrumentation does not affect seeded BOT behavior.
+- Windows GitHub Actions now also runs the benchmark after bundle/syntax/full regression and deterministic trace checks. [CI run #38](https://github.com/Heynode92/blockbudies/actions/runs/41105582716) **SUCCESS: 289/289 Node tests PASS, 0 failed**.
+- CPU update timing samples on Windows x64 Node v22.23.4 (12 × 60 frames per mode, seed 42): TDM open LOS median/p95 **0.4273/0.6937 ms**, TDM blocked LOS **0.3258/1.5573 ms**, Bomb open LOS **0.4719/0.7529 ms**. CPU timing **includes Node VM and simulated world stub overhead**, not WebGL/browser FPS or actual game frame time.
+- Documented reasoned **M0 VERIFIED (FOUNDATION)** against the original Master Plan exit gate (production-code seeded harness, reproducible baseline traces, initial measured synthetic CPU/behavior, no gameplay regression), supported by previous owner-reported qualitative **8/8 core smoke PASS**. **M1 READY but NOT STARTED**.
+- **Explicitly OPEN**: real browser FPS/p95, hit percentage, reaction latency, navigation/stuck rates, full map/faction coverage and statistically sampled Bomb outcomes. These are not treated as passed or verified and remain required for later AI improvement comparison and final M7 sign-off.
+- Synchronized M0 acceptance, KPI warnings and checklists across `docs/BOT_AI_MASTER_PLAN.md`, `docs/BOT_AI_M0_BASELINE.md` and `docs/BOT_AI_IMPLEMENTATION_LOG.md`.
+- **No production gameplay, AI logic, weapon stats, UI, map or Bomb rule changes. No backend or player-side build required.**
+
 ## 2026-10-31 WIB — M0 owner playtest smoke test (8/8 basic checks reported PASS)
 
 - The owner reported all eight **manual qualitative** checks PASS after playtesting: Deathmatch (Police/Terrorist BOT movement and combat, no visible stuck movement, firing/damage operating, no noticeable freeze/severe lag); Bomb Mission (Terrorist plant, Police defuse, site attack/defense and correct round completion).
