@@ -54,9 +54,12 @@ test('after clearing nearby enemy, sole Police bot immediately resumes defuse',(
   assert.equal(ctx.bombTacticalStage(cop),'retake-defuse');
   assert.equal(ctx.bombBotCanAct(cop),true);
 });
-test('distant enemy is not a permanent blocker to solo Police defuse',()=>{
-  const {ctx,cop,terror}=makeState();terror.x=-60;terror.z=-45;
-  assert.equal(ctx.bombPickDefuser(),cop);
+test('last sighting expires before solo Police resumes an uncontested defuse',()=>{
+  const {ctx,cop,terror}=makeState();
+  terror.x=-60;terror.z=-45;
+  assert.equal(ctx.bombPickDefuser(),null,'recent contact remains a short-lived threat');
+  ctx.tt+=4;
+  assert.equal(ctx.bombPickDefuser(),cop,'expired contact cannot block defuse forever');
   assert.equal(ctx.bombTacticalStage(cop),'retake-defuse');
 });
 test('lone Terrorist hunts remaining Police instead of holding a random bomb angle',()=>{
