@@ -64,7 +64,7 @@ function dropVisualIndex(w){
 function dropPlayerGun(){var w=pl.w,visual=dropVisualIndex(w),g=mkGun(w),f=pl.face,s=Math.sin(f),c=Math.cos(f);
   g.scale.setScalar(GSC[visual]);g.rotation.order="YXZ";g.rotation.y=f+Math.PI;
   g.position.set(pl.x+.55*c+.4*s,1.05,pl.z-.55*s+.4*c);S.add(g);
-  addDrop(g,s*1.8+c*.9,2.4,c*1.8-s*.9,GH[visual],true,(w===4||w===5)?0:(w===3?.6:Math.PI/2));}
+  addDrop(g,s*1.8+c*.9,2.4,c*1.8-s*.9,GH[visual],false,(w===4||w===5)?0:(w===3?.6:Math.PI/2));}
 // detachGun(): when a bot dies, its gun flies off. kx/kz = knock direction, ex = exaggerated (explosion) throw.
 function detachGun(e,kx,kz,ex){var rg=e.g.userData.rg;if(!rg)return;e.g.userData.rg=null;
   var gm=Math.hypot(kx||0,kz||0)||1,k=ex?5:1.6;rg.rotation.order="YXZ";S.attach(rg);

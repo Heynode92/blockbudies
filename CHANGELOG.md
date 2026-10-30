@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-30 — Remove persistent player weapon drops on death
+
+- Fixed player-death gun models staying on the map indefinitely because `dropPlayerGun()` passed `keep=true` to the existing physics drop system.
+- Player weapons now use the same `keep=false`, seven-second lifetime and subsequent .6-second disappearance phase as BOT weapon drops, without changing their visuals, trajectory or respawn behavior.
+- Grenade stock, shell-casing expiry, BOT drop cleanup and gameplay weapon ownership remain unchanged. Added regression coverage and rebuilt the standalone direct-browser bundle.
+
+
 ## 2026-10-30 — Temporary flowing blood pools on character death
 
 - Added a standalone 3D blood pool module (`46-blood-pools.js`) with an irregular procedural floor shape and three gradually extending runnels. Shared geometry and capped, reusable mesh groups (maximum 24).
