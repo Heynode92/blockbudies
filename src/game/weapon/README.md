@@ -105,8 +105,8 @@ CS:GO/CS2 uses 500 CS units per modifier interval. BLOCK BUDDIES has a much smal
 - `src/game/50-items-and-drops.js`: weapon IDs differ from physical casing type IDs (0 pistol/SMG, 1 rifle/sniper, 2 shotgun). All shotguns—including Saiga-12 ID 18—use the existing shotgun shell mesh/port; shell ejection remains triggered by the established simulation logic. Invalid casing table indices must never stop the render loop.
 - Dropped-gun scale/rest-height falls back to the first legacy weapon of the same class for newer IDs. Existing ID 0–12 sizes and positions remain unchanged.
 
-## Learnable horizontal shotgun spread (CS:GO-inspired)
+## Learnable 2D shotgun spread (CS:GO-inspired)
 
-`src/game/weapon/21-shotgun-spread-pattern.js` generates repeatable horizontal-only pellet yaw offsets from the canonical `w.pel` value (six for both current shotguns). Each volley uses evenly mirrored outer-to-inner pairs from the same muzzle; no vertical random scatter is introduced. Existing `w.spr` controls angular width, and the original ADS multiplier shrinks it. No weapon-ID-specific overrides, parallel projectile engine, modified stats, or new damage logic.
+The existing `src/game/weapon/21-shotgun-spread-pattern.js` now computes deterministic golden-angle offsets in **both yaw and elevation** for each pellet, derived from the canonical pellet count. Both Shotgun ID 2 and Saiga-12 ID 18 fire six pellets from the same muzzle per volley. This is a radial pattern inspired by Valve's CS:GO learnable shotgun system, not an exact reproduction of its coordinates.
 
-This is inspired by Valve's published fixed-pattern CS:GO shotgun concept, **not** a copy of Valve's 2D scatter coordinates. Non-shotguns retain stochastic spread.
+The original `w.spr` half-cone and ADS reduction apply to both axes, with one pellet near the center for reliable crosshair feel. Vertical velocity keeps the original aim pitch and muzzle-to-crosshair correction as its baseline. Non-shotguns retain their old random spread. See `tests/shotgun-horizontal-pattern.test.mjs` (retained filename for compatibility, now fully testing 2D).

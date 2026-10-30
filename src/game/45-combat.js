@@ -40,12 +40,17 @@ function toast(t){var e=document.getElementById("toast");e.textContent=t;e.style
 function fire(o,face,w,own,adv){var D=w.snp?90:w.dual?45:20,
       patternedShotgun=w.pel>1&&w.stats&&w.stats.kind==="shotgun";
   for(var i=0;i<w.pel;i++){
-    // Fixed symmetric offsets for shotguns, original RNG for every other class.
-    // Vertical velocity and existing ballistic collision remain unchanged.
-    var offset=patternedShotgun?shotgunHorizontalPelletOffset(i,w.pel):(Math.random()-.5)*2,
-        a=face+offset*w.spr*(own==="p"?(w.snp?1-adsT:1-.65*adsT):1),g=tracer(own,w.rk);
+    // Fixed shotgun pattern on both axes; other weapons keep their original RNG.
+    var pelletOffset=patternedShotgun?shotgunPelletSpread(i,w.pel):null,
+        spreadScale=own==="p"?(w.snp?1-adsT:1-.65*adsT):1,
+        yawOffset=patternedShotgun?pelletOffset[0]:(Math.random()-.5)*2,
+        a=face+yawOffset*w.spr*spreadScale,g=tracer(own,w.rk);
     var mx0,my0,mz0;if(own==="p"){if(w.dual)shotSide=shotSide?0:1;var lx=hold.position.x-(w.dual&&shotSide?.52:0),dd=-(hold.position.z+MZ[pl.w]);mx0=o.x+Math.sin(face)*dd-Math.cos(face)*lx;mz0=o.z+Math.cos(face)*dd+Math.sin(face)*lx;my0=1.5+(o.y||0)+hold.position.y+.02;a+=Math.atan(lx/D);}else{var ey=face;mx0=o.x+Math.sin(ey)*1.1+Math.cos(ey)*.05;mz0=o.z+Math.cos(ey)*1.1-Math.sin(ey)*.05;my0=1.07+(o.y||0)-.3*(o.crA||0);}
-    var vy0=own==="p"?w.spd*(1.5+(o.y||0)+D*Math.tan(pl.pitch)-my0)/D:0;o.tc=(o.tc||0)+1;g.visible=!!(w.rk||w.pel>1||w.snp||o.tc%3===1);g.rotation.order="YXZ";g.rotation.set(-Math.atan2(vy0,w.spd||1),a,0);if(Math.abs(mx0)>=A||Math.abs(mz0)>=A||sweepObs(o.x,my0,o.z,mx0,my0,mz0)||sweepLT(o.x,my0,o.z,mx0,my0,mz0)||obsAt(mx0,mz0,my0)){mx0=o.x;mz0=o.z;}
+    var vy0=own==="p"?w.spd*(1.5+(o.y||0)+D*Math.tan(pl.pitch)-my0)/D:0;
+    // Add elevation only to shotgun pellets, on top of the existing
+    // player muzzle-to-crosshair pitch or bot's original flat trajectory.
+    if(patternedShotgun)vy0+=w.spd*Math.tan(pelletOffset[1]*w.spr*spreadScale);
+    o.tc=(o.tc||0)+1;g.visible=!!(w.rk||w.pel>1||w.snp||o.tc%3===1);g.rotation.order="YXZ";g.rotation.set(-Math.atan2(vy0,w.spd||1),a,0);if(Math.abs(mx0)>=A||Math.abs(mz0)>=A||sweepObs(o.x,my0,o.z,mx0,my0,mz0)||sweepLT(o.x,my0,o.z,mx0,my0,mz0)||obsAt(mx0,mz0,my0)){mx0=o.x;mz0=o.z;}
     g.position.set(mx0,my0,mz0);S.add(g);
     var ad=adv||0;
     bl.push({m:g,vx:Math.sin(a)*w.spd,vy:vy0,vz:Math.cos(a)*w.spd,life:w.life,ad:ad,dmg:w.dmg,own:own,tm:o.tm,by:o,rk:w.rk,sx:o.x,sz:o.z,wid:WP.indexOf(w),fo:w.rangeModifier?[w.rangeModifier,w.rangeUnit]:null});if(own==="e"&&i===0)enemyShotFx(o,mx0,my0,mz0);if(w.rk&&own==="p")smoke(mx0,my0,mz0,6,1.4,.3,1.3,.25,0);}

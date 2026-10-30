@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-30 — Shotgun pellet impacts now spread in 2D (CS:GO-inspired)
+
+- Fixed the previous regression where deterministic shotgun impacts formed one horizontal line. Both standard Shotgun and Saiga-12 retain **six pellets**, but they now use fixed two-dimensional radial pellet directions with distinct yaw and elevation.
+- The generic golden-angle distribution uses pellet count from the canonical weapon profile without per-weapon ID checks, copied CS:GO coordinates or a new projectile system. Consecutive shots repeat the same learnable grouping around the crosshair.
+- Original `w.spr` and ADS tightening still govern both axes. Existing aim pitch and separate bot/player muzzle correction are preserved, as are original damage, range, hit collision, recoil, pump/semi-auto mechanics, ammo and all non-shotgun weapons.
+- Rewrote the original shotgun regression tests to verify real projectile velocities and no more flat-line impacts, plus non-shotgun compatibility. Synchronized `assets/game.js` for local `index.html` launch.
+
 ## 2026-10-30 — Learnable CS:GO-style horizontal shotgun pattern
 
 - Converted six-pellet shotgun volleys from independent random horizontal spread to a **fixed, symmetric, learnable** set of six horizontal offsets, for both standard Shotgun (ID 2) and Saiga-12 (ID 18).
