@@ -1,7 +1,7 @@
 # BLOCK BUDDIES — M0 Synthetic BOT Baseline (2026-10-30)
 
 > **Milestone:** M0 — Baseline & Harness  
-> **Status:** PARTIAL / WINDOWS NODE CI + OWNER-REPORTED CORE GAMEPLAY SMOKE VERIFIED; QUANTITATIVE BASELINE PENDING  
+> **Status:** M0 BASELINE FOUNDATION VERIFIED / ADVANCED REAL-BROWSER KPIs DEFERRED (OPEN)  
 > **Source starting point:** `5e7bd5871ee828ca9690a25d1d994e4c5f130c2d`  
 > **Harness:** [`tools/bot-ai-m0-baseline.mjs`](../tools/bot-ai-m0-baseline.mjs)  
 > **Regression tests:** [`tests/bot-ai-m0-baseline.test.mjs`](../tests/bot-ai-m0-baseline.test.mjs)
@@ -70,6 +70,20 @@ The owner reported **8 of 8 qualitative smoke checks PASS** after pulling and pl
 
 The underlying Windows regression suite remains **CI SUCCESS**, verified on [run #30](https://github.com/Heynode92/blockbudies/actions/runs/41097051520), commit `4df8c9f` prior to documentation-only logging. Remaining M0 benchmark and acceptance gates below are not complete.
 
+## M0 isolated BOT CPU timing baseline — Windows CI #38
+
+**Evidence:** [Run #38](https://github.com/Heynode92/blockbudies/actions/runs/41105582716), commit `2dead68`. Windows x64 runner, Node v22.23.4, 10 synthetic BOTs, seed 42. Each scenario: 3 untimed warmups plus 12 measured deterministic replays × 60 frames = **720 update-tick samples**. The timing wraps the active `botsUpd()` call including Node VM dispatch and synthetic stubs. This is **not browser frame time**, WebGL FPS, pure BOT CPU time isolated from VM overhead, or a real map performance measurement.
+
+| Synthetic mode | Tick median (ms) | Tick p95 (ms) | Tick max (ms) | Stable deterministic trace |
+|---|---:|---:|---:|---|
+| TDM — open LOS | 0.4273 | 0.6937 | 3.5838 | Yes |
+| TDM — blocked LOS | 0.3258 | 1.5573 | 9.1135 | Yes |
+| Bomb — open LOS | 0.4719 | 0.7529 | 2.7328 | Yes |
+
+**Scripts:** `tools/bot-ai-m0-baseline.mjs` (optional instrumentation callback, deterministic output unchanged), `tools/bot-ai-m0-performance.mjs`. The latter is executed automatically in `.github/workflows/bot-ai-m0.yml`.
+
+**Exit-gate distinction:** The M0 master-plan exit gate is baseline harness + deterministic initial behavior measurements + unchanged legacy gameplay. It does not require **completed improvement targets** from M1–M7. The measured CPU fixture provides an early baseline, while actual live browser KPI collection remains mandatory for later comparison, not implicitly finished.
+
 ## M0 verification checklist
 
 - [x] Confirm active BOT owner and current source functions (not `botsUpdOld`).
@@ -77,13 +91,24 @@ The underlying Windows regression suite remains **CI SUCCESS**, verified on [run
 - [x] Add **seeded synthetic 10-BOT** TDM and Bomb replay + targeted regression checks.
 - [x] Log precise synthetic observations and known limitations.
 - [x] Windows GitHub Actions `node --test` complete regression suite, `node tools/build.mjs --check`, `node --check assets/game.js` and synthetic baseline CLI all verified green: [run #26](https://github.com/Heynode92/blockbudies/actions/runs/41096566590), Node 22 / `windows-latest`.
+- [x] Seeded 10-BOT VM tick CPU sampling established for baseline, verified [Windows CI #38](https://github.com/Heynode92/blockbudies/actions/runs/41105582716), **289/289 Node tests PASS**, three 720-sample scenarios.
 - [x] Owner-reported **basic live gameplay smoke**: 4/4 Deathmatch and 4/4 Bomb Mission PASS (qualitative only; see above).
 - [ ] Run real playable map scenarios with the human on Police and Terrorist in both modes and both maps; collect reliable samples.
 - [ ] Instrument **real** fire/hit rate, sight-to-action latency, path failure, collision/stuck time and Bomb completion, with scenario seeds and sample counts.
 - [ ] Measure actual browser frame time/p95 and BOT decision cost at playable 5v5, then compare after every upgrade.
 - [ ] Verify browser `index.html` launch and gameplay manually on Windows.
 
-M0 stays **IN PROGRESS** until all required acceptance gates are evidenced. M1–M7 remain **NOT STARTED**. No gameplay logic, damage, difficulty, rules, map geometry or source manifest was modified by the M0 test harness. The committed standalone browser bundle `assets/game.js` later received **one newline-only synchronization correction** (commit `6664ee13`) to satisfy the canonical build; no executable gameplay statement changed.
+The M0 **master-plan exit gate for baseline foundations** is verified by the seeded real-function test harness, reproducible traces, Windows CI performance sampling and owner-reported smoke test. **M1 may begin**, but real browser FPS, real hit-rate, reaction latency, navigation/stuck rates, per-map/faction coverage and statistical Bomb outcomes stay **OPEN** and must be captured before claims of improvement or final M7 release. No gameplay logic, damage, difficulty, rules, map geometry or source manifest was modified by the M0 test harness. The committed standalone browser bundle `assets/game.js` later received **one newline-only synchronization correction** (commit `6664ee13`) to satisfy the canonical build; no executable gameplay statement changed.
+
+## M0 master-plan exit gate acceptance
+
+- [x] Live active BOT source exercised by automated test harness; no use of legacy `botsUpdOld`.
+- [x] Fixed seed generates repeated matching behavior traces for both factions and both modes in synthetic scenarios.
+- [x] Pre-change behavioral counts and synthetic BOT update CPU timing recorded with source commit and environment.
+- [x] Existing Windows CI and owner-reported 8/8 core playtest smoke pass; no production gameplay source modified.
+- [ ] **Supplemental/advanced KPI measurement only:** actual browser FPS/p95, hit percentage, genuine reaction latency, navigation/stuck rate, real Bomb win frequency, full map/faction sample matrix. **Open and not asserted complete.**
+
+**Decision:** M0 foundation verified to the explicit Master Plan exit gate; M1 implementation can start with these additional KPIs remaining distinct measurable follow-ups. This does not represent final game performance approval.
 
 ## Reproducibility and future updates
 
