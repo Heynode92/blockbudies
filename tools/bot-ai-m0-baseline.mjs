@@ -3,6 +3,7 @@
 // an explicit synthetic world. It does NOT simulate real projectile hits or FPS.
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
+import {resolve} from 'node:path';
 import vm from 'node:vm';
 
 const root=new URL('../',import.meta.url);
@@ -112,7 +113,7 @@ export function runBotM0Baseline({
     unavailableMetrics:['realHitRate','realReactionLatency','bombRoundWinRate','browserFps']
   };
 }
-if(process.argv[1]&&fileURLToPath(import.meta.url)===fileURLToPath(new URL('file://'+process.argv[1].replace(/\\/g,'/')))){
+if(process.argv[1]&&fileURLToPath(import.meta.url)===resolve(process.argv[1])){
   const scenarios=[
     {seed:42,mode:'tdm'},
     {seed:42,mode:'tdm',visibility:'blocked'},
