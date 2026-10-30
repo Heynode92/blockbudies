@@ -5,12 +5,13 @@ import {readFileSync} from 'node:fs';
 const root=new URL('../',import.meta.url);
 const read=p=>readFileSync(new URL(p,root),'utf8').replace(/\r\n/g,'\n');
 const tactics=read('src/game/89-bot-tactical-intelligence.js');
+const perception=read('src/game/88-bot-perception.js');
 function setup(extra={}){
  const c={A:30,GB:new Uint8Array(16),en:[],tt:10,pl:{dead:false,tm:0,x:0,z:0},
  isBombMode:()=>false,bombMatch:null,WP:Array.from({length:19},()=>({mag:30,res:90,rt:1,cd:.15,range:35,stats:{kind:'rifle'}})),
  BOT_WEAPONS:{sidearm:0},botStartReload:()=>false,botVisualWeapon:()=>{},
  gPath:(x,z,tx,tz)=>[[tx,tz]],inObs:()=>false,los:()=>true,...extra};
- vm.createContext(c);vm.runInContext(tactics,c);return c;
+ vm.createContext(c);vm.runInContext(perception,c);vm.runInContext(tactics,c);return c;
 }
 test('five-star cover checks real LOS and retreats when critically injured',()=>{
  const c=setup({los:x=>x>-2}),b={x:0,z:0,wx:0,wz:0,hp:25,tm:0};c.en=[b];
@@ -45,7 +46,7 @@ test('Bomb Mission assigns one recoverer and separate post-plant defenders',()=>
   BOMB_SITES:[{x:0,z:0},{x:25,z:0}],BOMB_RULES:{interactRadius:2},
   bombMatch:{state:'idle',done:false,dropped:{x:3,z:0},round:1,carrier:null},
   isBombMode:()=>true,inObs:()=>false,los:()=>true,bombArea:()=>-1};
- vm.createContext(c);vm.runInContext(read('src/game/87-bomb-tactics.js'),c);
+ vm.createContext(c);vm.runInContext(perception,c);vm.runInContext(read('src/game/87-bomb-tactics.js'),c);
  assert.equal(vm.runInContext('bombSmartRecoverer()',c),a);
  assert.equal(vm.runInContext('bombTacticalStage(en[0])',c),'recover');
  assert.equal(vm.runInContext('bombTacticalStage(en[1])',c),'recover-cover');
@@ -75,6 +76,7 @@ test('active bot frame runs and retreats from visible enemy when HP is critical'
  mkGun:()=>({rotation:{},scale:{setScalar(){}},position:{set(){}},traverse(){}})};
  vm.createContext(c);
  vm.runInContext(read('src/game/41-bot-weapons.js'),c);
+ vm.runInContext(perception,c);
  vm.runInContext(tactics,c);
  vm.runInContext(read('src/game/90-bot-ai.js').split('// botsUpdOld(dt)')[0],c);
  assert.doesNotThrow(()=>vm.runInContext('botsUpd(.016)',c));
