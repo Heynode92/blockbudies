@@ -7,6 +7,7 @@ import {fileURLToPath} from 'node:url';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const read=(path)=>readFileSync(resolve(root,path),'utf8');
 const tactics=read('src/game/87-bomb-tactics.js');
+const perception=read('src/game/88-bot-perception.js');
 const mission=read('src/game/86-bomb-mission.js');
 const audio=read('src/game/65-audio.js');
 const damage=read('src/game/70-kills-and-damage-hud.js');
@@ -30,7 +31,9 @@ function makeState(){
   // A VM global function does not use this, use a closure-safe function below.
   ctx.bombActionFor=function(e){if(ctx.bombMatch.state==='planted'&&e.tm===0)return {type:'defuse',site:1};
     if(ctx.bombMatch.state==='idle'&&e.tm===1&&ctx.bombMatch.carrier===e&&ctx.bombArea(e)>=0)return {type:'plant',site:1};return null;};
+  runInNewContext(perception,ctx);
   runInNewContext(tactics,ctx);
+  ctx.botIntelAcquire(cop);ctx.botIntelAcquire(terror);
   // The actual damage handlers depend on defenseDamage; include its production implementation.
   runInNewContext(defense,ctx);
   const part=mission.slice(mission.indexOf('function bombInterruptPlant('),mission.indexOf('function bombPlant('));
@@ -60,7 +63,9 @@ test('lone Terrorist hunts remaining Police instead of holding a random bomb ang
   const {ctx,cop,terror}=makeState();ctx.pl.dead=true;
   cop.x=-47;cop.z=-21;
   assert.equal(ctx.bombTacticalStage(terror),'hunt');
-  assert.deepEqual([...ctx.bombTacticalGoal(terror)],[cop.x,cop.z]);
+  // After LOS is lost, the BOT must use the previously observed location,
+  // not the live hidden Police position at (-47,-21).
+  assert.deepEqual([...ctx.bombTacticalGoal(terror)],[24,5]);
 });
 test('carrier clears site and cannot plant while Police are threatening',()=>{
   const {ctx,cop,terror}=makeState();
@@ -77,7 +82,8 @@ test('carrier clears site and cannot plant while Police are threatening',()=>{
 test('bot stops an ongoing plant when a living enemy enters the site',()=>{
   const {ctx,cop,terror}=makeState();ctx.bombMatch.state='idle';ctx.bombMatch.carrier=terror;
   cop.dead=true;ctx.bombAct(terror,2,true);assert.equal(terror.bAction.t,2);
-  cop.dead=false;ctx.bombAct(terror,.1,ctx.bombBotCanAct(terror));
+  cop.dead=false;ctx.botIntelAcquire(terror);
+  ctx.bombAct(terror,.1,ctx.bombBotCanAct(terror));
   assert.equal(terror.bAction,null);
   cop.dead=true;ctx.bombAct(terror,.1,ctx.bombBotCanAct(terror));
   assert.ok(terror.bAction&&terror.bAction.t<1,'progress must restart at zero');
