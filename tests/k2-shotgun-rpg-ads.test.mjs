@@ -106,7 +106,7 @@ test('No unintended ADS for Dual Kriss and original scopes remain unchanged',()=
  assert.equal(env.tacticalOpticConfig(11).style,'p90');
  assert.equal(env.tacticalOpticConfig(12).style,'sopmod');
  assert.equal(env.tacticalOpticConfig(8),null,'AWP retains its separate scope');
- assert.match(sim,/pl\.w===8\?scopeOn:mouse\.right/);
+ assert.match(sim,/WP\[pl\.w\]\.snp\?scopeOn:mouse\.right/);
 });
 test('K2 Shotgun RPG weapon profiles, projectiles and damage remain untouched',()=>{
  const {ctx}=createProfiles();
