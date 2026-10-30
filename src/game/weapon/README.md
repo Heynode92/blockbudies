@@ -6,7 +6,7 @@ Edit weapon data in one place: `src/game/weapon/<NN>-<name>.js`. Each file owns 
 | Class | Weapons | Source kind |
 | --- | --- | --- |
 | Assault Rifle | AK-47 (2), K2 (10), AK SOPMOD (13) | `rifle` |
-| SMG | Kriss (7), Dual Kriss (8), MP7 (11), P90 (12), MP5K Ext (14) | `smg` / `dual` |
+| SMG | Kriss (7), Dual Kriss (8), MP7 (11), P90 (12), MP5K Ext (14), UMP45 Ext D (15) | `smg` / `dual` |
 | Sniper Rifle | AWP (9) | `sniper` |
 | Shotgun | Shotgun (3) | `shotgun` |
 | Handgun | Handgun (1) | `pistol` |
@@ -14,7 +14,7 @@ Edit weapon data in one place: `src/game/weapon/<NN>-<name>.js`. Each file owns 
 | Melee | Knife (5) | `knife` |
 | Throwable | Grenade (6) | `grenade` |
 
-_Numbers in parentheses are the 1-based filenames, NOT weapon IDs. Actual weapon IDs are 0–12, starting with Handgun at 0. Don't renumber IDs: inventory save data and bots depend on them._
+_Numbers in parentheses are the 1-based filenames, NOT weapon IDs. Actual weapon IDs are 0–14, starting with Handgun at 0. Don't renumber IDs: inventory save data and bots depend on them._
 
 ## Shared modules
 - `00-registry.js` initializes arrays, the frozen class labels, and `DAMAGE_FALLOFF.referenceUnits` (currently 20 BLOCK BUDDIES world units per modifier interval).
@@ -35,7 +35,9 @@ CS:GO/CS2 uses 500 CS units per modifier interval. BLOCK BUDDIES has a much smal
 | AK SOPMOD | 0.97 |
 | MP7 | 0.85 |
 | P90 | 0.86 |
-| Kriss, Dual Kriss | 0.83 |\n| MP5K Ext (inherits standard SMG modifier) | 0.85 |
+| Kriss, Dual Kriss | 0.83 |
+| MP5K Ext (inherits standard SMG modifier) | 0.85 |
+| UMP45 Ext D (inherits standard SMG modifier) | 0.85 |
 | Shotgun (each pellet) | 0.70 |
 | Handgun | 0.91 |
 | AWP | 0.99 |
@@ -56,3 +58,10 @@ CS:GO/CS2 uses 500 CS units per modifier interval. BLOCK BUDDIES has a much smal
 - Stats: damage 22, RPM rating 92, control 46, speed 86, vertical recoil 49, horizontal recoil 60, magazine 30, reserve 210, range 45. The displayed RPM rating is transformed into in-game cyclic rate by existing SMG tuning.
 - RMB: normal unscoped iron-sight aiming, no optic overlay. Audio: distinct soft, low-pass synthesized suppressed shot using the existing WebAudio engine.
 - Existing IDs 0–12 remain unchanged. MP5K Ext appears in Shop, Inventory, loadout picker and HUD through the canonical profile/owned state. No automatic unlock, credits or economy changes.
+
+## UMP45 Ext D (weapon ID 14)
+
+- Source: `src/game/weapon/15-ump45-ext-d.js`. Dedicated black low-poly mesh based on the supplied UMP45 Ext D image, including skeletal folding stock, angled magazine, top rail, foregrip and open iron sights. No external images or third-party code.
+- Ratings: damage 25, RPM 90, control 47, speed 87, vertical recoil 48, horizontal recoil 48, magazine 33, reserve 260 and range 50. The in-game fire interval uses existing SMG tuning; displayed RPM is a rating, not literal rounds per minute.
+- ADS: right-click unscoped iron sights, no tactical overlay or optic model. Sound: **exact same existing preset index as AK-47** (preset 1), no new synthesized audio.
+- Catalog, Shop ownership, Inventory, loadout selection and HUD derive from the shared weapon registry. Existing IDs 0–13 and saved ownership remain intact.

@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-10-30 — UMP45 Ext D added (SMG)
+
+- Added **UMP45 Ext D** as weapon ID 14 in dedicated `src/game/weapon/15-ump45-ext-d.js`; all existing weapon IDs 0–13 and local inventory ownership remain unchanged.
+- Implemented black low-poly UMP silhouette with folded skeleton stock, rail, foregrip, long angled magazine and iron sights from the user reference.
+- Registered the requested ratings unchanged: damage 25, RPM rating 90, control 47, speed 87, V.Recoil 48, H.Recoil 48, magazine 33, reserve ammo 260 and range 50; inherits the existing SMG range-falloff behavior.
+- Added unscoped right-click ADS, proper first-person hand poses, muzzle placement and HUD icon; uses the **same weapon sound preset as AK-47** (no new SFX).
+- Shop/Inventory pick up the new catalog item automatically; loadout picker includes it explicitly after other compact SMGs. No economy, ownership, gameplay or pricing rule changes.
+- Synchronized the generated `assets/game.js`, expanded existing MP5K regression coverage for the 15-weapon tables and added UMP45 integration tests.
+
 ## 2026-10-30 — MP5K Ext suppressed SMG
 
 - Added **MP5K Ext** as new weapon ID 13 in a dedicated `src/game/weapon/14-mp5k-ext.js` module. Existing weapon IDs and save data remain intact.

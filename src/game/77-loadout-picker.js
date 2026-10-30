@@ -1,7 +1,7 @@
 // Mouse-first primary weapon picker shared by Team Deathmatch and Bomb Mission.
 // Weapon profiles, ballistics, inventory ownership and 4-slot HUD remain authoritative elsewhere.
 var wsEl=document.getElementById("wsel"),wsOn=false,wsCards=[],wsConfirmed=false,wsPage=0,wsCategory="rifle",WS_VISIBLE=5;
-var WS_ORDER=[9,1,2,6,13,8,10,11,12,3],WS_TABS=[
+var WS_ORDER=[9,1,2,6,13,14,8,10,11,12,3],WS_TABS=[
  ["rifle","ASSAULT RIFLE"],["smg","SMG"],["sniper","SNIPER"],["shotgun","SHOTGUN"],["rocket","LAUNCHER"]];
 function loadoutCatalog(){
  var all=inventoryCatalogMain();
