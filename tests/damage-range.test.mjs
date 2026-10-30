@@ -19,11 +19,12 @@ function raw(w,d,ctx){
  return w.dmg*ctx.fall({sx:0,sz:0,fo:w.rangeModifier?[w.rangeModifier,w.rangeUnit]:null},{x:d,z:0});
 }
 function near(a,b,what){assert.ok(Math.abs(a-b)<1e-8,what+": "+a+" != "+b);}
-test("All 13 weapon IDs, categories and frozen tuning configs survived refactor",()=>{
+test("original thirteen weapon IDs and class configs are preserved alongside expanded weapon catalog",()=>{
  const c=setup();
- assert.equal(c.WP.length,13);
+ assert.equal(c.WP.length,c.WEAPON_PROFILES.length);
+ assert.equal(c.WP.length,19);
  assert.equal(c.WEAPON_STARTER_ID,9);
- assert.deepEqual(Array.from(c.WEAPON_PROFILES,p=>p.name),["Handgun","AK-47","Shotgun","RPG","Knife","Grenade","Kriss","Dual Kriss","AWP","K2","MP7","P90","AK SOPMOD"]);
+ assert.deepEqual(Array.from(c.WEAPON_PROFILES.slice(0,13),p=>p.name),["Handgun","AK-47","Shotgun","RPG","Knife","Grenade","Kriss","Dual Kriss","AWP","K2","MP7","P90","AK SOPMOD"]);
  assert.ok(Object.isFrozen(c.DAMAGE_FALLOFF));
  assert.ok(Object.isFrozen(c.WEAPON_CLASS_LABELS));
  assert.ok(c.WEAPON_PROFILES.every(Object.isFrozen));
@@ -113,7 +114,7 @@ test("Body/head bullets-to-kill at 5 and 60 units respect vest durability and he
 });
 test("Compiled browser runtime matches the new ordered weapon source",()=>{
  const parts=m.parts.filter(p=>p.startsWith("src/game/weapon/"));
- assert.equal(parts.length,16);
+ assert.equal(parts.length,setup().WP.length+4);
  assert.ok(!m.parts.includes("src/game/40-weapons-and-viewmodels.js"));
  assert.ok(m.parts.indexOf("src/game/weapon/20-ballistics.js")<m.parts.indexOf("src/game/weapon/30-viewmodels.js"));
  assert.equal(read("assets/game.js"),"(function(){\n"+m.parts.map(read).join("")+"})();\n");
