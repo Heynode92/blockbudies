@@ -1,7 +1,7 @@
 # BLOCK BUDDIES — BOT AI Implementation Log
 
 > **Document ID:** BB-AI-LOG-001  
-> **Status:** PLANNED / ZERO AI FEATURE UPGRADES IMPLEMENTED UNDER THIS ROADMAP  
+> **Status:** M0 IN PROGRESS (SYNTHETIC TEST HARNESS ONLY) / ZERO AI BEHAVIOR UPGRADES RELEASED  
 > **Created:** 2026-10-30  
 > **Audited baseline commit:** `23cd2bb71a2535de86ba49ccdfc3d23455be2ff9`  
 > **Master specification:** [BOT_AI_MASTER_PLAN.md](BOT_AI_MASTER_PLAN.md)  
@@ -11,11 +11,11 @@
 
 This log is intended as the **single handoff tracker** for future assistants and maintainers. The 2026-10-30 request authorized **planning and documentation only**. The existing AI, weapon balance, UI, audio, modes, and runtime were **not upgraded** by creating these documents.
 
-**NEXT MILESTONE: M0 — Baseline & harness.** Read the master plan in full, verify the current branch and test infrastructure, establish reproducible scenarios, then propose the first implementation to the repository owner.
+**ACTIVE MILESTONE: M0 — Baseline & harness (IN PROGRESS).** The seeded synthetic 10-BOT harness and initial traces are recorded in [M0 Baseline](BOT_AI_M0_BASELINE.md). Finish the full Node regression run, real playable-map measurements and browser performance validation **before** marking M0 verified or beginning M1.
 
 | ID | Priority | Milestone | Status | Evidence / blocker |
 |---|---|---|---|---|
-| M0 | P0 | Baseline, deterministic tests and performance harness | NOT STARTED | Investigate outdated `footstepAdvance` mock in `tests/bot-five-star.test.mjs`; measure baseline before tuning |
+| M0 | P0 | Baseline, deterministic tests and performance harness | IN PROGRESS | Seeded synthetic TDM/Bomb harness + initial metrics: [M0 Baseline](BOT_AI_M0_BASELINE.md); full Node/browser/performance gates remain open |
 | M1 | P0 | Legitimate perception, acoustic events, memory and team intel | NOT STARTED | Requires M0 |
 | M2 | P0 | Real 3D aiming, reaction and per-weapon firing discipline | NOT STARTED | Requires M1 |
 | M3 | P1 | Locomotion, dodge, peek, reposition and offensive cover | NOT STARTED | Requires M1–M2 |
@@ -37,9 +37,9 @@ This log is intended as the **single handoff tracker** for future assistants and
 - `src/game/87-bomb-tactics.js` — useful objective roles but several threat decisions can inspect true positions of opponents not currently visible.
 - `src/game/86-bomb-mission.js` — existing objective interaction and round rules must remain untouched.
 - `src/game/66-footsteps.js` — audio playback only, not an AI hearing system.
-- `tests/bot-five-star.test.mjs` — mock dependency may be stale following `footstepAdvance()` integration; confirm by executing tests on current `main`.
+- `tests/bot-five-star.test.mjs` — `footstepAdvance()` mock was repaired in `5e7bd587`; M0 fixture reuses the active AI sources. Full suite run still pending.
 
-**Measured gameplay KPIs:** NONE RECORDED. **Full regression suite:** NOT EXECUTED FOR THIS DOCUMENTATION CHANGE. These are explicit gaps, not implicit passes.
+**Measured real-game KPIs:** NONE RECORDED. **Synthetic dispatch/navigation observations:** [M0 Baseline](BOT_AI_M0_BASELINE.md) (not real hits, plant/defuse outcomes or browser FPS). **Full Node regression suite:** NOT YET EXECUTED FOR M0. These are explicit gaps, not implicit passes.
 
 ## 3. Immutable ownership and review gates
 
@@ -55,8 +55,21 @@ This log is intended as the **single handoff tracker** for future assistants and
 | Date (UTC) | Milestone | Action | Files / evidence | Result |
 |---|---|---|---|---|
 | 2026-10-30 | Planning | Static audit of active BOT, weapons, Bomb tactics and tests; master upgrade specification established. | `docs/BOT_AI_MASTER_PLAN.md`, this tracker, documentation links | **PLAN ONLY**; no gameplay code changed |
+| 2026-10-30 | M0 | Created seeded real-function 10-BOT synthetic TDM/Bomb runner and six targeted regression checks; validated equivalent V8 replay (same-seed deterministic; blocked LOS emits 0 fire dispatches; both teams progress); wrote baseline and limitations. | `tools/bot-ai-m0-baseline.mjs`, `tests/bot-ai-m0-baseline.test.mjs`, `docs/BOT_AI_M0_BASELINE.md`; baseline commit `5e7bd58` | **IN PROGRESS**; no runtime change; Node full test, real browser playtests and true KPIs pending |
 
 Append every future milestone entry, including failed attempts, reverted changes, measured regressions, decisions and outstanding risk. Never rewrite a past released outcome to hide a failure.
+
+## M0 partial checklist (2026-10-30)
+
+- [x] Active BOT, weapon and Bomb tactical module ownership verified; legacy `botsUpdOld` excluded.
+- [x] Existing `footstepAdvance` test mock verified repaired at `5e7bd58`.
+- [x] Seeded synthetic 5-vs-5 BOT TDM / Bomb fixture added (not the playable human+BOT configuration).
+- [x] Repeated controlled V8 source replay; six focused assertions passed in equivalent harness; synthetic observation table saved.
+- [ ] Native `node --test tests/*.test.mjs` and `node tools/build.mjs --check` output recorded.
+- [ ] Real Windows browser map scenarios, FPS/p95, valid hits/reaction/stuck metrics and completed Bomb rounds measured.
+- [ ] Final M0 acceptance review with same-seed baseline comparison and no gameplay regression.
+
+See [M0 Baseline](BOT_AI_M0_BASELINE.md) for scenario inputs, numbers, command line and explicit unknown metrics.
 
 ## 5. Mandatory future entry template
 
@@ -79,7 +92,7 @@ Copy this block and fill actual, checkable evidence:
 
 ## 6. Milestone completion checklist
 
-- [ ] M0: reproducible scenario baseline and test mock compatibility established.
+- [ ] M0: reproducible scenario baseline and test mock compatibility established **in full** (synthetic trace done, real-game measurement and full-suite validation pending).
 - [ ] M1: AI never acts on forbidden hidden enemy live coordinates; sound and memory tests pass.
 - [ ] M2: actual 3D ballistic aim and bounded reactions verified with meaningful accuracy measurements.
 - [ ] M3: cover/movement and collision tests pass, no endless jitter or wall clipping.
@@ -88,8 +101,8 @@ Copy this block and fill actual, checkable evidence:
 - [ ] M6: TDM and weapon categories behave competitively, preserving BOT RPG exclusion.
 - [ ] M7: all automated tests, browser playtests, performance and bundle checks pass; release recorded.
 
-No box above is checked on 2026-10-30. A new chat/assistant must **not** infer roadmap completion from this file's existence.
+No milestone above is fully checked/released. M0 has partial evidence and remains **IN PROGRESS**; a new chat/assistant must **not** infer completion from test or roadmap files alone.
 
 ## 7. Next assistant: exact first action
 
-**Read `docs/BOT_AI_MASTER_PLAN.md`, then inspect current GitHub `main`, fix/verify the M0 test-harness baseline, and report current measurable BOT behavior before changing combat AI.** Do not silently implement M1–M7 or claim they are done. Obtain the owner's request for the implementation milestone and document the commit plus evidence here.
+**Read `docs/BOT_AI_MASTER_PLAN.md` and `docs/BOT_AI_M0_BASELINE.md`, inspect the latest `main`, run the full native Node suite and bundle checks, collect real map/browser/P95 and hit/reaction/Bomb KPIs, and finish the remaining M0 gates.** The `footstepAdvance` mock was already fixed. Do not implement M1–M7 or claim M0 complete without documented evidence.
