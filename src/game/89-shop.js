@@ -1,6 +1,6 @@
 // Shop unlocks the existing non-starter primaries without inventing a coin economy.
 // New players only own K2. Shop unlock is free until a priced economy is specified.
-var shopFilter="ALL",shopAnim=true,shopFlashId=-1,shopAcc={};
+var shopFilter="ALL",shopAnim=true,shopFlashId=-1,shopAcc={},shopSelectedId=null;
 var SHOP_ACCENTS=["#ff922b","#4dc3ff","#ff5c6c","#b388ff","#70e1a5","#ffd43b","#f783ac","#74c0fc"];
 function shopCatalog(){
   return inventoryCatalogMain().filter(function(id){return id!==WEAPON_STARTER_ID;});
@@ -57,13 +57,19 @@ function shopRender(){
     if(owned.indexOf(id)>=0)ownedCount++;
   });
   shopBuildFilter(roles,ids,ownedCount);
+  if(ids.indexOf(shopSelectedId)<0)shopSelectedId=ids[0];
+  if(shopFilter!=="ALL"&&shopRole(shopSelectedId)!==shopFilter)shopSelectedId=ids.filter(function(id){return shopRole(id)===shopFilter;})[0];
+  shopRenderSelection(ids,owned,max);
   grid.textContent="";
   ids.forEach(function(id,index){
     var w=WP[id],role=shopRole(id);
     if(shopFilter!=="ALL"&&role!==shopFilter)return;
     var isOwned=owned.indexOf(id)>=0;
-    var tile=shopEl("article","shop-weapon"+(isOwned?" shop-owned":"")+(shopAnim?" shop-enter":"")+(id===flash?" shop-unlocked":""));
+    var tile=shopEl("article","shop-weapon"+(id===shopSelectedId?" shop-selected":"")+(isOwned?" shop-owned":"")+(shopAnim?" shop-enter":"")+(id===flash?" shop-unlocked":""));
     tile.style.setProperty("--acc",shopAccent(role));tile.style.setProperty("--i",shown);
+    tile.tabIndex=0;tile.setAttribute("role","button");tile.setAttribute("aria-pressed",String(id===shopSelectedId));
+    tile.onclick=function(){shopSelectedId=id;shopAnim=false;shopRender();};
+    tile.onkeydown=function(e){if(e.target===tile&&(e.key==="Enter"||e.key===" ")){e.preventDefault();tile.click();}};
     var media=shopEl("div","shop-art");
     media.appendChild(shopEl("span","shop-num",(index<9?"0":"")+(index+1)));
     media.appendChild(shopEl("span","shop-tag",role));
@@ -86,7 +92,7 @@ function shopRender(){
     details.appendChild(ammo);
     var action=shopEl("button","shop-action"+(isOwned?" shop-action-owned":""),isOwned?"\u2713 OWNED":"UNLOCK FREE");
     action.type="button";action.disabled=isOwned;
-    action.onclick=function(){
+    action.onclick=function(e){e.stopPropagation();
       if(inventoryClaimPrimary(id)){shopAnim=false;shopFlashId=id;shopRender();toast("UNLOCKED: "+w.n);}
     };
     tile.appendChild(media);tile.appendChild(details);tile.appendChild(action);
@@ -94,26 +100,39 @@ function shopRender(){
   });
   shopAnim=false;
 }
-// The featured starter panel reads the canonical weapon registry and thumbnail cache.
-function shopRenderFeatured(){
-  var weapon=WP[WEAPON_STARTER_ID],panel=document.getElementById("shopFeatured");
-  if(!panel||!weapon)return;
-  var owned=inventoryOwned("main").indexOf(WEAPON_STARTER_ID)>=0;
-  panel.querySelector("#shopFeatureName").textContent=weapon.n;
-  panel.querySelector("#shopFeatureStatus").textContent=owned?"READY TO USE":"NOT OWNED";
-  panel.querySelector("#shopFeatureAmmo").textContent=weapon.mag+" / "+weapon.res+" ROUNDS";
-  panel.querySelector("#shopFeatureDescription").textContent=weapon.n+" is your starting weapon in Block Buddies.";
-  var art=panel.querySelector("#shopFeatureArt");
-  art.textContent="";
-  if(INVENTORY_THUMBS[WEAPON_STARTER_ID]){
-    var image=document.createElement("img");
-    image.src=INVENTORY_THUMBS[WEAPON_STARTER_ID];
-    image.alt=weapon.n+" weapon model";
-    art.appendChild(image);
-  }
+function shopRenderSelection(ids,owned,max){
+ var id=shopSelectedId,host=document.getElementById("shopSelected");
+ if(!host||id===undefined||!WP[id])return;
+ var w=WP[id],role=shopRole(id),isOwned=owned.indexOf(id)>=0;
+ host.textContent="";host.style.setProperty("--acc",shopAccent(role));
+ var head=shopEl("div","shop-sel-heading");
+ head.appendChild(shopEl("span","shop-sel-role",role));
+ head.appendChild(shopEl("span","shop-sel-badge",isOwned?"OWNED":"AVAILABLE"));
+ head.appendChild(shopEl("h3","",w.n));
+ head.appendChild(shopEl("p","",INVENTORY_DESCRIPTIONS[w.stats.kind]||""));
+ host.appendChild(head);
+ var preview=shopEl("div","shop-sel-preview");
+ if(INVENTORY_THUMBS[id]){var img=document.createElement("img");img.src=INVENTORY_THUMBS[id];img.alt=w.n+" model preview";preview.appendChild(img);}
+ else preview.appendChild(shopEl("span","","PREVIEW UNAVAILABLE"));
+ var nav=shopEl("div","shop-sel-nav"),pos=ids.indexOf(id);
+ [-1,1].forEach(function(step){var btn=shopEl("button","",step<0?"‹":"›");btn.type="button";btn.setAttribute("aria-label",step<0?"Previous weapon":"Next weapon");btn.onclick=function(){shopSelectedId=ids[(pos+step+ids.length)%ids.length];shopRender();};nav.appendChild(btn);});
+ preview.appendChild(nav);host.appendChild(preview);
+ host.appendChild(shopEl("h4","shop-sel-stats-title","WEAPON STATS"));
+ var stats=shopEl("div","shop-sel-stats");
+ [["DAMAGE",w.stats.damage],["FIRE RATE",w.stats.rpm],["CONTROL",w.stats.control],["SPEED",w.stats.speed],["VERTICAL RECOIL",w.stats.vRecoil],["HORIZONTAL RECOIL",w.stats.hRecoil],["RANGE",w.stats.range],["MAGAZINE",w.mag]].forEach(function(pair){
+ if(pair[1]===undefined)return;
+ stats.appendChild(shopStat(pair[0],pair[1],pair[0]==="DAMAGE"?max.d:pair[0]==="MAGAZINE"?max.m:pair[0]==="RANGE"?180:100));
+ });
+ host.appendChild(stats);
+ var ammo=shopEl("div","shop-sel-ammo","AMMO ");
+ ammo.appendChild(shopEl("b","",w.mag+" / "+w.res));host.appendChild(ammo);
+ var action=shopEl("button","shop-action shop-sel-action"+(isOwned?" shop-action-owned":""),isOwned?"✓ OWNED":"UNLOCK FREE");
+ action.type="button";action.disabled=isOwned;
+ action.onclick=function(){if(inventoryClaimPrimary(id)){shopAnim=false;shopFlashId=id;shopRender();toast("UNLOCKED: "+w.n);}};
+ host.appendChild(action);
 }
 function shopOpen(){
-  lobP("lbshop");shopAnim=true;inventoryBuildThumbnails();shopRenderFeatured();shopRender();
+  lobP("lbshop");shopAnim=true;inventoryBuildThumbnails();shopRender();
 }
 document.getElementById("lshop").addEventListener("click",shopOpen);
 document.getElementById("shopBack").addEventListener("click",function(){lobP("lbs");});
