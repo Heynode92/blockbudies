@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-10-30 — BOT intelligence M0 foundation: deterministic baseline and Windows CI
+
+- Added development-only `tools/bot-ai-m0-baseline.mjs`, which evaluates existing production BOT movement, A*, weapon dispatch and Bomb tactical goals in a fixed-seed 10-BOT synthetic arena. It changes **no gameplay runtime** and is not included in the browser source manifest.
+- Added `tests/bot-ai-m0-baseline.test.mjs` with six targeted regressions: seeded reproducibility, both factions, blocked-LOS no-shot checks, critical-HP retreat, Bomb tactical execution, input bounds and explicit unavailable real-world KPI fields.
+- Recorded seed-42 scenario traces and limitations in `docs/BOT_AI_M0_BASELINE.md`. Open TDM dispatched 75 Police and 75 Terrorist fire calls; completely blocked LOS dispatched zero; no real hit-rate, browser FPS or Bomb round success was measured.
+- Added `.github/workflows/bot-ai-m0.yml` for Windows GitHub Actions with Node 22, standalone bundle consistency, JavaScript syntax, complete Node test suite and M0 JSON trace. The workflow has **not yet been verified green** from GitHub Actions.
+- Synchronized `docs/BOT_AI_IMPLEMENTATION_LOG.md` and `docs/BOT_AI_MASTER_PLAN.md`. **M0 = IN PROGRESS**: isolated V8 source replay checks succeeded, but actual full Node CI results, real-game/browser performance and objective benchmarks are still required. M1–M7 remain NOT STARTED.
+- **Zero production JS, AI logic, gameplay rules, weapons, assets, map, HTML, manifests, bundle or UI modifications.** No backend, runtime dependency, Docker, WSL or user-side build introduced.
+
 ## 2026-10-30 — Fix BOT AI regression test after footstep integration
 
 - Repaired the isolated active-BOT test fixture in `tests/bot-five-star.test.mjs` by providing the missing `footstepAdvance` dependency and asserting it runs once per frame.
