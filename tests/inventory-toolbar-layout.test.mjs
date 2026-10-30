@@ -21,16 +21,23 @@ test('the six main navigation tabs have consistent equal-width slots and no spac
  assert.doesNotMatch(css,/#lbiv #ivtabs\{[^}]*justify-content:space-between/);
  assert.match(css,/#lbiv \.ivtop-actions\{grid-column:3;grid-row:1/);
 });
-test('category filters wrap cleanly without squeezing Default or grid/list control',()=>{
- assert.match(css,/#lbiv \.ivfilters\{display:grid;grid-template-columns:minmax\(0,1fr\) auto/);
+test('category filters occupy their own row and tools align to a right-hand dock',()=>{
+ assert.match(css,/#lbiv \.ivfilters\{display:grid;grid-template-columns:minmax\(0,1fr\);grid-template-rows:auto auto/);
+ assert.match(css,/#lbiv \.ivclasses\{grid-column:1;grid-row:1/);
+ assert.match(css,/#lbiv \.ivtools\{grid-column:1;grid-row:2/);
  assert.match(css,/#lbiv \.ivclasses\{[^}]*flex-wrap:wrap/);
- assert.match(css,/#lbiv \.ivtools select\{flex:0 0 123px;width:123px;min-width:123px;max-width:123px/);
- assert.match(css,/#lbiv \.ivtools button\{[^}]*flex:0 0 44px/);
+ assert.match(css,/#lbiv \.ivtools\{display:flex;align-items:center;justify-content:flex-end/);
+ assert.match(css,/#lbiv \.ivtools select\{flex:0 0 151px;width:151px;min-width:151px;max-width:151px/);
+ assert.match(css,/#lbiv \.ivtools button\{[^}]*flex:0 0 96px/);
+ assert.match(html,/class="ivsort-label">SORT BY/);
+ assert.match(html,/aria-label="Switch to list view"/);
+ assert.match(inv,/layout\.innerHTML=inventoryList\?/);
+ assert.match(inv,/Switch to grid view/);
  assert.match(inv,/inventorySort=this.value;inventoryScroll\[inventoryTab\]=0;inventoryRender\(\)/);
  assert.match(inv,/inventoryList=!inventoryList;inventoryScroll\[inventoryTab\]=0;inventoryRender\(\)/);
 });
 test('tablet and mobile use deterministic stacked toolbar and tab rows',()=>{
- assert.match(css,/@media\(min-width:1161px\) and \(max-width:1399px\)/);
+ assert.doesNotMatch(css,/@media\(min-width:1161px\) and \(max-width:1399px\)/);
  assert.match(css,/@media\(max-width:1160px\)/);
  assert.match(css,/#lbiv #ivtabs\{grid-column:1\/-1;grid-row:2;grid-template-columns:repeat\(6,minmax\(0,1fr\)\)/);
  assert.match(css,/@media\(max-width:680px\)/);

@@ -2753,7 +2753,12 @@ function inventoryRender(){
  });
  var sort=document.getElementById("ivsort");sort.value=inventorySort;
  var layout=document.getElementById("ivviewtoggle");
- layout.textContent=inventoryList?"☰":"▦";layout.setAttribute("aria-pressed",inventoryList?"true":"false");
+ layout.innerHTML=inventoryList?
+  '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><span>GRID</span>':
+  '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 6h12M9 12h12M9 18h12M3 6h2M3 12h2M3 18h2"/></svg><span>LIST</span>';
+ layout.setAttribute("aria-pressed",inventoryList?"true":"false");
+ layout.setAttribute("aria-label",inventoryList?"Switch to grid view":"Switch to list view");
+ layout.title=inventoryList?"Switch to grid view":"Switch to list view";
  cards.textContent="";
  cards.classList.toggle("ivcards-empty",!ids.length);
  cards.classList.toggle("iv-list",inventoryList);

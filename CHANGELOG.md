@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-30 — Separate inventory sort and view controls from category filters
+
+- Fixed the cramped Inventory toolbar: category filters are now a dedicated top row and SORT BY / DEFAULT / LIST–GRID controls form a separate, right-aligned bottom row at all screen widths.
+- Replaced ambiguous pixel-font glyphs with clear SVG list/grid icons and labels, with accessible state-specific button text.
+- Standardized select and toggle dimensions, added a subtle separator, and preserved the filter/button layout on mobile.
+- Kept all weapon catalog, Shop ownership, Equip, filters, sort behavior, 3D previews and gameplay unchanged. Updated toolbar regression tests and regenerated the game asset from its inventory source module.
+
 ## 2026-10-30 — Inventory toolbar alignment and clean Back header
 
 - Removed the redundant BLOCK BUDDIES wordmark from the Inventory header; retained one visible Back button at the upper right.

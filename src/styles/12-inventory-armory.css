@@ -51,9 +51,12 @@
  border-color:#00c87d;text-shadow:none}
 #lbiv .ivright{grid-column:2;display:flex;flex-direction:column;gap:12px;padding:14px;overflow:hidden;clip-path:none}
 #lbiv .ivright::before{display:none}
-/* A stable filter zone + a pinned tools group; no compressed select/grid buttons. */
-#lbiv .ivfilters{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;
- gap:10px 12px;min-width:0;flex:none}
+/* Always give category filters and sort/view controls separate horizontal bands.
+   The previous side-by-side layout squeezed DEFAULT and the view toggle together. */
+#lbiv .ivfilters{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto;
+ align-items:start;row-gap:10px;min-width:0;flex:none}
+#lbiv .ivclasses{grid-column:1;grid-row:1}
+#lbiv .ivtools{grid-column:1;grid-row:2}
 #lbiv .ivclasses{display:flex;align-items:center;align-content:start;gap:6px;flex-wrap:wrap;
  min-width:0;overflow:visible}
 #lbiv .ivclasses button{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;
@@ -62,12 +65,20 @@
  font:800 clamp(11px,.82vw,14px) Rajdhani,sans-serif;letter-spacing:.055em;cursor:pointer}
 #lbiv .ivclasses button.on{background:linear-gradient(#ffa537,#f7801c);border-color:#ff9e38;color:#0b192a}
 #lbiv .ivclasses button:focus-visible,#lbiv .ivtools :focus-visible,#lbiv .ivcard:focus-visible{outline:2px solid #ff9f39;outline-offset:2px}
-#lbiv .ivtools{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex:0 0 auto;min-width:0}
-#lbiv .ivtools select,#lbiv .ivtools button{height:44px;box-sizing:border-box;border:1px solid #385772;border-radius:6px;
- background:#101f33;color:#c2d4e8;font:800 12px Rajdhani,sans-serif;cursor:pointer}
-#lbiv .ivtools select{flex:0 0 123px;width:123px;min-width:123px;max-width:123px;padding:0 8px}
-#lbiv .ivtools button{display:inline-flex;align-items:center;justify-content:center;flex:0 0 44px;
- width:44px;min-width:44px;font-size:21px}
+#lbiv .ivtools{display:flex;align-items:center;justify-content:flex-end;gap:9px;
+ flex:0 0 auto;min-width:0;padding:9px 0 2px;border-top:1px solid rgba(94,143,185,.3)}
+#lbiv .ivtools .ivsort-label{flex:0 0 auto;margin-right:2px;color:#89abc7;
+ font:800 11px Rajdhani,sans-serif;letter-spacing:.15em;white-space:nowrap}
+#lbiv .ivtools select,#lbiv .ivtools button{height:42px;box-sizing:border-box;border:1px solid #426587;
+ border-radius:6px;background:linear-gradient(145deg,#182d46,#0b1c30);color:#e1efff;
+ font:800 12px Rajdhani,sans-serif;letter-spacing:.06em;cursor:pointer}
+#lbiv .ivtools select{flex:0 0 151px;width:151px;min-width:151px;max-width:151px;padding:0 12px}
+#lbiv .ivtools button{display:inline-flex;align-items:center;justify-content:center;gap:8px;
+ flex:0 0 96px;width:96px;min-width:96px;padding:0 11px;white-space:nowrap}
+#lbiv .ivtools button svg{display:block;width:17px;height:17px;flex:none;fill:none;
+ stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#lbiv .ivtools select:hover,#lbiv .ivtools button:hover{border-color:#f99b42;background:#1f3853}
+#lbiv .ivtools button[aria-pressed="true"]{color:#ffc27c;border-color:#e99231}
 #lbiv .ivhint{display:none}
 #lbiv:not(.iv-main) .ivhint{display:block;margin:0;padding:6px 9px;font-size:12px;line-height:1.1}
 #lbiv #ivcards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:clamp(142px,21vh,215px);
@@ -136,12 +147,8 @@
  #lbiv .ivstats{gap:4px}
  #lbiv #ivuse{min-height:52px}
 }
-/* At narrower desktop widths, allocate a full-width second row to tabs.
-   Tool buttons stay together on the next row when class filters run out of room. */
-@media(min-width:1161px) and (max-width:1399px){
- #lbiv .ivfilters{grid-template-columns:minmax(0,1fr)}
- #lbiv .ivtools{justify-content:flex-end}
-}
+/* The toolbar is always below the class filters, at every viewport width.
+   We do not switch between incompatible desktop layout modes. */
 @media(max-width:1160px){
  #lbiv.on{grid-template-columns:minmax(210px,.75fr) minmax(0,1.65fr);grid-template-rows:auto minmax(380px,1fr) auto;
  overflow-y:auto}
@@ -149,8 +156,6 @@
  #lbiv .ivtop-title{grid-column:1;grid-row:1}
  #lbiv .ivtop-actions{grid-column:2;grid-row:1;justify-content:flex-end}
  #lbiv #ivtabs{grid-column:1/-1;grid-row:2;grid-template-columns:repeat(6,minmax(0,1fr))}
- #lbiv .ivfilters{grid-template-columns:minmax(0,1fr)}
- #lbiv .ivtools{justify-content:flex-end}
  #lbiv .ivleft{grid-column:1;grid-row:2;height:100%}
  #lbiv .ivright{grid-column:2;grid-row:2;height:100%}
  #lbiv .ivdetails{grid-column:1/-1;grid-row:3;height:auto;max-height:none;min-height:250px;
@@ -176,10 +181,13 @@
  #lbiv .ivpreview{min-height:240px}
  #lbiv .ivright{grid-column:1;grid-row:3;min-height:425px}
  #lbiv #ivcards{height:auto;max-height:63vh;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:145px}
- #lbiv .ivfilters{grid-template-columns:minmax(0,1fr);gap:9px}
+ #lbiv .ivfilters{row-gap:8px}
  #lbiv .ivclasses{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;width:100%}
  #lbiv .ivclasses button{min-width:0;width:100%;padding:7px 3px;font-size:11px}
- #lbiv .ivtools{width:100%;justify-content:flex-end}
+ #lbiv .ivtools{width:100%;justify-content:flex-end;gap:7px}
+ #lbiv .ivtools .ivsort-label{font-size:10px}
+ #lbiv .ivtools select{flex-basis:119px;width:119px;min-width:119px;max-width:119px}
+ #lbiv .ivtools button{flex-basis:77px;width:77px;min-width:77px;gap:5px;padding:0 7px}
  #lbiv .ivdetails{grid-column:1;grid-row:4;grid-template-columns:1fr 1fr;min-height:280px}
  #lbiv .ivdetail-art{grid-column:1;grid-row:2/4;height:170px}
  #lbiv .ivstats{grid-template-columns:1fr 1fr}
