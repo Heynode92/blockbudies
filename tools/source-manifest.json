@@ -37,6 +37,7 @@
     "src/game/50-items-and-drops.js",
     "src/game/60-impact-effects.js",
     "src/game/65-audio.js",
+    "src/game/66-footsteps.js",
     "src/game/70-kills-and-damage-hud.js",
     "src/game/75-weapon-controls.js",
     "src/game/76-tactical-optics.js",

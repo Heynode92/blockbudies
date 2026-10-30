@@ -91,6 +91,7 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
       }
     }
     var dm=Math.hypot(e.x-ox,e.z-oz);
+    footstepAdvance(e,dm,!cdn&&dm>.002,sp>4.4,false);
     if((mvx||mvz)&&dm<sp*dt*.3){e.stk=(e.stk||0)+dt;if(combat&&e.stk>.5){e.navT=1.2;e.sd=-(e.sd||1);e.stk=0;e.pt=0;}}else e.stk=0;
     e.g.rotation.y=f;e.cd-=dt;
     if(t&&e.lok&&!cdn&&!(isBombMode()&&e.bAction)&&e.cd<=0){botCombatTick(e,t,f,d);}

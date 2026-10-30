@@ -17,11 +17,13 @@ function update(dt){
   if(!pl.dead)pl.life+=dt;else{pl.dt+=dt;pl.rsT-=dt;if(pl.rsT<=0&&!mt.over&&!isBombMode())respawnPl();}
   var spd=weaponMovementSpeed(pl.w,sprT,adsT);
   mvAmt+=(ml-mvAmt)*Math.min(1,dt*8);wtT+=((pl.w>=1&&pl.w<=3||["rifle","smg","dual","sniper","rocket"].indexOf(WP[pl.w].stats.kind)>=0?1:0)-wtT)*Math.min(1,dt*6);
+  var oldStepX=pl.x,oldStepZ=pl.z;
   var fw=-mz,sf=Math.sin(pl.face),cf=Math.cos(pl.face);pl.x+=(fw*sf-mx*cf)*spd*dt;pl.z+=(fw*cf+mx*sf)*spd*dt;resolve(pl,.55);
   var py=pl.y,gy=gh(pl.x,pl.z,py);
   if(!pl.dead&&!(isBombMode()&&pl.bAction)&&(keys.Space||jumpHeld)&&pl.y<=gy+.001)pl.vy=9;
   pl.vy-=28*dt;pl.y+=pl.vy*dt;gy=gh(pl.x,pl.z,py);
   if(pl.y<=gy){pl.y=gy;pl.vy=0;}
+  footstepAdvance(pl,Math.hypot(pl.x-oldStepX,pl.z-oldStepZ),!pl.dead&&pl.vy===0,sprT>.4,true);
   if(pl.vy===0&&Math.abs(pl.y-camY)<1.2)camY+=(pl.y-camY)*Math.min(1,dt*16);else camY=pl.y;
   var rk=pl.dead?0:1;pl.face-=ST.r.x*2.4*dt*rk;pl.pitch=Math.max(-1.2,Math.min(1.2,pl.pitch-ST.r.y*1.6*dt*rk));
   var cdo=pl.cd;pl.cd-=dt;pl.ov=(cdo>0&&pl.cd<0)?-pl.cd:0;var w=WP[pl.w],priorPump=pl.pump||0;

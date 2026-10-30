@@ -1880,6 +1880,132 @@ function updDead(dt){
     d.legs[0].rotation.z=-.3*s;d.legs[1].rotation.z=.3*s;
   }
 }
+
+// Surface-aware Web Audio tactical footsteps. No external sound files.
+// Steps are driven by actual player / BOT displacement, not a repeating timer.
+var FOOTSTEP_RULES=Object.freeze({radius:24,near:2.2,maxVoices:16,walkStride:2.05,sprintStride:1.78}),
+ footstepBuffers=null,footstepVoices=0,footstepListenerDirection=new T.Vector3(),
+ footstepTypes=["concrete","asphalt","indoor","metal","tile"];
+function footstepSurface(x,y,z){
+ if(isBombMode()){
+  // 11-bomb-map.js sectors: SECURITY, WAREHOUSE, REACTOR, LABORATORY.
+  var n=BOMB_RULES.cells,s=BOMB_RULES.cellSize,
+   i=Math.max(0,Math.min(n-1,Math.round(x/s+(n-1)/2))),
+   j=Math.max(0,Math.min(n-1,Math.round(z/s+(n-1)/2))),
+   sector=(i<n/2?0:1)+(j<n/2?0:2);
+  return ["tile","metal","concrete","indoor"][sector];
+ }
+ if(y>1.25)return "metal";
+ if(inB(x,z))return "indoor";
+ if(Math.abs(x)<4||Math.abs(z)<4)return "asphalt";
+ return "concrete";
+}
+function footstepUnlock(){
+ if(!SND)return;
+ try{
+  if(!AC)AC=new(window.AudioContext||window.webkitAudioContext)();
+  if(AC.state==="suspended"){
+   var p=AC.resume();if(p&&p.catch)p.catch(function(){});
+  }
+ }catch(e){} // Browser media activation policy is enforced by the platform.
+}
+document.addEventListener("pointerdown",footstepUnlock,{passive:true});
+document.addEventListener("keydown",footstepUnlock);
+function footstepGenerateBuffers(){
+ if(!AC||footstepBuffers)return;
+ footstepBuffers={};
+ var sr=AC.sampleRate,profiles={
+  concrete:{body:142,noise:.56,ring:.08,click:.46,decay:.105},
+  asphalt:{body:95,noise:.72,ring:.02,click:.2,decay:.125},
+  indoor:{body:155,noise:.38,ring:.24,click:.56,decay:.115},
+  metal:{body:210,noise:.27,ring:.64,click:.46,decay:.165},
+  tile:{body:167,noise:.36,ring:.3,click:.55,decay:.1}
+ };
+ footstepTypes.forEach(function(type){
+  footstepBuffers[type]=[];
+  for(var variant=0;variant<3;variant++){
+   var p=profiles[type],length=Math.floor(.19*sr),
+    buffer=AC.createBuffer(1,length,sr),data=buffer.getChannelData(0),
+    seed=(type.length*104729+variant*8191+117)&0x7fffffff,prev=0,prev2=0,phase=variant*.7;
+   for(var i=0;i<length;i++){
+    var t=i/sr,envelope=Math.min(1,t/.004)*Math.exp(-t/p.decay),
+     body=Math.sin(2*Math.PI*(p.body*(1-.23*t))*t+phase),
+     ring=Math.sin(2*Math.PI*(type==="metal"?875:type==="indoor"?510:415)*t+phase);
+    seed=(Math.imul(seed,1664525)+1013904223)>>>0;
+    var noise=seed/2147483648-1;
+    prev+=(noise-prev)*.25;prev2+=(prev-prev2)*.11;
+    var crack=(noise-prev)*p.click*Math.exp(-t/.031),
+     scuff=(prev2*.75+prev*.25)*p.noise,
+     sample=envelope*(body*.48+scuff+crack+ring*p.ring*Math.exp(-t/.12));
+    data[i]=Math.max(-.94,Math.min(.94,sample*.65));
+   }
+   footstepBuffers[type].push(buffer);
+  }
+ });
+}
+function footstepSetPosition(node,x,y,z){
+ if(node.positionX){node.positionX.value=x;node.positionY.value=y;node.positionZ.value=z;}
+ else if(node.setPosition)node.setPosition(x,y,z);
+}
+function footstepUpdateListener(){
+ if(!AC||AC.state!=="running"||!run||lob||mt.over)return;
+ C.updateMatrixWorld();C.getWorldDirection(footstepListenerDirection);
+ var dir=footstepListenerDirection,l=AC.listener,p=C.position;
+ if(l.positionX){l.positionX.value=p.x;l.positionY.value=p.y;l.positionZ.value=p.z;}
+ else if(l.setPosition)l.setPosition(p.x,p.y,p.z);
+ if(l.forwardX){
+  l.forwardX.value=dir.x;l.forwardY.value=dir.y;l.forwardZ.value=dir.z;
+  l.upX.value=0;l.upY.value=1;l.upZ.value=0;
+ }else if(l.setOrientation)l.setOrientation(dir.x,dir.y,dir.z,0,1,0);
+}
+function footstepPlay(actor,local,sprint){
+ if(!SND||!AC||AC.state!=="running"||footstepVoices>=FOOTSTEP_RULES.maxVoices)return;
+ var x=actor.x,y=actor.y||0,z=actor.z,cam=C.position,
+     distance=local?0:Math.hypot(cam.x-x,cam.z-z);
+ if(distance>FOOTSTEP_RULES.radius)return;
+ try{
+  footstepGenerateBuffers();
+  var surface=footstepSurface(x,y,z),list=footstepBuffers[surface]||footstepBuffers.concrete,
+   step=actor.stepIndex||0,src=AC.createBufferSource(),filter=AC.createBiquadFilter(),
+   gain=AC.createGain(),panner=null,t=AC.currentTime;
+  src.buffer=list[step%list.length];src.playbackRate.value=(sprint?1.07:1)*(.96+Math.random()*.07);
+  filter.type="lowpass";
+  // LOS muffling preserves awareness without letting walls transmit full volume.
+  var blocked=!local&&typeof los==="function"&&!los(cam.x,cam.z,x,z);
+  filter.frequency.value=blocked?920:surface==="metal"?4700:surface==="indoor"?3400:3000;
+  var volume=(local?.18:.66)*(sprint?1.18:1)*(blocked?.52:1);
+  gain.gain.setValueAtTime(.0001,t);gain.gain.linearRampToValueAtTime(volume,t+.004);
+  gain.gain.exponentialRampToValueAtTime(.0001,t+.18);
+  src.connect(filter);filter.connect(gain);
+  if(!local&&AC.createPanner){
+   panner=AC.createPanner();panner.panningModel="HRTF";panner.distanceModel="inverse";
+   panner.refDistance=FOOTSTEP_RULES.near;panner.maxDistance=FOOTSTEP_RULES.radius;
+   panner.rolloffFactor=1.35;footstepSetPosition(panner,x,y+.18,z);
+   gain.connect(panner);panner.connect(AC.destination);
+  }else gain.connect(AC.destination);
+  footstepVoices++;
+  src.onended=function(){
+   footstepVoices=Math.max(0,footstepVoices-1);
+   src.disconnect();filter.disconnect();gain.disconnect();
+   if(panner)panner.disconnect();
+  };
+  src.start(t);src.stop(t+.195);
+ }catch(e){} // Audio failure must never interrupt movement or bot AI.
+}
+function footstepAdvance(actor,dist,grounded,sprint,local){
+ if(!actor||actor.dead||!run||lob||mt.over||mt.cd>0||!grounded||!Number.isFinite(dist)||dist>2.6){
+  if(actor)actor.stepTrail=0;
+  return;
+ }
+ if(dist<.0005)return;
+ var stride=sprint?FOOTSTEP_RULES.sprintStride:FOOTSTEP_RULES.walkStride;
+ actor.stepTrail=(actor.stepTrail||0)+dist;
+ if(actor.stepTrail>=stride){
+  actor.stepTrail-=stride;
+  actor.stepIndex=(actor.stepIndex||0)+1;
+  footstepPlay(actor,local,sprint);
+ }
+}
 // ---- KILL NOTIFICATIONS (banners, streak text, blood splash, sounds) ----
 // Point Blank-style kill notifications
 var kn=document.getElementById("kn"),kf=document.getElementById("kf");
@@ -2952,14 +3078,14 @@ function newBot(tm,i){var b=terro(tm);b.tm=tm;b.idx=i;b.name=BN[tm][i];b.ph=Math
   var cv=document.createElement("canvas");cv.width=256;cv.height=64;var cx=cv.getContext("2d"),nt=b.name.toUpperCase();cx.font='700 40px Rajdhani,"Trebuchet MS",sans-serif';cx.textAlign="center";cx.textBaseline="middle";cx.lineWidth=7;cx.strokeStyle="rgba(0,0,0,.85)";cx.strokeText(nt,128,34);cx.fillStyle=tm?"#ff8a65":"#74c0fc";cx.fillText(nt,128,34);
   var sp=new T.Sprite(new T.SpriteMaterial({map:new T.CanvasTexture(cv),depthTest:false,transparent:true,fog:false}));sp.scale.set(3,.75,1);sp.position.set(0,2.75,0);sp.renderOrder=1000;sp.visible=tm===pl.tm;b.g.add(sp);b.nm=sp;return b;}
 // placeBot(b): (re)spawns bot b at a spawn point with full HP and short invulnerability.
-function placeBot(b){var s=spawnPt(b.tm);b.x=s[0];b.z=s[1];b.y=0;defenseSpawn(b);if(b.hm)b.hm.visible=true;b.inv=2;b.cd=1+Math.random();b.dead=false;b.tg=null;b.bn=0;b.wx=b.x;b.wz=b.z;b.stk=0;b.lastSeen=null;b.coverGoal=null;b.coverExpires=0;b.coverHoldUntil=0;b.smartRetreat=false;b.siteChoice=undefined;b.g.rotation.y=b.tm?0:Math.PI;botInitialLoadout(b);en.push(b);}
+function placeBot(b){var s=spawnPt(b.tm);b.stepTrail=0;b.stepIndex=0;b.x=s[0];b.z=s[1];b.y=0;defenseSpawn(b);if(b.hm)b.hm.visible=true;b.inv=2;b.cd=1+Math.random();b.dead=false;b.tg=null;b.bn=0;b.wx=b.x;b.wz=b.z;b.stk=0;b.lastSeen=null;b.coverGoal=null;b.coverExpires=0;b.coverHoldUntil=0;b.smartRetreat=false;b.siteChoice=undefined;b.g.rotation.y=b.tm?0:Math.PI;botInitialLoadout(b);en.push(b);}
 // startMatch(tm): sets up scores, timer (60 s) and the countdown, spawns the player and 4+5 bots, resets weapons to the chosen primary.
 function startMatch(tm){inventoryForNewMatch();starsReset();SPH=[[],[]];var s=spawnPt(tm);pl.tm=tm;pl.x=s[0];pl.z=s[1];pl.face=tm?0:Math.PI;pl.inv=2;ts=[0,0];rq=[];mt={t:roomMatchSeconds(),cd:5,over:false};pl.prim=favPrim;pl.w=favPrim;pl.mag=WP[favPrim].mag;pl.res=WP[favPrim].res;scopeOn=false;ROS=[];pl.st={name:"You",tm:tm,k:0,d:0};ROS.push(pl.st);
   S.remove(pm.g);pm=mkPm(tm);pm.g.visible=false;[armR,armL].forEach(function(ar){ar.children[0].material.color.setHex(tm?0x4b5320:0x1c4a8a);ar.children[1].material.color.setHex(tm?0x23272b:0x142a52);});
   [0,1].forEach(function(t){for(var i=0;i<BOMB_RULES.teamSize-(t===tm?1:0);i++){var b=newBot(t,i);b.st={name:b.name,tm:t,k:0,d:0};ROS.push(b.st);placeBot(b);}});
   if(isBombMode())bombStartMatch();loadoutPrepareRound();toast("YOU ARE "+(tm?"TERRORIST":"POLICE"));}
 // respawnPl(): respawns the player after the 5 s death timer with full ammo and spawn shield.
-function respawnPl(){bloodPoolRemove(pl.bloodPool);pl.bloodPool=null;var s=spawnPt(pl.tm);pl.dead=false;pl.dt=pl.rt=pl.rl=pl.cd=pl.sw=pl.stab=pl.thr=0;pl.pend=pl.sth=false;pl.ghide=0;defenseSpawn(pl);pl.x=s[0];pl.z=s[1];pl.y=pl.vy=0;pl.face=pl.tm?0:Math.PI;pl.pitch=0;pl.inv=2;pl.prim=favPrim;
+function respawnPl(){bloodPoolRemove(pl.bloodPool);pl.bloodPool=null;pl.stepTrail=0;pl.stepIndex=0;var s=spawnPt(pl.tm);pl.dead=false;pl.dt=pl.rt=pl.rl=pl.cd=pl.sw=pl.stab=pl.thr=0;pl.pend=pl.sth=false;pl.ghide=0;defenseSpawn(pl);pl.x=s[0];pl.z=s[1];pl.y=pl.vy=0;pl.face=pl.tm?0:Math.PI;pl.pitch=0;pl.inv=2;pl.prim=favPrim;
   pl.ammo={};WP.forEach(function(w,i){pl.ammo[i]={mag:w.mag,res:w.res};});pl.w=favPrim;pl.mag=WP[favPrim].mag;pl.res=WP[favPrim].res;pl.slot=0;camY=0;scopeOn=false;resetPm();setHm();document.body.classList.remove("dead");toast("RESPAWNED");}
 // tmUpd(): updates the top HUD (timer, scores, respawn text, spawn-shield text).
 function tmUpd(){var g=function(i){return document.getElementById(i);},r=g("rsp");g("imm").style.display=(pl.inv>0&&!pl.dead&&!mt.over)?"block":"none";var sp0=g("tp"),sq0=g("tq");if(sp0.textContent!=ts[0]){sp0.textContent=ts[0];sp0.classList.remove("pop");void sp0.offsetWidth;sp0.classList.add("pop");}if(sq0.textContent!=ts[1]){sq0.textContent=ts[1];sq0.classList.remove("pop");void sq0.offsetWidth;sq0.classList.add("pop");}g("tt").textContent=mmss(Math.max(0,Math.ceil(mt.t)));g("tbf").style.width=Math.max(0,Math.min(100,mt.t/(isBombMode()?(bombMatch&&bombMatch.state==="planted"?BOMB_RULES.fuseSeconds:roomRoundSeconds()):roomMatchSeconds())*100))+"%";g("tm").classList.toggle("lo",mt.t<=10&&mt.cd<=0&&!mt.over);g("tmP").classList.toggle("you",pl.tm===0);g("tmT").classList.toggle("you",pl.tm===1);
@@ -4101,6 +4227,7 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
       }
     }
     var dm=Math.hypot(e.x-ox,e.z-oz);
+    footstepAdvance(e,dm,!cdn&&dm>.002,sp>4.4,false);
     if((mvx||mvz)&&dm<sp*dt*.3){e.stk=(e.stk||0)+dt;if(combat&&e.stk>.5){e.navT=1.2;e.sd=-(e.sd||1);e.stk=0;e.pt=0;}}else e.stk=0;
     e.g.rotation.y=f;e.cd-=dt;
     if(t&&e.lok&&!cdn&&!(isBombMode()&&e.bAction)&&e.cd<=0){botCombatTick(e,t,f,d);}
@@ -4181,11 +4308,13 @@ function update(dt){
   if(!pl.dead)pl.life+=dt;else{pl.dt+=dt;pl.rsT-=dt;if(pl.rsT<=0&&!mt.over&&!isBombMode())respawnPl();}
   var spd=weaponMovementSpeed(pl.w,sprT,adsT);
   mvAmt+=(ml-mvAmt)*Math.min(1,dt*8);wtT+=((pl.w>=1&&pl.w<=3||["rifle","smg","dual","sniper","rocket"].indexOf(WP[pl.w].stats.kind)>=0?1:0)-wtT)*Math.min(1,dt*6);
+  var oldStepX=pl.x,oldStepZ=pl.z;
   var fw=-mz,sf=Math.sin(pl.face),cf=Math.cos(pl.face);pl.x+=(fw*sf-mx*cf)*spd*dt;pl.z+=(fw*cf+mx*sf)*spd*dt;resolve(pl,.55);
   var py=pl.y,gy=gh(pl.x,pl.z,py);
   if(!pl.dead&&!(isBombMode()&&pl.bAction)&&(keys.Space||jumpHeld)&&pl.y<=gy+.001)pl.vy=9;
   pl.vy-=28*dt;pl.y+=pl.vy*dt;gy=gh(pl.x,pl.z,py);
   if(pl.y<=gy){pl.y=gy;pl.vy=0;}
+  footstepAdvance(pl,Math.hypot(pl.x-oldStepX,pl.z-oldStepZ),!pl.dead&&pl.vy===0,sprT>.4,true);
   if(pl.vy===0&&Math.abs(pl.y-camY)<1.2)camY+=(pl.y-camY)*Math.min(1,dt*16);else camY=pl.y;
   var rk=pl.dead?0:1;pl.face-=ST.r.x*2.4*dt*rk;pl.pitch=Math.max(-1.2,Math.min(1.2,pl.pitch-ST.r.y*1.6*dt*rk));
   var cdo=pl.cd;pl.cd-=dt;pl.ov=(cdo>0&&pl.cd<0)?-pl.cd:0;var w=WP[pl.w],priorPump=pl.pump||0;
@@ -4375,5 +4504,5 @@ var last=performance.now();
   else{var cb=mvAmt*wtT*(1-.75*adsT)*(pl.vy===0?1:0)*(1+.35*sprT),bY=-cb*.022*(.5-.5*Math.cos(2*bobP)),tr=cs.s*(1-.4*adsT),ta=tr*tr,nt=performance.now()/1000,sj=sh+ta*.06,ads2=1-.4*adsT,pp=pl.pitch+cs.k*(1-.35*adsT)+snz(nt,1)*ta*.05,fy=pl.face+cs.y*ads2+snz(nt,2)*ta*.05;C.position.set(pl.x+snz(nt,3)*sj,1.5+camY+bY+snz(nt,4)*sj-(isBombMode()&&pl.bAction?.55:0),pl.z+snz(nt,5)*sj);C.lookAt(pl.x+Math.sin(fy)*Math.cos(pp),1.5+camY+bY+Math.sin(pp)-(isBombMode()&&pl.bAction?.55:0),pl.z+Math.cos(fy)*Math.cos(pp));C.rotateZ(cs.r*ads2+snz(nt,6)*ta*.06+Math.sin(bobP)*.004*cb);}
   if(Math.abs(C.fov-ft)>.02){C.fov=ft;C.updateProjectionMatrix();}
   kick*=Math.max(0,1-dt*14);flashT-=dt;var dl=pl.w===7;mflash.visible=flashT>0&&run&&!(dl&&shotSide);mflash2.visible=flashT>0&&run&&dl&&!!shotSide;var suppressedFlash=!!(GS[SFXI[pl.w]]&&GS[SFXI[pl.w]].suppressed);mflash.scale.setScalar((suppressedFlash?.17:.7)+Math.random()*(suppressedFlash?.12:.8));mflash2.scale.setScalar(.7+Math.random()*.8);mflash.position.set(0,.02,MZ[pl.w]);mflash2.position.set(-.52,.02,MZ[pl.w]);animHands();guns.forEach(function(g,i){g.visible=i===pl.w&&!(i===5&&pl.ghide>0);});sun.position.set(pl.x+14,30,pl.z+10);sun.target.position.set(pl.x,0,pl.z);sun.target.updateMatrixWorld();
-  updSky(dt);R.clear();R.render(S,C);modePreviewDraw(now);if(!pl.dead&&!lob&&!mt.over){R.clearDepth();R.render(VS,VC);}requestAnimationFrame(loop);})(last);
+  footstepUpdateListener();updSky(dt);R.clear();R.render(S,C);modePreviewDraw(now);if(!pl.dead&&!lob&&!mt.over){R.clearDepth();R.render(VS,VC);}requestAnimationFrame(loop);})(last);
 })();

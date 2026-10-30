@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-10-30 — Surface-aware 3D positional footsteps for player and BOTs
+
+- Added `src/game/66-footsteps.js` for live distance-driven footstep timing on actual player/BOT movement (collision-adjusted, grounded, no idle/airborne/wall-push steps); all teams use identical footstep hearing rules.
+- Synthesizes cached short textured samples per five grounded surface categories: asphalt road, outdoor concrete, building interior, elevated metal, and indoor tile. Indoor Bomb Mode sectors use the existing map's four location zones.
+- Enemy and teammate footsteps are emitted in world coordinates via Web Audio HRTF PannerNode with 24-unit hearing cutoff, camera/listener orientation, distance falloff, optional line-of-sight muffling, and 16-voice concurrency cap.
+- Audio is initialized on real user input to respect browser autoplay rules and honors the existing SND toggle. No external sound assets, remote URLs, network code, new game mechanics, or third-party dependencies.
+- Updated the source manifest/direct-browser bundle, added 3D spatial-footstep regression coverage and implementation documentation.
+
+
 ## 2026-10-30 — Remove persistent player weapon drops on death
 
 - Fixed player-death gun models staying on the map indefinitely because `dropPlayerGun()` passed `keep=true` to the existing physics drop system.
