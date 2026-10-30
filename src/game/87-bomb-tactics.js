@@ -10,30 +10,29 @@ var BOMB_AI=Object.freeze({
   clearSiteSpeedMultiplier:1.4,clearSiteSupportRadius:1.35,defuserSwapMargin:1.2
 });
 function bombLiving(team){return en.filter(function(e){return e.tm===team&&!e.dead;}).concat(!pl.dead&&pl.tm===team?[pl]:[]);}
-function bombNearestOpponent(e){var foes=bombLiving(1-e.tm),best=null,dist=Infinity;
-  foes.forEach(function(f){var d=Math.hypot(f.x-e.x,f.z-e.z);if(d<dist){dist=d;best=f;}});
-  return best;
+function bombNearestOpponent(e){
+  // Never return a living opponent: only timestamped, authorized observation data.
+  return botIntelNearest(e,e.x,e.z,Infinity);
 }
-// Threat assessment uses living enemy positions but does not allow firing through
-// geometry: normal shooting remains protected by the original LOS check.
-function bombNearestThreat(team,x,z,radius){var best=null,distance=radius;
-  bombLiving(1-team).forEach(function(foe){var d=Math.hypot(foe.x-x,foe.z-z);
-    if(d<distance){best=foe;distance=d;}});
-  return best;
+function bombNearestThreat(team,x,z,radius,observer){
+  // The observer is mandatory. Team- or site-wide perfect-knowledge scans
+  // are forbidden; teammate radio reports must come from legitimate sight.
+  if(!observer||observer.tm!==team)return null;
+  return botIntelNearest(observer,x,z,radius);
 }
 function bombSoloPoliceThreat(e){
   if(!bombMatch||bombMatch.done||bombMatch.state!=='planted'||e.tm!==0||
       bombLiving(0).length!==1)return null;
   var p=bombMatch.device.position;
-  return bombNearestThreat(0,p.x,p.z,BOMB_AI.soloDefuseThreatRadius);
+  return bombNearestThreat(0,p.x,p.z,BOMB_AI.soloDefuseThreatRadius,e);
 }
 function bombSmartCarrierThreat(e){var foe=bombPlantThreat(e);return !!(foe&&
  Math.hypot(foe.x-e.x,foe.z-e.z)<BOMB_AI.urgentThreatRange*1.5&&los(e.x,e.z,foe.x,foe.z));}
 function bombPlantThreat(e){
   if(!bombMatch||bombMatch.done||bombMatch.state!=='idle'||e.tm!==1)return null;
   // Threats in the plant site or close enough to engage the carrier must be cleared.
-  var near=bombNearestThreat(1,e.x,e.z,BOMB_AI.plantEngageRange),site=bombArea(e);
-  if(site>=0){var s=BOMB_SITES[site],atSite=bombNearestThreat(1,s.x,s.z,BOMB_AI.plantClearRadius);
+  var near=bombNearestThreat(1,e.x,e.z,BOMB_AI.plantEngageRange,e),site=bombArea(e);
+  if(site>=0){var s=BOMB_SITES[site],atSite=bombNearestThreat(1,s.x,s.z,BOMB_AI.plantClearRadius,e);
     if(atSite)return atSite;}
   return near;
 }
@@ -147,7 +146,7 @@ function bombTacticalGoal(e){
         b.device.position.z+Math.sin(angle)*radius,e);
     }
     if(stage==='intercept'){
-      foe=bombNearestThreat(1,site.x,site.z,BOMB_AI.roamRadius);
+      foe=bombNearestThreat(1,site.x,site.z,BOMB_AI.roamRadius,e);
       if(foe)return bombSafeGoal(foe.x,foe.z,e);
       radius=8+idx%3*2;
     }
