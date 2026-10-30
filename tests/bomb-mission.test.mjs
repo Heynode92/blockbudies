@@ -7,6 +7,7 @@ const root = resolve(import.meta.dirname, '..');
 const mapSource=readFileSync(resolve(root,'src/game/11-bomb-map.js'),'utf8');
 const missionSource=readFileSync(resolve(root,'src/game/86-bomb-mission.js'),'utf8');
 const tacticsSource=readFileSync(resolve(root,'src/game/87-bomb-tactics.js'),'utf8');
+const perceptionSource=readFileSync(resolve(root,'src/game/88-bot-perception.js'),'utf8');
 const cameraSource=readFileSync(resolve(root,'src/game/88-spectator-camera.js'),'utf8');
 function fakeThree(){
   class Position { constructor(x=0,y=0,z=0){this.x=x;this.y=y;this.z=z;} set(x,y,z){this.x=x;this.y=y;this.z=z;return this;} copy(o){return this.set(o.x,o.y,o.z);} lerp(o,t){this.x+=(o.x-this.x)*t;this.y+=(o.y-this.y)*t;this.z+=(o.z-this.z)*t;return this;} }
@@ -43,7 +44,7 @@ function makeContext(){
     inObs(x,z,m){return ctx.OB.some(o=>Math.abs(x-o.x)<o.hw+(m||0)&&Math.abs(z-o.z)<o.hd+(m||0));},
     reset(){},startMatch(){},endMatch(){ctx.mt.over=true;}
   };
-  runInNewContext(mapSource+'\n'+missionSource+'\n'+tacticsSource+'\n'+cameraSource,ctx);
+  runInNewContext(mapSource+'\n'+missionSource+'\n'+perceptionSource+'\n'+tacticsSource+'\n'+cameraSource,ctx);
   ctx.selectedGameMode=1;
   return ctx;
 }
