@@ -2942,8 +2942,26 @@ function shopRender(){
   });
   shopAnim=false;
 }
+// The featured starter panel reads the canonical weapon registry and thumbnail cache.
+function shopRenderFeatured(){
+  var weapon=WP[WEAPON_STARTER_ID],panel=document.getElementById("shopFeatured");
+  if(!panel||!weapon)return;
+  var owned=inventoryOwned("main").indexOf(WEAPON_STARTER_ID)>=0;
+  panel.querySelector("#shopFeatureName").textContent=weapon.n;
+  panel.querySelector("#shopFeatureStatus").textContent=owned?"READY TO USE":"NOT OWNED";
+  panel.querySelector("#shopFeatureAmmo").textContent=weapon.mag+" / "+weapon.res+" ROUNDS";
+  panel.querySelector("#shopFeatureDescription").textContent=weapon.n+" is your starting weapon in Block Buddies.";
+  var art=panel.querySelector("#shopFeatureArt");
+  art.textContent="";
+  if(INVENTORY_THUMBS[WEAPON_STARTER_ID]){
+    var image=document.createElement("img");
+    image.src=INVENTORY_THUMBS[WEAPON_STARTER_ID];
+    image.alt=weapon.n+" weapon model";
+    art.appendChild(image);
+  }
+}
 function shopOpen(){
-  lobP("lbshop");shopAnim=true;inventoryBuildThumbnails();shopRender();
+  lobP("lbshop");shopAnim=true;inventoryBuildThumbnails();shopRenderFeatured();shopRender();
 }
 document.getElementById("lshop").addEventListener("click",shopOpen);
 document.getElementById("shopBack").addEventListener("click",function(){lobP("lbs");});// ---- BOT PATH-FINDING GRID ----
