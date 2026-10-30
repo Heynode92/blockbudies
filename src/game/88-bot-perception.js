@@ -7,7 +7,13 @@ var BOT_SENSE=Object.freeze({
  auditoryUncertainty:2.4
 });
 var botSoundEvents=[],botTeamReports=[null,null];
-function botIntelReset(){botSoundEvents.length=0;botTeamReports=[null,null];}
+function botIntelReset(){
+ botSoundEvents.length=0;botTeamReports=[null,null];
+ // Also clear per-life evidence when a match/round is rebuilt.
+ if(typeof en!=='undefined'&&en)en.forEach(function(e){
+  if(e){e.lastSeen=null;e.heard=null;e.tg=null;e.lok=false;}
+ });
+}
 function botIntelVisible(e,foe){
  return !!(e&&foe&&e!==foe&&!e.dead&&!foe.dead&&e.tm!==foe.tm&&
   Math.hypot(foe.x-e.x,foe.z-e.z)<=BOT_SENSE.sightRange&&
