@@ -1,7 +1,7 @@
 # BLOCK BUDDIES — BOT Intelligence Modernization Master Plan
 
 > **Document ID:** BB-AI-ROADMAP-001  
-> **Status:** M0 FOUNDATION VERIFIED / M1 IMPLEMENTED + CI VERIFIED, WINDOWS MANUAL VALIDATION PENDING / M2–M7 NOT STARTED  
+> **Status:** M0 FOUNDATION VERIFIED / M1 CORE EXIT GATE VERIFIED (CI + OWNER MANUAL PASS) / M2 READY NOT STARTED / M3–M7 NOT STARTED  
 > **Baseline reviewed:** `main` at `23cd2bb71a2535de86ba49ccdfc3d23455be2ff9` (2026-10-30)  
 > **Scope:** Police and Terrorist BOTs in Team Deathmatch (TDM) and Bomb Mission  
 > **Source of truth:** repository production sources, `docs/ARCHITECTURE.md`, original-game fixture, existing test suite  
@@ -17,7 +17,7 @@ All improvements must apply to **both teams**. Team-specific differences are lim
 
 **Quality criteria:** challenging but readable, responsive but not instantaneous, adaptive but not random jitter, aggressive but not suicidal, accurate but beatable, and tactical without cheating.
 
-This document is a **future gameplay implementation specification**, not evidence that any of the proposed behaviors exist today. M0 is now **verified for its foundational exit gate** using the deterministic synthetic active-BOT fixture, recorded behavior traces, sampled CPU tick timings, Windows CI [run #38](https://github.com/Heynode92/blockbudies/actions/runs/41105582716) (289/289 tests passing), and an owner-reported 8/8 core gameplay smoke test. M1 perception/knowledge improvements are implemented and pass [Windows CI #67](https://github.com/Heynode92/blockbudies/actions/runs/41108118435) (297/297 Node tests); M1-specific human browser gameplay acceptance is pending. Real-game browser FPS/p95, true hit-rate, reaction latency, navigation/stuck rate, per-map/faction coverage and Bomb success-rate measurements are **still open**, not asserted done.
+This document is a **future gameplay implementation specification**, not evidence that any of the proposed behaviors exist today. M0 is now **verified for its foundational exit gate** using the deterministic synthetic active-BOT fixture, recorded behavior traces, sampled CPU tick timings, Windows CI [run #38](https://github.com/Heynode92/blockbudies/actions/runs/41105582716) (289/289 tests passing), and an owner-reported 8/8 core gameplay smoke test. M1 perception/knowledge improvements are implemented and pass [Windows CI #72](https://github.com/Heynode92/blockbudies/actions/runs/41108545600) (297/297 Node tests). The owner subsequently reported M1 manual gameplay **PASS** on 2026-10-31 WIB; M1's **scoped core exit gate is VERIFIED**. The owner's report was aggregate (individual maps, factions and test cases were not itemized). Real-game browser FPS/p95, true hit-rate, reaction latency, navigation/stuck rate, per-map/faction coverage and Bomb success-rate measurements are **still open**, not asserted done.
 
 ## 2. Hard constraints and non-goals
 
@@ -172,7 +172,7 @@ Mark a milestone complete **only after its acceptance gates pass**. Each milesto
 
 ### M1 — Perception and legitimate knowledge
 
-**Current tracking (2026-10-31 WIB):** **IMPLEMENTED / AUTOMATED VERIFIED**, [CI #67 297/297 PASS](https://github.com/Heynode92/blockbudies/actions/runs/41108118435). See [M1 implementation and QA checklist](BOT_AI_M1_VALIDATION.md). Sight snapshots, radio, bounded footstep/gunshot clues, expiry/reset, Bomb threat query isolation are implemented. **Human browser gameplay acceptance and true FPS/hit/reaction/stuck KPIs remain OPEN**; not yet FULLY VERIFIED or RELEASED.
+**Current tracking (2026-10-31 WIB): VERIFIED (CORE EXIT GATE)**, [Windows CI #72 297/297 PASS](https://github.com/Heynode92/blockbudies/actions/runs/41108545600) and owner-reported post-update **manual playtest PASS**. See [M1 validation](BOT_AI_M1_VALIDATION.md). LOS-based sight snapshots, radio, bounded footstep/gunshot clues, expiry/reset and Bomb knowledge isolation are implemented. **M2 READY / NOT STARTED.** Detailed per-map/faction manual matrix and real browser FPS/hit/reaction/stuck KPIs are still OPEN; no numeric performance assertions.
 
 **Work:** explicit LOS, observation origin/time, acoustic event integration, team sighting reports and last-known uncertainty. Refactor Bomb helper queries to consume this knowledge instead of reading hidden enemies directly.
 
@@ -310,4 +310,4 @@ These are **maintainer-only** actions. The user must never be told to install No
 5. Keep tactical input honest and preserve canonical gameplay mechanics. Test in realistic scenarios; record baseline deltas.
 6. Commit only after verification; update documentation and implementation log in the same commit. Never claim an upgrade was completed while only the plan was edited.
 
-**Approval boundary:** The original request on 2026-10-30 authorized documentation and logging only. A later explicit owner instruction authorized M0 harness and testing work. M1 gameplay update was explicitly authorized by the owner in the subsequent request and is now implemented. M2–M7 remain pending separate authorization.
+**Approval boundary:** The original request on 2026-10-30 authorized documentation and logging only. A later explicit owner instruction authorized M0 harness and testing work. M1 gameplay update was explicitly authorized by the owner, implemented, and accepted through green Windows CI and owner-reported manual gameplay PASS. **M1 core feature gate VERIFIED**, not a quantified browser performance sign-off. M2–M7 remain pending separate authorization.
