@@ -10,13 +10,22 @@ const weapon=JSON.parse(read('tools/source-manifest.json')).parts.filter(p=>p.st
 const viewmodels=read('src/game/weapon/30-viewmodels.js');
 const shop=read('src/game/89-shop.js'),inventory=read('src/game/89-inventory.js'),sim=read('src/game/95-simulation.js');
 const bots=read('src/game/41-bot-weapons.js');
+function numberAt(source,key,id){
+ const begin=source.indexOf(key+'=[');
+ assert.ok(begin>=0,'numeric table '+key+' exists');
+ const open=begin+key.length+1,close=source.indexOf(']',open);
+ assert.ok(close>open,'table '+key+' has a closing bracket');
+ const entries=source.slice(open+1,close).split(',').map(Number);
+ assert.ok(entries.length>id,'table '+key+' preserves weapon '+id);
+ return entries[id];
+}
 function loadProfiles(){
  const ctx={Math};runInNewContext(weapon,ctx);
  return ctx;
 }
 test('MP7, P90 and AK SOPMOD exactly match requested ratings and ammo',()=>{
  const {WEAPON_PROFILES:p,WP}=loadProfiles();
- assert.equal(p.length,13);
+ assert.ok(p.length>=13,'original ID 0–12 profiles must remain');
  const specs=[
   [10,{name:'MP7',kind:'smg',damage:21,rpm:93,control:60,speed:88,vRecoil:45,hRecoil:54,mag:30,res:200,range:60}],
   [11,{name:'P90',kind:'smg',damage:24,rpm:92,control:54,speed:88,vRecoil:45,hRecoil:48,mag:50,res:200,range:65}],
@@ -51,7 +60,7 @@ test('Shop catalog automatically includes all three new guns without granting ow
  assert.match(shop,/inventoryCatalogMain\(\)\.filter/);
  assert.match(shop,/inventoryClaimPrimary\(id\)/);
  assert.match(control,/var owned=inventoryOwned\("main"\)/);
- assert.match(bots,/primaries:\[1,1,1,2,2,6,6,6,7,8,3\]/);
+ assert.match(bots,/primaries:\[1,1,1,2,2,6,6,6,7,8\]/);
 });
 test('Tactical aim has three distinct visual profiles and uses RMB hold, AWP scope unchanged',()=>{
  const ctx={document:{getElementById(){return{style:{},querySelector(){return{textContent:''}}}}}};
@@ -60,20 +69,19 @@ test('Tactical aim has three distinct visual profiles and uses RMB hold, AWP sco
  assert.equal(ctx.tacticalOpticConfig(8),null);
  assert.notEqual(ctx.tacticalOpticConfig(10).style,ctx.tacticalOpticConfig(11).style);
  assert.notEqual(ctx.tacticalOpticConfig(11).style,ctx.tacticalOpticConfig(12).style);
- assert.match(sim,/pl\.w===8\?scopeOn:mouse\.right/);
+ assert.match(sim,/WP\[pl\.w\]\.snp\?scopeOn:mouse\.right/);
  assert.match(read('src/game/96-hud-and-radar.js'),/tacticalOpticUpdate\(\)/);
  assert.match(control,/!!tacticalOpticConfig\(w\)/);
  assert.match(read('src/styles/11-tactical-optics.css'),/\.tactical-aim-sopmod/);
  assert.match(read('index.html'),/id="tacticalAim"/);
- assert.match(viewmodels,/ADF=\[[^\]]+,42,44,36\]/);
+ assert.deepEqual([10,11,12].map(id=>numberAt(viewmodels,'ADF',id)),[42,44,36]);
 });
-test('All dependent arrays extend for new IDs without shifting original id indexes',()=>{
- for(const expr of [/MZ=\[[^\]]+,-1\.04,-1\.00,-1\.38\]/,/SFXI=\[[^\]]+,1,1,1\]/]){
-   assert.match(expr.source.startsWith('MZ')?read('src/game/45-combat.js'):read('src/game/65-audio.js'),expr);
- }
- const drops=read('src/game/50-items-and-drops.js');
- assert.match(drops,/GSC=\[[^\]]+,1\.2,1\.18,1\.23\],GH=/);
- assert.match(viewmodels,/MODE=\[[^\]]+,0,0,0\],NC=/);
+test('original tactical weapon IDs retain indexed runtime values as the catalog expands',()=>{
+ const combat=read('src/game/45-combat.js'),audio=read('src/game/65-audio.js'),drops=read('src/game/50-items-and-drops.js');
+ assert.deepEqual([10,11,12].map(i=>numberAt(combat,'MZ',i)),[-1.04,-1,-1.38]);
+ assert.deepEqual([10,11,12].map(i=>numberAt(audio,'SFXI',i)),[1,1,1]);
+ assert.deepEqual([10,11,12].map(i=>numberAt(drops,'GSC',i)),[1.2,1.18,1.23]);
+ assert.deepEqual([10,11,12].map(i=>numberAt(viewmodels,'MODE',i)),[0,0,0]);
  assert.match(control,/10:'<svg/);assert.match(control,/11:'<svg/);assert.match(control,/12:'<svg/);
 });
 test('Compiled runtime matches all source modules including tactical optic module',()=>{
@@ -108,7 +116,7 @@ test('MP7 micro red dot clears its physical optic while ADS and restores it afte
  env.tacticalOpticUpdate();
  assert.equal(aimEl.style.display,'none');
  assert.ok(opticParts.every(p=>p.visible===true),'physical sight pieces should return after ADS');
- assert.match(viewmodels,/\[0,-\.25,-\.58\],\[0,-\.27,-\.56\]/);
+ assert.match(viewmodels,/\[0,-0\.25,-0\.58\],\[0,-0\.27,-0\.56\]/);
  const opticsCss=read('src/styles/11-tactical-optics.css');
  assert.match(opticsCss,/\.tactical-aim-mp7 \.ta-frame::after\{box-shadow:/);
  assert.match(opticsCss,/\.tactical-aim-mp7 \.ta-cross::before,/);
@@ -141,6 +149,6 @@ test('MP7 ADS optic is rectangular while P90 and SOPMOD retain their own sight s
  assert.ok(mp7Cross,'MP7-specific reticle rule exists');
  assert.match(mp7Cross,/width:22px;height:22px;border-radius:3px/);
  assert.match(css,/\.tactical-aim-p90 \.ta-frame\{border-radius:36%/);
- assert.match(css,/\.tactical-aim-sopmod \.ta-frame\{border-radius:18%/);
+ assert.match(css,/\.tactical-aim-sopmod \.ta-frame,\.tactical-aim-hk417 \.ta-frame\{border-radius:18%/);
  assert.doesNotMatch(css,/\.ta-label|--ta-label-offset/);
 });
