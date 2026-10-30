@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-10-30 — Direct Room Master lobby, click-to-switch teams, 3–2–1
+
+- CREATE ROOM and OPEN now enter an active room lobby with live map preview, settings, original tactical art, Police/Terrorist slot columns and a local-only room log.
+- Clicking any slot selects the player's side. Preview BOT names/capacity derive from the canonical BN and BOMB_RULES tables; the existing startMatch creates the remaining nine AI players at launch.
+- START MATCH bypasses the redundant CHOOSE YOUR TEAM screen; the existing loadout/HUD countdown is 3–2–1 for the first match only. Later Bomb Mode rounds keep their original freeze time.
+- LEAVE ROOM removes the Room Master room from browser storage. Returning to main menu and browser pagehide also clean up an owned room.
+- Added responsive scoped CSS and regression scenarios; synchronized standalone assets/game.js.
+
+
 ## 2026-10-30 — Room Lobby verification & layout regression
 
 - Added `tests/room-lobby.test.mjs` with 8 unit/integration scenarios for local room creation, master controls, mode-specific match conditions, strict option bounds, safe room-name rendering and startup ordering.

@@ -3,6 +3,55 @@
 var ROOM_STORAGE_KEY="bbfps_local_rooms_v1";
 var ROOM_LIMITS=Object.freeze({kills:[20,30,50,75,100],minutes:[1,3,5,10,15],rounds:[3,5,7,9,12],roundMinutes:[1,2,3,4]});
 var roomList=[],roomCurrent=null,roomMatchConfig=null,roomDraftMode=0;
+
+/* Team slots preview the real 5v5 roster. AI is created by startMatch, never here. */
+var ROOM_START_COUNTDOWN=3,roomSide=0,roomSeat=0,roomLog=[];
+function roomLiveLog(message){
+ roomLog.push(String(message));if(roomLog.length>12)roomLog.shift();
+ var root=document.getElementById("rmlLogLines");root.replaceChildren();
+ roomLog.forEach(function(entry){var row=document.createElement("div");row.className="rml-log-line";row.textContent=entry;root.appendChild(row);});
+ root.scrollTop=root.scrollHeight;
+}
+function roomLiveTeams(){
+ var size=BOMB_RULES.teamSize;
+ for(var side=0;side<2;side++){
+  var target=document.getElementById(side===0?"rmlPoliceSlots":"rmlTerrorSlots");target.replaceChildren();
+  roomText(side===0?"rmlPoliceCount":"rmlTerrorCount",size+" / "+size+" ON START");
+  for(var slot=0;slot<size;slot++){
+   (function(team,seat){
+    var own=team===roomSide&&seat===roomSeat,idx=team===roomSide?(seat<roomSeat?seat:seat-1):seat;
+    var bot=BN[team]&&BN[team][idx],row=document.createElement("button");row.type="button";
+    row.className="rml-slot"+(own?" is-you":"");row.setAttribute("aria-pressed",String(own));
+    var num=document.createElement("span");num.className="rml-slot-index";num.textContent=String(seat+1);
+    var name=document.createElement("span");name.className="rml-slot-name";name.textContent=own?"YOU · ROOM MASTER":bot?"BOT "+bot:"BOT ON START";
+    var hint=document.createElement("em");hint.textContent=own?"SELECTED":"ON START";
+    row.appendChild(num);row.appendChild(name);row.appendChild(hint);
+    row.addEventListener("click",function(){
+     if(!roomCurrent||roomSide===team&&roomSeat===seat)return;
+     roomSide=team;roomSeat=seat;roomLiveTeams();
+     roomLiveLog("You moved to "+(team===0?"Police":"Terrorists")+" slot "+(seat+1)+".");
+    });
+    target.appendChild(row);
+   })(side,slot);
+  }
+ }
+}
+function roomLiveOpen(room){
+ if(!room)return;
+ roomEditState(room);
+ var map=roomMapsForMode(room.mode);
+ roomText("rmlBotSummary","1 PLAYER + "+(BOMB_RULES.teamSize*2-1)+" BOTS ON START");
+ roomText("rmlRoomName",room.name);roomText("rmlMapName",map?map.name:"UNAVAILABLE");roomText("rmlMapCaption",map?map.caption:"");
+ roomText("rmlGameMode",room.mode===1?"BOMB MODE":"TEAM DEATH MATCH");
+ roomText("rmlGoalLabel",room.mode===1?"MAX ROUNDS":"KILL LIMIT");
+ roomText("rmlGoal",room.mode===1?room.rounds+" ROUNDS":room.kills+" KILLS");
+ roomText("rmlTimeLabel",room.mode===1?"ROUND TIME":"MATCH TIME");
+ roomText("rmlTime",(room.mode===1?room.roundMinutes:room.minutes)+" MINUTES");
+ roomLiveTeams();lobP("lbroomlive");
+}
+function roomShowSettings(){if(!roomCurrent)return;roomEditState(roomCurrent);lobP("lbrooms");}
+function roomLeaveLive(){roomCloseLocal();lobP("lbrooms");}
+
 function roomAllowed(value,list,fallback){var n=Number(value);return list.indexOf(n)>=0?n:fallback;}
 function roomNormalize(obj){
  if(!obj||typeof obj!=="object"||typeof obj.id!=="string"||!/^[0-9]{8,20}$/.test(obj.id))return null;
@@ -89,7 +138,7 @@ function roomEditState(room){
 function roomOpenSaved(id){
  var match=roomList.find(function(r){return r.id===id;});
  if(!match){roomSetMessage("Room not found in this browser.");return;}
- roomEditState(match);roomSetMessage("Room ready. Adjust settings or start a match.");
+ roomSide=0;roomSeat=0;roomLog=[];roomLiveLog("Room opened. You are Room Master.");roomLiveOpen(match);roomSetMessage("Room ready.");
 }
 function roomCreateLocal(){
  var draft=roomFormData();if(!draft){roomSetMessage("Enter a room name before creating.");return;}
@@ -97,7 +146,8 @@ function roomCreateLocal(){
  var id=String(Date.now())+String(Math.floor(Math.random()*90000)+10000);
  var room=roomNormalize(Object.assign({id:id},draft));
  if(!room){roomSetMessage("Invalid room settings.");return;}
- roomList.unshift(room);roomPersist();roomRender();roomEditState(room);
+ roomList.unshift(room);roomPersist();roomRender();roomSide=0;roomSeat=0;roomLog=[];
+ roomLiveLog("Room created. You are Room Master.");roomLiveOpen(room);
  roomSetMessage("Room created locally. You are the Room Master.");
 }
 function roomSaveLocal(){
@@ -113,13 +163,14 @@ function roomSaveLocal(){
 function roomCloseLocal(){
  if(!roomCurrent)return;
  roomList=roomList.filter(function(r){return r.id!==roomCurrent.id;});roomPersist();roomRender();
- roomEditState(null);roomSetMessage("Local room closed.");
+ roomEditState(null);roomMatchConfig=null;roomLog=[];roomSetMessage("Local room closed.");
 }
 function roomLaunch(){
  var room=roomSaveLocal();if(!room)return;
  // This is not network multiplayer: 5v5 engine retains the existing nine AI soldiers.
  roomMatchConfig=Object.assign({},room);selM=room.mode;
- document.getElementById("tsel").style.display="flex";
+ // begin uses the existing map selection, 5v5 BOT spawn and loadout pipeline.
+ begin(roomSide);mt.cd=ROOM_START_COUNTDOWN;
 }
 function roomMatchSeconds(){return roomMatchConfig&&roomMatchConfig.mode===0?roomMatchConfig.minutes*60:60;}
 function roomKillLimit(){return roomMatchConfig&&roomMatchConfig.mode===0?roomMatchConfig.kills:0;}
@@ -129,16 +180,21 @@ function roomRoundSeconds(){return roomMatchConfig&&roomMatchConfig.mode===1?roo
 function roomRoundsToWin(){return roomMatchConfig&&roomMatchConfig.mode===1?Math.floor(roomRoundLimit()/2)+1:BOMB_RULES.wins;}
 function roomLobbyOpen(){
  roomLoad();roomRender();
- if(roomCurrent){var found=roomList.find(function(r){return r.id===roomCurrent.id;});roomEditState(found||null);}
+ if(roomCurrent){var found=roomList.find(function(r){return r.id===roomCurrent.id;});if(found){roomLiveOpen(found);return;}roomEditState(null);}
  else roomEditState(null);
  roomSetMessage("");
  lobP("lbrooms");
 }
-document.getElementById("roomBack").addEventListener("click",function(){lobP("lbs");});
+document.getElementById("roomBack").addEventListener("click",function(){if(roomCurrent)roomLiveOpen(roomCurrent);else lobP("lbs");});
 document.getElementById("roomRefresh").addEventListener("click",function(){roomLoad();roomRender();roomSetMessage("Local room list refreshed.");});
 document.getElementById("roomTdm").addEventListener("click",function(){roomModeSelect(0);});
 document.getElementById("roomBomb").addEventListener("click",function(){roomModeSelect(1);});
 document.getElementById("roomCreate").addEventListener("click",roomCreateLocal);
-document.getElementById("roomSave").addEventListener("click",roomSaveLocal);
+document.getElementById("roomSave").addEventListener("click",function(){var saved=roomSaveLocal();if(saved){roomLiveLog("Room settings updated.");roomLiveOpen(saved);}});
 document.getElementById("roomClose").addEventListener("click",roomCloseLocal);
 document.getElementById("roomStart").addEventListener("click",roomLaunch);
+
+document.getElementById("rmlSettings").addEventListener("click",roomShowSettings);
+document.getElementById("rmlLeave").addEventListener("click",roomLeaveLive);
+document.getElementById("rmlStart").addEventListener("click",roomLaunch);
+addEventListener("pagehide",function(){if(roomCurrent)roomCloseLocal();});

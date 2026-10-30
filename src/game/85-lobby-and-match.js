@@ -10,7 +10,7 @@ document.getElementById("go").onclick=function(){this.blur();reset();ov.style.di
 // Lobby (mode select screen). lobBest() reads the best score from localStorage key "bbfps_best" (try/catch).
 var lb=document.getElementById("lb");
 function lobBest(){var b=0;try{b=+localStorage.getItem("bbfps_best")||0;}catch(e){}document.getElementById("lbbest").textContent=b;}
-function lobP(id){["lbs","lbm","lbrooms","lbiv","lbshop"].forEach(function(i){document.getElementById(i).classList.toggle("on",i===id);});if(id==="lbs")lobBest();document.getElementById("lbn").classList.remove("on");}
+function lobP(id){if(id==="lbs"&&roomCurrent)roomCloseLocal();["lbs","lbm","lbrooms","lbroomlive","lbiv","lbshop"].forEach(function(i){document.getElementById(i).classList.toggle("on",i===id);});if(id==="lbs")lobBest();document.getElementById("lbn").classList.remove("on");}
 lobBest();
 (function(){var n=document.getElementById("lbn"),nt=document.getElementById("lbnt"),tm=0;[].forEach.call(document.querySelectorAll(".mb[data-n]"),function(b){b.onclick=function(){this.blur();nt.textContent=this.getAttribute("data-n");n.classList.remove("on","shk");void n.offsetWidth;n.classList.add("on","shk");clearTimeout(tm);tm=setTimeout(function(){n.classList.remove("on");},2800);};});})();
 // MODES: lobby cards. Only TEAM DEATH MATCH is playable (lock:0). BOMB MODE and BATTLEGROUND are "coming soon" placeholders (lock:1).
@@ -92,7 +92,7 @@ function placeBot(b){var s=spawnPt(b.tm);b.x=s[0];b.z=s[1];b.y=0;defenseSpawn(b)
 // startMatch(tm): sets up scores, timer (60 s) and the countdown, spawns the player and 4+5 bots, resets weapons to the chosen primary.
 function startMatch(tm){inventoryForNewMatch();starsReset();SPH=[[],[]];var s=spawnPt(tm);pl.tm=tm;pl.x=s[0];pl.z=s[1];pl.face=tm?0:Math.PI;pl.inv=2;ts=[0,0];rq=[];mt={t:roomMatchSeconds(),cd:5,over:false};pl.prim=favPrim;pl.w=favPrim;pl.mag=WP[favPrim].mag;pl.res=WP[favPrim].res;scopeOn=false;ROS=[];pl.st={name:"You",tm:tm,k:0,d:0};ROS.push(pl.st);
   S.remove(pm.g);pm=mkPm(tm);pm.g.visible=false;[armR,armL].forEach(function(ar){ar.children[0].material.color.setHex(tm?0x4b5320:0x1c4a8a);ar.children[1].material.color.setHex(tm?0x23272b:0x142a52);});
-  [0,1].forEach(function(t){for(var i=0;i<(isBombMode()?BOMB_RULES.teamSize-(t===tm?1:0):(t===tm?4:5));i++){var b=newBot(t,i);b.st={name:b.name,tm:t,k:0,d:0};ROS.push(b.st);placeBot(b);}});
+  [0,1].forEach(function(t){for(var i=0;i<BOMB_RULES.teamSize-(t===tm?1:0);i++){var b=newBot(t,i);b.st={name:b.name,tm:t,k:0,d:0};ROS.push(b.st);placeBot(b);}});
   if(isBombMode())bombStartMatch();loadoutPrepareRound();toast("YOU ARE "+(tm?"TERRORIST":"POLICE"));}
 // respawnPl(): respawns the player after the 5 s death timer with full ammo and spawn shield.
 function respawnPl(){var s=spawnPt(pl.tm);pl.dead=false;pl.dt=pl.rt=pl.rl=pl.cd=pl.sw=pl.stab=pl.thr=0;pl.pend=pl.sth=false;pl.ghide=0;defenseSpawn(pl);pl.x=s[0];pl.z=s[1];pl.y=pl.vy=0;pl.face=pl.tm?0:Math.PI;pl.pitch=0;pl.inv=2;pl.prim=favPrim;

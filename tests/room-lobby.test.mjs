@@ -32,7 +32,9 @@ function setup(){
   MODE_MAP_PREVIEWS:[{name:'BLOCK DISTRICT',caption:'Urban Combat Zone'},
    {name:'LOCKDOWN',caption:'Indoor Tactical Arena'}],
   modePreviewSelect:mode=>view.previews.push(mode),lobP:page=>{view.page=page;},
-  selM:0,BOMB_RULES:{rounds:12,roundSeconds:120,wins:7},ts:[0,0]};
+  selM:0,BOMB_RULES:{teamSize:5,rounds:12,roundSeconds:120,wins:7},ts:[0,0],mt:{cd:5},
+  BN:[['Jack','Mike','Ryan','Alex','Owen'],['Viper','Razor','Hawk','Shadow','Ghost']],
+  begin:tm=>{view.begunTeam=tm;},addEventListener:()=>{}};
  vm.createContext(context);vm.runInContext(module,context,{filename:'83-room-lobby.js'});
  return {context,doc,data,view};
 }
@@ -43,8 +45,9 @@ test('START routes to a real Room Lobby while retaining existing game screens',(
  assert.match(html,/id="lbrooms" class="lbp"/);
  assert.match(html,/id="roomEntries"/);
  assert.match(html,/id="roomMapPreview"/);
+ assert.match(html,/id="lbroomlive" class="lbp"/);
  assert.match(lobby,/roomLobbyOpen\(\)/);
- assert.match(lobby,/\["lbs","lbm","lbrooms","lbiv","lbshop"\]/);
+ assert.match(lobby,/\["lbs","lbm","lbrooms","lbroomlive","lbiv","lbshop"\]/);
  assert.doesNotMatch(lobby,/lbst"\)\.onclick=function\(\)\{this\.blur\(\);lobP\("lbm"\)/);
  const {context,doc,view}=setup();
  call(context,'roomLobbyOpen()');
@@ -55,11 +58,12 @@ test('START routes to a real Room Lobby while retaining existing game screens',(
 });
 
 test('creating room grants Room Master, creates a safe local listing and persists settings',()=>{
- const {context,doc,data}=setup();
+ const {context,doc,data,view}=setup();
  call(context,'roomLobbyOpen()');
  doc.getElementById('roomName').value='<img src=x onerror=alert(1)> Test';
  call(context,'roomCreateLocal()');
  assert.equal(call(context,'roomList.length'),1);
+ assert.equal(view.page,'lbroomlive');
  assert.equal(doc.getElementById('roomMasterStatus').hidden,false);
  assert.equal(doc.getElementById('roomCreate').hidden,true);
  assert.equal(doc.getElementById('roomEntries').children.length,1);
@@ -72,14 +76,16 @@ test('creating room grants Room Master, creates a safe local listing and persist
 });
 
 test('TDM kill limit and match timer affect game rules only when Room Master starts',()=>{
- const {context,doc}=setup();call(context,'roomLobbyOpen()');
+ const {context,doc,view}=setup();call(context,'roomLobbyOpen()');
  doc.getElementById('roomKills').value='75';doc.getElementById('roomMinutes').value='3';
  call(context,'roomCreateLocal()');
  assert.equal(call(context,'roomMatchSeconds()'),60,'legacy duration remains default until launch');
  call(context,'roomLaunch()');
  assert.equal(call(context,'roomKillLimit()'),75);
  assert.equal(call(context,'roomMatchSeconds()'),180);
- assert.equal(doc.getElementById('tsel').style.display,'flex');
+ assert.equal(view.begunTeam,0);assert.equal(call(context,'mt.cd'),3);
+ assert.equal(doc.getElementById('rmlPoliceSlots').children.length,5);
+ assert.equal(doc.getElementById('rmlTerrorSlots').children.length,5);
  call(context,'ts[0]=74;ts[1]=31');
  assert.equal(call(context,'roomReachedKillLimit()'),false);
  call(context,'ts[0]=75');
@@ -147,6 +153,7 @@ test('existing 5v5 engine stays authoritative, no fabricated maps or public play
  assert.match(read('src/game/86-bomb-mission.js'),/mt\.t=roomRoundSeconds\(\)/);
  assert.match(read('src/game/95-simulation.js'),/roomReachedKillLimit\(\)/);
  assert.match(read('src/styles/04-lobby.css'),/\.room-empty\[hidden\]\{display:none\}/);
+ assert.match(read('src/game/83-room-lobby.js'),/begin\(roomSide\);mt.cd=ROOM_START_COUNTDOWN/);
 });
 
 test('direct-launch browser bundle exactly mirrors ordered sources without startup regression',()=>{
@@ -158,4 +165,36 @@ test('direct-launch browser bundle exactly mirrors ordered sources without start
  assert.ok(m.parts.indexOf('src/game/89-bot-tactical-intelligence.js')<m.parts.indexOf('src/game/85-lobby-and-match.js'));
  assert.equal(read('assets/game.js'),'(function(){\n'+m.parts.map(read).join('')+'})();\n');
  new vm.Script(read('assets/game.js'));
+});
+
+test('team slot click drives the actual selected team and the 3-2-1 opening freeze',()=>{
+ const {context,doc,view}=setup();call(context,'roomLobbyOpen()');call(context,'roomCreateLocal()');
+ const police=doc.getElementById('rmlPoliceSlots'),terror=doc.getElementById('rmlTerrorSlots');
+ assert.equal(police.children.length,5);assert.equal(terror.children.length,5);
+ assert.match(police.children[0].children[1].textContent,/YOU/);
+ terror.children[3].click();
+ assert.equal(call(context,'roomSide'),1);assert.equal(call(context,'roomSeat'),3);
+ assert.match(terror.children[3].children[1].textContent,/YOU/);
+ assert.match(police.children[0].children[1].textContent,/BOT/);
+ call(context,'roomLaunch()');assert.equal(view.begunTeam,1);assert.equal(call(context,'mt.cd'),3);
+});
+test('Room Master leaving closes the local room and removes it from browser storage',()=>{
+ const {context,doc,data,view}=setup();call(context,'roomLobbyOpen()');call(context,'roomCreateLocal()');
+ assert.equal(JSON.parse(data.get('bbfps_local_rooms_v1')).length,1);
+ doc.getElementById('rmlLeave').click();
+ assert.equal(call(context,'roomCurrent'),null);assert.equal(JSON.parse(data.get('bbfps_local_rooms_v1')).length,0);
+ assert.equal(view.page,'lbrooms');
+});
+test('Room Settings edit and save returns to the active lobby',()=>{
+ const {context,doc,view}=setup();call(context,'roomLobbyOpen()');call(context,'roomCreateLocal()');
+ doc.getElementById('rmlSettings').click();assert.equal(view.page,'lbrooms');
+ doc.getElementById('roomName').value='Updated';doc.getElementById('roomSave').click();
+ assert.equal(view.page,'lbroomlive');assert.equal(doc.getElementById('rmlRoomName').textContent,'Updated');
+});
+
+test('live team counts and human-vs-BOT total derive from shared gameplay capacity',()=>{
+ const {context,doc}=setup();call(context,'roomLobbyOpen()');call(context,'roomCreateLocal()');
+ assert.equal(doc.getElementById('rmlBotSummary').textContent,'1 PLAYER + 9 BOTS ON START');
+ assert.equal(doc.getElementById('rmlPoliceSlots').children.length,call(context,'BOMB_RULES.teamSize'));
+ assert.match(read('src/game/85-lobby-and-match.js'),/i<BOMB_RULES\.teamSize-\(t===tm\?1:0\)/);
 });

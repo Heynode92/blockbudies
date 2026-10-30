@@ -20,3 +20,21 @@ Room creation, opening, editing, starting and closing are handled by `src/game/8
 The UI is in `index.html`, CSS in `src/styles/04-lobby.css`, state controller in `src/game/83-room-lobby.js`, real WebGL preview in `src/game/84-live-map-preview.js`. Existing match timer / round handling is adjusted in `src/game/85-lobby-and-match.js`, `src/game/86-bomb-mission.js` and `src/game/95-simulation.js` with bounded room-setting accessors (the legacy defaults remain if no room is active).
 
 `tests/room-lobby.test.mjs` covers create/open/save/close, local storage validation, XSS-safe name rendering, TDM/Bomb rules, startup module ordering and bundle parity. Continue committing `assets/game.js` whenever game sources change so Windows players only need `git pull` and `index.html`.
+
+## Active Room Master lobby (2026-10-30)
+
+CREATE ROOM and OPEN now lead directly to the dedicated `lbroomlive` waiting screen.
+Click a team slot to choose Police/Terrorist; the player is the only human participant.
+Slot capacity comes from `BOMB_RULES.teamSize` and BOT preview names from `BN`.
+AI occupants are clearly marked ON START: only `startMatch()` creates BOTs and all
+remaining slots are automatically populated when the game begins.
+
+Room Settings returns to the existing editor; Save Settings goes back to the live room.
+Leave Room deletes the Room Master room from localStorage and memory; returning to
+main menu and browser pagehide also close an owned room. Room activity is a local
+log, not online chat. START MATCH calls existing `begin(roomSide)` and changes the
+initial freeze countdown to 3-2-1 while retaining the loadout picker. Following
+Bomb Mode round timers, bomb mechanics, AI and weapon settings are unchanged.
+
+Both modes now use `BOMB_RULES.teamSize` for the existing BOT spawn count. UI BOT totals
+are calculated from the same setting rather than embedded numeric assumptions.
