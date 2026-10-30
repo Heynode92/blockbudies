@@ -1,0 +1,32 @@
+# Developer-only verification; playable BLOCK BUDDIES remains direct-open/offline.
+name: BOT AI M0 regression
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Windows standalone bundle and Node regression
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify committed direct-open bundle is current
+        run: node tools/build.mjs --check
+      - name: Verify JavaScript syntax
+        run: node --check assets/game.js
+      - name: Run complete regression suite
+        run: node --test
+      - name: Emit synthetic M0 baseline for artifact-free evidence
+        run: node tools/bot-ai-m0-baseline.mjs
