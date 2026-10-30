@@ -120,6 +120,7 @@ function footstepAdvance(actor,dist,grounded,sprint,local){
  if(actor.stepTrail>=stride){
   actor.stepTrail-=stride;
   actor.stepIndex=(actor.stepIndex||0)+1;
+  if(typeof botSoundEmit==='function')botSoundEmit(actor,'footstep');
   footstepPlay(actor,local,sprint);
  }
 }
