@@ -3350,8 +3350,10 @@ function botSmartRemember(e,t){
 }
 function botSmartCover(e,threat){
  if(!threat||!GB)return null;
- var saved=e.coverGoal;
- if(saved&&tt<(e.coverExpires||0)&&Math.hypot((e.coverThreatX||0)-threat.x,(e.coverThreatZ||0)-threat.z)<4)return saved;
+ var saved=e.coverGoal,stable=Math.hypot((e.coverThreatX||0)-threat.x,(e.coverThreatZ||0)-threat.z)<4;
+ // Cache negative lookups as well; otherwise nine bots can rescan cover every frame
+ // on an open map where no LOS-blocking geometry exists.
+ if(tt<(e.coverExpires||0)&&stable)return saved||null;
  var opts=[],radii=BOT_TACTICS.coverRadii,heading=Math.atan2(e.z-threat.z,e.x-threat.x),limit=A-2;
  for(var r=0;r<radii.length;r++)for(var i=0;i<BOT_TACTICS.coverSamples;i++){
   var angle=heading+(i/BOT_TACTICS.coverSamples-.5)*Math.PI*1.7,
@@ -3370,7 +3372,7 @@ function botSmartCover(e,threat){
   e.coverGoal=[c.x,c.z];e.coverExpires=tt+BOT_TACTICS.coverRecheck;
   e.coverThreatX=threat.x;e.coverThreatZ=threat.z;return e.coverGoal;
  }
- e.coverGoal=null;e.coverExpires=tt+.8;return null;
+ e.coverGoal=null;e.coverExpires=tt+.8;e.coverThreatX=threat.x;e.coverThreatZ=threat.z;return null;
 }
 function botSmartIntent(e,target){
  var out={retreat:false,goal:null,hold:false},last=e.lastSeen,
