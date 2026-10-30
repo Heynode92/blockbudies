@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-10-30 — HK417 Assault Rifle (weapon ID 15)
+
+- Added **HK417** to the shared weapon registry in dedicated `src/game/weapon/16-hk417.js`, preserving all prior weapon IDs and saved ownership.
+- Exact ratings: Damage 33, RPM rating 92, Control 50, Speed 74, Vertical Recoil 64, Horizontal Recoil 60, Magazine 30 / Reserve 150, Range 160. Existing rifle ballistics and damage falloff apply.
+- Added black low-poly HK417 silhouette with full-length railed handguard, barrel/muzzle brake, front grip, tactical stock, magazine, and physical rectangular red-dot sight based on the reference image.
+- Added ADS position, first-person hand/reload anchors, muzzle offset and HUD weapon icon. HK417 uses existing SOPMOD-style squared optic with red-dot color on right-click; optic frame pieces hide during ADS to avoid sight obstruction.
+- HK417 uses the **same existing AK-47 fire-sound preset**. Existing Shop, Inventory, loadout, gameplay and unlock rules are preserved; category counts derive from weapon profiles.
+- Expanded the existing MP5K/UMP45 tests for 16 weapon IDs; added HK417 regression tests. Updated compiled browser bundle, source manifest and weapon documentation.
+
 ## 2026-10-30 — UMP45 Ext D added (SMG)
 
 - Added **UMP45 Ext D** as weapon ID 14 in dedicated `src/game/weapon/15-ump45-ext-d.js`; all existing weapon IDs 0–13 and local inventory ownership remain unchanged.

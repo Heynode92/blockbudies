@@ -5,7 +5,7 @@ Edit weapon data in one place: `src/game/weapon/<NN>-<name>.js`. Each file owns 
 ## Weapon classes
 | Class | Weapons | Source kind |
 | --- | --- | --- |
-| Assault Rifle | AK-47 (2), K2 (10), AK SOPMOD (13) | `rifle` |
+| Assault Rifle | AK-47 (2), K2 (10), AK SOPMOD (13), HK417 (16) | `rifle` |
 | SMG | Kriss (7), Dual Kriss (8), MP7 (11), P90 (12), MP5K Ext (14), UMP45 Ext D (15) | `smg` / `dual` |
 | Sniper Rifle | AWP (9) | `sniper` |
 | Shotgun | Shotgun (3) | `shotgun` |
@@ -14,7 +14,7 @@ Edit weapon data in one place: `src/game/weapon/<NN>-<name>.js`. Each file owns 
 | Melee | Knife (5) | `knife` |
 | Throwable | Grenade (6) | `grenade` |
 
-_Numbers in parentheses are the 1-based filenames, NOT weapon IDs. Actual weapon IDs are 0–14, starting with Handgun at 0. Don't renumber IDs: inventory save data and bots depend on them._
+_Numbers in parentheses are the 1-based filenames, NOT weapon IDs. Actual weapon IDs are 0–15, starting with Handgun at 0. Don't renumber IDs: inventory save data and bots depend on them._
 
 ## Shared modules
 - `00-registry.js` initializes arrays, the frozen class labels, and `DAMAGE_FALLOFF.referenceUnits` (currently 20 BLOCK BUDDIES world units per modifier interval).
@@ -33,6 +33,7 @@ CS:GO/CS2 uses 500 CS units per modifier interval. BLOCK BUDDIES has a much smal
 | --- | ---: |
 | AK-47, K2 | 0.98 |
 | AK SOPMOD | 0.97 |
+| HK417 (inherited rifle modifier) | 0.98 |
 | MP7 | 0.85 |
 | P90 | 0.86 |
 | Kriss, Dual Kriss | 0.83 |
@@ -65,3 +66,11 @@ CS:GO/CS2 uses 500 CS units per modifier interval. BLOCK BUDDIES has a much smal
 - Ratings: damage 25, RPM 90, control 47, speed 87, vertical recoil 48, horizontal recoil 48, magazine 33, reserve 260 and range 50. The in-game fire interval uses existing SMG tuning; displayed RPM is a rating, not literal rounds per minute.
 - ADS: right-click unscoped iron sights, no tactical overlay or optic model. Sound: **exact same existing preset index as AK-47** (preset 1), no new synthesized audio.
 - Catalog, Shop ownership, Inventory, loadout selection and HUD derive from the shared weapon registry. Existing IDs 0–13 and saved ownership remain intact.
+
+## HK417 (weapon ID 15)
+
+- Source: `src/game/weapon/16-hk417.js`. Procedural black HK417-style assault rifle based on the supplied reference: long railed handguard, unsuppressed muzzle, vertical grip, adjustable stock, dark magazine, and box-shaped red-dot optic.
+- User-specified ratings: Damage 33, RPM rating 92, Control 50, Speed 74, Vertical Recoil 64, Horizontal Recoil 60, Magazine 30, Reserve 150, Range 160. The rating is converted using the existing rifle RPM tuning, not interpreted as literal RPM.
+- Right-click ADS: shared tactical optic renderer and boxed AK SOPMOD sight geometry, with an HK417-specific **red** dot. Sight housing pieces hide during ADS to prevent center obstruction.
+- Shot SFX: precisely the existing AK-47 preset index 1. No audio changes to existing weapons. Ownership and Shop listings derive from the same weapon registry; unlock flow remains free until an economy is specified.
+- Stable IDs 0–14 are not modified. Compile with `node tools/build.mjs` on the repository toolchain only; the tracked prebuilt `assets/game.js` is included for ordinary Windows pull-and-play.

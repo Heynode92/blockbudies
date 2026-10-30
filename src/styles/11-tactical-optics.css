@@ -59,11 +59,13 @@
 .tactical-aim-p90 .ta-cross{border:1px solid var(--ta-color);opacity:.5;}
 .tactical-aim-p90 .ta-cross::before,.tactical-aim-p90 .ta-cross::after{display:none;}
 .tactical-aim-sopmod{--ta-size:122px;--ta-cross-size:41px;--ta-color:#f4b769;--ta-dot:3px;}
-.tactical-aim-sopmod .ta-frame{border-radius:18%;border-color:#2e363b;box-shadow:0 0 0 4px rgba(82,91,94,.85),0 0 0 10px rgba(15,21,25,.5),inset 0 0 10px rgba(0,0,0,.55);}
-.tactical-aim-sopmod .ta-cross{border-radius:0;width:29px;height:29px;border:0;opacity:.85;
+.tactical-aim-sopmod .ta-frame,.tactical-aim-hk417 .ta-frame{border-radius:18%;border-color:#2e363b;box-shadow:0 0 0 4px rgba(82,91,94,.85),0 0 0 10px rgba(15,21,25,.5),inset 0 0 10px rgba(0,0,0,.55);}
+.tactical-aim-sopmod .ta-cross,.tactical-aim-hk417 .ta-cross{border-radius:0;width:29px;height:29px;border:0;opacity:.85;
  background:linear-gradient(var(--ta-color),var(--ta-color)) center top/1px 10px no-repeat,
  linear-gradient(var(--ta-color),var(--ta-color)) center bottom/1px 10px no-repeat,
  linear-gradient(90deg,var(--ta-color),var(--ta-color)) left center/10px 1px no-repeat,
  linear-gradient(90deg,var(--ta-color),var(--ta-color)) right center/10px 1px no-repeat;}
+/* HK417 reuses SOPMOD's rectangular sight layout but has its own RED dot. */
+.tactical-aim-hk417{--ta-size:122px;--ta-cross-size:41px;--ta-color:#ff3434;--ta-dot:4px;}
 body.tactical-ads #ch{opacity:0}
 @media(max-width:650px){.tactical-aim{transform:scale(.8)}}

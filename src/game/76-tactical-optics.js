@@ -6,7 +6,8 @@ var TACTICAL_OPTICS={
  6:{style:"kriss",name:"Kriss"},
  10:{style:"mp7",name:"MP7"},
  11:{style:"p90",name:"P90"},
- 12:{style:"sopmod",name:"AK SOPMOD"}
+ 12:{style:"sopmod",name:"AK SOPMOD"},
+ 15:{style:"hk417",name:"HK417"}
 };
 function tacticalOpticConfig(w){return TACTICAL_OPTICS[w]||null;}
 var tacticalAimEl=document.getElementById("tacticalAim");
