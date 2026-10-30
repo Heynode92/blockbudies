@@ -1,6 +1,8 @@
 // Mouse-first primary weapon picker shared by Team Deathmatch and Bomb Mission.
 // Weapon profiles, ballistics, inventory ownership and 4-slot HUD remain authoritative elsewhere.
 var wsEl=document.getElementById("wsel"),wsOn=false,wsCards=[],wsConfirmed=false,wsPage=0,wsCategory="rifle",WS_VISIBLE=5;
+// During room launch, weapon selection uses a live timer independent of match freeze.
+var wsLiveTime=0,wsLiveDuration=0;
 var WS_ORDER=[9,1,12,15,16,2,18,6,13,14,8,17,10,11,3],WS_TABS=[
  ["rifle","ASSAULT RIFLE"],["smg","SMG"],["sniper","SNIPER"],["shotgun","SHOTGUN"],["rocket","LAUNCHER"]];
 function loadoutCatalog(){
@@ -66,10 +68,17 @@ function loadoutRefreshSelected(){
  });
 }
 function loadoutPrepareRound(){
+ wsLiveTime=wsLiveDuration=0;
  wsConfirmed=false;wsOn=false;wsEl.classList.remove("show");
  wsCategory=WP[favPrim]?WP[favPrim].stats.kind:"rifle";
  var ids=loadoutCatalog();wsPage=Math.min(Math.max(0,ids.length-WS_VISIBLE),Math.max(0,ids.indexOf(favPrim)-1));
  loadoutRender();document.body.classList.remove("loadout-active","loadout-cursor-hidden");
+}
+function loadoutBeginLiveWindow(seconds){
+ // Duration comes from startMatch()/bombStartMatch() before freeze suppression.
+ wsLiveTime=wsLiveDuration=Math.max(0,Number(seconds)||0);
+ wsConfirmed=wsLiveTime<=0;
+ loadoutUpdate();
 }
 function loadoutReleaseInput(){
  mouse.down=false;mouse.right=false;fireHeld=false;
@@ -77,7 +86,7 @@ function loadoutReleaseInput(){
 }
 function loadoutFinish(userGesture){
  if(wsConfirmed||!run||mt.over||pl.dead)return;
- wsConfirmed=true;
+ wsConfirmed=true;wsLiveTime=0;
  var id=pl.prim===7?6:pl.prim;
  if(inventoryOwned("main").indexOf(id)>=0){inventoryState.equipped.main=id;inventorySave();}
  loadoutReleaseInput();loadoutUpdate();
@@ -87,8 +96,8 @@ function loadoutFinish(userGesture){
  }
 }
 function loadoutUpdate(){
- if(wsOn&&!wsConfirmed&&mt.cd<=0)loadoutFinish(false);
- var open=!!(run&&!lob&&!mt.over&&!pl.dead&&mt.cd>0&&!wsConfirmed);
+ if(wsOn&&!wsConfirmed&&mt.cd<=0&&wsLiveTime<=0)loadoutFinish(false);
+ var open=!!(run&&!lob&&!mt.over&&!pl.dead&&(mt.cd>0||wsLiveTime>0)&&!wsConfirmed);
  if(open!==wsOn){
   wsOn=open;wsEl.classList.toggle("show",open);
   document.body.classList.toggle("loadout-active",open);
@@ -99,9 +108,10 @@ function loadoutUpdate(){
   }
  }
  if(open){
-  var duration=isBombMode()?BOMB_RULES.freezeSeconds:5;
+  var remaining=wsLiveTime>0?wsLiveTime:mt.cd;
+  var duration=wsLiveTime>0?wsLiveDuration:(isBombMode()?BOMB_RULES.freezeSeconds:5);
   var seconds=wsEl.querySelector(".wp-seconds"),fill=wsEl.querySelector(".wp-track-fill");
-  if(seconds)seconds.textContent=Math.max(1,Math.ceil(mt.cd))+"s";
-  if(fill)fill.style.width=Math.min(100,Math.max(0,mt.cd/duration*100))+"%";
+  if(seconds)seconds.textContent=Math.max(1,Math.ceil(remaining))+"s";
+  if(fill)fill.style.width=Math.min(100,Math.max(0,remaining/Math.max(duration,.001)*100))+"%";
  }
 }

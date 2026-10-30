@@ -6,7 +6,7 @@ var roomList=[],roomCurrent=null,roomMatchConfig=null,roomDraftMode=0;
 
 /* Team slots preview the real 5v5 roster. AI is created by startMatch, never here. */
 var ROOM_START_COUNTDOWN=3,roomSide=0,roomSeat=0,roomLog=[];
-var roomStartFlow={active:false,phase:"idle",token:0,raf:0,timer:0,deadline:0,config:null,team:0,mapReady:false};
+var roomStartFlow={active:false,phase:"idle",token:0,raf:0,timer:0,deadline:0,config:null,team:0,mapReady:false,loadoutSeconds:0};
 function roomLiveLog(message){
  roomLog.push(String(message));if(roomLog.length>12)roomLog.shift();
  var root=document.getElementById("rmlLogLines");root.replaceChildren();
@@ -179,7 +179,7 @@ function roomStartAbort(){
  var flow=roomStartFlow;flow.token++;
  if(flow.raf)cancelAnimationFrame(flow.raf);
  if(flow.timer)clearTimeout(flow.timer);
- flow.raf=flow.timer=0;flow.active=false;flow.phase="idle";flow.config=null;flow.mapReady=false;
+ flow.raf=flow.timer=0;flow.active=false;flow.phase="idle";flow.config=null;flow.mapReady=false;flow.loadoutSeconds=0;
  document.getElementById("roomPrestart").hidden=true;
  var overlay=document.getElementById("roomTransition");
  overlay.classList.remove("on","leaving");overlay.hidden=true;
@@ -232,6 +232,7 @@ function roomStartPrepareGame(token){
  try{
   // Existing engine builds actual map, 5v5 BOTs and equipped weapon behind an opaque cover.
   roomMatchConfig=Object.assign({},room);selM=room.mode;begin(flow.team);
+  flow.loadoutSeconds=mt.cd; // Preserve the original per-mode weapon selection duration.
   mt.cd=0;run=false;document.getElementById("rsp").textContent="";
   roomStartMark(85,"INITIALIZING GAMEPLAY");
  }catch(err){
@@ -260,7 +261,10 @@ function roomStartReveal(token){
    if(!flow.active||token!==flow.token||flow.phase!=="fading")return;
    overlay.classList.remove("on","leaving");overlay.hidden=true;
    document.getElementById("roomPrestart").hidden=true;
-   flow.active=false;flow.phase="idle";flow.timer=0;flow.config=null;run=true;
+   var selectionSeconds=flow.loadoutSeconds;
+   flow.active=false;flow.phase="idle";flow.timer=0;flow.config=null;flow.loadoutSeconds=0;
+   mt.cd=0;document.getElementById("rsp").textContent="";
+   run=true;loadoutBeginLiveWindow(selectionSeconds);
   },550);
  },600);
 }

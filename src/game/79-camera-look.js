@@ -11,8 +11,10 @@ var lookDragPoint=null,lookHoverPoint=null,lookSkipLockedMove=false;
 // Timer callbacks cannot obtain Pointer Lock without browser user activation.
 // Fallback mouse-look immediately responds to normal movement after auto-deploy.
 function lookFreeAimEnabled(){
- return typeof wsConfirmed!=="undefined"&&wsConfirmed&&
-        typeof wsOn!=="undefined"&&!wsOn&&typeof touch!=="undefined"&&!touch&&
+ return typeof wsConfirmed!=="undefined"&&
+        ((wsConfirmed&&typeof wsOn!=="undefined"&&!wsOn)||
+         (!wsConfirmed&&typeof wsLiveTime!=="undefined"&&wsLiveTime>0&&typeof wsOn!=="undefined"&&wsOn))&&
+        typeof touch!=="undefined"&&!touch&&
         mt&&mt.cd<=0&&!mt.over&&run&&!lob&&pl&&!pl.dead&&
         document.pointerLockElement!==R.domElement&&
         (typeof escEl==="undefined"||escEl.style.display!=="flex");
@@ -29,7 +31,7 @@ function lookLockChanged(){
 }
 function lookMove(e){
   if(e.pointerType!=="mouse"||!run||lob||mt.over||!pl||pl.dead||
-     (typeof wsOn!=="undefined"&&wsOn)||
+     (typeof wsOn!=="undefined"&&wsOn&&!(typeof wsLiveTime!=="undefined"&&wsLiveTime>0))||
      (typeof escEl!=="undefined"&&escEl.style.display==="flex"))return;
   var locked=document.pointerLockElement===R.domElement,dragging=!!(e.buttons&1),
       freeAim=!locked&&!dragging&&lookFreeAimEnabled(),dx,dy;

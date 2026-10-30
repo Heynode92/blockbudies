@@ -48,9 +48,10 @@ function setup(){
   MODE_MAP_PREVIEWS:[{name:'BLOCK DISTRICT',caption:'Urban Combat Zone'},
    {name:'LOCKDOWN',caption:'Indoor Tactical Arena'}],
   modePreviewSelect:mode=>view.previews.push(mode),lobP:page=>{view.page=page;},
-  selM:0,BOMB_RULES:{teamSize:5,rounds:12,roundSeconds:120,wins:7},ts:[0,0],mt:{cd:5},
+  selM:0,BOMB_RULES:{teamSize:5,rounds:12,roundSeconds:120,wins:7,freezeSeconds:7},ts:[0,0],mt:{cd:5},
   BN:[['Jack','Mike','Ryan','Alex','Owen'],['Viper','Razor','Hawk','Shadow','Ghost']],
-  begin:tm=>{view.begunTeam=tm;context.mt.cd=5;context.run=true;},inventoryRoomPreviewOpen:side=>{view.previewOpens=(view.previewOpens||0)+1;view.previewSides.push(side);},
+  begin:tm=>{view.begunTeam=tm;context.mt.cd=view.previews.at(-1)===1?context.BOMB_RULES.freezeSeconds:5;context.run=true;},
+  loadoutBeginLiveWindow:seconds=>{view.liveLoadoutSeconds=seconds;},inventoryRoomPreviewOpen:side=>{view.previewOpens=(view.previewOpens||0)+1;view.previewSides.push(side);},
   performance:{now:()=>now},
   requestAnimationFrame:fn=>{const id=++nextId;frames.set(id,fn);return id;},
   cancelAnimationFrame:id=>frames.delete(id),
@@ -111,6 +112,7 @@ test('TDM kill limit and match timer affect game rules only when Room Master sta
  assert.equal(call(context,'roomKillLimit()'),75);
  assert.equal(call(context,'roomMatchSeconds()'),180);
  assert.equal(view.begunTeam,0);assert.equal(call(context,'mt.cd'),0);
+ assert.equal(view.liveLoadoutSeconds,5,'TDM weapon selection begins after loading, with no second freeze');
  assert.equal(doc.getElementById('roomStartPercent').textContent,'100%');
  assert.equal(call(context,'run'),true);
  assert.equal(doc.getElementById('rmlPoliceSlots').children.length,5);
@@ -129,6 +131,8 @@ test('Bomb Mode uses existing map, correct max rounds, timer and wins majority',
  assert.equal(call(context,'roomRoundLimit()'),5);
  assert.equal(call(context,'roomRoundSeconds()'),180);
  assert.equal(call(context,'roomRoundsToWin()'),3);
+ assert.equal(view.liveLoadoutSeconds,7,'Bomb Mode uses its original pre-round selection duration');
+ assert.equal(call(context,'mt.cd'),0,'first Bomb round has no duplicate countdown');
  assert.equal(call(context,'selM'),1);
  assert.equal(doc.getElementById('roomMapName').textContent,'LOCKDOWN');
  assert.ok(view.previews.includes(1));
@@ -267,6 +271,8 @@ test('loading reaches 100 only after match initialization and fades before simul
  assert.equal(call(context,'run'),false,'gameplay stays frozen through 100%');
  advance(1200);assert.equal(call(context,'run'),true);
  assert.equal(doc.getElementById('roomTransition').hidden,true);
+ assert.equal(view.liveLoadoutSeconds,5,'weapon picker only opens after the fade');
+ assert.equal(call(context,'mt.cd'),0,'WASD and match simulation must not be frozen');
 });
 
 test('map loading reads 3D pixels in the post-render preview hook',()=>{

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-30 — Fix loading handoff, mouse-look and live in-match loadout
+
+- Fixed Room Start clearing the same timer that controlled in-game weapon selection. Record the canonical per-mode pick duration before suppressing the duplicate initial freeze, and reopen selection only **after** the loading overlay has faded.
+- During timed in-match selection, gameplay is active: WASD, camera hover-aim, combat and match clock are not frozen. Mouse clicks on weapon cards remain interactive; confirmation requests pointer lock only in the user gesture.
+- Selection automatically closes when its normal time expires, preserves owned-weapon validation and numeric 1–5 selection; subsequent Bomb Mode round freezes retain their original behavior.
+- Retained the latest verified 3D map-loading capture improvements, added focused regression tests and synchronized browser-ready bundle.
+
+
 ## 2026-10-30 — Reliable 3D loading frame and visible 100%
 
 - Capture real map pixels synchronously from the existing post-WebGL-render preview callback; avoid a blank capture caused by reading the discarded buffer in a separate rAF.

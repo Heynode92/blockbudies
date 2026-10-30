@@ -85,7 +85,7 @@ function refreshWeaponSelection(){
  loadoutRender();
 }
 function chooseWeapon(id){
- if(!run||pl.dead||!(mt.cd>0)||mt.over||wsConfirmed||WSEL.indexOf(id)<0||inventoryOwned("main").indexOf(id)<0)return;
+ if(!run||pl.dead||!(mt.cd>0||wsLiveTime>0)||mt.over||wsConfirmed||WSEL.indexOf(id)<0||inventoryOwned("main").indexOf(id)<0)return;
  favPrim=id;pl.prim=id;scopeOn=false;
  if(pl.w!==id){pl.ammo[id]={mag:WP[id].mag,res:WP[id].res};swW(id);}
  else{pl.mag=WP[id].mag;pl.res=WP[id].res;}

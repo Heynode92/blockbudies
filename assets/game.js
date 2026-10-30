@@ -1980,7 +1980,7 @@ function refreshWeaponSelection(){
  loadoutRender();
 }
 function chooseWeapon(id){
- if(!run||pl.dead||!(mt.cd>0)||mt.over||wsConfirmed||WSEL.indexOf(id)<0||inventoryOwned("main").indexOf(id)<0)return;
+ if(!run||pl.dead||!(mt.cd>0||wsLiveTime>0)||mt.over||wsConfirmed||WSEL.indexOf(id)<0||inventoryOwned("main").indexOf(id)<0)return;
  favPrim=id;pl.prim=id;scopeOn=false;
  if(pl.w!==id){pl.ammo[id]={mag:WP[id].mag,res:WP[id].res};swW(id);}
  else{pl.mag=WP[id].mag;pl.res=WP[id].res;}
@@ -2030,6 +2030,8 @@ function tacticalOpticUpdate(){
 // Mouse-first primary weapon picker shared by Team Deathmatch and Bomb Mission.
 // Weapon profiles, ballistics, inventory ownership and 4-slot HUD remain authoritative elsewhere.
 var wsEl=document.getElementById("wsel"),wsOn=false,wsCards=[],wsConfirmed=false,wsPage=0,wsCategory="rifle",WS_VISIBLE=5;
+// During room launch, weapon selection uses a live timer independent of match freeze.
+var wsLiveTime=0,wsLiveDuration=0;
 var WS_ORDER=[9,1,12,15,16,2,18,6,13,14,8,17,10,11,3],WS_TABS=[
  ["rifle","ASSAULT RIFLE"],["smg","SMG"],["sniper","SNIPER"],["shotgun","SHOTGUN"],["rocket","LAUNCHER"]];
 function loadoutCatalog(){
@@ -2095,10 +2097,17 @@ function loadoutRefreshSelected(){
  });
 }
 function loadoutPrepareRound(){
+ wsLiveTime=wsLiveDuration=0;
  wsConfirmed=false;wsOn=false;wsEl.classList.remove("show");
  wsCategory=WP[favPrim]?WP[favPrim].stats.kind:"rifle";
  var ids=loadoutCatalog();wsPage=Math.min(Math.max(0,ids.length-WS_VISIBLE),Math.max(0,ids.indexOf(favPrim)-1));
  loadoutRender();document.body.classList.remove("loadout-active","loadout-cursor-hidden");
+}
+function loadoutBeginLiveWindow(seconds){
+ // Duration comes from startMatch()/bombStartMatch() before freeze suppression.
+ wsLiveTime=wsLiveDuration=Math.max(0,Number(seconds)||0);
+ wsConfirmed=wsLiveTime<=0;
+ loadoutUpdate();
 }
 function loadoutReleaseInput(){
  mouse.down=false;mouse.right=false;fireHeld=false;
@@ -2106,7 +2115,7 @@ function loadoutReleaseInput(){
 }
 function loadoutFinish(userGesture){
  if(wsConfirmed||!run||mt.over||pl.dead)return;
- wsConfirmed=true;
+ wsConfirmed=true;wsLiveTime=0;
  var id=pl.prim===7?6:pl.prim;
  if(inventoryOwned("main").indexOf(id)>=0){inventoryState.equipped.main=id;inventorySave();}
  loadoutReleaseInput();loadoutUpdate();
@@ -2116,8 +2125,8 @@ function loadoutFinish(userGesture){
  }
 }
 function loadoutUpdate(){
- if(wsOn&&!wsConfirmed&&mt.cd<=0)loadoutFinish(false);
- var open=!!(run&&!lob&&!mt.over&&!pl.dead&&mt.cd>0&&!wsConfirmed);
+ if(wsOn&&!wsConfirmed&&mt.cd<=0&&wsLiveTime<=0)loadoutFinish(false);
+ var open=!!(run&&!lob&&!mt.over&&!pl.dead&&(mt.cd>0||wsLiveTime>0)&&!wsConfirmed);
  if(open!==wsOn){
   wsOn=open;wsEl.classList.toggle("show",open);
   document.body.classList.toggle("loadout-active",open);
@@ -2128,10 +2137,11 @@ function loadoutUpdate(){
   }
  }
  if(open){
-  var duration=isBombMode()?BOMB_RULES.freezeSeconds:5;
+  var remaining=wsLiveTime>0?wsLiveTime:mt.cd;
+  var duration=wsLiveTime>0?wsLiveDuration:(isBombMode()?BOMB_RULES.freezeSeconds:5);
   var seconds=wsEl.querySelector(".wp-seconds"),fill=wsEl.querySelector(".wp-track-fill");
-  if(seconds)seconds.textContent=Math.max(1,Math.ceil(mt.cd))+"s";
-  if(fill)fill.style.width=Math.min(100,Math.max(0,mt.cd/duration*100))+"%";
+  if(seconds)seconds.textContent=Math.max(1,Math.ceil(remaining))+"s";
+  if(fill)fill.style.width=Math.min(100,Math.max(0,remaining/Math.max(duration,.001)*100))+"%";
  }
 }
 // Global first-person camera input (shared by Deathmatch and Bomb Mission).
@@ -2147,8 +2157,10 @@ var lookDragPoint=null,lookHoverPoint=null,lookSkipLockedMove=false;
 // Timer callbacks cannot obtain Pointer Lock without browser user activation.
 // Fallback mouse-look immediately responds to normal movement after auto-deploy.
 function lookFreeAimEnabled(){
- return typeof wsConfirmed!=="undefined"&&wsConfirmed&&
-        typeof wsOn!=="undefined"&&!wsOn&&typeof touch!=="undefined"&&!touch&&
+ return typeof wsConfirmed!=="undefined"&&
+        ((wsConfirmed&&typeof wsOn!=="undefined"&&!wsOn)||
+         (!wsConfirmed&&typeof wsLiveTime!=="undefined"&&wsLiveTime>0&&typeof wsOn!=="undefined"&&wsOn))&&
+        typeof touch!=="undefined"&&!touch&&
         mt&&mt.cd<=0&&!mt.over&&run&&!lob&&pl&&!pl.dead&&
         document.pointerLockElement!==R.domElement&&
         (typeof escEl==="undefined"||escEl.style.display!=="flex");
@@ -2165,7 +2177,7 @@ function lookLockChanged(){
 }
 function lookMove(e){
   if(e.pointerType!=="mouse"||!run||lob||mt.over||!pl||pl.dead||
-     (typeof wsOn!=="undefined"&&wsOn)||
+     (typeof wsOn!=="undefined"&&wsOn&&!(typeof wsLiveTime!=="undefined"&&wsLiveTime>0))||
      (typeof escEl!=="undefined"&&escEl.style.display==="flex"))return;
   var locked=document.pointerLockElement===R.domElement,dragging=!!(e.buttons&1),
       freeAim=!locked&&!dragging&&lookFreeAimEnabled(),dx,dy;
@@ -2210,14 +2222,15 @@ if(typeof wsConfirmed!=="undefined"&&wsConfirmed&&run&&!lob&&
    R.domElement.requestPointerLock){
  try{var request=R.domElement.requestPointerLock();if(request&&request.catch)request.catch(function(){});}catch(err){}
 }
-if(typeof wsOn!=="undefined"&&wsOn&&e.code==="Enter"){e.preventDefault();loadoutFinish(true);keys[e.code]=false;return;}if(mt.over&&e.code==="Enter"&&document.getElementById("dv").classList.contains("show")){again();return;}if(e.code==="KeyR"&&!(isBombMode()&&pl.bAction))reload();if(e.code==="KeyV")toggleDual();if(run&&!pl.dead){var dm=/^(Digit|Numpad)([1-5])$/.exec(e.code);if(dm){if(mt.cd>0&&!mt.over)chooseWeapon(WSEL[+dm[2]-1]);else if(+dm[2]<=4)swSlot(+dm[2]-1);}}});
+if(typeof wsOn!=="undefined"&&wsOn&&e.code==="Enter"){e.preventDefault();loadoutFinish(true);keys[e.code]=false;return;}if(mt.over&&e.code==="Enter"&&document.getElementById("dv").classList.contains("show")){again();return;}if(e.code==="KeyR"&&!(isBombMode()&&pl.bAction))reload();if(e.code==="KeyV")toggleDual();if(run&&!pl.dead){var dm=/^(Digit|Numpad)([1-5])$/.exec(e.code);if(dm){if((mt.cd>0||wsLiveTime>0)&&!mt.over)chooseWeapon(WSEL[+dm[2]-1]);else if(+dm[2]<=4)swSlot(+dm[2]-1);}}});
 document.getElementById("rl").addEventListener("pointerdown",function(e){e.stopPropagation();reload();});
 (function(){var jb=document.getElementById("jb");jb.addEventListener("pointerdown",function(e){e.stopPropagation();jb.setPointerCapture(e.pointerId);jumpHeld=true;});["pointerup","pointercancel"].forEach(function(t){jb.addEventListener(t,function(){jumpHeld=false;});});var b=document.getElementById("fb");b.addEventListener("pointerdown",function(e){e.stopPropagation();b.setPointerCapture(e.pointerId);fireHeld=true;});["pointerup","pointercancel"].forEach(function(t){b.addEventListener(t,function(){fireHeld=false;});});})();addEventListener("keyup",function(e){keys[e.code]=false;});
 R.domElement.addEventListener("pointermove",function(e){if(e.pointerType==="mouse"){mouse.down=!!(e.buttons&1);mouse.right=!!(e.buttons&2);lookMove(e);}});
 // HUD layers intercept some pointer events. Forward those too, once,
 // only while free aim is active and not already handled by the canvas.
 addEventListener("pointermove",function(e){
- if(e.pointerType==="mouse"&&e.target!==R.domElement&&lookFreeAimEnabled())lookMove(e);
+ if(e.pointerType==="mouse"&&e.target!==R.domElement&&lookFreeAimEnabled()&&
+    !(e.target&&e.target.closest&&e.target.closest("#wsel")))lookMove(e);
 });
 R.domElement.addEventListener("pointerdown",function(e){if(e.pointerType==="mouse"){if((typeof wsOn!=="undefined"&&wsOn)||
   (typeof escEl!=="undefined"&&escEl.style.display==="flex")){e.preventDefault();return;}lookStartDrag(e);if(e.button===2){mouse.right=true;e.preventDefault();if(run&&!pl.dead&&WP[pl.w].snp&&mt.cd<=0&&!mt.over&&!(pl.bolt>0))scopeOn=!scopeOn;}else if(e.button===0)mouse.down=true;if(run&&!pl.dead&&!document.pointerLockElement&&R.domElement.requestPointerLock){try{R.domElement.requestPointerLock();}catch(x){}}}});
@@ -2243,7 +2256,7 @@ var roomList=[],roomCurrent=null,roomMatchConfig=null,roomDraftMode=0;
 
 /* Team slots preview the real 5v5 roster. AI is created by startMatch, never here. */
 var ROOM_START_COUNTDOWN=3,roomSide=0,roomSeat=0,roomLog=[];
-var roomStartFlow={active:false,phase:"idle",token:0,raf:0,timer:0,deadline:0,config:null,team:0,mapReady:false};
+var roomStartFlow={active:false,phase:"idle",token:0,raf:0,timer:0,deadline:0,config:null,team:0,mapReady:false,loadoutSeconds:0};
 function roomLiveLog(message){
  roomLog.push(String(message));if(roomLog.length>12)roomLog.shift();
  var root=document.getElementById("rmlLogLines");root.replaceChildren();
@@ -2416,7 +2429,7 @@ function roomStartAbort(){
  var flow=roomStartFlow;flow.token++;
  if(flow.raf)cancelAnimationFrame(flow.raf);
  if(flow.timer)clearTimeout(flow.timer);
- flow.raf=flow.timer=0;flow.active=false;flow.phase="idle";flow.config=null;flow.mapReady=false;
+ flow.raf=flow.timer=0;flow.active=false;flow.phase="idle";flow.config=null;flow.mapReady=false;flow.loadoutSeconds=0;
  document.getElementById("roomPrestart").hidden=true;
  var overlay=document.getElementById("roomTransition");
  overlay.classList.remove("on","leaving");overlay.hidden=true;
@@ -2469,6 +2482,7 @@ function roomStartPrepareGame(token){
  try{
   // Existing engine builds actual map, 5v5 BOTs and equipped weapon behind an opaque cover.
   roomMatchConfig=Object.assign({},room);selM=room.mode;begin(flow.team);
+  flow.loadoutSeconds=mt.cd; // Preserve the original per-mode weapon selection duration.
   mt.cd=0;run=false;document.getElementById("rsp").textContent="";
   roomStartMark(85,"INITIALIZING GAMEPLAY");
  }catch(err){
@@ -2497,7 +2511,10 @@ function roomStartReveal(token){
    if(!flow.active||token!==flow.token||flow.phase!=="fading")return;
    overlay.classList.remove("on","leaving");overlay.hidden=true;
    document.getElementById("roomPrestart").hidden=true;
-   flow.active=false;flow.phase="idle";flow.timer=0;flow.config=null;run=true;
+   var selectionSeconds=flow.loadoutSeconds;
+   flow.active=false;flow.phase="idle";flow.timer=0;flow.config=null;flow.loadoutSeconds=0;
+   mt.cd=0;document.getElementById("rsp").textContent="";
+   run=true;loadoutBeginLiveWindow(selectionSeconds);
   },550);
  },600);
 }
@@ -3949,7 +3966,9 @@ document.getElementById("escB").onclick=function(){
 // aiming (ADS) and weapon timers (AWP bolt) -> player shooting -> crates -> grenades -> bots -> bullets -> particles -> HUD.
 // update
 function update(dt){
-  tt+=dt;sndN=0;if(mt.cd<=0)pl.inv=Math.max(0,(pl.inv||0)-dt);
+  tt+=dt;sndN=0;
+  if(wsLiveTime>0)wsLiveTime=Math.max(0,wsLiveTime-dt);
+  if(mt.cd<=0)pl.inv=Math.max(0,(pl.inv||0)-dt);
   if(mt.cd>0)mt.cd-=dt;else if(!mt.over){mt.t-=dt;if(!isBombMode()&&(mt.t<=0||roomReachedKillLimit())){endMatch();return;}}
   var mx=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0)+ST.l.x,mz=(keys.KeyS||keys.ArrowDown?1:0)-(keys.KeyW||keys.ArrowUp?1:0)+ST.l.y,ml=Math.hypot(mx,mz);
   if(pl.dead||mt.cd>0||(isBombMode()&&pl.bAction)){mx=mz=ml=0;}if(ml>1){mx/=ml;mz/=ml;ml=1;}

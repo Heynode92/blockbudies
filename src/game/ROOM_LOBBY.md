@@ -78,3 +78,22 @@ The fullscreen loading map is captured immediately after WebGL renders in
 `modePreviewDraw()`, not an unrelated rAF that could read a cleared buffer.
 Missing map readiness aborts instead of faking a complete load. The 100%
 bar is held visibly before the fade starts.
+
+## Room loading → live, timed weapon selection (2026-10-30)
+
+The room pre-match 3–2–1 is the only opening countdown. At match preparation,
+the transition captures the exact pre-round weapon-pick duration already assigned
+by `startMatch` or `bombStartMatch`, clears `mt.cd` (no duplicate freeze),
+and pauses simulation until fullscreen loading is at 100% and faded out.
+
+After fade, `loadoutBeginLiveWindow` enables an independent picker timer in
+`77-loadout-picker.js`. Its `wsLiveTime` decrements from `update(dt)`, while
+`mt.cd` stays at zero: keyboard movement, simulation, combat and match timer
+continue normally. Weapon choice still respects Inventory ownership, hotkeys
+1–5, manual confirmation, and auto-confirm on expiry.
+
+The cursor remains available for weapon cards. In the 3D playing field, mouse
+hover-aim still works during the live selection window. Hovering over the picker
+does not alter aim. Confirming by user click can obtain pointer lock; browser
+activation rules prohibit forcing pointer lock at the end of a loading timer.
+Standard later Bomb Mode freeze + loadout selection remains unchanged.
