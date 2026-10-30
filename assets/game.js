@@ -1658,9 +1658,9 @@ function abUpd(){var show=touch&&run&&!pl.dead&&!lob&&!mt.over&&(pl.w===6||pl.w=
 // Tactical optics: compact sight overlays for MP7/P90/AK SOPMOD.
 // Different from AWP scope: no opaque full-screen sniper mask and RMB is held.
 var TACTICAL_OPTICS={
- 10:{style:"mp7",name:"MP7",label:"MICRO RED DOT"},
- 11:{style:"p90",name:"P90",label:"INTEGRATED RING SIGHT"},
- 12:{style:"sopmod",name:"AK SOPMOD",label:"CARBINE HOLO SIGHT"}
+ 10:{style:"mp7",name:"MP7"},
+ 11:{style:"p90",name:"P90"},
+ 12:{style:"sopmod",name:"AK SOPMOD"}
 };
 function tacticalOpticConfig(w){return TACTICAL_OPTICS[w]||null;}
 var tacticalAimEl=document.getElementById("tacticalAim");
@@ -1671,7 +1671,6 @@ function tacticalOpticUpdate(){
  tacticalAimEl.style.opacity=active?String(Math.min(1,adsT*1.6)): "0";
  if(active){
    tacticalAimEl.className="tactical-aim tactical-aim-"+spec.style;
-   tacticalAimEl.querySelector(".ta-label").textContent=spec.label;
  }
  document.body.classList.toggle("tactical-ads",active&&adsT>.65);
  // The 2D overlay draws the sight, so hide the 3D optic frame while aiming (it would block the view and double the optic).

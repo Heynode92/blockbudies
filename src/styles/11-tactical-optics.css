@@ -18,20 +18,17 @@
 .tactical-aim .ta-cross::before,.tactical-aim .ta-cross::after{content:"";position:absolute;background:var(--ta-color,#ff5946);}
 .tactical-aim .ta-cross::before{width:1px;left:50%;height:7px;top:-8px;}
 .tactical-aim .ta-cross::after{height:1px;top:50%;width:7px;right:-8px;}
-.tactical-aim .ta-label{position:absolute;left:50%;top:calc(50% + var(--ta-label-offset,80px));
- transform:translateX(-50%);font:800 11px Rajdhani,sans-serif;letter-spacing:.19em;white-space:nowrap;
- color:#a9cbd4;text-shadow:0 1px 5px #000;opacity:.78}
-.tactical-aim-mp7{--ta-size:106px;--ta-cross-size:19px;--ta-color:#ff2b2b;--ta-dot:6px;--ta-label-offset:72px;}
+.tactical-aim-mp7{--ta-size:106px;--ta-cross-size:19px;--ta-color:#ff2b2b;--ta-dot:6px;}
 .tactical-aim-mp7 .ta-frame{border-width:4px;box-shadow:0 0 0 2px #42555b,0 0 0 8px rgba(13,24,30,.52),inset 0 0 12px rgba(0,0,0,.4);}
 .tactical-aim-mp7 .ta-frame::after{box-shadow:0 0 6px 1px #ff2b2b,0 0 14px 4px rgba(255,43,43,.65);}
 .tactical-aim-mp7 .ta-cross{border:1px solid var(--ta-color);opacity:.5;}
 .tactical-aim-mp7 .ta-cross::before,.tactical-aim-mp7 .ta-cross::after{display:none;}
-.tactical-aim-p90{--ta-size:150px;--ta-cross-size:30px;--ta-color:#ff2b2b;--ta-dot:6px;--ta-label-offset:95px;}
+.tactical-aim-p90{--ta-size:150px;--ta-cross-size:30px;--ta-color:#ff2b2b;--ta-dot:6px;}
 .tactical-aim-p90 .ta-frame{border-radius:36%;border-color:#73776e;box-shadow:0 0 0 7px rgba(52,62,58,.8),inset 0 0 13px rgba(0,0,0,.45);}
 .tactical-aim-p90 .ta-frame::after{box-shadow:0 0 6px 1px #ff2b2b,0 0 16px 4px rgba(255,43,43,.75),0 0 30px 8px rgba(255,43,43,.35);}
 .tactical-aim-p90 .ta-cross{border:1px solid var(--ta-color);opacity:.5;}
 .tactical-aim-p90 .ta-cross::before,.tactical-aim-p90 .ta-cross::after{display:none;}
-.tactical-aim-sopmod{--ta-size:122px;--ta-cross-size:41px;--ta-color:#f4b769;--ta-dot:3px;--ta-label-offset:85px;}
+.tactical-aim-sopmod{--ta-size:122px;--ta-cross-size:41px;--ta-color:#f4b769;--ta-dot:3px;}
 .tactical-aim-sopmod .ta-frame{border-radius:18%;border-color:#2e363b;box-shadow:0 0 0 4px rgba(82,91,94,.85),0 0 0 10px rgba(15,21,25,.5),inset 0 0 10px rgba(0,0,0,.55);}
 .tactical-aim-sopmod .ta-cross{border-radius:0;width:29px;height:29px;border:0;opacity:.85;
  background:linear-gradient(var(--ta-color),var(--ta-color)) center top/1px 10px no-repeat,
@@ -39,4 +36,4 @@
  linear-gradient(90deg,var(--ta-color),var(--ta-color)) left center/10px 1px no-repeat,
  linear-gradient(90deg,var(--ta-color),var(--ta-color)) right center/10px 1px no-repeat;}
 body.tactical-ads #ch{opacity:0}
-@media(max-width:650px){.tactical-aim .ta-label{display:none}.tactical-aim{transform:scale(.8)}}
+@media(max-width:650px){.tactical-aim{transform:scale(.8)}}

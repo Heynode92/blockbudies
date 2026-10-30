@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-30 — Remove ADS optic captions
+
+- Removed the text captions beneath the tactical sights for MP7, P90 and AK SOPMOD while aiming.
+- Kept each weapon's distinct reticle, ADS animation, optic geometry visibility and combat behavior unchanged.
+- Removed unused caption DOM/CSS/label metadata and added a regression test verifying caption-free tactical overlays.
+- Regenerated tracked browser game bundle.
+
 ## 2026-10-30 — Bomb and Inventory test harness compatibility
 
 - Load the production defense module in the isolated Bomb Mission tests so the real player/BOT damage handlers can call `defenseDamage`; maintain original planting interruption and HP assertions.

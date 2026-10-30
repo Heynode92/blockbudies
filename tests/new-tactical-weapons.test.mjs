@@ -92,7 +92,7 @@ test('MP7 micro red dot clears its physical optic while ADS and restores it afte
  const opticParts=gun.userData.opticParts;
  assert.equal(opticParts.length,5);
  for(const part of opticParts)assert.ok(meshes.includes(part));
- const aimEl={style:{},querySelector(){return{textContent:''}}};
+ const aimEl={style:{},querySelector(){throw new Error('Tactical optic label must not be queried');}};
  const env={
   document:{getElementById(){return aimEl},body:{classList:{toggle(){}}}},
   pl:{w:10,dead:false,rl:0,sw:0,bAction:false},
@@ -112,4 +112,20 @@ test('MP7 micro red dot clears its physical optic while ADS and restores it afte
  const opticsCss=read('src/styles/11-tactical-optics.css');
  assert.match(opticsCss,/\.tactical-aim-mp7 \.ta-frame::after\{box-shadow:/);
  assert.match(opticsCss,/\.tactical-aim-mp7 \.ta-cross::before,/);
+});
+
+test('ADS sights show only reticles, never text captions for MP7, P90 or AK SOPMOD',()=>{
+ const html=read('index.html');
+ const styles=read('src/styles/11-tactical-optics.css');
+ assert.doesNotMatch(html,/class="ta-label"/);
+ assert.doesNotMatch(optic,/\.ta-label|label:"(MICRO RED DOT|INTEGRATED RING SIGHT|CARBINE HOLO SIGHT)"/);
+ assert.doesNotMatch(styles,/\.ta-label|--ta-label-offset/);
+ for(const id of [10,11,12]){
+  const cfg=loadProfiles();
+  assert.ok(cfg.WEAPON_PROFILES[id]);
+  assert.match(optic,new RegExp(id+':\\\\{style:'));
+ }
+ assert.match(html,/id="tacticalAim"/);
+ assert.match(html,/class="ta-frame"/);
+ assert.match(html,/class="ta-cross"/);
 });
