@@ -11,6 +11,15 @@ const inventory=read("src/game/89-inventory.js");
 const bot=read("src/game/41-bot-weapons.js");
 const controls=read("src/game/75-weapon-controls.js");
 const shop=read("src/game/89-shop.js");
+function numberAt(source,key,id){
+ const begin=source.indexOf(key+'=[');
+ assert.ok(begin>=0,'expected numeric table '+key);
+ const from=begin+key.length+1,stop=source.indexOf(']',from);
+ assert.ok(stop>=from,'missing table close for '+key);
+ const entries=source.slice(from+1,stop).split(',').map(Number);
+ assert.ok(entries.length>id,'table '+key+' missing weapon '+id);
+ return entries[id];
+}
 function profileContext(){
  const ctx={Math};
  runInNewContext(weapon,ctx);
@@ -34,7 +43,7 @@ function state(saved=null){
 test("K2 is id 9 with exact user stats, own real model and rifle tuning",()=>{
  const x=profileContext();
  assert.equal(x.WEAPON_STARTER_ID,9);
- assert.equal(x.WEAPON_PROFILES.length,13);
+ assert.ok(x.WEAPON_PROFILES.length>=13);
  const p=x.WEAPON_PROFILES[9];
  for(const [k,v] of Object.entries({name:"K2",damage:36,rpm:96,control:75,speed:79,
    vRecoil:66,hRecoil:33,mag:40,res:200,range:120,kind:"rifle"}))assert.equal(p[k],v,k);
@@ -94,20 +103,24 @@ test("Ownership is enforced by pre-round selection and shop is not a placeholder
  assert.match(read("index.html"),/id="lshop"/);
  assert.match(read("src/game/85-lobby-and-match.js"),/"lbshop"/);
 });
-test("AI keeps its original rifle/SMG/shotgun/RPG/sniper loadout, without K2",()=>{
- assert.match(bot,/primaries:\[1,1,1,2,2,6,6,6,7,8,3\]/);
+test("AI keeps approved primary pool without K2 or removed BOT RPG",()=>{
+ assert.match(bot,/primaries:\[1,1,1,2,2,6,6,6,7,8\]/);
+ assert.doesNotMatch(bot,/primaries:\[[^\]]*,3\]/);
  assert.doesNotMatch(bot,/WEAPON_STARTER_ID/);
  assert.match(bot,/BOT_WEAPONS\.primaries/);
 });
-test("All 13 weapon IDs have viewmodels and gun effects, including K2",()=>{
+test("Original 13 weapon IDs preserve indexed viewmodel, audio and drop values",()=>{
  const combat=read("src/game/45-combat.js");
  const audio=read("src/game/65-audio.js");
  const drops=read("src/game/50-items-and-drops.js");
  assert.match(read("src/game/weapon/30-viewmodels.js"),/guns=WEAPON_PROFILES\.map/);
- assert.match(combat,/MZ=\[[^\]]+,-1\.38\]/);
- assert.match(audio,/SFXI=\[[^\]]+,1\]/);
- assert.match(drops,/GSC=\[[^\]]+,1\.23\],GH=\[[^\]]+,\.09\]/);
- assert.match(read("src/game/weapon/30-viewmodels.js"),/MODE=\[[^\]]+,0\],NC=\[[^\]]+,1\]/);
+ assert.equal(numberAt(combat,"MZ",12),-1.38);
+ assert.equal(numberAt(audio,"SFXI",12),1);
+ assert.equal(numberAt(drops,"GSC",12),1.23);
+ assert.equal(numberAt(drops,"GH",12),.09);
+ const vm=read("src/game/weapon/30-viewmodels.js");
+ assert.equal(numberAt(vm,"MODE",12),0);
+ assert.equal(numberAt(vm,"NC",12),1);
 });
 test("Compiled game bundle is exactly the ordered source parts",()=>{
  const m=JSON.parse(read("tools/source-manifest.json"));
