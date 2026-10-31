@@ -1,11 +1,12 @@
 # BLOCK BUDDIES — Five-star BOT AI
 
-> **Current implementation reference.** For the future top-tier BOT modernization requirements, read [BOT AI Master Plan](../../docs/BOT_AI_MASTER_PLAN.md) and [BOT AI Implementation Log](../../docs/BOT_AI_IMPLEMENTATION_LOG.md). **M0 FOUNDATION VERIFIED; M1 CORE EXIT GATE VERIFIED** (Windows regression 297/297 PASS and owner-reported manual playtest PASS, 2026-10-31 WIB). M2 READY / NOT STARTED. Real browser FPS, hit-rate, reaction, navigation and full scenario metrics remain OPEN. See [M1 Validation](../../docs/BOT_AI_M1_VALIDATION.md). M2–M7 remain future enhancements. An existing five-star difficulty label is a configuration/UI value, not a validated competitive-bot benchmark.
+> **Current implementation reference.** For the future top-tier BOT modernization requirements, read [BOT AI Master Plan](../../docs/BOT_AI_MASTER_PLAN.md) and [BOT AI Implementation Log](../../docs/BOT_AI_IMPLEMENTATION_LOG.md). **M0 FOUNDATION VERIFIED; M1 CORE EXIT GATE VERIFIED** (Windows regression 297/297 PASS and owner-reported manual playtest PASS, 2026-10-31 WIB). **M2 3D AIM IMPLEMENTED / AUTOMATED VERIFIED (306/306 CI), MANUAL PLAYTEST PENDING. M3 NOT STARTED.** Real browser FPS, hit-rate, reaction, navigation and full scenario metrics remain OPEN. See [M1 Validation](../../docs/BOT_AI_M1_VALIDATION.md) and [M2 Validation](../../docs/BOT_AI_M2_VALIDATION.md). M3–M7 remain future enhancements. An existing five-star difficulty label is a configuration/UI value, not a validated competitive-bot benchmark.
 
 ## Existing engine remains authoritative
 The AI uses the current A* navigation (`gPath`), `los`, collision `resolve`, weapon registry `WP`, ammo/reload timers, hit logic `fire`, and Bomb Mission plant/defuse rules. No new combat system, network service, ML runtime or external dependency has been added.
 
 ## Modules
+- `src/game/40-bot-aim.js`: M2 sight-authorized 3D aiming, bounded yaw/pitch, finite reaction delay, short legal target lead and class-based firing error; projectile physics and damage remain shared.
 - `src/game/88-bot-perception.js`: M1 evidence-only sight, 3.6s finite target memory, 2.4s legitimate team radio, bounded footstep/gunshot hearing, stale-information expiry, and match reset.
 
 - `src/game/41-bot-weapons.js`: ammunition, safe reload, sidearm choice, grenade safety and canonical combat dispatch.
