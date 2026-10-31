@@ -497,7 +497,7 @@ test('Block Town V3 obeys owner blueprint anchors and offers connected, broken-s
  for(const q of d.cover)
    assert.ok(c.OB.some(o=>o.x===q[0]&&o.z===q[1]&&o.hw===q[2]/2&&o.hd===q[3]/2),
      'decorative town furniture has genuine projectile/nav collision: '+q);
- assert.deepEqual(d.landmarks.map(o=>o.kind),['delivery-van','street-kiosk']);
+ assert.equal(d.landmarks.map(o=>o.kind).join(','),'delivery-van,street-kiosk');
  for(const item of d.landmarks){
    assert.ok(c.OB.some(o=>o.x===item.x&&o.z===item.z&&o.hw===item.w/2&&
       o.hd===item.d/2&&o.h===item.h),
