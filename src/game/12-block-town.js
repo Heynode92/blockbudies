@@ -75,6 +75,9 @@ var BLOCK_TOWN_DEF=Object.freeze({
   [-62,17,11,24,1],[68,49,17,12,1],[47,71,18,10,1]
  ]),
  streetMarks:Object.freeze([[-56,-34,1,8],[-44,42,1,8],[2,-41,1,9],[67,17,1,8],[40,52,8,1]]),
+ // Painted, non-collidable crossings tied to real city intersections, not an
+ // artificial world grid. These never overlap the base at the same depth plane.
+ crossings:Object.freeze([[-59,-8,0],[-30,15,1],[10,-52,1],[43,46,0]]),
  // Measured V4 sightline occluders, not a runtime camera/weapon range hack.
  // Each [name,x,z,w,d,h] is a 3m+ physical OBJ/OB solid. Staggered footprints
  // allow clean routes around the obstacle while blocking long street vistas.
@@ -284,6 +287,35 @@ function makeBlockTown(){
      detail(storeW*.65,2.15,.12,0x38444d,x,1.21,front);
      detail(storeW*.8,.18,.62,c.metal,x,2.65,front+.26);
    }
+   // Per-story accent joints and architectural breakups stop uniform window
+   // repetition along the long facades. All are ABOVE walkable head height.
+   for(var floor=1;floor<stories;floor++){
+     detail(w+.11,.16,dep+.11,style%2?shade(col,.81):lite(col,.15),
+       x,floor*3.55+.42,z);
+   }
+   if(style===1||style===3){
+     // Balcony/fire-escape treatment on residential/shop elevations.
+     var by=4.0,frontZ=z+dep/2+.52,bw2=Math.min(w*.55,8.2);
+     detail(bw2,.19,.82,shade(roof,.77),x,by,frontZ);
+     detail(bw2,.63,.12,c.metal,x,by+.40,frontZ+.43);
+     for(var bal=-bw2/2+.50;bal<bw2/2;bal+=1.12)
+       detail(.10,.80,.12,c.metal,x+bal,by+.45,frontZ+.45);
+     if(stories>2)detail(bw2*.65,.18,.72,shade(roof,.78),x,by+3.55,frontZ-.06);
+   }else if(style===2||style===4){
+     // Warehouse vent and overhead loading signage on the street facade.
+     detail(Math.min(w*.58,9),.72,.15,style===4?0x31515b:0x87664f,
+       x,h*.70,z+dep/2+.18);
+     for(var vent=-1;vent<=1;vent++)
+       detail(w*.09,.08,.17,c.frame,x+vent*w*.13,h*.70,z+dep/2+.29);
+   }
+   // Rooftop utility hardware; these are visual skyline details, not
+   // combat-range obstacles or collisionless walkable objects.
+   if(style!==1&&style!==5){
+     detail(Math.min(w*.24,4.2),.78,Math.min(dep*.23,3.8),c.metal,
+       x+w*.22,h+.94,z-dep*.15);
+     detail(Math.min(w*.23,3.7),.12,Math.min(dep*.20,3.1),0x2e444f,
+       x+w*.22,h+1.39,z-dep*.15);
+   }
    // Downpipes/vents give depth to side elevations without introducing fake cover.
    if(idx%3===0){
      detail(.15,h-.8,.15,c.metal,x+w/2+.09,h/2,z+dep/2-.8);
@@ -435,6 +467,16 @@ function makeBlockTown(){
  // coplanar paving slabs. No full-world GridHelper or noisy chessboard roads.
  d.streetMarks.forEach(function(q,i){
    detail(q[2],.015,q[3],i%2?0xe0c99b:0xd7c6a8,q[0],.093,q[1]);
+ });
+ // Crossings and roadside warning paint supply lived-in urban street cues.
+ // At y=.108 they float safely ABOVE asphalt, paving and prior lane stripes.
+ d.crossings.forEach(function(q,idx){
+   for(var stripe=-2;stripe<=2;stripe++){
+     var xx=q[0]+(q[2]?stripe*1.05:0),
+         zz=q[1]+(q[2]?0:stripe*1.05);
+     detail(q[2]?.60:5.8,.012,q[2]?5.8:.60,
+       idx%2?0xf0e1bf:0xd9e5e2,xx,.112,zz);
+   }
  });
  // Site signage remains physically at the exact canonical plantable centers.
  BOMB_SITES.forEach(function(site){
