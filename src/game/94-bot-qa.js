@@ -122,7 +122,7 @@ function botQaReport(){
   else if(r.site===1)bomb.siteB++;
   else bomb.noSite++;
  });
- return {schema:'BLOCK_BUDDIES_M7_QA_V1',enabled:true,
+ return {schema:'POINT_BLOCK_M7_QA_V1',enabled:true,
   recordedStartUnixMs:botQaData.startedAt,
   limitation:'Only events observed in this browser tab with opt-in flag; samples are rolling windows, not M0 paired baseline. Projectile hit rate is character-hit projectile / fired projectile, not trigger accuracy; shotgun pellets counted separately. CPU measures botsUpd only. No claims of full map coverage.',
   frameTimeMs:frames,frameJavaScriptWorkMs:frameJs,botUpdateCpuMs:cpu,
@@ -147,16 +147,16 @@ function botQaDownload(){
      blob=new Blob([data],{type:'application/json'}),
      url=URL.createObjectURL(blob),
      a=document.createElement('a');
- a.href=url;a.download='block-buddies-m7-qa.json';
+ a.href=url;a.download='point-block-m7-qa.json';
  document.body.appendChild(a);a.click();a.remove();
  setTimeout(function(){URL.revokeObjectURL(url);},2000);
  return true;
 }
 if(botQaEnabled&&typeof window!=='undefined'){
  // Explicit, opt-in console API. Never sends data to any server.
- window.BlockBuddiesQA=Object.freeze({
+ window.PointBlockQA=Object.freeze({
   report:botQaReport,download:botQaDownload,
   reset:function(){botQaData=botQaState();}
  });
- console.info('BLOCK BUDDIES local M7 QA enabled: BlockBuddiesQA.report() / .download()');
+ console.info('POINT BLOCK local M7 QA enabled: PointBlockQA.report() / .download()');
 }
