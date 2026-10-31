@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-31 WIB — BLOCK TOWN V3: rebuild map from latest owner blueprint
+
+- **Replaced** Block Town V1/V2 streets/sites with the newest owner-supplied irregular city block layout, retaining the existing **160×160 Bomb Mission** arena and four visible, solid perimeter walls. White blueprint masses are implemented as **15 real collidable town-building blocks**, including an upper-left L compound, offset cross-streets and varied storefronts/rooftops.
+- **Spawn/site locations corrected to the newest image**: Police five-slot deployment at **western upper-left**, Terrorist five-slot deployment at **south-east**, **Bomb Site A north-east (55,-58)**, and **Bomb Site B central-south (-16,8)**. Configurable spawn yaw aims into valid inner approach corridors. No global weapon, team assignment, Bomb timer, plant/defuse, scoring or BOT tactical code changed.
+- Added **15 street cover islands**, six real segmented wall cover elements, tree/pedestal cover, plus a fully solid **delivery van near A** and **service kiosk by B**. All physical hitboxes use canonical `wl()/OB` so projectiles, player collision and BOT A* see the same obstructions; avoid fake collisionless props. Config-driven palette and multiple building silhouettes preserve outdoor visual identity.
+- Road surfaces use one base ground with **disjoint overlay paving** and separated vertical drawing tiers to avoid z-fighting. All map-specific data is isolated in `src/game/12-block-town.js`, and `assets/game.js` has been synchronized for direct Windows `file://` opening.
+- Updated Node/browser QA checks for the latest actual team spawn/site anchors, planted-site clearance, all 25 opposing spawn sightlines, ten spawn-to-A/B routes, physical landmark cover, perimeter integrity and map isolation. **Latest Windows regression and Chromium job results must be checked before declaring VERIFIED**; gameplay balance and laptop FPS remain separate gates.
+
 ## 2026-10-31 WIB — BLOCK LABS indoor Team Deathmatch map
 
 - Added **Block Labs** (`block-labs`) as an independent **120×120 indoor Team Deathmatch** arena. Recreated the owner's blueprint: north Police spawn, south Terrorist spawn, **six solid white lab buildings** (3 rows × 2 columns), outer left/right lanes, narrow middle corridor, two crossing streets, four large green corner reactors, two small middle reactors, and an enclosed four-sided boundary.
