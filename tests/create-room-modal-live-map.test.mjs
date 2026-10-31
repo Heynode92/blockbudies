@@ -127,6 +127,7 @@ function thumbnailFixture(){
   getElementById(id){
    if(id==='roomMapCards')return cardRoot;
    if(id==='roomCreateOverlay')return overlay;
+   if(id==='roomSettingsModal')return {hidden:true};
    if(id==='lbrooms')return {classList:{contains:s=>s==='on'}};
    throw new Error('unexpected element '+id);
   }
