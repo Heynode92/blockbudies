@@ -1,13 +1,14 @@
 # BLOCK BUDDIES — BOT Intelligence Modernization Master Plan
 
 > **Document ID:** BB-AI-ROADMAP-001  
-> **Status:** M0 FOUNDATION VERIFIED / M1 CORE EXIT GATE VERIFIED (CI + OWNER MANUAL PASS) / M2 READY NOT STARTED / M3–M7 NOT STARTED  
+> **Status:** M0/M1 CORE VERIFIED / M2 IMPLEMENTED + CI VERIFIED, MANUAL ACCEPTANCE PENDING / M3–M7 NOT STARTED  
 > **Baseline reviewed:** `main` at `23cd2bb71a2535de86ba49ccdfc3d23455be2ff9` (2026-10-30)  
 > **Scope:** Police and Terrorist BOTs in Team Deathmatch (TDM) and Bomb Mission  
 > **Source of truth:** repository production sources, `docs/ARCHITECTURE.md`, original-game fixture, existing test suite  
 > **Progress tracker:** [BOT_AI_IMPLEMENTATION_LOG.md](BOT_AI_IMPLEMENTATION_LOG.md)  
 > **M0 baseline evidence:** [BOT_AI_M0_BASELINE.md](BOT_AI_M0_BASELINE.md)  
-> **M1 verification and manual checklist:** [BOT_AI_M1_VALIDATION.md](BOT_AI_M1_VALIDATION.md)
+> **M1 verification and manual checklist:** [BOT_AI_M1_VALIDATION.md](BOT_AI_M1_VALIDATION.md)  
+> **M2 implementation and manual checklist:** [BOT_AI_M2_VALIDATION.md](BOT_AI_M2_VALIDATION.md)
 
 ## 1. Product outcome
 
@@ -180,6 +181,8 @@ Mark a milestone complete **only after its acceptance gates pass**. Each milesto
 
 ### M2 — Fire control
 
+**Current tracking (2026-10-31 WIB):** **IMPLEMENTED + AUTOMATED VERIFIED**. New independent legal-sight 3D aim module, bounded yaw/pitch/reaction, visible-sample lead and weapon-class dispersion; bot bullets now use vertical `vy` through original collision and damage. [Windows CI #93](https://github.com/Heynode92/blockbudies/actions/runs/41173731387) verified **306/306 PASS** with deterministic replay and canonical bundle. See [M2 Validation](BOT_AI_M2_VALIDATION.md). **Manual Windows browser playtest and measured actual hit%, reaction median/p95, performance/frame-time remain OPEN**; **M2 NOT YET FULLY VERIFIED. M3 NOT STARTED.**
+
 **Work:** independent aim intent module with yaw/pitch solving and limited predictive lead; per-weapon accuracy timing and fire-control tests, using existing projectile and damage systems.
 
 **Exit gate:** hits are physically simulated; hits at different elevations are possible; changing target direction disrupts aim naturally; all shots respect LOS, reload, ammo, armor and weapon cooldown. No deterministic instant headshot.
@@ -310,4 +313,4 @@ These are **maintainer-only** actions. The user must never be told to install No
 5. Keep tactical input honest and preserve canonical gameplay mechanics. Test in realistic scenarios; record baseline deltas.
 6. Commit only after verification; update documentation and implementation log in the same commit. Never claim an upgrade was completed while only the plan was edited.
 
-**Approval boundary:** The original request on 2026-10-30 authorized documentation and logging only. A later explicit owner instruction authorized M0 harness and testing work. M1 gameplay update was explicitly authorized by the owner, implemented, and accepted through green Windows CI and owner-reported manual gameplay PASS. **M1 core feature gate VERIFIED**, not a quantified browser performance sign-off. M2–M7 remain pending separate authorization.
+**Approval boundary:** The original request on 2026-10-30 authorized documentation and logging only. A later explicit owner instruction authorized M0 harness and testing work. M1 gameplay update was explicitly authorized by the owner, implemented, and accepted through green Windows CI and owner-reported manual gameplay PASS. **M1 core feature gate VERIFIED**, not a quantified browser performance sign-off. The owner authorized M2 and M3 as a proposed next sequence, and **M2-first sequential implementation is underway**; M2 source + CI completed, manual acceptance pending. M3–M7 have not been implemented.
