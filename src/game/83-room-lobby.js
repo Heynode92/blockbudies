@@ -88,14 +88,14 @@ function roomModalPaint(){
 function roomModalChooseMode(mode){
  if(!roomModalDraft)return;
  roomModalDraft.mode=mode===1?1:0;
- roomModalDraft.mapId=mode===1?bombMapId(roomModalDraft.mapId):"block-district";
+ roomModalDraft.mapId=mode===1?bombMapId(roomModalDraft.mapId):tdmMapId(roomModalDraft.mapId);
  roomModalPaint();
  // Only the 3D preview changes until SAVE; roomCurrent remains unchanged.
- selM=roomModalDraft.mode;selectedBombMapId=bombMapId(roomModalDraft.mapId);modePreviewSelect(selM);
+ selM=roomModalDraft.mode;selectedBombMapId=bombMapId(roomModalDraft.mapId);selectedTdmMapId=tdmMapId(roomModalDraft.mapId);modePreviewSelect(selM);
 }
 function roomModalChooseMap(value){
  if(!roomModalDraft)return;
- roomModalDraft.mapId=roomModalDraft.mode===1?bombMapId(value):"block-district";
+ roomModalDraft.mapId=roomModalDraft.mode===1?bombMapId(value):tdmMapId(value);
  roomModalPaint();
  selM=roomModalDraft.mode;selectedBombMapId=bombMapId(roomModalDraft.mapId);modePreviewSelect(selM);
 }
@@ -111,7 +111,7 @@ function roomModalHide(restorePreview){
  roomModalDraft=null;
  roomText("roomModalError","");
  if(restorePreview&&roomCurrent){
-  selM=roomCurrent.mode;selectedBombMapId=bombMapId(roomCurrent.mapId);modePreviewSelect(selM);
+  selM=roomCurrent.mode;selectedBombMapId=bombMapId(roomCurrent.mapId);selectedTdmMapId=tdmMapId(roomCurrent.mapId);modePreviewSelect(selM);
  }
  var focus=roomModalReturnFocus;roomModalReturnFocus=null;
  if(focus&&typeof focus.focus==="function")focus.focus();
@@ -148,7 +148,7 @@ function roomNormalize(obj){
  var name=String(obj.name||"").trim().slice(0,32);
  if(!name)return null;
  return{id:obj.id,name:name,mode:obj.mode,
- mapId:obj.mode===1?bombMapId(obj.mapId):"block-district",
+ mapId:obj.mode===1?bombMapId(obj.mapId):tdmMapId(obj.mapId),
  kills:roomAllowed(obj.kills,ROOM_LIMITS.kills,50),
  minutes:roomAllowed(obj.minutes,ROOM_LIMITS.minutes,10),
  rounds:roomAllowed(obj.rounds,ROOM_LIMITS.rounds,12),
@@ -160,17 +160,17 @@ function roomLoad(){
 }
 function roomPersist(){try{localStorage.setItem(ROOM_STORAGE_KEY,JSON.stringify(roomList));return true;}catch(err){return false;}}
 function roomMapsForMode(mode,mapId){
- var m=mode===1?bombMapInfo(mapId):MODE_MAP_PREVIEWS[mode];
+ var m=mode===1?bombMapInfo(mapId):mode===0?tdmMapInfo(mapId):MODE_MAP_PREVIEWS[mode];
  return m?{name:m.name,caption:m.caption}:null;
 }
 function roomFillMapSelect(select,mode,mapId){
  select.replaceChildren();
- var options=mode===1?bombMapOptions(mode):[{id:"block-district",name:MODE_MAP_PREVIEWS[0].name}];
+ var options=mode===1?bombMapOptions(mode):tdmMapOptions();
  options.forEach(function(m){
   var option=document.createElement("option");option.value=m.id;option.textContent=m.name;
   select.appendChild(option);
  });
- select.value=mode===1?bombMapId(mapId):"block-district";
+ select.value=mode===1?bombMapId(mapId):tdmMapId(mapId);
  select.disabled=options.length<2;
 }
 function roomText(id,value){document.getElementById(id).textContent=String(value);}
@@ -182,22 +182,22 @@ function roomModeSelect(mode){
  });
  document.getElementById("roomTdmSettings").hidden=roomDraftMode!==0;
  document.getElementById("roomBombSettings").hidden=roomDraftMode!==1;
- roomDraftMapId=roomDraftMode===1?bombMapId(roomDraftMapId):"block-district";
+ roomDraftMapId=roomDraftMode===1?bombMapId(roomDraftMapId):tdmMapId(roomDraftMapId);
  var map=roomMapsForMode(roomDraftMode,roomDraftMapId),mapSelect=document.getElementById("roomMap");
  roomFillMapSelect(mapSelect,roomDraftMode,roomDraftMapId);
  roomText("roomMapName",map?map.name:"UNAVAILABLE");
  roomText("roomMapCaption",map?map.caption:"");
- selM=roomDraftMode;selectedBombMapId=bombMapId(roomDraftMapId);
+ selM=roomDraftMode;selectedBombMapId=bombMapId(roomDraftMapId);selectedTdmMapId=tdmMapId(roomDraftMapId);
  modePreviewSelect(roomDraftMode);
 }
 function roomChooseMap(value){
- roomDraftMapId=roomDraftMode===1?bombMapId(value):"block-district";
+ roomDraftMapId=roomDraftMode===1?bombMapId(value):tdmMapId(value);
  roomModeSelect(roomDraftMode);
 }
 function roomFormData(){
  var name=document.getElementById("roomName").value.trim().slice(0,32);
  if(!name)return null;
- return{name:name,mode:roomDraftMode,mapId:roomDraftMode===1?bombMapId(document.getElementById("roomMap").value):"block-district",
+ return{name:name,mode:roomDraftMode,mapId:roomDraftMode===1?bombMapId(document.getElementById("roomMap").value):tdmMapId(document.getElementById("roomMap").value),
   kills:roomAllowed(document.getElementById("roomKills").value,ROOM_LIMITS.kills,50),
   minutes:roomAllowed(document.getElementById("roomMinutes").value,ROOM_LIMITS.minutes,10),
   rounds:roomAllowed(document.getElementById("roomRounds").value,ROOM_LIMITS.rounds,12),
