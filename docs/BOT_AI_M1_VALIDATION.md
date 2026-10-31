@@ -1,4 +1,4 @@
-# BLOCK BUDDIES — M1 Perception & Awareness validation
+# POINT BLOCK — M1 Perception & Awareness validation
 
 > **Milestone:** M1 — Perception, hearing, finite memory and legitimate team intel
 > **Status:** M1 VERIFIED (CORE EXIT GATE: AUTOMATED CI + OWNER-REPORTED MANUAL SMOKE); ADVANCED QUANTITATIVE KPIs OPEN
