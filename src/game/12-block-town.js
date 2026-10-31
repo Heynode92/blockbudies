@@ -5,7 +5,8 @@ var BOMB_MAP_REGISTRY=Object.freeze({
   lockdown:Object.freeze({id:"lockdown",name:"LOCKDOWN",caption:"Indoor Tactical Arena",
     sites:Object.freeze([{id:"A",x:-25,z:-5,col:0xffa94d},{id:"B",x:25,z:5,col:0x4dabf7}])}),
   "block-town":Object.freeze({id:"block-town",name:"BLOCK TOWN",caption:"Outdoor Urban Town",
-    sites:Object.freeze([{id:"A",x:-44,z:-39,col:0xffa94d},{id:"B",x:49,z:-37,col:0x4dabf7}])})
+    sites:Object.freeze([{id:"A",x:-44,z:-39,col:0xffa94d},{id:"B",x:49,z:-37,col:0x4dabf7}]),
+    preview:Object.freeze({x:-28,y:32,z:49,lookX:-8,lookY:0,lookZ:-27,fov:70})})
 });
 var selectedBombMapId="lockdown",BLOCK_TOWN_WORLD=null,BLOCK_TOWN_OB=[],BLOCK_TOWN_BR=[],BLOCK_TOWN_LT=[];
 function bombMapId(value){return Object.prototype.hasOwnProperty.call(BOMB_MAP_REGISTRY,value)?value:"lockdown";}
@@ -70,6 +71,13 @@ function makeBlockTown(){
  var before=S.children.slice(),d=BLOCK_TOWN_DEF,c=d.palette,half=d.halfSize,materials=c.plaster;
  // Existing engine geometry functions preserve performance/material consistency.
  mk(half*2,.14,half*2,c.road,0,-.12,0).castShadow=false;
+ // Street paving and courtyards are decorative overlays only: no hidden collision.
+ [[-49,-40,33,31,c.stone],[49,-37,34,29,c.stone],
+  [-43,26,23,32,c.walk],[7,20,24,21,c.walk],[34,-9,21,24,c.walk],
+  [-38,64,29,18,c.walk],[-62,-57,24,20,c.walk],
+  [55,47,23,21,c.stone]].forEach(function(p){
+   var ground=mk(p[2],.035,p[3],p[4],p[0],.012,p[1]);ground.castShadow=false;
+  });
  function detail(w,h,dep,color,x,y,z){dk(w,h,dep,color,x,y,z);}
  function wall(x,z,w,dep,h,color){wl(x,z,w,dep,h,color);}
  function building(b,idx){
