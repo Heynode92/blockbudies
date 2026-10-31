@@ -22,12 +22,22 @@ function modePreviewDraw(now){
  mapPreviewLastFrame=now;
  var ratio=dw/dh,ww=Math.min(sw,sh*ratio),hh=Math.min(sh,sw/ratio);
  if(inMode)mapPreviewCtx.drawImage(src,(sw-ww)/2,(sh-hh)/2,ww,hh,0,0,dw,dh);
- if(inRoom||inLive){var c=document.getElementById(inLive?"rmlMapPreview":"roomMapPreview"),ctx=c.getContext("2d",{alpha:false});
-   ctx.drawImage(src,(sw-ww)/2,(sh-hh)/2,ww,hh,0,0,c.width,c.height);
-   if(inLive&&!document.getElementById("roomSettingsModal").hidden){
-    var modalCanvas=document.getElementById("roomModalMapPreview"),modalCtx=modalCanvas.getContext("2d",{alpha:false});
-    modalCtx.drawImage(src,(sw-ww)/2,(sh-hh)/2,ww,hh,0,0,modalCanvas.width,modalCanvas.height);
-   }
+ // The Create Room overlay uses the SAME animated WebGL map rendered above.
+ // Avoid 2D readback when it is hidden; the background 3D map still animates.
+ if(inRoom&&!document.getElementById("roomCreateOverlay").hidden){
+  var createCanvas=document.getElementById("roomMapPreview"),
+      createCtx=createCanvas.getContext("2d",{alpha:false});
+  createCtx.drawImage(src,(sw-ww)/2,(sh-hh)/2,ww,hh,0,0,createCanvas.width,createCanvas.height);
+  roomMapCardFrame(createCanvas);
+ }
+ if(inLive){
+  var c=document.getElementById("rmlMapPreview"),ctx=c.getContext("2d",{alpha:false});
+  ctx.drawImage(src,(sw-ww)/2,(sh-hh)/2,ww,hh,0,0,c.width,c.height);
+  if(!document.getElementById("roomSettingsModal").hidden){
+   var modalCanvas=document.getElementById("roomModalMapPreview"),
+       modalCtx=modalCanvas.getContext("2d",{alpha:false});
+   modalCtx.drawImage(src,(sw-ww)/2,(sh-hh)/2,ww,hh,0,0,modalCanvas.width,modalCanvas.height);
+  }
  }
  // Only read WebGL pixels synchronously after this frame's R.render().
  if(inLive&&roomStartFlow.active&&roomStartFlow.phase==="loading")roomStartCaptureMap();
