@@ -11,7 +11,7 @@ const out=path.join(root,'artifacts','m7-browser');
 fs.mkdirSync(out,{recursive:true});
 const team=process.env.M7_TEAM==='terrorist'?1:0;
 const name=team?'terrorist':'police';
-const mapId=process.env.M7_MAP==='block-labs'?'block-labs':process.env.M7_MAP==='block-town'?'block-town':'lockdown';
+const mapId=process.env.M7_MAP==='hospital'?'hospital':process.env.M7_MAP==='block-labs'?'block-labs':process.env.M7_MAP==='block-town'?'block-town':'lockdown';
 const target=Number(process.env.M7_BOMB_ROUNDS||50);
 if(!Number.isInteger(target)||target<1||target>150)
   throw Error('M7_BOMB_ROUNDS must be an integer 1..150');
