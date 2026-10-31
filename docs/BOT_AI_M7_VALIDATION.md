@@ -68,7 +68,7 @@ To compute FPS, the export offers `approximateFpsMedian` from the **median frame
 
 ## First owner-provided real-browser capture — 2026-10-31 WIB (PROVISIONAL)
 
-**Origin:** Owner submitted `block-buddies-m7-qa (1).json` exported from an explicitly enabled `file://` Firefox tab on Windows, together with a DevTools screenshot demonstrating `POINT BLOCK local M7 QA enabled` and successful `PointBlockQA.reset()` (returns `undefined` by design). **The raw user file is not committed;** the verified aggregate figures below are the only stored evidence. No independent live gameplay was run by CI. Capture mixes both TDM and Bomb within **one reset/sample window**, without duration, exact map, team configuration, GPU, driver or resolution metadata. Interpret as an initial owner-supplied instrument sample, **not a controlled benchmark**.
+**Origin:** Owner submitted `block-buddies-m7-qa (1).json` exported from an explicitly enabled `file://` Firefox tab on Windows, together with a DevTools screenshot demonstrating the historical pre-rebrand message `BLOCK BUDDIES local M7 QA enabled` and call `BlockBuddiesQA.reset()` (returns `undefined` by design). **The raw user file is not committed;** the verified aggregate figures below are the only stored evidence. No independent live gameplay was run by CI. Capture mixes both TDM and Bomb within **one reset/sample window**, without duration, exact map, team configuration, GPU, driver or resolution metadata. Interpret as an initial owner-supplied instrument sample, **not a controlled benchmark**.
 
 | Metric | Observed owner JSON | Interpretation / limitation |
 |---|---:|---|
@@ -93,7 +93,7 @@ To compute FPS, the export offers `approximateFpsMedian` from the **median frame
 
 ## Second owner browser capture — 2,264 projectiles / 5 Bomb rounds (2026-10-31 WIB, PROVISIONAL)
 
-**Evidence:** owner-uploaded `block-buddies-m7-qa (1).json`, schema `POINT_BLOCK_M7_QA_V1`, `recordedStartUnixMs=1793429787609` (13:56:27 WIB). The raw JSON stays outside the repository. This is a **follow-up export**, not verified to be an independent controlled run. It **again mixes TDM and Bomb in one reset window**. Exact map, chosen player faction, browser session duration, BOT composition, resolution and matched M0 performance baseline are not present.
+**Evidence:** owner-uploaded `block-buddies-m7-qa (1).json`, historical pre-rebrand schema `BLOCK_BUDDIES_M7_QA_V1`, `recordedStartUnixMs=1793429787609` (13:56:27 WIB). The raw JSON stays outside the repository. This is a **follow-up export**, not verified to be an independent controlled run. It **again mixes TDM and Bomb in one reset window**. Exact map, chosen player faction, browser session duration, BOT composition, resolution and matched M0 performance baseline are not present.
 
 | Metric | Recalculated from second owner JSON | Interpretation |
 |---|---:|---|
