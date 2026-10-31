@@ -39,6 +39,8 @@ test('M7: actual frame timestamps keep un-clamped wall intervals and reject paus
  c.botQaFrame(2000,0,true);c.botQaFrame(10,1,false);
  const q=c.botQaReport();
  assert.equal(q.frameTimeMs.count,2);
+ assert.equal(q.frameJavaScriptWorkMs.count,2);
+ assert.equal(q.frameJavaScriptWorkMs.median,8);
  assert.equal(q.frameTimeMs.median,16.67);
  assert.equal(q.frameTimeMs.p95,16.67);
  assert.equal(q.invalidOrSuspendedFrames,1);
