@@ -4748,6 +4748,8 @@ function lobP(id){
  ["lbs","lbm","lbrooms","lbroomlive","lbiv","lbshop"].forEach(function(i){
   document.getElementById(i).classList.toggle("on",i===id);
  });
+ var header=document.getElementById("gameLobbyHeader"),activePanel=document.getElementById(id);
+ if(header)header.hidden=!(activePanel&&activePanel.hasAttribute("data-shared-header"));
  if(id==="lbs"){
   lobBest();
   // The main menu cinematic is ALWAYS the authentic Block District world,
