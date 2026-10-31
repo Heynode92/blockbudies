@@ -5,7 +5,34 @@
 **Mode:** Bomb Mission / 5v5  
 **Footprint:** 160×160 world units (X/Z -80..80), identical to the existing Bomb Mission scale.
 
-## Blueprint and visual source of truth
+## Blueprint geometry correction — exact grey corridor topology (2026-10-31 WIB)
+
+**The latest user-supplied diagram with arrows is the controlling map design.** The previous first-pass coordinates, 14 arbitrary wing blocks and simplistic four-wall bounding square are **superseded**.
+
+Source tracing is based on the original unannotated **632 × 627 px** blueprint plus the later arrow annotation showing intended directions. Its colored geometry has the following meaning, with no exceptions:
+
+- **Grey = all traversable hospital corridors** (including bends, branches, perimeter indents and route connectors).
+- **White = impassable full-height room/wing partition masses**. White is never treated as road.
+- **Purple = Police starting area**, upper-left. **Red = Terrorist starting area**, lower-right.
+- **A = upper-right surgical objective; B = left-center imaging/ward objective**.
+- **Black arrows = routes that must remain passable**. They are not walls, decoration or a direction-only travel restriction.
+
+### Implementation changed
+
+- `HOSPITAL_BLUEPRINT.outlinePx` stores **32 ordered corner coordinates** tracing the actual exterior perimeter of the grey connected shape. Each adjacent pair generates a real solid `wl()/OB` boundary segment, preserving the image's distinctive white outside notches. **No fake playable floor outside the outline.**
+- `HOSPITAL_BLUEPRINT.roomsPx` contains the actual **eight isolated white rooms**, represented using **10 rectangles** (three are touching parts of the irregular L-shaped room). The world-space `HOSPITAL_DEF.wings` is derived exclusively from the pixel blueprint using `hospitalPxRoom()`.
+- `hospitalPxPoint()` provides one central conversion from the screenshot's 632×627 pixel coordinates into the game's **160×160 X/Z** space; map data is not copied as unrelated gameplay constants. White rooms are floor-to-ceiling collision blockers, sharing the project renderer/material pipeline.
+- Original Police/Terrorist spawn regions remain. **Site A (67,-43)** stays upper-right; **Site B (-67,3)** is aligned with the left-middle grey junction. Both plant circles remain clear, and all original Bomb rules/timers remain unchanged.
+- Twenty hospital-themed collidable props are configured with **pixel-space placements inside the grey region**, offset from the black-arrow centerlines. The last adjustment moved seven objects to corridor edges after a regression caught a blocked waypoint. They remain real `wl()/OB` cover, with no fake solid rooms or invisible path barriers.
+- Hospital interior identity (department colors, framed sealed ward panels, clinical window strips, benches/beds/trolleys, ceiling, lighting and department signs) is kept, but **visual dressing cannot replace or reshape the grey corridors**. Indoor roof remains a real registered overhead barrier.
+
+### Acceptance and evidence
+
+- [Windows M0 regression #latest](https://github.com/Heynode92/blockbudies/actions/runs/41198370309) **386/386 PASS**, `assets/game.js` parity PASS; includes tests that 10 known WHITE screenshot pixels are physically blocked, 20 known GREY/arrow pixels are unobstructed, all 32 exterior edges are physical, A/B have free planting circles, all ten spawns have A* access to both sites, and map swaps retain collision isolation.
+- The matching **production Chromium** round checks are tracked separately in [Hospital map browser QA](https://github.com/Heynode92/blockbudies/actions/runs/41198370465). Both team jobs must pass before full functional acceptance; software WebGL remains an imperfect proxy for actual owner-side graphics and FPS.
+- The user is correct that a prior green synthetic test did not prove blueprint fidelity. This new regression explicitly tests fidelity to the annotated corridors, not only generic navigability.
+
+## Historical initial blueprint interpretation (superseded)
 
 This map follows the owner-provided hospital blueprint. **Purple at north-west = Police Spawn, red at south-east = Terrorist Spawn, A = north-east surgical wing, B = west-middle imaging/ward wing; gray = traversable corridors, white = solid wing/room masses**. The original drawing has no explicit interactive doors, so the main white room shapes are treated as sealed hospital wings with visually labelled door panels; it does not advertise enterable patient rooms that have no gameplay path.
 
@@ -21,13 +48,13 @@ Spawns use **five fixed collision-free candidates per team**, picked through exi
 
 ## Architecture and material reuse
 
-- New map-only `src/game/14-hospital.js` defines `HOSPITAL_DEF`: palettes, 14 solid large wings approximating the blueprint, 20 themed cover fixtures, spawn slots, medical department colors and interior preview.
+- New map-only `src/game/14-hospital.js` defines `HOSPITAL_DEF`: palettes, 10 room-piece collision rectangles (eight white room islands) approximating the blueprint, 20 themed cover fixtures, spawn slots, medical department colors and interior preview.
 - Shared existing Three.js r128 helpers `mk()`, `wl()`, `dk()`, `shade()/lite()` and `flushDeco()`; **no image CDN, external assets, texture downloads or player-side dependencies added**.
 - Each large white wing uses a real `wl()` physical collision body and distinct sealed clinical façade: observation windows, departmental color bars, door labels, corner trims, service conduits and continuous wall rails. The large white blocks are never falsely depicted as open doors.
 - Medical cover variety comes from **physical** nurse-station counters, triage/reception desks, hospital beds, stretchers, linen storage, medical consoles, an imaging-machine base, benches, utility racks and wheelchairs. Every cover body is registered in canonical `OB` for the player, shots and BOT A*; trim/glass/lights are visual details only.
 - Indoor ceiling is visible and also registered as a projectile blocker in canonical `LT` at approximately Y=11.5. Ceiling light panels, floor department guide lines and overhead signs are distinct 3D details. Outdoor sky/cloud meshes are hidden in Hospital and restored on map change.
 - Map-owned fog, lighting palette and indoor preview below the roof. No coplanar checkerboard floors; floor guide strips render above the underlying seamless floor plane.
-- **Four perimeter walls** enclose the world. The map keeps the existing scoreboard, round settings, Bomb timing, damage tables, matchmaking and AI tactical policies untouched.
+- **32 contour-derived physical perimeter segments** enclose the world. The map keeps the existing scoreboard, round settings, Bomb timing, damage tables, matchmaking and AI tactical policies untouched.
 
 ## Runtime integration
 
