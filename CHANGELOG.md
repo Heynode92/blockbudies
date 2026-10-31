@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-31 WIB — M7 automated Windows Chromium browser QA introduced
+
+- Added CI-only `tools/bot-ai-m7-browser.mjs` and `.github/workflows/bot-ai-m7-browser.yml`, running on Windows Chromium with exact pinned `playwright@1.56.1` and matching `three@0.128.0` for browser test dependency resolution. No player installs, WSL, Docker, backend, local runner or source bundle changes.
+- Live WebGL/rAF/BOT-CPU smoke sampling in separate TDM and Bomb sessions for each team. Automatic BOT-only 5v5 functional QA for up to 50 authentic Bomb finishes/team uses canonical in-browser `update(1/60)` fast-stepping: *accelerated simulation*, **not real-time FPS**, and no forced bomb wins, altered gameplay timings, fake events or release claims.
+- Save per-team machine-readable JSON artifacts on PASS or FAIL, preserving scope limitations. CI run must pass before claiming automated test verification. M7 FINAL release remains IN PROGRESS pending complete master release gates; no gameplay, weapon, Bomb, maps, UI or FPS instrumentation changes.
+
 ## 2026-10-31 WIB — M7 follow-up browser QA reviewed (final gate remains open)
 
 - Analyzed a second owner-provided opt-in browser JSON (mixed TDM + Bomb). Confirmed **2,264 BOT-fired projectiles / 369 character hits = 16.30%**: TDM **233/1,757 (13.26%)**, Bomb **136/507 (26.82%)**. Shotgun at 30+ units **126 pellets / 1 character hit** across modes; no gameplay tuning approved or performed.
