@@ -447,7 +447,9 @@ function selectGameMap(bombActive){
     if(town){
       if(!BLOCK_TOWN_WORLD)makeBlockTown();
       else{Array.prototype.push.apply(OB,BLOCK_TOWN_OB);Array.prototype.push.apply(BR,BLOCK_TOWN_BR);Array.prototype.push.apply(LT,BLOCK_TOWN_LT);}
-      S.background=new T.Color(0xa7cde0);S.fog=new T.Fog(0xa7cde0,54,170);
+      var visibility=BLOCK_TOWN_DEF.visibility;
+      S.background=new T.Color(visibility.haze);
+      S.fog=new T.Fog(visibility.haze,visibility.near,visibility.far);
     }else{
       if(!BOMB_WORLD)makeBombMap();
       else{Array.prototype.push.apply(OB,BOMB_OB);Array.prototype.push.apply(BR,BOMB_BR);Array.prototype.push.apply(LT,BOMB_LT);}
@@ -499,6 +501,10 @@ var BLOCK_TOWN_DEF=Object.freeze({
  perimeter:Object.freeze({height:9.5,thickness:1.2,color:0x71818b,skylineOffset:3.6,
    facadeDepth:3.4,facadeSpacing:18,facadeMinHeight:12,facadeHeightStep:2.4}),
  spawnLook:Object.freeze({police:[-69,-72],terrorist:[45,45]}),
+ // Render/view limit is map-only; weapon damage, projectile travel and other
+ // maps retain their authoritative rules. All real 3D cover is tested below.
+ visibility:Object.freeze({near:30,far:70,haze:0xa7c9d6,eyeHeight:1.7,
+   auditGrid:3,auditDegrees:6}),
  palette:Object.freeze({
    road:0x59636a,stone:0xc3b9a6,walk:0x908b7e,curb:0xa4a29a,
    plaster:[0xc49c74,0xa8b3ac,0xd2b59b,0x99b3bf,0xb5a19a,0xc2b17b,0x8da8a0],
@@ -547,6 +553,50 @@ var BLOCK_TOWN_DEF=Object.freeze({
   [-62,17,11,24,1],[68,49,17,12,1],[47,71,18,10,1]
  ]),
  streetMarks:Object.freeze([[-56,-34,1,8],[-44,42,1,8],[2,-41,1,9],[67,17,1,8],[40,52,8,1]]),
+ // Measured V4 sightline occluders, not a runtime camera/weapon range hack.
+ // Each [name,x,z,w,d,h] is a 3m+ physical OBJ/OB solid. Staggered footprints
+ // allow clean routes around the obstacle while blocking long street vistas.
+ // Test grid: 3 world-unit sample spacing, 6-degree rays from eyeHeight=1.7;
+ // physical line-of-sight at the sampled positions cannot exceed far=70.
+ sightlineBreakers:Object.freeze([
+  ["north-freight",-25,-69,12,8,3.6],
+  ["north-cabinet",16,-64,9,8,3],
+  ["west-cabinet",-67,0,9,10,3],
+  ["west-parked",-65.5,54,10,9,3],
+  ["south-freight",-20,70,10,8,3.6],
+  ["south-cabinet",16,72,9,12,3],
+  ["east-van",72,33,8,10,3],
+  ["east-box",71,-52,8,9,3],
+  ["center-utility",0,-47,9,8,3.6],
+  ["east-mid",47,8,9,8,3],
+  ["north-west",-70,-68,7,7,3],
+  ["lowerwest-utility",-56,67,8,8,3],
+  ["center-south",-4,51,12,14,3.6],
+  ["mid-center",6,33,6,8,3],
+  ["mid-split",7,-4,6,8,3],
+  ["mid-north",4,-28,6,8,3],
+  ["north-cargo",-39,-73,8,7,3.6],
+  ["north-cross",24,-55,8,7,3],
+  ["mid-yard",24,12,7,6,3],
+  ["west-yard",-44,12,7,6,3],
+  ["north-service",-6,-65,8,7,3.6],
+  ["lower-mid",1,14,6,7,3],
+  ["mid-east-knife",42,-30,8,8,3],
+  ["mid-east-gap",23,5,9,10,3],
+  ["west-corner",-75,-12,5,9,3.6],
+  ["west-south-blind",-33,16,6,11,3],
+  ["west-northgate",-53,-73,8,7,3],
+  ["south-westgate",-22,75,9,5,3],
+  ["north-site-shield",34,-60,9,16,3.6],
+  ["mid-close",4,-20,7,7,3],
+  ["east-outlet",65,33,7,8,3],
+  ["center-split",-1,-12,6,8,3],
+  ["west-inner-gate",-68,-11,9,8,3.6],
+  ["southeast-rotate",47,49,8,8,3],
+  ["east-inlet",29,-23,8,8,3],
+  ["north-mid-cab",44,-46,7,8,3],
+  ["west-rail",-47,47,8,7,3.6]
+ ]),
  // Site A commercial loading and B-side service alley landmarks: both are
  // collidable, registered cover and use original Lambert-material primitives.
  landmarks:Object.freeze([
@@ -757,6 +807,58 @@ function makeBlockTown(){
    }else{ // 1.3m masonry traffic barricade, not a full concrete block
      detail(w+.13,.12,dep+.15,c.frame,x,h+.05,z);
      detail(w-.2,.16,.095,0xe3af69,x,h*.65,z+dep/2+.058);
+   }
+ });
+ // Staggered town cover is not decorative camouflage: every body uses wl()/OB,
+ // which controls bullets, player collision and BOT A*. The varying upper
+ // architecture is rendered in original batched Lambert materials (dk()).
+ d.sightlineBreakers.forEach(function(q,i){
+   var name=q[0],x=q[1],z=q[2],w=q[3],dep=q[4],h=q[5],
+       type=i%5,body=type===0?0x566975:type===1?0x647780:
+         type===2?0xa08b79:type===3?0x72807d:0x5a7867,
+       trimCol=type===2?c.frame:type===4?c.foliage:c.metal;
+   wall(x,z,w,dep,h,body);
+   // Perimeter panels are offset in depth to avoid coplanar surfaces/flicker.
+   detail(w+.16,.18,dep+.16,shade(body,.74),x,.11,z);
+   if(type===0){
+     // Delivery van/mini-bus, visually long but physically one solid vehicle.
+     detail(w+.27,.20,dep+.22,0x2a3944,x,h+.10,z);
+     detail(w*.30,.43,dep+.14,c.glass,x-w*.24,h-.28,z);
+     for(var side=-1;side<=1;side+=2){
+       detail(w*.56,.34,.09,0x2b4654,x+w*.05,h*.64,z+side*(dep/2+.065));
+       for(var axle=-1;axle<=1;axle+=2){
+         detail(.76,.92,.17,0x262d31,x+axle*w*.32,.47,z+side*(dep/2+.10));
+         detail(.32,.32,.19,0xaab4b6,x+axle*w*.32,.47,z+side*(dep/2+.20));
+       }
+       detail(w*.48,.14,.10,c.accent,x,h*.36,z+side*(dep/2+.08));
+     }
+   }else if(type===1){
+     // City electrical substation / HVAC utility cabinet.
+     detail(w+.22,.20,dep+.20,0x334953,x,h+.06,z);
+     detail(w*.66,1.22,.11,0x354956,x,h*.60,z+dep/2+.09);
+     for(var j=-2;j<=2;j++)
+       detail(w*.50,.075,.12,c.frame,x,h*.60+j*.16,z+dep/2+.16);
+     detail(.42,.42,.12,0xe5b35f,x+w*.28,h*.44,z+dep/2+.16);
+   }else if(type===2){
+     // Brick-sided roadwork storage pod with an overhead safety awning.
+     detail(w+.34,.24,dep+.34,0x765446,x,h+.12,z);
+     detail(w*.76,h*.45,.11,0x504843,x,h*.56,z+dep/2+.08);
+     for(var j=-1;j<=1;j++)detail(w*.19,.19,.13,c.accent,x+j*w*.26,h*.58,z+dep/2+.17);
+     detail(w*.92,.18,.55,0x384954,x,h*.89,z+dep/2+.26);
+   }else if(type===3){
+     // Town security cabin / roadside maintenance kiosk.
+     detail(w+.55,.22,dep+.48,0x314c54,x,h+.16,z);
+     detail(w*.64,h*.32,.10,c.glass,x,h*.58,z+dep/2+.08);
+     detail(.12,h*.35,dep*.57,c.frame,x+w/2+.09,h*.54,z);
+     detail(w*.66,.16,.35,c.wood,x,h*.35,z+dep/2+.22);
+     detail(w*.42,.47,.12,0xe2bc71,x,h+.45,z+dep/2+.08);
+   }else{
+     // Dense civic hedge / solid planting island as tall visual LOS breaker.
+     detail(w+.25,.26,dep+.22,c.stone,x,h*.23,z);
+     detail(w-.24,h*.62,dep-.24,c.foliage,x,h*.67,z);
+     for(var j=-2;j<=2;j++)
+       detail(w*.12,.32,dep*.37,j%2?c.foliage2:c.foliage,
+         x+j*w*.15,h+.12,z+(j%2?-.14:.14));
    }
  });
  // Recognizable, useful urban cover. Exact bounding volumes are defined in
