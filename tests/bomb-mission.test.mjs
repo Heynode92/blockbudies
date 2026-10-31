@@ -338,6 +338,13 @@ test('Block Town rendering avoids coplanar pavement, repeated plain-box facades 
  assert.ok(c.visualDetails.length>300,'architectural window, shopfront, roof and urban prop detailing exists');
  assert.ok(c.OB.length>=c.BLOCK_TOWN_DEF.buildings.length+c.BLOCK_TOWN_DEF.cover.length,
   'every solid urban structure is physical gameplay collision');
+ c.BLOCK_TOWN_DEF.cover.forEach(function(p,i){
+  const solid=c.OB.find(o=>Math.abs(o.x-p[0])<.001&&Math.abs(o.z-p[1])<.001);
+  assert.ok(solid,'cover collision body exists at '+p);
+  assert.equal(solid.hw,p[2]/2,'cover width is unchanged');
+  assert.equal(solid.hd,p[3]/2,'cover depth is unchanged');
+  assert.equal(solid.h,i%2===0?2.4:1.3,'visual-only restyling preserves the original cover height');
+ });
  c.selectGameMap(false);
  assert.equal(grid.visible,true,'TDM GridHelper restored after leaving Bomb Mode');
 });
