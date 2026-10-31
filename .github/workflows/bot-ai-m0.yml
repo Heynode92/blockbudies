@@ -38,3 +38,5 @@ jobs:
         run: node tools/bot-ai-m0-baseline.mjs
       - name: Measure seeded BOT update CPU time (not browser FPS)
         run: node tools/bot-ai-m0-performance.mjs
+      - name: Verify M7 multi-seed TDM/Bomb fairness and reproducibility (synthetic only)
+        run: node tools/bot-ai-m7-scenarios.mjs
