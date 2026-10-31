@@ -7,6 +7,7 @@ const root = resolve(import.meta.dirname, '..');
 const mapSource=readFileSync(resolve(root,'src/game/11-bomb-map.js'),'utf8');
 const townSource=readFileSync(resolve(root,'src/game/12-block-town.js'),'utf8');
 const labsSource=readFileSync(resolve(root,'src/game/13-block-labs.js'),'utf8');
+const hospitalSource=readFileSync(resolve(root,'src/game/14-hospital.js'),'utf8');
 const missionSource=readFileSync(resolve(root,'src/game/86-bomb-mission.js'),'utf8');
 const tacticsSource=readFileSync(resolve(root,'src/game/87-bomb-tactics.js'),'utf8');
 const perceptionSource=readFileSync(resolve(root,'src/game/88-bot-perception.js'),'utf8');
@@ -49,7 +50,7 @@ function makeContext(){
     inObs(x,z,m){return ctx.OB.some(o=>Math.abs(x-o.x)<o.hw+(m||0)&&Math.abs(z-o.z)<o.hd+(m||0));},
     reset(){},startMatch(){},endMatch(){ctx.mt.over=true;}
   };
-  runInNewContext(mapSource+'\n'+townSource+'\n'+labsSource+'\n'+missionSource+'\n'+perceptionSource+'\n'+intelligenceSource+'\n'+tacticsSource+'\n'+cameraSource,ctx);
+  runInNewContext(mapSource+'\n'+townSource+'\n'+labsSource+'\n'+hospitalSource+'\n'+missionSource+'\n'+perceptionSource+'\n'+intelligenceSource+'\n'+tacticsSource+'\n'+cameraSource,ctx);
   ctx.selectedGameMode=1;
   return ctx;
 }
@@ -570,4 +571,69 @@ test('Block Town V4 limits sampled eye-height geometric LOS to 70 units via real
  assert.ok(c.S.fog.far!==70,'Block Town visibility must not leak to Lockdown');
  c.selectGameMap(false);
  assert.ok(c.S.fog===c.BOMB_FOG,'original Deathmatch fog restored');
+});
+
+
+test('Hospital blueprint registers as an indoor 160x160 Bomb map with real physical wards and props',()=>{
+ const c=makeContext(),oldOb=c.OB.slice(),oldSky=c.S.fog;
+ assert.equal(c.bombMapId('hospital'),'hospital');
+ assert.equal(c.bombMapId('hospital/../bad'),'lockdown');
+ assert.equal(c.bombMapOptions(1).map(x=>x.id).join(','),'lockdown,block-town,hospital');
+ c.selectedBombMapId='hospital';
+ c.selectGameMap(true);
+ assert.equal(c.A,80);
+ assert.equal(c.BOMB_SITES[0].id,'A');assert.equal(c.BOMB_SITES[0].x,67);assert.equal(c.BOMB_SITES[0].z,-43);
+ assert.equal(c.BOMB_SITES[1].id,'B');assert.equal(c.BOMB_SITES[1].x,-67);assert.equal(c.BOMB_SITES[1].z,10);
+ assert.ok(c.HOSPITAL_WORLD.length>20);
+ assert.equal(c.HOSPITAL_DEF.wings.length,14);
+ assert.equal(c.HOSPITAL_DEF.furniture.length,20);
+ assert.equal(c.HOSPITAL_DEF.halfSize,80);
+ assert.ok(c.HOSPITAL_LT.some(x=>x.hw===80&&x.hd===80&&x.y0>10),'hospital has a physical ceiling');
+ for(const b of c.HOSPITAL_DEF.wings){
+   assert.ok(c.OB.some(o=>o.x===b[0]&&o.z===b[1]&&o.hw===b[2]/2&&o.hd===b[3]/2),
+     'each blueprint white room block must be physically solid '+b);
+ }
+ for(const p of c.HOSPITAL_DEF.furniture){
+   assert.ok(c.OB.some(o=>o.x===p[1]&&o.z===p[2]&&
+     o.hw===p[3]/2&&o.hd===p[4]/2&&o.h===p[5]),
+     'every clinical cover prop must have a real collider '+p[0]);
+ }
+ for(const site of c.BOMB_SITES)
+   assert.equal(c.inObs(site.x,site.z,3.1),false,'both Bomb plant circles must be clear of clinical props '+site.id);
+ const groups=[c.HOSPITAL_DEF.spawns.police,c.HOSPITAL_DEF.spawns.terrorist];
+ assert.equal(groups[0].length,5);assert.equal(groups[1].length,5);
+ for(const point of groups.flat())
+   assert.equal(c.inObs(point[0],point[1],.85),false,'all ten spawn slots must be safe');
+ for(const p of groups[0])for(const q of groups[1]){
+   let blocked=false;const n=Math.ceil(Math.hypot(p[0]-q[0],p[1]-q[1])/.5);
+   for(let i=1;i<n;i++){
+     const r=i/n;
+     if(c.inObs(p[0]+(q[0]-p[0])*r,p[1]+(q[1]-p[1])*r,.02)){blocked=true;break;}
+   }
+   assert.ok(blocked,'opposing Hospital spawns cannot shoot each other through corridors');
+ }
+ runInNewContext(navSource,c);
+ for(const p of groups.flat())for(const site of c.BOMB_SITES){
+   const path=c.gPath(p[0],p[1],site.x,site.z);
+   assert.ok(path&&path.length>0,'production A* path exists from '+p+' to Hospital site '+site.id);
+ }
+ for(const team of [0,1]){
+   const look=team?c.HOSPITAL_DEF.spawnLook.terrorist:c.HOSPITAL_DEF.spawnLook.police;
+   for(const p of groups[team]){
+     const yaw=c.bombMapSpawnYaw(team,p[0],p[1]),dx=look[0]-p[0],dz=look[1]-p[1];
+     assert.ok(Math.cos(yaw)*dz+Math.sin(yaw)*dx>0,'spawns face interior medical corridors');
+   }
+ }
+ const clinicalOb=c.HOSPITAL_OB.length;
+ c.selectedBombMapId='block-town';c.selectGameMap(true);
+ assert.ok(c.HOSPITAL_WORLD.every(m=>!m.visible),'Hospital hidden when switching to Block Town');
+ assert.equal(c.BOMB_SITES[0].x,55);
+ c.selectedBombMapId='lockdown';c.selectGameMap(true);
+ assert.equal(c.BOMB_SITES[0].x,-25);
+ assert.ok(c.HOSPITAL_WORLD.every(m=>!m.visible),'Hospital hidden in Lockdown');
+ c.selectGameMap(false);
+ assert.deepEqual(c.OB,oldOb,'Deathmatch original physical map restored');
+ c.selectedBombMapId='hospital';c.selectGameMap(true);
+ assert.equal(c.OB.length,clinicalOb,'Hospital reuses only its own cached obstacles');
+ assert.equal(c.HOSPITAL_WORLD.every(m=>m.visible),true);
 });
