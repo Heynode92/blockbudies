@@ -53,14 +53,19 @@ if(botQaEnabled){
         });
         sides.forEach(function(group,t){group.forEach(function(p){
           var yaw=bombMapSpawnYaw(t,p[0],p[1]),
-              site=BOMB_MAP_REGISTRY["block-town"].sites[0],
-              target=t?BLOCK_TOWN_DEF.spawnLook.terrorist:[site.x,site.z],
+              target=t?BLOCK_TOWN_DEF.spawnLook.terrorist:BLOCK_TOWN_DEF.spawnLook.police,
               dx=target[0]-p[0],dz=target[1]-p[1];
           if((Math.sin(yaw)*dx+Math.cos(yaw)*dz)/Math.hypot(dx,dz)<.99)
             throw Error('BLOCK TOWN spawn faces outward: '+t+' '+p);
         });});
         if(Math.abs(pl.face-bombMapSpawnYaw(team,pl.x,pl.z))>.001)
           throw Error('BLOCK TOWN player initial camera yaw does not match map interior');
+        if(BOMB_SITES[0].x!==55||BOMB_SITES[0].z!==-58||
+           BOMB_SITES[1].x!==-16||BOMB_SITES[1].z!==8)
+          throw Error('BLOCK TOWN failed to activate newest blueprint site anchors');
+        if(!sides[0].every(function(p){return p[0]<-65&&p[1]<-25;})||
+           !sides[1].every(function(p){return p[0]>40&&p[1]>65;}))
+          throw Error('BLOCK TOWN Police WEST or Terrorist SOUTH-EAST spawn differs from blueprint');
         mapChecks={routes:routes.length,clearSpawnSightlinePairs:clearPairs,
           perimeterWalls:shells.length,playerSpawnFacing:pl.face,sites:BOMB_SITES.map(function(q){return q.id;})};
       }
