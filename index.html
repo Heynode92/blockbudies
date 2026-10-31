@@ -40,15 +40,21 @@
  <header class="home-global-header" aria-label="Blok Buddies main menu header">
   <span class="home-header-chevron" aria-hidden="true"></span>
   <div class="home-global-brand">
-   <div class="lt" aria-label="Blok Buddies"><span class="home-brand-blok">BLOK</span> <span class="home-brand-buddies">BUDDIES</span></div>
-   <div class="home-meta" aria-label="FPS, 5 versus 5 Police versus Terrorist"><span>FPS</span><i aria-hidden="true"></i><span>5V5</span><i aria-hidden="true"></i><span>POLICE VS TERRORIST</span></div>
+    <div class="home-wordmark" aria-label="Blok Buddies"><span class="home-brand-blok">BLOK</span><span class="home-brand-buddies">BUDDIES</span></div>
+    <div class="home-meta" aria-label="FPS, 5 versus 5 Police versus Terrorist"><span>FPS</span><i aria-hidden="true"></i><span>5V5</span><i aria-hidden="true"></i><span>POLICE VS TERRORIST</span></div>
   </div>
-  <div class="home-top-actions" aria-label="Player account and controls">
-   <div class="lbest"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h10v6a5 5 0 0 1-10 0V3Z"/><path d="M7 6H4v3a4 4 0 0 0 4 4m9-7h3v3a4 4 0 0 1-4 4M12 14v5m-4 2h8"/></svg><div class="home-best-value"><span>PERSONAL BEST</span><b id="lbbest">0</b></div></div>
-   <button id="homeWalletConnect" type="button" aria-label="Connect wallet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M6 6V4a2 2 0 0 1 2-2h10v4M15 11h6v5h-6a2.5 2.5 0 0 1 0-5Z"/><path d="M16 13.5h.01"/></svg><span id="homeWalletLabel">CONNECT WALLET</span></button>
-
+  <div class="home-top-actions" aria-label="PBT and wallet controls">
+    <div class="home-pbt-wrap">
+      <div class="home-pbt" aria-label="PBT token interface, coming soon">
+        <span class="home-pbt-coin" aria-hidden="true">P</span>
+        <span class="home-pbt-amount"><small>PBT</small><strong>0.00</strong></span>
+        <button id="homePbtAdd" class="home-pbt-add" type="button" aria-label="PBT token information" title="PBT coming soon">+</button>
+      </div>
+      <div id="homePbtNotice" class="home-pbt-notice" role="status" hidden>PBT TOKEN · COMING SOON</div>
+    </div>
+    <button id="homeWalletConnect" type="button" aria-label="Connect wallet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M6 6V4a2 2 0 0 1 2-2h10v4M15 11h6v5h-6a2.5 2.5 0 0 1 0-5Z"/><path d="M16 13.5h.01"/></svg><span id="homeWalletLabel">CONNECT WALLET</span></button>
   </div>
- </header>
+</header>
  <div class="lbl">
   <section class="home-demo" aria-label="Official gameplay previews">
    <header class="home-demo-header"><span class="home-demo-live"><i></i> GAMEPLAY SHOWCASE</span><span id="homeDemoCounter">01 / 02</span></header>
