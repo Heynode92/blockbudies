@@ -337,6 +337,18 @@ body.lobby:has(#lbrooms.on) #gl {filter:brightness(.83) saturate(1.12);}
 }
 #lbrooms .room-config-side .room-fixed-size b {font-size:22px;}
 #lbrooms .room-config-side .room-fixed-size small {font-size:13px;}
+#lbrooms .room-create-master-hint {
+  display:flex;flex-direction:column;gap:4px;flex:0 0 auto;
+  box-sizing:border-box;padding:10px 13px;
+  border:1px solid rgba(210,138,61,.4);border-radius:4px;
+  background:linear-gradient(110deg,rgba(80,51,22,.27),rgba(10,29,50,.7));
+}
+#lbrooms .room-create-master-hint strong {
+  color:#ffad57;font:900 13px/1.2 Rajdhani,sans-serif;letter-spacing:.12em;
+}
+#lbrooms .room-create-master-hint span {
+  color:#b1c4d7;font:800 11px/1.2 Rajdhani,sans-serif;letter-spacing:.05em;
+}
 #lbrooms .room-config-side .room-master-status {
   flex:0 0 auto;
 }
