@@ -37,7 +37,9 @@ Spawn points are predeclared, individually validated against physical colliders 
 
 **Acceptance rules before marking Block Town browser-verified:** both Town Chromium jobs must pass; no runtime exception; all 10+10 canonical Bomb rounds must complete; zero invalid spawn / direct-spawn LOS / path-to-sites errors; Lockdown jobs must continue to pass, and \`assets/game.js\` must remain byte-for-byte parity with manifest. All other M7 Final Release performance and quantitative acceptance requirements remain separately open.
 
-**Status:** IMPLEMENTED and **NODE REGRESSION VERIFIED**. Browser validation must be recorded from its actual completed run, not assumed. Layout is a first playable outdoor iteration, not a claim of competitive map balance or finalized dressing.
+**Browser evidence on [M7 map matrix #21](https://github.com/Heynode92/blockbudies/actions/runs/41186755403):** Both **Block Town** Windows Chromium jobs individually completed **SUCCESS**, each with **10/10 authoritative Bomb round finishes** and **0 reported browser JavaScript errors**. Police-player-slot scenario: Police 6 / Terrorist 4 wins, planted-at-finish 4 (Site A 2, B 2). Terrorist-player-slot scenario: Police 8 / Terrorist 2 wins, planted-at-finish 3 (Site A 0, B 3). Both passed the pre-match live-map validation of ten spawn coordinates, all 25 opposing-team start sightlines, A/B plant-center clearance and A* paths between every team spawn and both sites. This is **accelerated functional coverage**, not proof of map balance; it includes a small sample where Police won more rounds. The two separate 50-round Lockdown jobs in the same run were still in progress at the time of this document checkpoint.
+
+**Status:** IMPLEMENTED; **NODE REGRESSION VERIFIED (375/375 PASS)**; **BLOCK TOWN BROWSER FUNCTIONAL SMOKE VERIFIED (10/10 per team)**. Full combined matrix #21 status needs the separate Lockdown jobs to conclude. CI software WebGL performance remains **NOT_CERTIFIED** due unpaired, insufficient frame sampling; no competitive map balance, full performance release, or M7 FINAL approval is claimed.
 
 ## Maintainer constraints
 
