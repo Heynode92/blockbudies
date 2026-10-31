@@ -290,14 +290,16 @@ test('indoor architectural walls and framed passages have real physical anchors'
 
 test('Block Town outdoor 160x160 has separated A-side Police spawns and accessible A/B routes',()=>{
  const c=makeContext();c.selectedBombMapId='block-town';c.selectGameMap(true);
- assert.equal(c.A,80);assert.equal(c.BOMB_SITES[0].id,'A');assert.equal(c.BOMB_SITES[0].x,-44);
- assert.equal(c.BOMB_SITES[1].id,'B');assert.ok(c.BOMB_SITES[1].x>0);
+ assert.equal(c.A,80);assert.equal(c.BOMB_SITES[0].id,'A');assert.equal(c.BOMB_SITES[0].x,55);
+ assert.equal(c.BOMB_SITES[1].id,'B');assert.equal(c.BOMB_SITES[1].x,-16);
  const police=c.BLOCK_TOWN_DEF.spawns.police,terror=c.BLOCK_TOWN_DEF.spawns.terrorist;
  assert.equal(police.length,5);assert.equal(terror.length,5);
  for(const p of police.concat(terror))assert.equal(c.inObs(p[0],p[1],.85),false,'spawn is collision-free '+p);
  for(const site of c.BOMB_SITES)assert.equal(c.inObs(site.x,site.z,1),false,'plant center is clear');
- assert.ok(police.every(p=>p[0]<c.BOMB_SITES[0].x&&p[1]<c.BOMB_SITES[0].z),
-   'Police deploy immediately on A-side, not facing the southern Terrorist spawn');
+ assert.ok(police.every(p=>p[0]<-65&&p[1]<-25),'Police starts at WEST-NORTH purple spawn');
+ assert.ok(terror.every(p=>p[0]>40&&p[1]>65),'Terrorists start at SOUTH-EAST red spawn');
+ assert.ok(c.BOMB_SITES[0].x>40&&c.BOMB_SITES[0].z<-40,'A site is NORTH-EAST');
+ assert.ok(c.BOMB_SITES[1].x<0&&c.BOMB_SITES[1].z>0,'B site is CENTRAL-SOUTH');
  for(const p of police)for(const q of terror){
   let blocked=false,steps=Math.ceil(Math.hypot(q[0]-p[0],q[1]-p[1])/.5);
   for(let k=1;k<steps;k++){
@@ -320,7 +322,7 @@ test('Block Town outdoor 160x160 has separated A-side Police spawns and accessib
  assert.ok(c.BOMB_WORLD.length>100);
  assert.ok(c.BLOCK_TOWN_WORLD.every(o=>o.visible===false));
  c.selectedBombMapId='block-town';c.selectGameMap(true);
- assert.equal(c.BOMB_SITES[0].x,-44);
+ assert.equal(c.BOMB_SITES[0].x,55);
  assert.ok(c.BOMB_WORLD.every(o=>o.visible===false));
  assert.equal(c.OB.length,c.BLOCK_TOWN_OB.length,'restores only Block Town collision snapshot');
 });
@@ -379,10 +381,10 @@ test('Block Town owns a four-sided solid boundary and skyline while TDM and Lock
  assert.deepEqual(c.OB,oldCity,'TDM original arena collision is restored exactly');
 });
 test('Block Town spawn orientation faces interior objective rather than empty outer boundary',()=>{
- const c=makeContext(),def=c.BLOCK_TOWN_DEF,site=c.BOMB_MAP_REGISTRY['block-town'].sites[0];
+ const c=makeContext(),def=c.BLOCK_TOWN_DEF;
  c.selectedGameMode=1;c.selectedBombMapId='block-town';c.selectGameMap(true);
  for(const tm of [0,1]){
-   const goal=tm?def.spawnLook.terrorist:[site.x,site.z],
+   const goal=tm?def.spawnLook.terrorist:def.spawnLook.police,
      group=tm?def.spawns.terrorist:def.spawns.police;
    for(const pt of group){
      const yaw=c.bombMapSpawnYaw(tm,pt[0],pt[1]);
@@ -459,4 +461,40 @@ test('Block Labs preserves old TDM orientation and physical respawn handling els
  const source=readFileSync(resolve(root,'src/game/85-lobby-and-match.js'),'utf8');
  assert.match(source,/if\(tdmMapId\(selectedTdmMapId\)==="block-labs"\)return labsSpawnPt\(tm\)/);
  assert.match(source,/pl\.face=bombMapSpawnYaw\(tm,pl\.x,pl\.z\)/);
+});
+
+test('Block Town V3 obeys owner blueprint anchors and offers connected, broken-sightline streets',()=>{
+ const c=makeContext();
+ c.selectedBombMapId='block-town';c.selectGameMap(true);
+ const d=c.BLOCK_TOWN_DEF;
+ assert.equal(d.halfSize,80,'original 160x160 Bomb footprint retained');
+ assert.equal(d.buildings.length,15,'illustrated 15 irregular white building masses are real');
+ assert.equal(d.cover.length,15,'urban cover islands protect long exterior streets');
+ for(const point of d.spawns.police.concat(d.spawns.terrorist))
+   assert.equal(c.inObs(point[0],point[1],.9),false,'every configured spawn is outside solids');
+ for(const site of c.BOMB_SITES)
+   assert.equal(c.inObs(site.x,site.z,3.1),false,'planting circle stays entirely usable: '+site.id);
+ // Conservative per-projectile ray proxy with the SAME OB collision rectangles as gameplay.
+ function occluded(a,b){
+   const n=Math.ceil(Math.hypot(a[0]-b[0],a[1]-b[1])/.5);
+   for(let i=1;i<n;i++){
+     const t=i/n;
+     if(c.inObs(a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,.02))return true;
+   }
+   return false;
+ }
+ for(const p of d.spawns.police)for(const q of d.spawns.terrorist)
+   assert.equal(occluded(p,q),true,'no direct spawn-vs-spawn sniping corridor');
+ runInNewContext(navSource,c);
+ for(const p of d.spawns.police.concat(d.spawns.terrorist)){
+   for(const site of c.BOMB_SITES){
+     const route=c.gPath(p[0],p[1],site.x,site.z);
+     assert.ok(route&&route.length,'both objectives accessible from '+p+' to '+site.id);
+   }
+ }
+ // Real physical blockers cut the wide east-west center street while leaving
+ // alternate passing routes. Missing/visual-only props would invalidate this.
+ for(const q of d.cover)
+   assert.ok(c.OB.some(o=>o.x===q[0]&&o.z===q[1]&&o.hw===q[2]/2&&o.hd===q[3]/2),
+     'decorative town furniture has genuine projectile/nav collision: '+q);
 });
