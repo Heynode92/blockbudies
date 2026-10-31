@@ -130,3 +130,36 @@ test('M3: all navigation remains behind canonical A-star and resolve, never dire
  assert.doesNotMatch(source,/\.x\s*\+=|\.z\s*\+=/);
  assert.match(read('src/game/85-lobby-and-match.js'),/botMoveReset\(b\)/);
 });
+
+test('M3: real A-star grid routes around obstacle walls without cutting corners',()=>{
+ const nav=read('src/game/90-bot-ai.js');
+ const prefix=nav.slice(0,nav.indexOf('// botsUpd(dt)'));
+ const c={Math,Uint8Array,Float32Array,Int32Array,A:12,
+   isBombMode:()=>false,
+   inObs(x,z,r){return Math.abs(x)<1.6+r&&Math.abs(z)<2.5+r;}};
+ vm.createContext(c);vm.runInContext(prefix,c);
+ const route=c.gPath(-8,0,8,0);
+ assert.ok(route&&route.length>1,'A-star must find a route around a solid wall');
+ let prev=[-8,0];
+ for(const next of route){
+  const length=Math.hypot(next[0]-prev[0],next[1]-prev[1]);
+  const count=Math.max(1,Math.ceil(length/.25));
+  for(let i=1;i<=count;i++){
+   const x=prev[0]+(next[0]-prev[0])*i/count;
+   const z=prev[1]+(next[1]-prev[1])*i/count;
+   assert.equal(c.inObs(x,z,.15),false,'A-star waypoint segment may not cross the solid obstacle');
+  }
+  prev=next;
+ }
+});
+test('M3: real A-star unreachable goal fails closed with no direct-wall fallback',()=>{
+ const nav=read('src/game/90-bot-ai.js');
+ const prefix=nav.slice(0,nav.indexOf('// botsUpd(dt)'));
+ const c={Math,Uint8Array,Float32Array,Int32Array,A:8,
+   isBombMode:()=>false,
+   inObs(){return true;}};
+ vm.createContext(c);vm.runInContext(prefix,c);
+ const e={x:0,z:0};
+ c.botPath(e,5,5);
+ assert.equal(e.path.length,0,'unreachable A-star target cannot become direct movement');
+});
