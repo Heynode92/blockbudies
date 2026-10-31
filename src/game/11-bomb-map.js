@@ -267,7 +267,9 @@ function selectGameMap(bombActive){
     if(town){
       if(!BLOCK_TOWN_WORLD)makeBlockTown();
       else{Array.prototype.push.apply(OB,BLOCK_TOWN_OB);Array.prototype.push.apply(BR,BLOCK_TOWN_BR);Array.prototype.push.apply(LT,BLOCK_TOWN_LT);}
-      S.background=new T.Color(0xa7cde0);S.fog=new T.Fog(0xa7cde0,54,170);
+      var visibility=BLOCK_TOWN_DEF.visibility;
+      S.background=new T.Color(visibility.haze);
+      S.fog=new T.Fog(visibility.haze,visibility.near,visibility.far);
     }else{
       if(!BOMB_WORLD)makeBombMap();
       else{Array.prototype.push.apply(OB,BOMB_OB);Array.prototype.push.apply(BR,BOMB_BR);Array.prototype.push.apply(LT,BOMB_LT);}
