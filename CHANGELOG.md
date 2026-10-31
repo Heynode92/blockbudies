@@ -1,3 +1,12 @@
+## 2026-10-31 — Cinematic Create Room UI and animated registry map selection
+- Redesigned the **Create Room overlay only** into a responsive two-column FPS configuration: left live **Map Recon** display, registered map choices, and map dropdown; right room name, existing TDM/Bomb mode switches, kill/time or round/time settings, player information, and local Room Master identity. The original Create Room/Room Master controls remain in a persistent bottom footer.
+- Populated selectable map cards from the existing authoritative `tdmMapOptions()` / `bombMapOptions(1)` registries. Actual available maps: Block District and Block Labs (TDM); Lockdown, Block Town, and Hospital (Bomb). No imaginary Dockyard/Sandtown levels or unsupported maps were introduced.
+- Kept **the active selected map animated from the existing Three.js world**. The current 2D map canvas receives rendered frames at the established 30 FPS cap; the selected card mirrors that same real canvas. Changing a map or mode uses `roomModeSelect()` / `roomChooseMap()` / `modePreviewSelect()` so the rendered camera and canonical scene change immediately, without additional WebGL instances.
+- Paused the hidden Create Room canvas copies when the overlay is closed or the browser tab is hidden; lobby's real Block District background and all match previews remain intact.
+- Preserved room creation validation, local room storage, map ID whitelists, kill/time limits, room-master waiting room, inventory/shop navigation, BOT logic, shared DeFi header, and the existing in-game header-hiding behavior.
+- Added registry-map click tests and independent 30 FPS animation/frame-pacing tests. Updated direct-open `assets/game.js` to stay aligned with `src/game/83-room-lobby.js` and `src/game/84-live-map-preview.js`.
+- Visual/browser inspection remains a separate step from CI; no graphics assets were generated or altered.
+
 ## 2026-10-31 — Expanded Room Browser and tactical quick-access footer
 - Expanded **Available Rooms** to occupy the main right column of the pre-match Room Lobby, retaining saved-room list, refresh, row actions, empty state, and true offline-room status.
 - Replaced only the Room Browser's offline Public Chat card with a compact FPS-style **INVENTORY / SHOP / SETTINGS** bottom navigation strip. Public Chat in Room Master remains unchanged.
