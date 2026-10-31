@@ -1,5 +1,5 @@
 // =====================================================================================
-// BLOCK BUDDIES FPS - modular source, bundled browser IIFE (Three.js r128)
+// POINT BLOCK FPS - modular source, bundled browser IIFE (Three.js r128)
 // =====================================================================================
 // READ THIS FIRST (notes for humans and for future AI edits). Everything below is ONE IIFE.
 // Do not invent APIs: browser runtime uses Three.js r128 + native APIs; ordered sources are bundled with tools/build.mjs.
