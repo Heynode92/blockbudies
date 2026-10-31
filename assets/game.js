@@ -431,10 +431,15 @@ function makeBombMap(){
 // Every map owns immutable geometry snapshots. Map swaps invalidate BOT pathfinding.
 function selectGameMap(bombActive){
   var id=bombActive?bombMapId(selectedBombMapId):"lockdown",
-      town=bombActive&&id==="block-town";
-  BOMB_CITY.forEach(function(m){m.visible=!bombActive;});
+      town=bombActive&&id==="block-town",
+      labs=!bombActive&&tdmMapId(selectedTdmMapId)==="block-labs";
+  BOMB_CITY.forEach(function(m){m.visible=!bombActive&&!labs;});
   if(BOMB_WORLD)BOMB_WORLD.forEach(function(m){m.visible=bombActive&&!town;});
   if(BLOCK_TOWN_WORLD)BLOCK_TOWN_WORLD.forEach(function(m){m.visible=!!town;});
+  if(BLOCK_LABS_WORLD)BLOCK_LABS_WORLD.forEach(function(m){m.visible=!!labs;});
+  // Labs is indoor: hide the outdoor TDM sky dome/clouds but preserve all old maps.
+  if(typeof SKF!=="undefined")SKF.visible=!labs;
+  if(typeof SKW!=="undefined")SKW.visible=!labs;
   OB.length=0;BR.length=0;LT.length=0;
   if(bombActive){
     A=BOMB_RULES.cellSize*BOMB_RULES.cells/2;
@@ -451,8 +456,14 @@ function selectGameMap(bombActive){
   }else{
     A=BOMB_CITY_HALF;
     bombMapSites("lockdown");
-    Array.prototype.push.apply(OB,BOMB_CITY_OB);Array.prototype.push.apply(BR,BOMB_CITY_BR);Array.prototype.push.apply(LT,BOMB_CITY_LT);
-    S.background=BOMB_BACKGROUND;S.fog=BOMB_FOG;
+    if(labs){
+      if(!BLOCK_LABS_WORLD)makeBlockLabs();
+      else{Array.prototype.push.apply(OB,BLOCK_LABS_OB);Array.prototype.push.apply(BR,BLOCK_LABS_BR);Array.prototype.push.apply(LT,BLOCK_LABS_LT);}
+      S.background=new T.Color(0x263642);S.fog=new T.Fog(0x263642,35,115);
+    }else{
+      Array.prototype.push.apply(OB,BOMB_CITY_OB);Array.prototype.push.apply(BR,BOMB_CITY_BR);Array.prototype.push.apply(LT,BOMB_CITY_LT);
+      S.background=BOMB_BACKGROUND;S.fog=BOMB_FOG;
+    }
   }
   GB=null;
 }
@@ -546,7 +557,11 @@ function townSpawnPt(team){
 // Spawn orientation uses the player's canonical yaw convention:
  // ground forward vector = (sin(yaw), cos(yaw)).
 function bombMapSpawnYaw(team,x,z){
- if(!isBombMode()||bombMapId(selectedBombMapId)!=="block-town")return team?0:Math.PI;
+ if(!isBombMode()){
+   if(tdmMapId(selectedTdmMapId)==="block-labs")return labsSpawnYaw(team,x,z);
+   return team?0:Math.PI;
+ }
+ if(bombMapId(selectedBombMapId)!=="block-town")return team?0:Math.PI;
  var def=BLOCK_TOWN_DEF.spawnLook,site=BOMB_MAP_REGISTRY["block-town"].sites.find(function(p){return p.id===def.policeSite;}),
      goal=team?def.terrorist:[site.x,site.z];
  return Math.atan2(goal[0]-x,goal[1]-z);
@@ -772,6 +787,158 @@ function makeBlockTown(){
  flushDeco();
  BLOCK_TOWN_WORLD=S.children.filter(function(o){return before.indexOf(o)<0;});
  BLOCK_TOWN_OB=OB.slice();BLOCK_TOWN_BR=BR.slice();BLOCK_TOWN_LT=LT.slice();
+}
+// BLOCK LABS — data-driven 120x120 indoor Team Deathmatch arena.
+// The owner blueprint is authoritative: Police NORTH, Terrorist SOUTH, six
+// impassable lab blocks, left/center/right lanes, perimeter and green reactors.
+// The map is independent from Block District, Lockdown and Block Town.
+var TDM_MAP_REGISTRY=Object.freeze({
+ "block-district":Object.freeze({id:"block-district",name:"BLOCK DISTRICT",caption:"Outdoor Urban Combat"}),
+ "block-labs":Object.freeze({id:"block-labs",name:"BLOCK LABS",caption:"Indoor Research Facility",
+   preview:Object.freeze({x:-38,y:21,z:30,lookX:0,lookY:2,lookZ:0,fov:72})})
+});
+var selectedTdmMapId="block-district",BLOCK_LABS_WORLD=null,BLOCK_LABS_OB=[],BLOCK_LABS_BR=[],BLOCK_LABS_LT=[];
+function tdmMapId(value){return Object.prototype.hasOwnProperty.call(TDM_MAP_REGISTRY,value)?value:"block-district";}
+function tdmMapInfo(value){return TDM_MAP_REGISTRY[tdmMapId(value)];}
+function tdmMapOptions(){return [TDM_MAP_REGISTRY["block-district"],TDM_MAP_REGISTRY["block-labs"]];}
+var BLOCK_LABS_DEF=Object.freeze({
+ halfSize:60,
+ ceilingHeight:11.7,
+ wallHeight:10.8,
+ palette:Object.freeze({floor:0x4f6069,floorBorder:0x83949c,wall:0xb6c2c8,wallDark:0x435866,
+  white:0xe2e9eb,metal:0x748995,glass:0x2e556d,accent:0x26b99a,
+  light:0xbbeaff,trim:0x293e4b,hazard:0xe4b956,reactor:0x50d76b,
+  police:0x2676d5,terrorist:0xb4393c,ceiling:0x293640}),
+ // x,z,w,d — no holes or fake doors in the 6 massive white blueprint blocks.
+ blocks:Object.freeze([
+   [-19.5,-29,29,24], [19.5,-29,29,24],
+   [-19.5,0,29,16],   [19.5,0,29,16],
+   [-19.5,29,29,24],  [19.5,29,29,24]
+ ]),
+ // Real, grounded green reactor assemblies at the 4 corner corridors and
+ // two mid connectors. Radius must allow navigable clearance in side lanes.
+ reactors:Object.freeze([[-44,-41,3.0],[44,-41,3.0],[-44,41,3.0],[44,41,3.0],[0,-12.5,1.3],[0,12.5,1.3]]),
+ // Walls that project from outer boundary like the brown notches in blueprint.
+ perimeterReturns:Object.freeze([[-55,-12,9,1.4],[-55,25,9,1.4],[55,-14,9,1.4],[55,21,9,1.4]]),
+ spawns:Object.freeze({
+   police:[[-28,-52],[-19,-54],[-10,-52],[18,-54],[28,-52]],
+   terrorist:[[-28,52],[-19,54],[-10,52],[18,54],[28,52]]
+ }),
+ spawnLook:Object.freeze({police:[0,-24],terrorist:[0,24]})
+});
+function labsSpawnPt(team){
+ var slots=team?BLOCK_LABS_DEF.spawns.terrorist:BLOCK_LABS_DEF.spawns.police,
+     hist=SPH[team],free=slots.filter(function(q){
+       return !inObs(q[0],q[1],.85)&&!hist.some(function(p){return Math.hypot(q[0]-p[0],q[1]-p[1])<3.8;});
+     });
+ if(!free.length)free=slots.filter(function(q){return !inObs(q[0],q[1],.85);});
+ if(!free.length)throw Error("BLOCK LABS: no safe spawn slot for "+team);
+ var v=free[Math.floor(Math.random()*free.length)];hist.push([v[0],v[1]]);
+ if(hist.length>10)hist.shift();return [v[0],v[1]];
+}
+function labsSpawnYaw(team,x,z){
+ // Same canonical game yaw: forward on XZ = (sin(face),cos(face)).
+ var look=team?BLOCK_LABS_DEF.spawnLook.terrorist:BLOCK_LABS_DEF.spawnLook.police;
+ return Math.atan2(look[0]-x,look[1]-z);
+}
+function makeBlockLabs(){
+ var before=S.children.slice(),cfg=BLOCK_LABS_DEF,p=cfg.palette,h=cfg.ceilingHeight,
+     A0=cfg.halfSize;
+ function trim(w,hh,d,col,x,y,z){dk(w,hh,d,col,x,y,z);}
+ function wall(x,z,w,d,hh,col){wl(x,z,w,d,hh,col);}
+ // One continuous floor; no checkerboard overlay or coplanar pavement (Town regression).
+ var base=mk(A0*2,.3,A0*2,p.floor,0,-.15,0);base.castShadow=false;
+ // Physical perimeter exactly at the arena boundary. Roof and all decorative
+ // hardware sit overhead and therefore do not block ground BOT A*.
+ var edge=A0+.52,span=A0*2+1.6;
+ [[0,-edge,span,1.2],[0,edge,span,1.2],[-edge,0,1.2,span],[edge,0,1.2,span]]
+  .forEach(function(q,i){
+    wall(q[0],q[1],q[2],q[3],cfg.wallHeight,p.wallDark);
+    trim(q[2]+.08,.23,q[3]+.08,p.metal,q[0],cfg.wallHeight-.20,q[1]);
+  });
+ cfg.perimeterReturns.forEach(function(q,i){
+   wall(q[0],q[1],q[2],q[3],4.4,p.wallDark);
+   trim(q[2]+.12,.15,q[3]+.12,p.hazard,q[0],4.4,q[1]);
+ });
+ // Distinct wall modules. All six rooms are NON-ENTERABLE, so every white
+ // blueprint rectangle and door-like facade remains real solid collision.
+ cfg.blocks.forEach(function(b,i){
+   var x=b[0],z=b[1],w=b[2],d=b[3],height=7.4+(i%3)*.28;
+   wall(x,z,w,d,height,p.wall);
+   BR.push({x:x,z:z,hw:w/2,hd:d/2});
+   trim(w+.28,.26,d+.28,p.white,x,height-.16,z);
+   trim(w+.35,.42,d+.35,p.trim,x,height+.18,z);
+   trim(w+.48,.18,d+.48,p.metal,x,.24,z);
+   // Horizontal exterior service lines and dark window panels on solid walls.
+   for(var side=-1;side<=1;side+=2){
+     trim(w-1.2,.32,.10,p.glass,x,4.75,z+side*(d/2+.10));
+     trim(.10,.32,d-1.2,p.glass,x+side*(w/2+.10),4.75,z);
+     for(var xOff=-w/2+3;xOff<w/2-2;xOff+=5.5){
+       trim(2.2,.92,.08,p.glass,x+xOff,2.9,z+side*(d/2+.13));
+       trim(2.44,.12,.24,p.metal,x+xOff,2.36,z+side*(d/2+.12));
+     }
+     // Readable sealed lab access panel: visual only, never a fake doorway.
+     var doorX=x+(i%2?4:-4);
+     trim(2.3,3.1,.13,p.trim,doorX,1.66,z+side*(d/2+.13));
+     trim(1.8,2.5,.14,p.metal,doorX,1.65,z+side*(d/2+.18));
+     trim(.16,.85,.17,p.hazard,doorX+.59,1.69,z+side*(d/2+.26));
+     trim(2.9,.20,.32,p.hazard,doorX,3.38,z+side*(d/2+.22));
+   }
+   // Heavy wall ribs on far sides are visually anchored (no fake collision).
+   for(var off=-d/2+2;off<d/2-1;off+=5){
+     trim(.15,5.4,.35,p.metal,x+w/2+.1,3.55,z+off);
+     trim(.15,5.4,.35,p.metal,x-w/2-.1,3.55,z+off);
+   }
+ });
+ // Green objects are real solid research reactors: grounded octagonal collars
+ // inside the bounding hitbox, no invisible obstacle and no fake uncollidable shell.
+ cfg.reactors.forEach(function(q,i){
+   var x=q[0],z=q[1],rad=q[2],height=i<4?3.3:2.2,diam=rad*2;
+   wall(x,z,diam,diam,height,p.trim);
+   trim(diam+.32,.22,diam+.32,p.metal,x,.16,z);
+   trim(diam+.34,.20,diam+.34,p.metal,x,height-.15,z);
+   var tube=new T.Mesh(new T.CylinderGeometry(rad*.58,rad*.68,height*.65,8),
+     new T.MeshLambertMaterial({color:p.reactor,emissive:0x0d4218,transparent:false}));
+   tube.position.set(x,height*.53,z);tube.castShadow=false;S.add(tube);
+   for(var arm=0;arm<4;arm++){
+     var v=arm*Math.PI/2;
+     trim(.19,height,.19,p.metal,x+Math.cos(v)*(rad-.15),height/2,z+Math.sin(v)*(rad-.15));
+   }
+   trim(diam+.32,.13,.22,p.hazard,x,height+.035,z);
+ });
+ // Overhead floor-ceiling system covers outdoor sky even when looking up.
+ var roof=mk(A0*2, .30,A0*2,p.ceiling,0,h,0);
+ roof.castShadow=false;
+ LT.push({x:0,z:0,hw:A0,hd:A0,y0:h-.15,h:h+.15,c:p.ceiling});
+ // Laboratory cross-corridor luminaires and utility rails, above head height.
+ for(var zz=-45;zz<=45;zz+=15){
+   var fixture=new T.Mesh(new T.BoxGeometry(2.2,.08,.65),
+     new T.MeshBasicMaterial({color:p.light}));
+   fixture.position.set(0,h-.28,zz);fixture.castShadow=false;S.add(fixture);
+ }
+ for(var xx of [-44,44])for(var zz=-45;zz<=45;zz+=15){
+   var fixture=new T.Mesh(new T.BoxGeometry(2.4,.08,.7),
+     new T.MeshBasicMaterial({color:p.light}));
+   fixture.position.set(xx,h-.28,zz);fixture.castShadow=false;S.add(fixture);
+ }
+ for(var zz of [-12,12]){
+   trim(A0*1.6,.22,.16,p.metal,0,h-.46,zz);
+   trim(A0*1.6,.11,.08,p.hazard,0,h-.65,zz);
+ }
+ // Floor zone signs are elevated and not z-fighting: floor top=0, stripe y=.055.
+ for(var x of [-42,0,42]){
+   for(var zz=-43;zz<46;zz+=18){
+     trim(.10,.014,4,p.floorBorder,x,.057,zz);
+   }
+ }
+ trim(56,.018,1,p.police,0,.061,-48.5);
+ trim(56,.018,1,p.terrorist,0,.061,48.5);
+ // Industrial wall accents communicate spawn areas and team orientation.
+ trim(48,1.05,.16,p.police,0,6.1,-A0+.88);
+ trim(48,1.05,.16,p.terrorist,0,6.1,A0-.88);
+ flushDeco();
+ BLOCK_LABS_WORLD=S.children.filter(function(o){return before.indexOf(o)<0;});
+ BLOCK_LABS_OB=OB.slice();BLOCK_LABS_BR=BR.slice();BLOCK_LABS_LT=LT.slice();
 }
 // ===== sky: gradient dome, blocky sun, voxel clouds, birds, blimp =====
 var HZC=0xa6d5f2,SKF=new T.Group(),SKW=new T.Group();S.add(SKF);S.add(SKW);
@@ -2498,7 +2665,7 @@ function mmss(t){t=Math.floor(t);return Math.floor(t/60)+":"+("0"+t%60).slice(-2
 // cnt(): animated count-up of a number in an element (end-of-match results).
 function cnt(el,to,fmt,dur,dl){var t0=performance.now()+dl;el.textContent=fmt(0);(function f(n){var k=Math.max(0,Math.min(1,(n-t0)/dur));el.textContent=fmt(Math.round(to*(1-Math.pow(1-k,3))));if(k<1)requestAnimationFrame(f);})(performance.now());}
 // begin(tm): starts a match as team tm (0 = Police, 1 = Terrorist): hides menus, resets the world, spawns bots, starts the countdown.
-function begin(tm){document.getElementById("tsel").style.display="none";lb.style.display="none";lob=false;document.body.classList.remove("lobby","over","dead");bombCleanup();reset();selectedGameMode=selM;selectedBombMapId=selM===1&&roomMatchConfig?bombMapId(roomMatchConfig.mapId):"lockdown";selectGameMap(isBombMode());startMatch(tm);ov.style.display="none";run=true;/* Keep cursor free for pre-round loadout selection. */}
+function begin(tm){document.getElementById("tsel").style.display="none";lb.style.display="none";lob=false;document.body.classList.remove("lobby","over","dead");bombCleanup();reset();selectedGameMode=selM;selectedBombMapId=selM===1&&roomMatchConfig?bombMapId(roomMatchConfig.mapId):"lockdown";selectedTdmMapId=selM===0&&roomMatchConfig?tdmMapId(roomMatchConfig.mapId):"block-district";selectGameMap(isBombMode());startMatch(tm);ov.style.display="none";run=true;/* Keep cursor free for pre-round loadout selection. */}
 document.getElementById("tsP").onclick=function(){begin(0);};document.getElementById("tsT").onclick=function(){begin(1);};document.getElementById("tsX").onclick=function(){document.getElementById("tsel").style.display="none";};
 // endMatch(): ends the match: stops the simulation, releases the mouse, shows the results screen (stars, scores, best score).
 function endMatch(){escHide();mt.over=true;mt.t=0;run=false;if(document.exitPointerLock)document.exitPointerLock();mouse.down=mouse.right=false;fireHeld=false;kn.innerHTML="";document.body.classList.remove("dead","bomb-spectator","loadout-active","loadout-cursor-hidden");document.body.classList.add("over");pl.dui=true;
@@ -2974,14 +3141,14 @@ function roomModalPaint(){
 function roomModalChooseMode(mode){
  if(!roomModalDraft)return;
  roomModalDraft.mode=mode===1?1:0;
- roomModalDraft.mapId=mode===1?bombMapId(roomModalDraft.mapId):"block-district";
+ roomModalDraft.mapId=mode===1?bombMapId(roomModalDraft.mapId):tdmMapId(roomModalDraft.mapId);
  roomModalPaint();
  // Only the 3D preview changes until SAVE; roomCurrent remains unchanged.
- selM=roomModalDraft.mode;selectedBombMapId=bombMapId(roomModalDraft.mapId);modePreviewSelect(selM);
+ selM=roomModalDraft.mode;selectedBombMapId=bombMapId(roomModalDraft.mapId);selectedTdmMapId=tdmMapId(roomModalDraft.mapId);modePreviewSelect(selM);
 }
 function roomModalChooseMap(value){
  if(!roomModalDraft)return;
- roomModalDraft.mapId=roomModalDraft.mode===1?bombMapId(value):"block-district";
+ roomModalDraft.mapId=roomModalDraft.mode===1?bombMapId(value):tdmMapId(value);
  roomModalPaint();
  selM=roomModalDraft.mode;selectedBombMapId=bombMapId(roomModalDraft.mapId);modePreviewSelect(selM);
 }
@@ -2997,7 +3164,7 @@ function roomModalHide(restorePreview){
  roomModalDraft=null;
  roomText("roomModalError","");
  if(restorePreview&&roomCurrent){
-  selM=roomCurrent.mode;selectedBombMapId=bombMapId(roomCurrent.mapId);modePreviewSelect(selM);
+  selM=roomCurrent.mode;selectedBombMapId=bombMapId(roomCurrent.mapId);selectedTdmMapId=tdmMapId(roomCurrent.mapId);modePreviewSelect(selM);
  }
  var focus=roomModalReturnFocus;roomModalReturnFocus=null;
  if(focus&&typeof focus.focus==="function")focus.focus();
@@ -3034,7 +3201,7 @@ function roomNormalize(obj){
  var name=String(obj.name||"").trim().slice(0,32);
  if(!name)return null;
  return{id:obj.id,name:name,mode:obj.mode,
- mapId:obj.mode===1?bombMapId(obj.mapId):"block-district",
+ mapId:obj.mode===1?bombMapId(obj.mapId):tdmMapId(obj.mapId),
  kills:roomAllowed(obj.kills,ROOM_LIMITS.kills,50),
  minutes:roomAllowed(obj.minutes,ROOM_LIMITS.minutes,10),
  rounds:roomAllowed(obj.rounds,ROOM_LIMITS.rounds,12),
@@ -3046,17 +3213,17 @@ function roomLoad(){
 }
 function roomPersist(){try{localStorage.setItem(ROOM_STORAGE_KEY,JSON.stringify(roomList));return true;}catch(err){return false;}}
 function roomMapsForMode(mode,mapId){
- var m=mode===1?bombMapInfo(mapId):MODE_MAP_PREVIEWS[mode];
+ var m=mode===1?bombMapInfo(mapId):mode===0?tdmMapInfo(mapId):MODE_MAP_PREVIEWS[mode];
  return m?{name:m.name,caption:m.caption}:null;
 }
 function roomFillMapSelect(select,mode,mapId){
  select.replaceChildren();
- var options=mode===1?bombMapOptions(mode):[{id:"block-district",name:MODE_MAP_PREVIEWS[0].name}];
+ var options=mode===1?bombMapOptions(mode):tdmMapOptions();
  options.forEach(function(m){
   var option=document.createElement("option");option.value=m.id;option.textContent=m.name;
   select.appendChild(option);
  });
- select.value=mode===1?bombMapId(mapId):"block-district";
+ select.value=mode===1?bombMapId(mapId):tdmMapId(mapId);
  select.disabled=options.length<2;
 }
 function roomText(id,value){document.getElementById(id).textContent=String(value);}
@@ -3068,22 +3235,22 @@ function roomModeSelect(mode){
  });
  document.getElementById("roomTdmSettings").hidden=roomDraftMode!==0;
  document.getElementById("roomBombSettings").hidden=roomDraftMode!==1;
- roomDraftMapId=roomDraftMode===1?bombMapId(roomDraftMapId):"block-district";
+ roomDraftMapId=roomDraftMode===1?bombMapId(roomDraftMapId):tdmMapId(roomDraftMapId);
  var map=roomMapsForMode(roomDraftMode,roomDraftMapId),mapSelect=document.getElementById("roomMap");
  roomFillMapSelect(mapSelect,roomDraftMode,roomDraftMapId);
  roomText("roomMapName",map?map.name:"UNAVAILABLE");
  roomText("roomMapCaption",map?map.caption:"");
- selM=roomDraftMode;selectedBombMapId=bombMapId(roomDraftMapId);
+ selM=roomDraftMode;selectedBombMapId=bombMapId(roomDraftMapId);selectedTdmMapId=tdmMapId(roomDraftMapId);
  modePreviewSelect(roomDraftMode);
 }
 function roomChooseMap(value){
- roomDraftMapId=roomDraftMode===1?bombMapId(value):"block-district";
+ roomDraftMapId=roomDraftMode===1?bombMapId(value):tdmMapId(value);
  roomModeSelect(roomDraftMode);
 }
 function roomFormData(){
  var name=document.getElementById("roomName").value.trim().slice(0,32);
  if(!name)return null;
- return{name:name,mode:roomDraftMode,mapId:roomDraftMode===1?bombMapId(document.getElementById("roomMap").value):"block-district",
+ return{name:name,mode:roomDraftMode,mapId:roomDraftMode===1?bombMapId(document.getElementById("roomMap").value):tdmMapId(document.getElementById("roomMap").value),
   kills:roomAllowed(document.getElementById("roomKills").value,ROOM_LIMITS.kills,50),
   minutes:roomAllowed(document.getElementById("roomMinutes").value,ROOM_LIMITS.minutes,10),
   rounds:roomAllowed(document.getElementById("roomRounds").value,ROOM_LIMITS.rounds,12),
@@ -3325,11 +3492,11 @@ addEventListener("pagehide",function(){roomStartAbort();if(roomCurrent)roomClose
 // Capture a center-cropped 2D frame at up to 30 FPS while SELECT MODE is open, on desktop and touch.
 var mapPreviewCanvas=document.getElementById("mapPreviewCanvas"),
     mapPreviewCtx=mapPreviewCanvas.getContext("2d",{alpha:false}),
-    mapPreviewSceneBomb=false,mapPreviewMapId="lockdown",mapPreviewLastFrame=-1e9,mapPreviewFrameMs=1000/30;
+    mapPreviewSceneBomb=false,mapPreviewMapId="lockdown",mapPreviewTdmId="block-district",mapPreviewLastFrame=-1e9,mapPreviewFrameMs=1000/30;
 function modePreviewSelect(i){
  if(!lob||run)return;
  var bomb=i===1;
- if(mapPreviewSceneBomb!==bomb||bomb&&mapPreviewMapId!==selectedBombMapId){selectGameMap(bomb);mapPreviewSceneBomb=bomb;mapPreviewMapId=selectedBombMapId;}
+ if(mapPreviewSceneBomb!==bomb||bomb&&mapPreviewMapId!==selectedBombMapId||!bomb&&mapPreviewTdmId!==selectedTdmMapId){selectGameMap(bomb);mapPreviewSceneBomb=bomb;mapPreviewMapId=selectedBombMapId;mapPreviewTdmId=selectedTdmMapId;}
  mapPreviewLastFrame=-1e9;
  mapPreviewCtx.clearRect(0,0,mapPreviewCanvas.width,mapPreviewCanvas.height);
 }
@@ -4014,7 +4181,7 @@ var BN=[["Jack","Mike","Ryan","Alex","Owen"],["Viper","Razor","Hawk","Shadow","G
 //  - at least 9 units from the last 8 spawn points used by this team (SPH history, reset in startMatch).
 // One accepted candidate is chosen at random. If none is acceptable (crowded map) it falls back to the safest candidate.
 var SPH=[[],[]];
-function spawnPt(tm){if(isBombMode())return bombSpawnPt(tm);var cz=tm?-38:38,hist=SPH[tm?1:0],ok=[],all=[],k,x,z,i,o,d,dE,dF,h,near,c,p;
+function spawnPt(tm){if(isBombMode())return bombSpawnPt(tm);if(tdmMapId(selectedTdmMapId)==="block-labs")return labsSpawnPt(tm);var cz=tm?-38:38,hist=SPH[tm?1:0],ok=[],all=[],k,x,z,i,o,d,dE,dF,h,near,c,p;
   for(k=0;k<60;k++){x=(Math.random()*2-1)*(A-12);z=cz+(Math.random()*2-1)*10;if(inObs(x,z,1.2)||inB(x,z))continue;
     dE=1e9;dF=1e9;for(i=0;i<en.length;i++){o=en[i];d=Math.hypot(o.x-x,o.z-z);if(o.tm===tm)dF=Math.min(dF,d);else dE=Math.min(dE,d);}
     if(!pl.dead&&pl.tm!==undefined){d=Math.hypot(pl.x-x,pl.z-z);if(pl.tm===tm)dF=Math.min(dF,d);else dE=Math.min(dE,d);}
@@ -5774,7 +5941,8 @@ var last=performance.now();
 (function loop(now){var qaDeltaMs=now-last,qaFrameStart=botQaEnabled?performance.now():0;var dt=Math.min((now-last)/1000,.05);last=now;if(run)update(pl.dead&&pl.dt<.8?dt*(.3+.7*pl.dt/.8):dt);
   shakeT=Math.max(0,shakeT-dt);var sh=shakeT*.5;cs.s*=Math.max(0,1-dt*6);spr(cs,"k","kv",dt);spr(cs,"y","yv",dt);spr(cs,"r","rv",dt);var ft=70+(ADF[pl.w]-70)*adsT+6*sprT+Math.max(0,cs.k)*45*(1-.5*adsT);if(lob||mt.over){var la=performance.now()/9000;
     if(lob&&mapPreviewSceneBomb){var an=performance.now()/7500,cam=bombMapInfo(selectedBombMapId).preview;if(cam){C.position.set(cam.x+Math.sin(an)*2,cam.y,cam.z+Math.cos(an)*2);C.lookAt(cam.lookX,cam.lookY,cam.lookZ);ft=cam.fov;}else{C.position.set(25+Math.sin(an)*1.6,2.25,5+Math.cos(an)*1.6);C.lookAt(25+Math.sin(an+0.8)*12,2.1,5+Math.cos(an+0.8)*12);ft=72;}}
-    else{C.position.set(Math.sin(la)*34,13,Math.cos(la)*34);C.lookAt(0,2,0);ft=62;}
+    else if(lob&&selM===0&&tdmMapId(selectedTdmMapId)==="block-labs"){var cc=tdmMapInfo(selectedTdmMapId).preview;C.position.set(cc.x+Math.sin(la)*.8,cc.y,cc.z+Math.cos(la)*.8);C.lookAt(cc.lookX,cc.lookY,cc.lookZ);ft=cc.fov;}
+     else{C.position.set(Math.sin(la)*34,13,Math.cos(la)*34);C.lookAt(0,2,0);ft=62;}
   }else if(pl.dead&&isBombMode()){ft=SPECTATOR_CAMERA.fieldOfView;bombSpectatorCamera(dt);}else if(pl.dead){pl.rt+=dt;var u=Math.min(pl.rt,3.5),an=pl.face+2.4+pl.rt*.5,rd=3+u*1.1,hh=2.2+u*1.5;ft=62;C.position.set(Math.max(-A,Math.min(A,pl.x+Math.sin(an)*rd)),hh+pl.y,Math.max(-A,Math.min(A,pl.z+Math.cos(an)*rd)));C.lookAt(pl.x,.3+pl.y,pl.z);}
   else{var cb=mvAmt*wtT*(1-.75*adsT)*(pl.vy===0?1:0)*(1+.35*sprT),bY=-cb*.022*(.5-.5*Math.cos(2*bobP)),tr=cs.s*(1-.4*adsT),ta=tr*tr,nt=performance.now()/1000,sj=sh+ta*.06,ads2=1-.4*adsT,pp=pl.pitch+cs.k*(1-.35*adsT)+snz(nt,1)*ta*.05,fy=pl.face+cs.y*ads2+snz(nt,2)*ta*.05;C.position.set(pl.x+snz(nt,3)*sj,1.5+camY+bY+snz(nt,4)*sj-(isBombMode()&&pl.bAction?.55:0),pl.z+snz(nt,5)*sj);C.lookAt(pl.x+Math.sin(fy)*Math.cos(pp),1.5+camY+bY+Math.sin(pp)-(isBombMode()&&pl.bAction?.55:0),pl.z+Math.cos(fy)*Math.cos(pp));C.rotateZ(cs.r*ads2+snz(nt,6)*ta*.06+Math.sin(bobP)*.004*cb);}
   if(Math.abs(C.fov-ft)>.02){C.fov=ft;C.updateProjectionMatrix();}
