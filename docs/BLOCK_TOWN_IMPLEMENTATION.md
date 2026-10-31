@@ -29,6 +29,20 @@
 
 ---
 
+### Verified browser functional smoke — Block Town V3
+
+[Windows Chromium map matrix #54](https://github.com/Heynode92/blockbudies/actions/runs/41191396368) tested the exact patched Block Town V3 bundle with solid landmark cover:
+
+| CI team configuration | Completed Bomb finishes | Police wins | Terrorist wins | Planted at finish | Sites at finish | JavaScript errors |
+|---|---:|---:|---:|---:|---|---:|
+| Police-player-slot replaced by actual BOT | 10/10 | 7 | 3 | 3 | A 1 / B 2 | 0 |
+| Terrorist-player-slot replaced by actual BOT | 10/10 | 8 | 2 | 2 | A 2 / B 0 | 0 |
+
+**Both Block Town Chromium jobs = SUCCESS.** The browser test checked all ten configured spawn points for collision clearance, 25 opposing spawn sightlines (zero clear), all spawn-to-A/B production A* paths, four physical perimeter walls, player initial yaw, and the latest A/B world coordinates. No direct `bombFinish()` or fabricated outcomes were injected. **Windows Node regression #308** also passed **382/382** Node tests, committed source-manifest bundle parity and JS syntax.
+
+This is an **accelerated canonical-game functional QA**, not a laptop-GPU FPS benchmark, user-reported visual sign-off or certified match balance. Police won 15 of 20 recorded rounds; sample is not enough to decide whether balancing changes are justified. The same M7 #54 matrix had separate failing **Block Labs** jobs; the overall workflow is therefore **not green** despite Block Town both individually succeeding. Lockdown jobs were still running when this outcome was documented. Those unrelated statuses do not substitute for Block Town evidence.
+
+
 ## Historical V1 design and scale (superseded by V3)
 
 The map uses the exact **160×160 world-unit** Bomb arena footprint (\`BOMB_RULES.cellSize * BOMB_RULES.cells = 10 * 16\`; \`A=80\`, X/Z horizontal and Y vertical). It is a **single-level outdoor town** with varied asymmetrical residential/shop building blocks, paved market courtyard A, delivery courtyard B, central town junction, bent A lane, offset B lane and multiple connectors. It is **not** the previous symmetrical box-grid mockup and is **not** claimed to reproduce all photographic architectural details of the reference image.
