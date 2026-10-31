@@ -1,7 +1,7 @@
 # BLOCK BUDDIES — BOT Intelligence Modernization Master Plan
 
 > **Document ID:** BB-AI-ROADMAP-001  
-> **Status:** M0–M2 CORE VERIFIED (M2 OWNER 7/7 PASS) / M3 IMPLEMENTED + CI VERIFIED, MANUAL PLAYTEST PENDING / M4–M7 NOT STARTED  
+> **Status:** M0–M3 CORE VERIFIED (M3 OWNER 7/7 PASS) / M4 IMPLEMENTED + CI VERIFIED, MANUAL PLAYTEST PENDING / M5–M7 NOT STARTED  
 > **Baseline reviewed:** `main` at `23cd2bb71a2535de86ba49ccdfc3d23455be2ff9` (2026-10-30)  
 > **Scope:** Police and Terrorist BOTs in Team Deathmatch (TDM) and Bomb Mission  
 > **Source of truth:** repository production sources, `docs/ARCHITECTURE.md`, original-game fixture, existing test suite  
@@ -9,7 +9,8 @@
 > **M0 baseline evidence:** [BOT_AI_M0_BASELINE.md](BOT_AI_M0_BASELINE.md)  
 > **M1 verification and manual checklist:** [BOT_AI_M1_VALIDATION.md](BOT_AI_M1_VALIDATION.md)  
 > **M2 implementation and manual checklist:** [BOT_AI_M2_VALIDATION.md](BOT_AI_M2_VALIDATION.md)  
-> **M3 implementation and manual checklist:** [BOT_AI_M3_VALIDATION.md](BOT_AI_M3_VALIDATION.md)
+> **M3 implementation and manual checklist:** [BOT_AI_M3_VALIDATION.md](BOT_AI_M3_VALIDATION.md)  
+> **M4 implementation and manual checklist:** [BOT_AI_M4_VALIDATION.md](BOT_AI_M4_VALIDATION.md)
 
 ## 1. Product outcome
 
@@ -190,13 +191,15 @@ Mark a milestone complete **only after its acceptance gates pass**. Each milesto
 
 ### M3 — Movement and cover
 
-**Current tracking (2026-10-31 WIB):** **IMPLEMENTED / AUTOMATED VERIFIED**. Added independent movement planner `src/game/88-bot-movement.js`: cover selection and finite peek using M1 valid clues, bounded damage dodge, collision-checked smooth steering, A* unreachable-goal fail-closed and bounded stuck recovery. Existing Bomb urgency and canonical collision remain unchanged. [Windows CI #112](https://github.com/Heynode92/blockbudies/actions/runs/41174449879): **318/318 tests PASS**. **M3 human Windows playtest and real-map stuck/exposure/FPS measurements remain OPEN**; do not mark M3 fully VERIFIED until owner acceptance. [M3 validation](BOT_AI_M3_VALIDATION.md).
+**Current tracking (2026-10-31 WIB):** **IMPLEMENTED / AUTOMATED VERIFIED**. Added independent movement planner `src/game/88-bot-movement.js`: cover selection and finite peek using M1 valid clues, bounded damage dodge, collision-checked smooth steering, A* unreachable-goal fail-closed and bounded stuck recovery. Existing Bomb urgency and canonical collision remain unchanged. [Windows CI #112](https://github.com/Heynode92/blockbudies/actions/runs/41174449879): **318/318 tests PASS**. **M3 owner-reported manual gameplay 7/7 PASS (2026-10-31 WIB), so M3's core exit gate is VERIFIED.** Real-map quantitative stuck/exposure/FPS metrics remain OPEN; [M3 acceptance](BOT_AI_M3_VALIDATION.md). [M3 validation](BOT_AI_M3_VALIDATION.md).
 
 **Work:** tactical movement planner, edge-based peek and exposure scoring, collision-safe easing and safe replan; balance aggression, pressure and survival.
 
 **Exit gate:** no solid-wall crossings, no infinite loops, less repeated obstacle oscillation, natural reposition and measurable use of cover on both maps.
 
 ### M4 — Team play
+
+**Current tracking (2026-10-31 WIB): IMPLEMENTED / AUTOMATED VERIFIED**. Independent `src/game/88-bot-squad.js` now assigns living friendly entry/flank-left/flank-right/support roles, consumes finite provenance-validated M1 radio, selects separate reachable TDM flank positions with bounded entry wait and safe fallback, and reduces same-team lane congestion in both TDM and Bomb. **Bomb strategic objective logic remains authoritative**: M4 does not replace plant/defuse/retake goals. [Windows CI #129](https://github.com/Heynode92/blockbudies/actions/runs/41175122544): **332/332 PASS** with dedicated tests including real M1 sight-generated reports and production A* obstacle routing. [M4 validation](BOT_AI_M4_VALIDATION.md). **Manual Windows playtest and measured real-game crossfire, congestion, FPS remain OPEN; M4 is NOT yet CORE VERIFIED. M5–M7 NOT STARTED.**
 
 **Work:** team intel bus with provenance and TTL, non-overlapping roles, flank/entry/cover synchronization with timeout and fallback.
 
@@ -316,4 +319,4 @@ These are **maintainer-only** actions. The user must never be told to install No
 5. Keep tactical input honest and preserve canonical gameplay mechanics. Test in realistic scenarios; record baseline deltas.
 6. Commit only after verification; update documentation and implementation log in the same commit. Never claim an upgrade was completed while only the plan was edited.
 
-**Approval boundary:** The original request on 2026-10-30 authorized documentation and logging only. A later explicit owner instruction authorized M0 harness and testing work. M1 gameplay update was explicitly authorized by the owner, implemented, and accepted through green Windows CI and owner-reported manual gameplay PASS. **M1 core feature gate VERIFIED**, not a quantified browser performance sign-off. The owner authorized sequential M2 and M3 implementation. **M2 has been VERIFIED for the core feature gate after CI 306/306 plus owner-reported manual 7/7 PASS.** M3 source and CI are complete (318/318), but manual gameplay acceptance and real map navigation/FPS metrics remain OPEN. M4–M7 have not been implemented.
+**Approval boundary:** The original request on 2026-10-30 authorized documentation and logging only. A later explicit owner instruction authorized M0 harness and testing work. M1 gameplay update was explicitly authorized by the owner, implemented, and accepted through green Windows CI and owner-reported manual gameplay PASS. **M1 core feature gate VERIFIED**, not a quantified browser performance sign-off. The owner authorized sequential M2 and M3 implementation. **M2 has been VERIFIED for the core feature gate after CI 306/306 plus owner-reported manual 7/7 PASS.** **M3 core feature gate is now VERIFIED** via full Windows CI 318/318 and explicit owner-reported 7/7 manual gameplay PASS. **M4 squad coordination was subsequently authorized and implemented**, with Windows CI 332/332 PASS; M4 manual gameplay and real squad KPI measurement remain OPEN. **M5–M7 NOT STARTED.**
