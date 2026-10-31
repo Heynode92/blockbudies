@@ -1,6 +1,6 @@
 (function(){
 // =====================================================================================
-// BLOCK BUDDIES FPS - modular source, bundled browser IIFE (Three.js r128)
+// POINT BLOCK FPS - modular source, bundled browser IIFE (Three.js r128)
 // =====================================================================================
 // READ THIS FIRST (notes for humans and for future AI edits). Everything below is ONE IIFE.
 // Do not invent APIs: browser runtime uses Three.js r128 + native APIs; ordered sources are bundled with tools/build.mjs.
@@ -1546,7 +1546,7 @@ function defenseHeadshotDamage(base){return base*DEFENSE_RULES.headshotMultiplie
 var WEAPON_PROFILES=[],WEAPON_MODEL_BUILDERS=[],WEAPON_RANGE_MODIFIERS=[];
 var WEAPON_STARTER_ID=9;
 // CS:GO damage falloff is damage*modifier^(distance/500 CS units).
-// For BLOCK BUDDIES, 20 world units are one falloff interval; the two unit systems differ.
+// For POINT BLOCK, 20 world units are one falloff interval; the two unit systems differ.
 var DAMAGE_FALLOFF=Object.freeze({referenceUnits:20,defaultModifiers:Object.freeze({pistol:.91,rifle:.98,smg:.85,dual:.85,shotgun:.70,sniper:.99})});
 var WEAPON_CLASS_LABELS=Object.freeze({pistol:"HANDGUN",rifle:"ASSAULT RIFLE",shotgun:"SHOTGUN",rocket:"LAUNCHER",knife:"MELEE",grenade:"THROWABLE",smg:"SUBMACHINE GUN",dual:"SUBMACHINE GUN",sniper:"SNIPER RIFLE"});
 // Handgun: stable weapon ID 0 (pistol). Profile ratings and range modifier are weapon-local.
@@ -4736,7 +4736,7 @@ function botSmartGrenadeSafe(e,target){
 var ov=document.getElementById("ov"),ovt=document.getElementById("ovt");
 // show(): shows the generic overlay card (title, body html, button label).
 function show(h,b,btn){document.querySelector("#card h1").textContent=h;ovt.innerHTML=b;document.getElementById("go").textContent=btn;ov.style.display="flex";}
-show("Blok Buddies FPS",'<p>Survive the terrorist assault. There are no drops in this mode: no weapons, ammo or medkits fall from the sky, so every fight is decided by aim.</p><p>'+
+show("Point Block FPS",'<p>Survive the terrorist assault. There are no drops in this mode: no weapons, ammo or medkits fall from the sky, so every fight is decided by aim.</p><p>'+
  (touch?"Left joystick to move, right joystick to look around. The Shoot, Jump, and Reload buttons are on the right.":"WASD to move, Space to jump, mouse to look around (click the screen first to lock the mouse, or hold left click and drag), left click or F to shoot, R to reload, hold Shift to sprint, hold right click to aim down sights. Press V to switch the Kriss between single and dual. With the AWP, right click once to scope and again to unscope. Choose your primary weapon with the mouse, confirm it, or wait for auto-deploy.")+
  '</p><p>Your weapon and ammo come from the primary weapon you pick at the start. You get full ammo again after every respawn.</p>',"Start");
 document.getElementById("go").onclick=function(){this.blur();reset();ov.style.display="none";run=true;};
@@ -6335,7 +6335,7 @@ function botQaReport(){
   else if(r.site===1)bomb.siteB++;
   else bomb.noSite++;
  });
- return {schema:'BLOCK_BUDDIES_M7_QA_V1',enabled:true,
+ return {schema:'POINT_BLOCK_M7_QA_V1',enabled:true,
   recordedStartUnixMs:botQaData.startedAt,
   limitation:'Only events observed in this browser tab with opt-in flag; samples are rolling windows, not M0 paired baseline. Projectile hit rate is character-hit projectile / fired projectile, not trigger accuracy; shotgun pellets counted separately. CPU measures botsUpd only. No claims of full map coverage.',
   frameTimeMs:frames,frameJavaScriptWorkMs:frameJs,botUpdateCpuMs:cpu,
@@ -6360,18 +6360,18 @@ function botQaDownload(){
      blob=new Blob([data],{type:'application/json'}),
      url=URL.createObjectURL(blob),
      a=document.createElement('a');
- a.href=url;a.download='block-buddies-m7-qa.json';
+ a.href=url;a.download='point-block-m7-qa.json';
  document.body.appendChild(a);a.click();a.remove();
  setTimeout(function(){URL.revokeObjectURL(url);},2000);
  return true;
 }
 if(botQaEnabled&&typeof window!=='undefined'){
  // Explicit, opt-in console API. Never sends data to any server.
- window.BlockBuddiesQA=Object.freeze({
+ window.PointBlockQA=Object.freeze({
   report:botQaReport,download:botQaDownload,
   reset:function(){botQaData=botQaState();}
  });
- console.info('BLOCK BUDDIES local M7 QA enabled: BlockBuddiesQA.report() / .download()');
+ console.info('POINT BLOCK local M7 QA enabled: PointBlockQA.report() / .download()');
 }
 // ---- MAIN SIMULATION ----
 // update(dt): one simulation step (dt in seconds, capped at .05 in loop()). Order: timers -> player movement/jump ->
