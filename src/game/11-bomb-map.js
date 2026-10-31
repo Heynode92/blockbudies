@@ -252,14 +252,16 @@ function makeBombMap(){
 function selectGameMap(bombActive){
   var id=bombActive?bombMapId(selectedBombMapId):"lockdown",
       town=bombActive&&id==="block-town",
+      hospital=bombActive&&id==="hospital",
       labs=!bombActive&&tdmMapId(selectedTdmMapId)==="block-labs";
   BOMB_CITY.forEach(function(m){m.visible=!bombActive&&!labs;});
-  if(BOMB_WORLD)BOMB_WORLD.forEach(function(m){m.visible=bombActive&&!town;});
+  if(BOMB_WORLD)BOMB_WORLD.forEach(function(m){m.visible=bombActive&&!town&&!hospital;});
   if(BLOCK_TOWN_WORLD)BLOCK_TOWN_WORLD.forEach(function(m){m.visible=!!town;});
+  if(HOSPITAL_WORLD)HOSPITAL_WORLD.forEach(function(m){m.visible=!!hospital;});
   if(BLOCK_LABS_WORLD)BLOCK_LABS_WORLD.forEach(function(m){m.visible=!!labs;});
   // Labs is indoor: hide the outdoor TDM sky dome/clouds but preserve all old maps.
-  if(typeof SKF!=="undefined")SKF.visible=!labs;
-  if(typeof SKW!=="undefined")SKW.visible=!labs;
+  if(typeof SKF!=="undefined")SKF.visible=!(labs||hospital);
+  if(typeof SKW!=="undefined")SKW.visible=!(labs||hospital);
   OB.length=0;BR.length=0;LT.length=0;
   if(bombActive){
     A=BOMB_RULES.cellSize*BOMB_RULES.cells/2;
@@ -270,6 +272,10 @@ function selectGameMap(bombActive){
       var visibility=BLOCK_TOWN_DEF.visibility;
       S.background=new T.Color(visibility.haze);
       S.fog=new T.Fog(visibility.haze,visibility.near,visibility.far);
+    }else if(hospital){
+      if(!HOSPITAL_WORLD)makeHospital();
+      else{Array.prototype.push.apply(OB,HOSPITAL_OB);Array.prototype.push.apply(BR,HOSPITAL_BR);Array.prototype.push.apply(LT,HOSPITAL_LT);}
+      S.background=new T.Color(0x647e89);S.fog=new T.Fog(0x647e89,36,110);
     }else{
       if(!BOMB_WORLD)makeBombMap();
       else{Array.prototype.push.apply(OB,BOMB_OB);Array.prototype.push.apply(BR,BOMB_BR);Array.prototype.push.apply(LT,BOMB_LT);}
@@ -290,6 +296,7 @@ function selectGameMap(bombActive){
   GB=null;
 }
 function bombSpawnPt(team){
+  if(bombMapId(selectedBombMapId)==="hospital")return hospitalSpawnPt(team);
   if(bombMapId(selectedBombMapId)==="block-town")return townSpawnPt(team);
   var hist=SPH[team],step=BOMB_RULES.cellSize,candidates=[],z=team?-65:65;
   [-35,-15,-5,5,15,35].forEach(function(x){if(!inObs(x,z,.85)&&!hist.some(function(p){return Math.hypot(p[0]-x,p[1]-z)<5;}))candidates.push([x,z]);});
