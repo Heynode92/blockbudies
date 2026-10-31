@@ -1,4 +1,4 @@
-# BLOCK BUDDIES — Home Menu Gameplay Showcase
+# POINT BLOCK — Home Menu Gameplay Showcase
 
 **Date:** 2026-10-31 (WIB)
 **Scope:** main Home Menu `#lbs` ONLY. This is a presentation/UI feature, not a gameplay or map modification.
@@ -17,7 +17,7 @@ User-supplied, committed 1920×1080 gameplay clips:
 ## Screen composition
 
 - The world background remains the **real animated Three.js Block District scene**, as defined by the original `src/game/10-world.js` and `src/game/99-render-loop.js`. No static replacement background; no second WebGL renderer, fake scene, altered bots, moved buildings, or network stream.
-- The left branding panel retains BLOCK BUDDIES, FPS, Personal Best, and original messaging while introducing a cinematic 16:9 gameplay showcase with a true HTML5 video element. Tabs switch between Deathmatch and Bomb Mission.
+- The left branding panel retains POINT BLOCK, FPS, Personal Best, and original messaging while introducing a cinematic 16:9 gameplay showcase with a true HTML5 video element. Tabs switch between Deathmatch and Bomb Mission.
 - The right panel continues to use the original functional START, INVENTORY, SHOP, LEADERBOARD and SETTINGS buttons, with game-styled orange/navy surface treatment and responsive layouts for different resolutions.
 - The user can pause or play the video and toggle audio. **Autoplay begins muted** to match browser autoplay security policy and avoid unexpected sound. Sources are whitelisted in `HOME_DEMOS` and cannot be sourced from arbitrary strings.
 - The video is paused when the Home Menu is not visible (Room Lobby, Inventory, Shop, gameplay, etc.) or `document.hidden`; returning to the Home Menu resumes the current selection when the browser permits. Errors display an honest fallback. The source asset stays a local relative `file://`-compatible resource.
