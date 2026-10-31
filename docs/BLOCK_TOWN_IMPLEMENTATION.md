@@ -1,4 +1,4 @@
-# BLOCK BUDDIES — BLOCK TOWN (Bomb Mission Outdoor Map)
+# POINT BLOCK — BLOCK TOWN (Bomb Mission Outdoor Map)
 
 **Implementation date:** 2026-10-31 WIB
 **Map identifier:** \`block-town\`
