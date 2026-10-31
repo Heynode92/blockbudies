@@ -99,8 +99,7 @@ function bombM5PostPlantGoal(e,stage){
     bombMatch.state!=='planted'||(stage!=='hold'&&stage!=='intercept')||
     bombLiving(1).length<2||!bombMatch.device)return null;
  bombM5Round(e);
- if(e.m5Goal&&e.m5GoalStage===stage&&e.m5GoalUntil>tt&&
-    Math.hypot(e.x-e.m5Goal[0],e.z-e.m5Goal[1])>1.1)return e.m5Goal;
+ if(e.m5Goal&&e.m5GoalStage===stage&&e.m5GoalUntil>tt)return e.m5Goal;
  var p=bombMatch.device.position,idx=e.idx||0,contact=bombM5Contact(e);
  // Defenders face different angles, weighting a REAL observed attacker lane.
  // Never read live enemy coordinates or chase expired sound.
