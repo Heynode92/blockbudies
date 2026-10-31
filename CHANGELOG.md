@@ -1,3 +1,10 @@
+## 2026-10-31 — Shared DeFi header across pre-match lobbies
+- Moved the existing DeFi gaming header into the common `#lb` lobby container. It is a single shared DOM component: no duplicate wallet, PBT controls, handlers, or IDs.
+- Enabled header visibility declaratively for Main Menu, Room Browser, and Room Master waiting lobby using the panels' `data-shared-header` flag and the existing `lobP()` navigation function.
+- Kept Inventory, Shop and other non-opted-in panels free of the shared header. Live matches always hide `#lb` through the existing `begin()` flow, so there is no header in gameplay.
+- Adjusted Room Browser and Room Master top spacing and compact subhead heights to avoid overlap with the shared header while keeping room form, list, teams, countdown, map previews, and controls intact.
+- Kept PBT as a clearly labelled coming-soon display; wallet connect, video crossfade, match rules and on-chain state remain unchanged.
+
 ## 2026-10-31 — Home header CSS consolidation and DeFi control proportions
 - Removed obsolete header override blocks (V3/V4/V6) from lobby CSS to eliminate competing size, positioning and typography rules; preserved the working two-video crossfade styles.
 - Moved the main-menu header to dedicated `src/styles/13-home-header.css` loaded after other game styles.
