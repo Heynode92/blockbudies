@@ -1,3 +1,9 @@
+## 2026-10-31 — Horizontal main-menu identity, wallet entry and video crossfade
+- Display the BLOK BUDDIES wordmark on one horizontal line, with Personal Best and Connect Wallet in the upper header area.
+- Add optional EIP-1193 wallet connection via injected provider, validate the returned account format and handle account changes; wallet connection is not gameplay authentication and does not yet enable on-chain features.
+- Crossfade between existing Deathmatch and Bomb Mission videos every 10 seconds using two muted video layers, without visitor playback controls.
+- Keep existing gameplay navigation and local match behavior unchanged.
+
 
 ## 2026-10-31 — Main menu branding and autoplay gameplay showcase
 - Reduced main-menu logo scale and consolidated FPS, 5V5, and team labels into a compact, consistent metadata row.
