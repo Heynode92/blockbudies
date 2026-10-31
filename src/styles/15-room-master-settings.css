@@ -1,0 +1,209 @@
+/* PointBlock Room Master configuration — same 2-column FPS presentation as Create Room.
+ * Only visual layout changes: all controls and room-save draft semantics remain canonical.
+ * No legacy fixed 720px modal rule or new WebGL renderer. */
+#lbroomlive #roomSettingsModal {
+ position:fixed;inset:var(--bb-shared-header-height,86px) 0 0;z-index:25;
+ box-sizing:border-box;display:flex;align-items:center;justify-content:center;
+ padding:clamp(10px,1.4vw,26px);
+ background:rgba(2,8,18,.8);backdrop-filter:blur(5px);
+ font-family:Rajdhani,"Trebuchet MS",sans-serif;
+}
+#lbroomlive #roomSettingsModal[hidden],#lbroomlive .room-modal-group[hidden] {display:none!important}
+#lbroomlive .room-modal-panel {
+ position:relative;display:flex;flex-direction:column;min-height:0;min-width:0;
+ box-sizing:border-box;width:min(1480px,100%);height:min(780px,100%);
+ max-width:100%;max-height:100%;overflow:hidden;
+ padding:clamp(12px,1.25vw,23px) clamp(14px,1.5vw,28px);
+ border:1px solid #dc7127;border-top:3px solid #f58a28;
+ background:linear-gradient(145deg,#08182a,#030c19);
+ box-shadow:0 28px 90px rgba(0,0,0,.75);color:#eef5ff;
+}
+#lbroomlive .room-modal-header {
+ display:flex;align-items:center;justify-content:space-between;gap:15px;
+ flex:none;min-height:61px;padding:0 5px 13px;margin-bottom:15px;
+ border-bottom:1px solid rgba(102,134,164,.31);
+}
+#lbroomlive .room-modal-heading {display:flex;align-items:center;gap:17px;min-width:0}
+#lbroomlive .room-modal-gear {font-size:36px;color:#ff9331;line-height:1}
+#lbroomlive .room-modal-heading h3 {
+ margin:0;color:white;font:italic 900 clamp(30px,2.4vw,43px)/1.12 Impact,"Arial Black",sans-serif;
+ text-shadow:2px 3px 0 #6e3423;letter-spacing:.04em;
+}
+#lbroomlive .room-modal-heading small {
+ display:block;margin-top:3px;color:#ff9e34;
+ font:900 11px/1.15 Rajdhani,sans-serif;letter-spacing:.18em;
+}
+#lbroomlive .room-modal-close {
+ min-height:39px;flex:none;padding:7px 17px;cursor:pointer;
+ border:1px solid #69809a;border-radius:3px;
+ background:rgba(13,28,47,.95);color:#eaf2fc;
+ font:900 12px Rajdhani,sans-serif;letter-spacing:.12em;
+}
+#lbroomlive .room-modal-content {
+ display:grid;grid-template-columns:minmax(0,1.04fr) minmax(0,1fr);
+ gap:clamp(15px,1.65vw,32px);flex:1 1 auto;min-width:0;min-height:0;overflow:hidden;
+}
+#lbroomlive .room-modal-map-side,#lbroomlive .room-modal-config-side {
+ display:flex;flex-direction:column;min-height:0;min-width:0;
+ padding:4px 2px 8px 0;overflow-y:auto;
+ scrollbar-width:thin;scrollbar-color:#a75b2a #071423;
+}
+#lbroomlive .room-modal-map-side {gap:clamp(7px,.9vh,12px)}
+#lbroomlive .room-modal-config-side {gap:clamp(13px,1.6vh,20px);padding-left:1px}
+#lbroomlive .room-modal-map-head,#lbroomlive .room-modal-card-heading {
+ display:flex;align-items:center;justify-content:space-between;gap:10px;
+ color:#eaf2fc;font:900 13px/1.2 Rajdhani,sans-serif;letter-spacing:.14em;
+}
+#lbroomlive .room-modal-map-head span {color:#ffb36e;font:900 10px Rajdhani,sans-serif;letter-spacing:.12em}
+#lbroomlive .room-modal-card-heading small {color:#91a9c0;font:800 10px Rajdhani,sans-serif;letter-spacing:.1em}
+#lbroomlive .room-modal-map {
+ position:relative;display:block;box-sizing:border-box;
+ width:100%;height:clamp(188px,28vh,300px);flex:none;
+ border:2px solid #f58a2d;border-radius:4px;background:#11233b;overflow:hidden;
+ box-shadow:0 0 0 1px rgba(255,169,67,.18),0 0 18px rgba(237,113,32,.15);
+}
+#lbroomlive #roomModalMapPreview {display:block;width:100%;height:100%;object-fit:cover}
+#lbroomlive .room-modal-map::after {
+ content:"";position:absolute;inset:50% 0 0;pointer-events:none;
+ background:linear-gradient(180deg,transparent,rgba(1,7,16,.87));
+}
+#lbroomlive .room-modal-map-caption {
+ position:absolute;z-index:1;left:18px;right:12px;bottom:13px;
+ display:flex;flex-direction:column;gap:3px;pointer-events:none;
+}
+#lbroomlive .room-modal-map-caption strong {
+ color:white;font:italic 900 clamp(23px,2.2vw,35px)/1.1 Impact,"Arial Black",sans-serif;
+ text-shadow:0 3px 5px #000;
+}
+#lbroomlive .room-modal-map-caption small {color:#e0eaf6;font:700 12px Rajdhani,sans-serif;text-shadow:0 2px 4px #000}
+#lbroomlive .room-modal-map-select {
+ color:#eaf2fc;font:900 13px Rajdhani,sans-serif;letter-spacing:.12em;
+}
+#lbroomlive #roomModalMap,#lbroomlive #roomModalName,#lbroomlive .room-modal-select-field select {
+ box-sizing:border-box;width:100%;min-width:0;height:46px;padding:8px 12px;
+ border:1px solid #49627e;border-radius:4px;
+ background:#142940;color:#edf5fe;font:800 16px Rajdhani,sans-serif;
+}
+#lbroomlive #roomModalMap {height:40px;cursor:pointer}
+#lbroomlive .room-map-cards {
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+ gap:clamp(6px,.75vw,13px);min-width:0;flex:none;
+}
+#lbroomlive .room-map-card {
+ display:flex;flex-direction:column;align-items:stretch;
+ min-height:132px;min-width:0;padding:5px;overflow:hidden;
+ border:1px solid #465c76;border-radius:5px;
+ background:linear-gradient(160deg,#132840,#071525);color:#e1ecf8;text-align:left;cursor:pointer;
+}
+#lbroomlive .room-map-card.is-selected,#lbroomlive .room-map-card:focus-visible {
+ border:2px solid #ff922e;padding:4px;outline:none;
+ background:#172b40;box-shadow:0 0 0 1px rgba(255,155,62,.28),0 0 12px rgba(238,113,22,.16);
+}
+#lbroomlive .room-map-card:hover {border-color:#ff9c43}
+#lbroomlive .room-map-card-preview {
+ display:block;width:100%;height:clamp(61px,8vh,88px);
+ background:linear-gradient(145deg,#24435b,#0d2038);object-fit:cover;flex:none;
+}
+#lbroomlive .room-map-card strong {
+ padding:7px 5px 2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+ font:italic 900 clamp(12px,.9vw,17px)/1 Rajdhani,sans-serif;
+}
+#lbroomlive .room-map-card.is-selected strong {color:#ffb066}
+#lbroomlive .room-map-card small {
+ padding:0 5px 5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+ color:#9cb0c6;font:700 10px/1.1 Rajdhani,sans-serif;
+}
+#lbroomlive .room-modal-field {
+ display:flex;flex-direction:column;gap:8px;min-width:0;position:relative;flex:none;
+}
+#lbroomlive .room-modal-field>span {color:#dce9f8;font:900 13px Rajdhani,sans-serif;letter-spacing:.13em}
+#lbroomlive .room-modal-field>small {
+ position:absolute;right:0;top:1px;color:#849db8;
+ font:800 10px Rajdhani,sans-serif;letter-spacing:.11em;
+}
+#lbroomlive .room-modal-modes {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+#lbroomlive .room-modal-modes button {
+ box-sizing:border-box;min-height:69px;padding:9px 7px;cursor:pointer;
+ border:1px solid #3e5771;border-radius:5px;
+ background:linear-gradient(125deg,#142941,#0a192d);color:#ccdced;
+ font:900 clamp(13px,1vw,17px)/1.18 Rajdhani,sans-serif;
+}
+#lbroomlive .room-modal-modes button.active {
+ color:white;border-color:#ffac50;
+ background:linear-gradient(110deg,#e96b18,#ff9934);box-shadow:0 0 15px rgba(241,124,32,.15);
+}
+#lbroomlive .room-modal-settings {
+ flex:none;padding:12px;border:1px solid #354d66;border-radius:5px;background:rgba(16,34,56,.6);
+}
+#lbroomlive .room-modal-group {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(9px,1vw,16px)}
+#lbroomlive .room-modal-select-field label {color:#f6b26a;font:900 12px Rajdhani,sans-serif;letter-spacing:.1em}
+#lbroomlive .room-modal-select-field select {height:42px;cursor:pointer}
+#lbroomlive .room-modal-players {
+ display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex:none;
+ padding:14px;border:1px solid #304864;border-radius:5px;background:rgba(13,31,51,.7);
+}
+#lbroomlive .room-modal-players span {width:100%;color:#ffaa4d;font:900 12px Rajdhani,sans-serif;letter-spacing:.12em}
+#lbroomlive .room-modal-players strong {color:#fff;font:italic 900 22px Impact,sans-serif}
+#lbroomlive .room-modal-players small {color:#a7bad0;font:800 12px Rajdhani,sans-serif}
+#lbroomlive .room-modal-master {
+ display:flex;flex-direction:column;gap:4px;flex:none;padding:10px 13px;
+ border:1px solid rgba(210,138,61,.4);border-radius:4px;
+ background:linear-gradient(110deg,rgba(80,51,22,.27),rgba(10,29,50,.7));
+}
+#lbroomlive .room-modal-master strong {color:#ffad57;font:900 13px Rajdhani,sans-serif;letter-spacing:.12em}
+#lbroomlive .room-modal-master small {color:#b1c4d7;font:800 11px Rajdhani,sans-serif}
+#lbroomlive .room-modal-note {
+ flex:none;padding:9px 12px;border:1px solid #32618a;border-radius:4px;
+ background:rgba(18,48,75,.8);color:#c5dcee;font:700 12px Rajdhani,sans-serif;
+}
+#lbroomlive #roomModalError {flex:none;margin:0;color:#ffb09c;font:800 12px Rajdhani,sans-serif}
+#lbroomlive .room-modal-actions {
+ display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);
+ gap:10px;flex:none;margin-top:14px;padding-top:13px;
+ border-top:1px solid rgba(94,124,158,.38);
+}
+#lbroomlive .room-modal-actions button {
+ min-height:61px;padding:10px 18px;cursor:pointer;
+ font:italic 900 clamp(22px,2.1vw,35px)/1 Impact,"Arial Black",sans-serif;letter-spacing:.035em;
+}
+#lbroomlive #roomModalCancel {border:1px solid #73829b;border-radius:3px;background:#11233b;color:#eaf2fc}
+#lbroomlive #roomModalSave {
+ border:1px solid #ffc071;border-radius:3px;color:white;
+ background:linear-gradient(115deg,#f36d18,#ffa03b);box-shadow:0 5px 19px rgba(213,103,24,.22);
+}
+#lbroomlive .room-modal-panel button:hover:not(:disabled){filter:brightness(1.11)}
+#lbroomlive .room-modal-panel :is(button,input,select):focus-visible {outline:2px solid #ffb95b;outline-offset:2px}
+@media(max-height:770px) and (min-width:861px) {
+ #lbroomlive .room-modal-map {height:clamp(170px,24vh,230px)}
+ #lbroomlive .room-map-card {min-height:108px}
+ #lbroomlive .room-map-card-preview {height:55px}
+ #lbroomlive .room-modal-header {margin-bottom:8px;padding-bottom:9px}
+ #lbroomlive .room-modal-actions {margin-top:8px;padding-top:8px}
+ #lbroomlive .room-modal-actions button {min-height:52px}
+}
+@media(max-width:860px) {
+ #lbroomlive .room-modal-panel {width:100%;height:100%}
+ #lbroomlive .room-modal-content {display:flex;flex-direction:column;overflow-y:auto;gap:17px}
+ #lbroomlive .room-modal-map-side,#lbroomlive .room-modal-config-side {overflow:visible;flex:none;padding:0}
+ #lbroomlive .room-modal-map {height:clamp(150px,23vh,270px)}
+ #lbroomlive .room-map-card {min-height:109px}
+ #lbroomlive .room-map-card-preview {height:60px}
+}
+@media(max-width:480px) {
+ #lbroomlive #roomSettingsModal {padding:6px}
+ #lbroomlive .room-modal-panel {padding:10px}
+ #lbroomlive .room-modal-header {gap:8px;margin-bottom:10px}
+ #lbroomlive .room-modal-heading {gap:10px}
+ #lbroomlive .room-modal-heading h3 {font-size:26px}
+ #lbroomlive .room-modal-heading small {font-size:9px}
+ #lbroomlive .room-modal-gear {font-size:27px}
+ #lbroomlive .room-modal-close {padding:6px;font-size:10px}
+ #lbroomlive .room-map-cards {gap:5px}
+ #lbroomlive .room-map-card {min-height:91px;padding:3px}
+ #lbroomlive .room-map-card-preview {height:50px}
+ #lbroomlive .room-map-card strong {padding:5px 2px 1px;font-size:11px}
+ #lbroomlive .room-modal-group {gap:7px}
+ #lbroomlive .room-modal-select-field select {font-size:13px;padding:7px 4px}
+ #lbroomlive .room-modal-actions button {min-height:49px;font-size:19px}
+}
+@media(prefers-reduced-motion:reduce) {#lbroomlive #roomSettingsModal {backdrop-filter:none}}
