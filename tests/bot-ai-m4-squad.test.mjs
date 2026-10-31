@@ -153,3 +153,39 @@ test('M4: only verified M1 radio can drive flank; no global enemy scan or direct
  assert.ok(parts.indexOf('src/game/88-bot-squad.js')<
    parts.indexOf('src/game/90-bot-ai.js'));
 });
+
+test('M4: real M1 sight event grants short-lived same-team flank without tracking hidden foe',()=>{
+ const {c,bots,enemy}=scene({los:()=>true});
+ vm.runInContext(read('src/game/88-bot-perception.js'),c);
+ assert.equal(c.botIntelObserve(bots[0],enemy),true);
+ assert.equal(c.botTeamReports[0].source,'radio');
+ const action=intent();c.botSquadIntent(bots[1],null,action);
+ assert.ok(action.goal);
+ const first=Array.from(action.goal);
+ c.los=()=>false;enemy.x=28;enemy.z=28;
+ c.tt=1.2;const second=intent();c.botSquadIntent(bots[1],null,second);
+ assert.deepEqual(Array.from(second.goal),first,'hidden live movement must not adjust waypoint');
+ c.tt=4.0;const expired=intent();c.botSquadIntent(bots[1],null,expired);
+ assert.equal(expired.goal,null);
+ assert.equal(c.botTeamReports[1],null,'opposite team must never receive leaked report');
+});
+test('M4: actual production A-star finds a flank around solid obstacle and fails closed if blocked',()=>{
+ const {c,bots}=scene({A:12,inObs(x,z,r){
+  return Math.abs(x)<2+r&&Math.abs(z)<3+r;
+ },botMoveUrgent:()=>false});
+ bots.forEach(b=>{b.x=-8;b.z=0});
+ c.botTeamReports[0]={...report(c),x:8,until:3.4};
+ const nav=read('src/game/90-bot-ai.js');
+ const prefix=nav.slice(0,nav.indexOf('// botsUpd(dt)'));
+ vm.runInContext(prefix,c);
+ vm.runInContext(read('src/game/88-bot-movement.js'),c);
+ let a=intent();c.botSquadIntent(bots[1],null,a);
+ assert.ok(a.goal,'flank requires real reachable A-star path');
+ const path=c.gPath(bots[1].x,bots[1].z,a.goal[0],a.goal[1]);
+ assert.ok(path&&path.length>1);
+ for(const step of path)assert.equal(c.inObs(step[0],step[1],.15),false);
+ c.botSquadReset(bots[1]);c.tt=2.3;
+ c.botMoveReachable=()=>false;
+ a=intent();c.botSquadIntent(bots[1],null,a);
+ assert.equal(a.goal,null,'if A-star route cannot be found no squad flank is forced');
+});
