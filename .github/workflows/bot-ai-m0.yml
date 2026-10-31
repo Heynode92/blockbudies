@@ -1,4 +1,4 @@
-# Developer-only verification; playable BLOCK BUDDIES remains direct-open/offline.
+# Developer-only verification; playable POINT BLOCK remains direct-open/offline.
 name: BOT AI M0 regression
 on:
   push:
