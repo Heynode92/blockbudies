@@ -38,19 +38,14 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
     botUpdateReload(e,dt);e.inv=Math.max(0,(e.inv||0)-(cdn?0:dt));e.vis=Math.max(0,(e.vis||0)-dt);e.tq=(e.tq||0)-dt;e.navT=Math.max(0,(e.navT||0)-dt);
     if(e.tq<=0){e.tq=.22+Math.random()*.16;
       // Target acquisition is an actual observation, never an unseen enemy pointer.
-      e.tg=botIntelAcquire(e);e.lok=!!e.tg;
+      e.tg=isBombMode()?botIntelAcquire(e):botTdmAcquire(e);e.lok=!!e.tg;
       botIntelHearing(e);
       if(isBombMode()){var objective=bombBotGoal(e);if(objective){e.wx=objective[0];e.wz=objective[1];}}
       if(!e.tg&&!isBombMode()){
         // Pursue the last visible contact, never unseen live player coordinates.
         var clue=botIntelKnown(e);
         if(clue){e.wx=clue.x;e.wz=clue.z;}
-        else if(!e.patrolUntil||tt>e.patrolUntil||Math.hypot(e.wx-e.x,e.wz-e.z)<2){
-          e.patrolUntil=tt+3+Math.random()*3;
-          var side=e.idx%2?1:-1,angle=Math.atan2(e.z,e.x)+side*(.6+Math.random()*1.3);
-          e.wx=Math.max(-A+3,Math.min(A-3,e.x+Math.cos(angle)*(9+Math.random()*11)));
-          e.wz=Math.max(-A+3,Math.min(A-3,e.z+Math.sin(angle)*(9+Math.random()*11)));
-        }}}
+        else botTdmPatrol(e);}}
     t=e.tg;
     // Reject the old actor reference immediately after LOS loss. Even pathing
     // must use the last observed snapshot, never new hidden coordinates.
@@ -74,6 +69,7 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
     if(combat){var fw=botNeedsMelee(e)?1:(isBombMode()&&bombMatch&&bombMatch.state==='planted'&&e.tm===0)?
       (d>BOMB_AI.retakeCombatDistance?1:-.3):(d>16?1:d<7?-.6:0),st;e.bt=(e.bt||0)-dt;if(e.bt<=0){e.bt=.7+Math.random()*1.4;e.sd=[-1,0,1][(Math.random()*3)|0];}st=(e.sd||0)*.9;
       var dodge=botSmartVelocity(e,d,fw,st);fw=dodge[0];st=dodge[1];
+      dodge=botTdmCombatMove(e,d,fw,st);fw=dodge[0];st=dodge[1];
       dodge=botMoveDodge(e,t,dt,fw,st);fw=dodge[0];st=dodge[1];
       mvx=dx/d*fw+(dz/d)*st;mvz=dz/d*fw-(dx/d)*st;
       if(!botMoveIsClear(e,mvx,mvz,sp,dt)){e.sd=-(e.sd||1);}}
