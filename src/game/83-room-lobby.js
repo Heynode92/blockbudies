@@ -390,12 +390,43 @@ function roomRoundSeconds(){return roomMatchConfig&&roomMatchConfig.mode===1?roo
 function roomRoundsToWin(){return roomMatchConfig&&roomMatchConfig.mode===1?Math.floor(roomRoundLimit()/2)+1:BOMB_RULES.wins;}
 function roomLobbyOpen(){
  roomModalHide(false);
+ var browserOverlay=document.getElementById("roomCreateOverlay");
+ if(browserOverlay)browserOverlay.hidden=true;
  roomLoad();roomRender();
  if(roomCurrent){var found=roomList.find(function(r){return r.id===roomCurrent.id;});if(found){roomLiveOpen(found);return;}roomEditState(null);}
- else roomEditState(null);
+ else {
+  // Block District remains the real animated lobby background, not a stock image.
+  // Mode/map changes inside the Create popup still use the existing authoritative previews.
+  roomDraftMode=0;roomDraftMapId="block-district";roomEditState(null);
+ }
  roomSetMessage("");
  lobP("lbrooms");
+ if(typeof inventoryBrowserPreviewOpen==="function")inventoryBrowserPreviewOpen();
 }
+// The browser's full Create Room form is presented in a modal without cloning inputs,
+// validation, map options, mode switches or the original Room Master launch flow.
+function roomBrowserCreateClose(){
+ var overlay=document.getElementById("roomCreateOverlay");if(!overlay||overlay.hidden)return;
+ overlay.hidden=true;
+ selM=0;selectedTdmMapId="block-district";modePreviewSelect(0);
+ var trigger=document.getElementById("roomCreateOpen");
+ if(trigger&&typeof trigger.focus==="function")trigger.focus();
+}
+document.getElementById("roomCreateOpen").addEventListener("click",function(){
+ if(roomCurrent)return;
+ var overlay=document.getElementById("roomCreateOverlay");
+ overlay.hidden=false;
+ roomModeSelect(roomDraftMode);
+ var name=document.getElementById("roomName");if(name&&typeof name.focus==="function")name.focus();
+});
+document.getElementById("roomCreateCancel").addEventListener("click",roomBrowserCreateClose);
+document.addEventListener("keydown",function(event){
+ var overlay=document.getElementById("roomCreateOverlay");
+ if(event.key==="Escape"&&overlay&&!overlay.hidden&&document.getElementById("lbrooms").classList.contains("on")){
+  if(typeof event.preventDefault==="function")event.preventDefault();
+  roomBrowserCreateClose();
+ }
+});
 document.getElementById("roomBack").addEventListener("click",function(){if(roomCurrent)roomLiveOpen(roomCurrent);else lobP("lbs");});
 document.getElementById("roomRefresh").addEventListener("click",function(){roomLoad();roomRender();roomSetMessage("Local room list refreshed.");});
 document.getElementById("roomTdm").addEventListener("click",function(){roomModeSelect(0);});
