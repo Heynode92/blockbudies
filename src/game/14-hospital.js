@@ -196,6 +196,17 @@ function makeHospital(){
    detail(5.1,.50,.045,zone.color,q[0],6.8,q[1]+.20);
    for(var t=-1;t<=1;t++)
      detail(.45,.09,.06,p.white,q[0]+t*1.14,6.8,q[1]+.245);
+   // Actual department names are readable and distinct. The sign is an
+   // overhead non-solid sprite, never an invisible collision obstacle.
+   var canvas=document.createElement("canvas");canvas.width=512;canvas.height=96;
+   var signCtx=canvas.getContext("2d");
+   signCtx.fillStyle="#233d4c";signCtx.fillRect(0,0,512,96);
+   signCtx.fillStyle="#ecf6f5";signCtx.textAlign="center";
+   signCtx.font="bold 42px Arial, sans-serif";signCtx.fillText(zone.name,256,62);
+   var sign=new T.Sprite(new T.SpriteMaterial({
+     map:new T.CanvasTexture(canvas),transparent:true,depthTest:true}));
+   sign.position.set(q[0],7.25,q[1]+.30);sign.scale.set(5.3,1.0,1);
+   S.add(sign);
  });
  // Smooth luminous ceiling panels cover the sky; physical overhead projectile blocker.
  var roof=mk(half*2,.30,half*2,p.ceiling,0,yRoof,0);roof.castShadow=false;
