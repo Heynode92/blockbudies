@@ -1,0 +1,39 @@
+# Temporary, triggered only on this file; will be removed after successful bundle parity.
+name: M2 one-time standalone bundle sync
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/m2-bundle-once.yml']
+permissions:
+  contents: write
+jobs:
+  sync:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build canonical offline game
+        shell: pwsh
+        run: |
+          node tools/build.mjs
+          if ($LASTEXITCODE -ne 0) { throw "Canonical build failed" }
+      - name: Commit only generated bundle
+        shell: pwsh
+        run: |
+          git add -- assets/game.js
+          git diff --cached --quiet
+          if ($LASTEXITCODE -eq 1) {
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "build(bot-m2): update standalone bundle for 3D aim"
+            if ($LASTEXITCODE -ne 0) { throw "Commit failed" }
+            git push origin HEAD:main
+            if ($LASTEXITCODE -ne 0) { throw "Push failed" }
+          } elseif ($LASTEXITCODE -eq 0) {
+            Write-Output "Already synchronized"
+          } else { throw "Unexpected git diff error" }
