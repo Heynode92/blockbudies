@@ -247,24 +247,37 @@ function makeBombMap(){
   BOMB_WORLD=S.children.filter(function(o){return before.indexOf(o)<0;});
   BOMB_OB=OB.slice();BOMB_BR=BR.slice();BOMB_LT=LT.slice();
 }
-// Switch collision geometry, visibility and pathfinding grid without touching TDM entities or controls.
+// Activate a single Bomb arena using original OB/BR/LT physics and the same map size.
+// Every map owns immutable geometry snapshots. Map swaps invalidate BOT pathfinding.
 function selectGameMap(bombActive){
+  var id=bombActive?bombMapId(selectedBombMapId):"lockdown",
+      town=bombActive&&id==="block-town";
   BOMB_CITY.forEach(function(m){m.visible=!bombActive;});
+  if(BOMB_WORLD)BOMB_WORLD.forEach(function(m){m.visible=bombActive&&!town;});
+  if(BLOCK_TOWN_WORLD)BLOCK_TOWN_WORLD.forEach(function(m){m.visible=!!town;});
   OB.length=0;BR.length=0;LT.length=0;
   if(bombActive){
     A=BOMB_RULES.cellSize*BOMB_RULES.cells/2;
-    if(!BOMB_WORLD)makeBombMap();
-    else{Array.prototype.push.apply(OB,BOMB_OB);Array.prototype.push.apply(BR,BOMB_BR);Array.prototype.push.apply(LT,BOMB_LT);}
-    BOMB_WORLD.forEach(function(m){m.visible=true;});S.background=new T.Color(0x1b2735);S.fog=new T.Fog(0x1b2735,25,95);
+    bombMapSites(id);
+    if(town){
+      if(!BLOCK_TOWN_WORLD)makeBlockTown();
+      else{Array.prototype.push.apply(OB,BLOCK_TOWN_OB);Array.prototype.push.apply(BR,BLOCK_TOWN_BR);Array.prototype.push.apply(LT,BLOCK_TOWN_LT);}
+      S.background=new T.Color(0xa7cde0);S.fog=new T.Fog(0xa7cde0,54,170);
+    }else{
+      if(!BOMB_WORLD)makeBombMap();
+      else{Array.prototype.push.apply(OB,BOMB_OB);Array.prototype.push.apply(BR,BOMB_BR);Array.prototype.push.apply(LT,BOMB_LT);}
+      S.background=new T.Color(0x1b2735);S.fog=new T.Fog(0x1b2735,25,95);
+    }
   }else{
     A=BOMB_CITY_HALF;
-    if(BOMB_WORLD)BOMB_WORLD.forEach(function(m){m.visible=false;});
+    bombMapSites("lockdown");
     Array.prototype.push.apply(OB,BOMB_CITY_OB);Array.prototype.push.apply(BR,BOMB_CITY_BR);Array.prototype.push.apply(LT,BOMB_CITY_LT);
     S.background=BOMB_BACKGROUND;S.fog=BOMB_FOG;
   }
   GB=null;
 }
 function bombSpawnPt(team){
+  if(bombMapId(selectedBombMapId)==="block-town")return townSpawnPt(team);
   var hist=SPH[team],step=BOMB_RULES.cellSize,candidates=[],z=team?-65:65;
   [-35,-15,-5,5,15,35].forEach(function(x){if(!inObs(x,z,.85)&&!hist.some(function(p){return Math.hypot(p[0]-x,p[1]-z)<5;}))candidates.push([x,z]);});
   var pick=candidates.length?candidates[(Math.random()*candidates.length)|0]:[(Math.random()-.5)*10,z];
