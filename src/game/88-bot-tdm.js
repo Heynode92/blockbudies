@@ -30,7 +30,7 @@ function botTdmScore(e,foe){
      band=botTdmBand(e),
      score=distance;
  // A visible enemy with spawn protection is not a preferred target.
- if((foe.inv||0)>0)score+=35;
+ if((foe.inv||0)>0)return Infinity;
  // A currently visible, wounded opponent is a sensible finishing target,
  // without revealing unknown enemy health to the squad.
  if(Number.isFinite(foe.hp)&&foe.hp>0&&foe.hp<40)score-=2;
@@ -47,7 +47,7 @@ function botTdmAcquire(e){
  function consider(o){
   if(!o||o===e||o.dead||o.tm===e.tm)return;
   var score=botTdmScore(e,o);
-  if(score<best){best=score;target=o;}
+  if(Number.isFinite(score)&&score<best){best=score;target=o;}
  }
  en.forEach(consider);
  if(!pl.dead)consider(pl);
@@ -90,6 +90,7 @@ function botTdmPatrol(e){
  var fresh=botIntelKnown(e);
  // Valid M1 vision/radio/audio reports are always handled first.
  if(fresh&&fresh.until>tt){e.tdmRouteGoal=null;return;}
+ if(!e.tdmRouteGoal&&tt<(e.tdmRouteAt||0))return;
  if(e.tdmRouteGoal&&tt<(e.tdmRouteAt||0)&&
     Math.hypot(e.x-e.tdmRouteGoal[0],e.z-e.tdmRouteGoal[1])>
       BOT_TDM.patrolArrival){
