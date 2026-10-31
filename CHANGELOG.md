@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-31 WIB — Hospital 385/385 Node PASS and 20 automated browser Bomb rounds
+
+- [Windows regression #334](https://github.com/Heynode92/blockbudies/actions/runs/41194683332): **385/385 PASS**, source manifest / shipped `assets/game.js` byte parity PASS. The final indoor Hospital includes six readable overhead department names and earlier medical décor with no gameplay modifications.
+- [Windows Chromium #66](https://github.com/Heynode92/blockbudies/actions/runs/41194482293): **Hospital Police 10/10 genuine Bomb rounds PASS**, **Hospital Terrorist 10/10 PASS**, **zero JavaScript errors** in both jobs. This evidence predates the separate department-signage visual update; [Chromium #68](https://github.com/Heynode92/blockbudies/actions/runs/41194683334) is the matching latest browser validation and is pending independent confirmation.
+- In 20 rounds, completed plant-at-finish sites were all A (6 for Police-slot; 10 for Terrorist-slot), despite both sites passing geometric and A* acceptance tests. This is recorded as an unresolved small-sample objective-usage observation rather than silently adjusting BOT policy.
+- No manual player tests or special Windows build steps are required for automated functionality. User visual/GPU confirmation and final game balance remain distinct acceptance questions.
+
 ## 2026-10-31 WIB — HOSPITAL indoor Bomb Mission map (first playable implementation)
 
 - Added **Hospital** (`hospital`) as a new, standalone **160×160 indoor Bomb Mission** arena based directly on the owner blueprint: Police spawn upper-left, Terrorists lower-right, Site A upper-right Surgical/Operating Wing, Site B left-middle Ward/Imaging Wing. Gray blueprint corridors remain playable and 14 white architectural masses are registered as solid walls; no fake unlocked patient rooms.
