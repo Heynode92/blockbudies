@@ -7,6 +7,7 @@ on:
     branches: [main]
     paths:
       - 'tools/bot-ai-m7-browser.mjs'
+      - 'tools/bot-ai-m7-browser-bridge.js'
       - '.github/workflows/bot-ai-m7-browser.yml'
       - 'src/game/**'
       - 'assets/game.js'
