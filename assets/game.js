@@ -3279,6 +3279,131 @@ function botMoveRecovery(e,vx,vz,sp,dt,hold){
   return [-sx*.75,-sz*.75];
  return [0,0];
 }
+// M4 — deterministic squad roles, legitimate shared-contact flank lanes and bounded entry synchronization.
+// All enemy coordinates originate only from M1 timestamped, same-team sight/radio snapshots.
+// No hidden enemy scan, forced hits, direct-wall movement or Bomb objective overrides.
+var BOT_SQUAD=Object.freeze({
+ thinkSeconds:1.05,goalSeconds:2.0,flankRadius:5.5,supportRadius:4.2,
+ goalReach:1.3,contactRange:33,allyGoalSpacing:2.0,
+ laneRadius:2.35,laneStrength:.26,
+ entryWaitMax:.34,entryNearMin:5,entryNearMax:13
+});
+function botSquadReset(e){
+ e.squadRole=null;e.squadGoal=null;e.squadUntil=0;
+ e.squadRetryAt=0;e.squadReportAt=-1;
+ e.squadEntryWaitUntil=0;e.squadEntryCooldownUntil=0;
+}
+function botSquadRoster(team){
+ // This roster reveals only friendly public positions and survival, no enemy identity.
+ return en.filter(function(o){return o&&!o.dead&&o.tm===team;})
+   .sort(function(a,b){return a.idx-b.idx;});
+}
+function botSquadRole(e){
+ var allies=botSquadRoster(e.tm),rank=allies.indexOf(e);
+ if(rank<0)return null;
+ return ['entry','flank-left','flank-right','support'][rank%4];
+}
+function botSquadReport(e){
+ var r=botTeamReports[e.tm];
+ // M1 alone owns this report. Team, source and expiry are mandatory, not inferred.
+ if(!r||r.team!==e.tm||r.source!=='radio'||r.until<=tt||
+    !Number.isFinite(r.x)||!Number.isFinite(r.z)||!Number.isFinite(r.seenAt))
+   return null;
+ return r;
+}
+function botSquadCanFlank(e){
+ if(isBombMode()){
+  // Bomb authority remains in bombTacticalGoal: planted defense, escort,
+  // recovery, carrier, retake and defuse are not overwritten by a squad move.
+  return false;
+ }
+ return true;
+}
+function botSquadFlankPoint(e,role,r){
+ var dx=r.x-e.x,dz=r.z-e.z,dist=Math.hypot(dx,dz);
+ if(dist<2||dist>BOT_SQUAD.contactRange)return null;
+ var ux=dx/dist,uz=dz/dist,lx=uz,lz=-ux,
+     x,z;
+ if(role==='flank-left'){
+  x=r.x+lx*BOT_SQUAD.flankRadius-ux*2.2;
+  z=r.z+lz*BOT_SQUAD.flankRadius-uz*2.2;
+ }else if(role==='flank-right'){
+  x=r.x-lx*BOT_SQUAD.flankRadius-ux*2.2;
+  z=r.z-lz*BOT_SQUAD.flankRadius-uz*2.2;
+ }else if(role==='support'){
+  x=r.x-ux*BOT_SQUAD.supportRadius;
+  z=r.z-uz*BOT_SQUAD.supportRadius;
+ }else return null;
+ if(!Number.isFinite(x)||!Number.isFinite(z)||
+    Math.abs(x)>=A-1.8||Math.abs(z)>=A-1.8||
+    inObs(x,z,.72))return null;
+ // Reserve separate safe lanes; never send different bots to one flank waypoint.
+ for(var i=0;i<en.length;i++){
+  var ally=en[i];
+  if(ally===e||ally.dead||ally.tm!==e.tm||!ally.squadGoal||
+     ally.squadUntil<=tt)continue;
+  if(Math.hypot(x-ally.squadGoal[0],z-ally.squadGoal[1])<
+       BOT_SQUAD.allyGoalSpacing)return null;
+ }
+ // Exactly one bounded A* check per fresh candidate, throttled by squadRetryAt.
+ return botMoveReachable(e,x,z)?[x,z]:null;
+}
+function botSquadIntent(e,target,intent){
+ if(!e||e.dead)return;
+ e.squadRole=botSquadRole(e);
+ if(!e.squadRole)return;
+ if(target||intent.retreat||intent.hold||botMoveUrgent(e)||
+    e.m3Mode||!botSquadCanFlank(e)){
+  e.squadGoal=null;e.squadUntil=0;return;
+ }
+ var report=botSquadReport(e),allies=botSquadRoster(e.tm);
+ if(!report||allies.length<2){
+  e.squadGoal=null;e.squadUntil=0;e.squadEntryWaitUntil=0;return;
+ }
+ if(e.squadRole==='entry'){
+  // Wait only once for a new authentic contact, and NEVER wait indefinitely.
+  var dist=Math.hypot(report.x-e.x,report.z-e.z);
+  if(tt>=(e.squadEntryCooldownUntil||0)&&allies.length>=3&&
+     dist>BOT_SQUAD.entryNearMin&&dist<BOT_SQUAD.entryNearMax){
+   e.squadEntryCooldownUntil=tt+4;
+   e.squadEntryWaitUntil=Math.min(tt+BOT_SQUAD.entryWaitMax,report.until);
+  }
+  if(tt<e.squadEntryWaitUntil)intent.hold=true;
+  return;
+ }
+ if(e.squadGoal&&e.squadUntil>tt&&
+    Math.hypot(e.x-e.squadGoal[0],e.z-e.squadGoal[1])>BOT_SQUAD.goalReach&&
+    Math.hypot(report.x-e.squadAnchorX,report.z-e.squadAnchorZ)<4){
+  intent.goal=e.squadGoal;return;
+ }
+ if(tt<(e.squadRetryAt||0))return;
+ e.squadRetryAt=tt+BOT_SQUAD.thinkSeconds;
+ e.squadGoal=null;e.squadUntil=0;
+ var goal=botSquadFlankPoint(e,e.squadRole,report);
+ if(!goal)return; // Fallback to ordinary M1/M3 navigation, never freeze.
+ e.squadGoal=goal;e.squadReportAt=report.seenAt;
+ e.squadAnchorX=report.x;e.squadAnchorZ=report.z;
+ e.squadUntil=Math.min(report.until,tt+BOT_SQUAD.goalSeconds);
+ intent.goal=goal;
+}
+function botSquadLane(e,vx,vz){
+ if(!e||e.dead||botMoveUrgent(e)||(!vx&&!vz))return[vx,vz];
+ var len=Math.hypot(vx,vz),ux=vx/len,uz=vz/len,
+     rx=0,rz=0,rank=botSquadRoster(e.tm).indexOf(e),side=rank%2?1:-1;
+ if(rank<0)return[vx,vz];
+ for(var i=0;i<en.length;i++){
+  var ally=en[i];
+  if(!ally||ally===e||ally.dead||ally.tm!==e.tm)continue;
+  var dx=ally.x-e.x,dz=ally.z-e.z,d=Math.hypot(dx,dz);
+  // Only divert if a friendly actually occupies the next forward lane.
+  if(d>.2&&d<BOT_SQUAD.laneRadius&&(dx*ux+dz*uz)/d>.3){
+   rx+=uz*side*BOT_SQUAD.laneStrength;
+   rz-=ux*side*BOT_SQUAD.laneStrength;
+  }
+ }
+ var ax=vx+rx,az=vz+rz,n=Math.hypot(ax,az);
+ return n>1?[ax/n,az/n]:[ax,az];
+}
 // Five-star BOT decision layer: uses existing A* navigation, LOS, HP,
 // canonical weapon ammo, and Bomb Mission objectives. No duplicate combat engine.
 var BOT_TACTICS=Object.freeze({
@@ -3443,7 +3568,7 @@ function newBot(tm,i){var b=terro(tm);b.tm=tm;b.idx=i;b.name=BN[tm][i];b.ph=Math
   var cv=document.createElement("canvas");cv.width=256;cv.height=64;var cx=cv.getContext("2d"),nt=b.name.toUpperCase();cx.font='700 40px Rajdhani,"Trebuchet MS",sans-serif';cx.textAlign="center";cx.textBaseline="middle";cx.lineWidth=7;cx.strokeStyle="rgba(0,0,0,.85)";cx.strokeText(nt,128,34);cx.fillStyle=tm?"#ff8a65":"#74c0fc";cx.fillText(nt,128,34);
   var sp=new T.Sprite(new T.SpriteMaterial({map:new T.CanvasTexture(cv),depthTest:false,transparent:true,fog:false}));sp.scale.set(3,.75,1);sp.position.set(0,2.75,0);sp.renderOrder=1000;sp.visible=tm===pl.tm;b.g.add(sp);b.nm=sp;return b;}
 // placeBot(b): (re)spawns bot b at a spawn point with full HP and short invulnerability.
-function placeBot(b){var s=spawnPt(b.tm);b.stepTrail=0;b.stepIndex=0;b.x=s[0];b.z=s[1];b.y=0;defenseSpawn(b);if(b.hm)b.hm.visible=true;b.inv=2;b.cd=1+Math.random();b.dead=false;b.tg=null;b.bn=0;b.wx=b.x;b.wz=b.z;b.stk=0;b.lastSeen=null;b.coverGoal=null;b.coverExpires=0;b.coverHoldUntil=0;b.smartRetreat=false;if(typeof botMoveReset==='function')botMoveReset(b);b.siteChoice=undefined;b.g.rotation.y=b.tm?0:Math.PI;botInitialLoadout(b);en.push(b);}
+function placeBot(b){var s=spawnPt(b.tm);b.stepTrail=0;b.stepIndex=0;b.x=s[0];b.z=s[1];b.y=0;defenseSpawn(b);if(b.hm)b.hm.visible=true;b.inv=2;b.cd=1+Math.random();b.dead=false;b.tg=null;b.bn=0;b.wx=b.x;b.wz=b.z;b.stk=0;b.lastSeen=null;b.coverGoal=null;b.coverExpires=0;b.coverHoldUntil=0;b.smartRetreat=false;if(typeof botMoveReset==='function')botMoveReset(b);if(typeof botSquadReset==='function')botSquadReset(b);b.siteChoice=undefined;b.g.rotation.y=b.tm?0:Math.PI;botInitialLoadout(b);en.push(b);}
 // startMatch(tm): sets up scores, timer (60 s) and the countdown, spawns the player and 4+5 bots, resets weapons to the chosen primary.
 function startMatch(tm){inventoryForNewMatch();starsReset();SPH=[[],[]];var s=spawnPt(tm);pl.tm=tm;pl.x=s[0];pl.z=s[1];pl.face=tm?0:Math.PI;pl.inv=2;ts=[0,0];rq=[];mt={t:roomMatchSeconds(),cd:5,over:false};pl.prim=favPrim;pl.w=favPrim;pl.mag=WP[favPrim].mag;pl.res=WP[favPrim].res;scopeOn=false;ROS=[];pl.st={name:"You",tm:tm,k:0,d:0};ROS.push(pl.st);
   S.remove(pm.g);pm=mkPm(tm);pm.g.visible=false;[armR,armL].forEach(function(ar){ar.children[0].material.color.setHex(tm?0x4b5320:0x1c4a8a);ar.children[1].material.color.setHex(tm?0x23272b:0x142a52);});
@@ -4569,6 +4694,7 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
     if(t){dx=t.x-e.x;dz=t.z-e.z;d=Math.hypot(dx,dz)||1;}
     botSmartReload(e,t);intent=botSmartIntent(e,t);e.smartRetreat=intent.retreat;
     botMoveIntent(e,t,intent);
+    botSquadIntent(e,t,intent);
     combat=!!t&&e.lok&&e.navT<=0&&!(intent.retreat&&intent.goal)&&
       !(e.m3Mode==='cover'&&intent.goal)&&!intent.hold;
     sp*=intent.retreat?BOT_TACTICS.retreatSpeed:combat?BOT_TACTICS.fightSpeed:BOT_TACTICS.approachSpeed;
@@ -4591,6 +4717,7 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
       var sx=e.x-o.x,sz=e.z-o.z,sq=Math.hypot(sx,sz),space=isBombMode()?BOMB_AI.teammateSpacing:1.8;
       if(sq<space&&sq>.01){mvx+=sx/sq*.75;mvz+=sz/sq*.75;}
     }});
+    var squadLane=botSquadLane(e,mvx,mvz);mvx=squadLane[0];mvz=squadLane[1];
     ml=Math.hypot(mvx,mvz);if(ml>1){mvx/=ml;mvz/=ml;}if(cdn)mvx=mvz=0;
     var wantedMovement=!!(mvx||mvz),holdMovement=cdn||(isBombMode()&&e.bAction)||intent.hold;
     var recovery=botMoveRecovery(e,mvx,mvz,sp,dt,holdMovement);
