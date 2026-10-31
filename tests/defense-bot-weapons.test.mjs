@@ -18,6 +18,8 @@ function setup() {
     fall(){return 1;}
   };
   runInNewContext(src('src/game/39-defense.js')+profiles+'\n'+src('src/game/41-bot-weapons.js')+'\n'+src('src/game/42-projectile-defense.js'),ctx);
+  // Weapon-contract test isolates ammo/range/cooldown; M2 aim legality has dedicated tests.
+  ctx.botAimShot=()=>({yaw:0,pitch:0});
   ctx.botVisualWeapon=(e,id)=>{e.visualWeapon=id;};
   ctx.fire=(...args)=>ctx.fireCalls.push(args);
   ctx.hurt=(...args)=>ctx.impactCalls.push(['human',...args]);
