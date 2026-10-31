@@ -285,3 +285,40 @@ test('indoor architectural walls and framed passages have real physical anchors'
   const groundDetails=c.visualDetails.filter(q=>q.y-q.h/2<.02&&q.y-q.h/2>-.02);
   assert.ok(groundDetails.length>0,'wall skirting and props are grounded');
 });
+
+test('Block Town outdoor 160x160 has separated A-side Police spawns and accessible A/B routes',()=>{
+ const c=makeContext();c.selectedBombMapId='block-town';c.selectGameMap(true);
+ assert.equal(c.A,80);assert.equal(c.BOMB_SITES[0].id,'A');assert.equal(c.BOMB_SITES[0].x,-44);
+ assert.equal(c.BOMB_SITES[1].id,'B');assert.ok(c.BOMB_SITES[1].x>0);
+ const police=c.BLOCK_TOWN_DEF.spawns.police,terror=c.BLOCK_TOWN_DEF.spawns.terrorist;
+ assert.equal(police.length,5);assert.equal(terror.length,5);
+ for(const p of police.concat(terror))assert.equal(c.inObs(p[0],p[1],.85),false,'spawn is collision-free '+p);
+ for(const site of c.BOMB_SITES)assert.equal(c.inObs(site.x,site.z,1),false,'plant center is clear');
+ assert.ok(police.every(p=>p[0]<c.BOMB_SITES[0].x&&p[1]<c.BOMB_SITES[0].z),
+   'Police deploy immediately on A-side, not facing the southern Terrorist spawn');
+ for(const p of police)for(const q of terror){
+  let blocked=false,steps=Math.ceil(Math.hypot(q[0]-p[0],q[1]-p[1])/.5);
+  for(let k=1;k<steps;k++){
+   let t=k/steps;
+   if(c.inObs(p[0]+(q[0]-p[0])*t,p[1]+(q[1]-p[1])*t,.02)){blocked=true;break;}
+  }
+  assert.ok(blocked,'opposing spawn points never have a direct firing corridor');
+ }
+ runInNewContext(navSource,c);
+ for(const p of police.concat(terror))for(const site of c.BOMB_SITES){
+  const pts=c.gPath(p[0],p[1],site.x,site.z);
+  assert.ok(pts&&pts.length>1,'real production A* path from '+p+' to '+site.id);
+ }
+ assert.equal(c.BLOCK_TOWN_WORLD.length>10,true,'town has real outdoor geometry');
+ assert.equal(c.BOMB_WORLD,null,'Lockdown should not have been built unnecessarily');
+ c.selectGameMap(false);assert.equal(c.A,60);
+ assert.ok(c.BLOCK_TOWN_WORLD.every(o=>o.visible===false));
+ c.selectedBombMapId='lockdown';c.selectGameMap(true);
+ assert.equal(c.BOMB_SITES[0].x,-25,'original Lockdown site survives map swap');
+ assert.ok(c.BOMB_WORLD.length>100);
+ assert.ok(c.BLOCK_TOWN_WORLD.every(o=>o.visible===false));
+ c.selectedBombMapId='block-town';c.selectGameMap(true);
+ assert.equal(c.BOMB_SITES[0].x,-44);
+ assert.ok(c.BOMB_WORLD.every(o=>o.visible===false));
+ assert.equal(c.OB.length,c.BLOCK_TOWN_OB.length,'restores only Block Town collision snapshot');
+});
