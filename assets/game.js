@@ -3106,6 +3106,179 @@ function botIntelNearest(e,x,z,radius){
  });
  return best;
 }
+// M3 movement tactics: bounded cover, legal last-seen peeks, dodge and obstacle recovery.
+// Uses existing A* (gPath), solid geometry (inObs), canonical resolve(), and M1 clues.
+// Does not teleport or inspect hidden enemy actor positions.
+var BOT_MOVE=Object.freeze({
+ coverTriggerHP:70,coverRetry:2.8,coverTravel:3.6,holdSeconds:.38,
+ peekTravel:2.3,peekRetry:2.1,peekOffsets:[1.9,3.1,4.3],
+ dodgeWindow:.32,dodgeCooldown:1.4,dodgeStrength:.85,
+ velocityBlend:9,probeSeconds:.32,probeRadius:.62,
+ stuckAfter:.52,recoverSeconds:.55,recoverCooldown:1.05,
+ maxStallCycles:3
+});
+function botMoveReset(e){
+ e.m3Mode=null;e.m3Goal=null;e.m3Expires=0;e.m3RetryAt=0;
+ e.m3DodgeUntil=0;e.m3DodgeAt=0;e.m3DodgeSide=0;
+ e.m3RecoverUntil=0;e.m3RecoverAt=0;e.m3RecoverSide=0;
+ e.m3StallCycles=0;e.m3VX=0;e.m3VZ=0;
+}
+function botMoveUrgent(e){
+ // No new peek/cover maneuver may prevent planting, defusing or urgent retake.
+ return !!(e.bAction||(isBombMode()&&bombMatch&&!bombMatch.done&&
+  (bombMatch.state==='planted'&&e.tm===0||
+   bombMatch.state==='idle'&&bombMatch.carrier===e)));
+}
+function botMoveReachable(e,x,z){
+ if(!Number.isFinite(x)||!Number.isFinite(z)||Math.abs(x)>A-1.5||
+    Math.abs(z)>A-1.5||inObs(x,z,.72))return false;
+ var p=gPath(e.x,e.z,x,z);
+ return !!(p&&p.length);
+}
+function botMovePeek(e,clue){
+ if(!clue||clue.until<=tt)return null;
+ var dx=clue.x-e.x,dz=clue.z-e.z,dist=Math.hypot(dx,dz);
+ if(dist<1||dist>BOT_TACTICS.threatRange*1.5)return null;
+ // Sample lateral edges from the last AUTHORIZED observed position only.
+ var sideX=dz/dist,sideZ=-dx/dist,candidates=[];
+ for(var i=0;i<BOT_MOVE.peekOffsets.length;i++)
+ for(var sign=-1;sign<=1;sign+=2){
+  var offset=BOT_MOVE.peekOffsets[i]*sign,
+      x=e.x+sideX*offset,z=e.z+sideZ*offset;
+  if(Math.abs(x)>A-1.5||Math.abs(z)>A-1.5||
+     inObs(x,z,.72)||!los(x,z,clue.x,clue.z))continue;
+  var score=Math.abs(offset)*1.2;
+  for(var j=0;j<en.length;j++){
+   var ally=en[j];
+   if(ally!==e&&!ally.dead&&ally.tm===e.tm&&
+      Math.hypot(x-ally.x,z-ally.z)<1.8)score+=6;
+  }
+  candidates.push({x:x,z:z,score:score});
+ }
+ candidates.sort(function(a,b){return a.score-b.score;});
+ // Bound A* cost on crowded 5v5 scenes.
+ for(var n=0;n<Math.min(2,candidates.length);n++){
+  var c=candidates[n];
+  if(botMoveReachable(e,c.x,c.z))return [c.x,c.z];
+ }
+ return null;
+}
+function botMoveIntent(e,t,intent){
+ if(e.dead||botMoveUrgent(e)||intent.retreat){
+  e.m3Mode=null;e.m3Goal=null;return;
+ }
+ if(e.m3Mode&&e.m3Mode!=='hold'&&tt>(e.m3Expires||0)){
+  e.m3Mode=null;e.m3Goal=null;e.m3RetryAt=Math.max(e.m3RetryAt||0,tt+.7);
+ }
+ if(e.m3Mode==='cover'&&e.m3Goal){
+  if(Math.hypot(e.x-e.m3Goal[0],e.z-e.m3Goal[1])<1.15){
+   e.m3Mode='hold';e.m3Expires=tt+BOT_MOVE.holdSeconds;
+   e.m3Goal=null;
+  }else{
+   intent.goal=e.m3Goal;return;
+  }
+ }
+ if(e.m3Mode==='hold'){
+  if(tt<e.m3Expires){intent.hold=true;return;}
+  e.m3Mode='peeking';e.m3Goal=null;e.m3Expires=tt+BOT_MOVE.peekTravel;
+ }
+ if(e.m3Mode==='peeking'){
+  if(t){e.m3Mode=null;e.m3Goal=null;return;} // resume combat on fresh sight
+  if(!e.m3Goal){
+   var clue=botIntelKnown(e);
+   e.m3Goal=botMovePeek(e,clue);
+   if(!e.m3Goal){e.m3Mode=null;e.m3RetryAt=tt+BOT_MOVE.peekRetry;return;}
+  }
+  if(Math.hypot(e.x-e.m3Goal[0],e.z-e.m3Goal[1])<.9){
+   e.m3Mode=null;e.m3Goal=null;e.m3RetryAt=tt+BOT_MOVE.peekRetry;
+  }else{intent.goal=e.m3Goal;return;}
+ }
+ if(!t||!botIntelVisible(e,t)||tt<(e.m3RetryAt||0)||
+    e.hp<=BOT_TACTICS.criticalHP)return;
+ // Only under actual recent damage; do not become passive in every engagement.
+ if(e.fl>.035&&e.hp<BOT_MOVE.coverTriggerHP){
+  e.m3RetryAt=tt+BOT_MOVE.coverRetry;
+  var cover=botSmartCover(e,t);
+  if(cover&&botMoveReachable(e,cover[0],cover[1])){
+   e.m3Goal=[cover[0],cover[1]];
+   e.m3Mode='cover';e.m3Expires=tt+BOT_MOVE.coverTravel;
+   intent.goal=e.m3Goal;
+  }
+ }
+}
+function botMoveDodge(e,t,dt,fw,strafe){
+ if(!t||!botIntelVisible(e,t)||botMoveUrgent(e)||
+    e.hp<=BOT_TACTICS.criticalHP)return [fw,strafe];
+ if(e.fl>.025&&tt>=(e.m3DodgeAt||0)){
+  e.m3DodgeAt=tt+BOT_MOVE.dodgeCooldown;
+  e.m3DodgeUntil=tt+BOT_MOVE.dodgeWindow;
+  e.m3DodgeSide=(e.idx%2===0?1:-1)*
+    ((Math.floor(tt*2)%2)===0?1:-1);
+ }
+ if(tt<(e.m3DodgeUntil||0))
+  strafe+=e.m3DodgeSide*BOT_MOVE.dodgeStrength;
+ return [fw,strafe];
+}
+function botMoveIsClear(e,vx,vz,sp,dt){
+ if(!vx&&!vz)return true;
+ var length=Math.max(.22,sp*Math.min(BOT_MOVE.probeSeconds,dt*3)),
+     x=e.x+vx*length,z=e.z+vz*length;
+ return Math.abs(x)<A-.8&&Math.abs(z)<A-.8&&!inObs(x,z,BOT_MOVE.probeRadius);
+}
+function botMoveSteer(e,vx,vz,sp,dt,hold){
+ if(hold){e.m3VX=e.m3VZ=0;return [0,0];}
+ // Smooth decisions without modifying player movement or BOT max speed.
+ var blend=Math.min(1,Math.max(0,dt)*BOT_MOVE.velocityBlend);
+ e.m3VX=(e.m3VX||0)+(vx-(e.m3VX||0))*blend;
+ e.m3VZ=(e.m3VZ||0)+(vz-(e.m3VZ||0))*blend;
+ var norm=Math.hypot(e.m3VX,e.m3VZ);
+ if(norm>1){e.m3VX/=norm;e.m3VZ/=norm;}
+ vx=e.m3VX;vz=e.m3VZ;
+ if(botMoveIsClear(e,vx,vz,sp,dt))return [vx,vz];
+ // Slide along a legal axis. No manual position write or collision bypass.
+ if(Math.abs(vx)>=Math.abs(vz)){
+  if(botMoveIsClear(e,vx,0,sp,dt)){e.m3VZ=0;return [vx,0];}
+  if(botMoveIsClear(e,0,vz,sp,dt)){e.m3VX=0;return [0,vz];}
+ }else{
+  if(botMoveIsClear(e,0,vz,sp,dt)){e.m3VX=0;return [0,vz];}
+  if(botMoveIsClear(e,vx,0,sp,dt)){e.m3VZ=0;return [vx,0];}
+ }
+ e.m3VX=e.m3VZ=0;
+ return [0,0];
+}
+function botMoveTrack(e,ox,oz,dt,sp,wanted,combat){
+ if(!wanted){e.stk=0;e.m3StallCycles=0;return;}
+ var moved=Math.hypot(e.x-ox,e.z-oz);
+ if(moved>=Math.max(.003,sp*dt*.22)){
+  e.stk=0;e.m3StallCycles=0;return;
+ }
+ e.stk=(e.stk||0)+dt;
+ if(e.stk<BOT_MOVE.stuckAfter||tt<(e.m3RecoverAt||0))return;
+ e.stk=0;e.m3StallCycles=Math.min(BOT_MOVE.maxStallCycles,
+    (e.m3StallCycles||0)+1);
+ e.m3RecoverAt=tt+BOT_MOVE.recoverCooldown;
+ e.m3RecoverUntil=tt+BOT_MOVE.recoverSeconds;
+ e.m3RecoverSide=((e.idx+e.m3StallCycles)%2)?1:-1;
+ e.pt=0;e.navT=combat?.55:0;
+ if(e.m3StallCycles>=BOT_MOVE.maxStallCycles){
+  e.m3Mode=null;e.m3Goal=null;e.m3RetryAt=tt+BOT_MOVE.coverRetry;
+ }
+}
+function botMoveRecovery(e,vx,vz,sp,dt,hold){
+ if(hold||tt>=(e.m3RecoverUntil||0))return [vx,vz];
+ var side=e.m3RecoverSide||1;
+ var sx=-vz*side,sz=vx*side;
+ if(Math.hypot(sx,sz)<.1){
+  sx=side;sz=0;
+ }
+ var n=Math.hypot(sx,sz)||1;
+ sx/=n;sz/=n;
+ if(botMoveIsClear(e,sx,sz,sp,dt))
+  return [sx*.75,sz*.75];
+ if(botMoveIsClear(e,-sx,-sz,sp,dt))
+  return [-sx*.75,-sz*.75];
+ return [0,0];
+}
 // Five-star BOT decision layer: uses existing A* navigation, LOS, HP,
 // canonical weapon ammo, and Bomb Mission objectives. No duplicate combat engine.
 var BOT_TACTICS=Object.freeze({
@@ -3270,7 +3443,7 @@ function newBot(tm,i){var b=terro(tm);b.tm=tm;b.idx=i;b.name=BN[tm][i];b.ph=Math
   var cv=document.createElement("canvas");cv.width=256;cv.height=64;var cx=cv.getContext("2d"),nt=b.name.toUpperCase();cx.font='700 40px Rajdhani,"Trebuchet MS",sans-serif';cx.textAlign="center";cx.textBaseline="middle";cx.lineWidth=7;cx.strokeStyle="rgba(0,0,0,.85)";cx.strokeText(nt,128,34);cx.fillStyle=tm?"#ff8a65":"#74c0fc";cx.fillText(nt,128,34);
   var sp=new T.Sprite(new T.SpriteMaterial({map:new T.CanvasTexture(cv),depthTest:false,transparent:true,fog:false}));sp.scale.set(3,.75,1);sp.position.set(0,2.75,0);sp.renderOrder=1000;sp.visible=tm===pl.tm;b.g.add(sp);b.nm=sp;return b;}
 // placeBot(b): (re)spawns bot b at a spawn point with full HP and short invulnerability.
-function placeBot(b){var s=spawnPt(b.tm);b.stepTrail=0;b.stepIndex=0;b.x=s[0];b.z=s[1];b.y=0;defenseSpawn(b);if(b.hm)b.hm.visible=true;b.inv=2;b.cd=1+Math.random();b.dead=false;b.tg=null;b.bn=0;b.wx=b.x;b.wz=b.z;b.stk=0;b.lastSeen=null;b.coverGoal=null;b.coverExpires=0;b.coverHoldUntil=0;b.smartRetreat=false;b.siteChoice=undefined;b.g.rotation.y=b.tm?0:Math.PI;botInitialLoadout(b);en.push(b);}
+function placeBot(b){var s=spawnPt(b.tm);b.stepTrail=0;b.stepIndex=0;b.x=s[0];b.z=s[1];b.y=0;defenseSpawn(b);if(b.hm)b.hm.visible=true;b.inv=2;b.cd=1+Math.random();b.dead=false;b.tg=null;b.bn=0;b.wx=b.x;b.wz=b.z;b.stk=0;b.lastSeen=null;b.coverGoal=null;b.coverExpires=0;b.coverHoldUntil=0;b.smartRetreat=false;if(typeof botMoveReset==='function')botMoveReset(b);b.siteChoice=undefined;b.g.rotation.y=b.tm?0:Math.PI;botInitialLoadout(b);en.push(b);}
 // startMatch(tm): sets up scores, timer (60 s) and the countdown, spawns the player and 4+5 bots, resets weapons to the chosen primary.
 function startMatch(tm){inventoryForNewMatch();starsReset();SPH=[[],[]];var s=spawnPt(tm);pl.tm=tm;pl.x=s[0];pl.z=s[1];pl.face=tm?0:Math.PI;pl.inv=2;ts=[0,0];rq=[];mt={t:roomMatchSeconds(),cd:5,over:false};pl.prim=favPrim;pl.w=favPrim;pl.mag=WP[favPrim].mag;pl.res=WP[favPrim].res;scopeOn=false;ROS=[];pl.st={name:"You",tm:tm,k:0,d:0};ROS.push(pl.st);
   S.remove(pm.g);pm=mkPm(tm);pm.g.visible=false;[armR,armL].forEach(function(ar){ar.children[0].material.color.setHex(tm?0x4b5320:0x1c4a8a);ar.children[1].material.color.setHex(tm?0x23272b:0x142a52);});
@@ -4358,7 +4531,8 @@ function gPath(x0,z0,x1,z1){if(!GB)gInit();var N=GN,s=gFree(gc(x0),gc(z0)),g=gFr
 // botPath(): assigns bot e a path to goal (gx,gz) and a repath timer.
 function botPath(e,gx,gz){var p=gPath(e.x,e.z,gx,gz);
   // Never charge directly into a solid wall if A* finds no route.
-  e.path=p||(isBombMode()?[]:[[gx,gz]]);e.pi=0;e.pt=1.1+Math.random()*.8;e.goalX=gx;e.goalZ=gz;
+  // Never fall back to a direct wall-crossing goal if A* has no route.
+  e.path=p||[];e.pi=0;e.pt=1.1+Math.random()*.8;e.goalX=gx;e.goalZ=gz;
 }
 // botsUpd(dt): LIVE bot AI (movement along paths, target choice, line-of-sight, shooting with fire(..., "e")).
 function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
@@ -4394,14 +4568,17 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
     e.lt=(e.lt||0)-dt;if(t&&e.lt<=0){e.lt=.15;e.lok=los(e.x,e.z,t.x,t.z);}
     if(t){dx=t.x-e.x;dz=t.z-e.z;d=Math.hypot(dx,dz)||1;}
     botSmartReload(e,t);intent=botSmartIntent(e,t);e.smartRetreat=intent.retreat;
-    combat=!!t&&e.lok&&e.navT<=0&&!(intent.retreat&&intent.goal)&&!intent.hold;
+    botMoveIntent(e,t,intent);
+    combat=!!t&&e.lok&&e.navT<=0&&!(intent.retreat&&intent.goal)&&
+      !(e.m3Mode==='cover'&&intent.goal)&&!intent.hold;
     sp*=intent.retreat?BOT_TACTICS.retreatSpeed:combat?BOT_TACTICS.fightSpeed:BOT_TACTICS.approachSpeed;
     if(isBombMode()&&e.bAction)combat=false;
     if(combat){var fw=botNeedsMelee(e)?1:(isBombMode()&&bombMatch&&bombMatch.state==='planted'&&e.tm===0)?
       (d>BOMB_AI.retakeCombatDistance?1:-.3):(d>16?1:d<7?-.6:0),st;e.bt=(e.bt||0)-dt;if(e.bt<=0){e.bt=.7+Math.random()*1.4;e.sd=[-1,0,1][(Math.random()*3)|0];}st=(e.sd||0)*.9;
       var dodge=botSmartVelocity(e,d,fw,st);fw=dodge[0];st=dodge[1];
+      dodge=botMoveDodge(e,t,dt,fw,st);fw=dodge[0];st=dodge[1];
       mvx=dx/d*fw+(dz/d)*st;mvz=dz/d*fw-(dx/d)*st;
-      if(GB[gc(e.z+mvz*sp*dt*4)*GN+gc(e.x+mvx*sp*dt*4)]){e.sd=-(e.sd||1);mvx=dx/d*fw;mvz=dz/d*fw;}}
+      if(!botMoveIsClear(e,mvx,mvz,sp,dt)){e.sd=-(e.sd||1);}}
     else{gx=intent.goal?intent.goal[0]:(t?t.x:e.wx);gz=intent.goal?intent.goal[1]:(t?t.z:e.wz);e.pt=(e.pt||0)-dt;
       if(!e.path||e.pt<=0||e.stk>.5||
          Math.hypot((e.goalX||0)-gx,(e.goalZ||0)-gz)>(isBombMode()?BOMB_AI.repathGoalDistance:2.4)){
@@ -4415,19 +4592,15 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
       if(sq<space&&sq>.01){mvx+=sx/sq*.75;mvz+=sz/sq*.75;}
     }});
     ml=Math.hypot(mvx,mvz);if(ml>1){mvx/=ml;mvz/=ml;}if(cdn)mvx=mvz=0;
+    var wantedMovement=!!(mvx||mvz),holdMovement=cdn||(isBombMode()&&e.bAction)||intent.hold;
+    var recovery=botMoveRecovery(e,mvx,mvz,sp,dt,holdMovement);
+    var steering=botMoveSteer(e,recovery[0],recovery[1],sp,dt,holdMovement);
+    mvx=steering[0];mvz=steering[1];
     f=(t&&e.lok)?e.aimYaw:(mvx||mvz)?Math.atan2(mvx,mvz):e.g.rotation.y;
     e.x+=mvx*sp*dt;e.z+=mvz*sp*dt;resolve(e,.55);
-    if(isBombMode()&&!e.bAction&&(mvx||mvz)){
-      // If a narrow corner blocks movement, try sliding instead of oscillating into it.
-      var forward=Math.hypot(e.x-ox,e.z-oz);
-      if(forward<sp*dt*.2){
-        var side=e.idx%2?1:-1,tx=e.x+side*(-mvz)*sp*dt,tz=e.z+side*mvx*sp*dt;
-        if(!inObs(tx,tz,.65)){e.x=tx;e.z=tz;resolve(e,.55);}
-      }
-    }
     var dm=Math.hypot(e.x-ox,e.z-oz);
     footstepAdvance(e,dm,!cdn&&dm>.002,sp>4.4,false);
-    if((mvx||mvz)&&dm<sp*dt*.3){e.stk=(e.stk||0)+dt;if(combat&&e.stk>.5){e.navT=1.2;e.sd=-(e.sd||1);e.stk=0;e.pt=0;}}else e.stk=0;
+    botMoveTrack(e,ox,oz,dt,sp,wantedMovement,combat);
     e.g.rotation.y=f;e.cd-=dt;
     if(t&&e.lok&&!cdn&&!(isBombMode()&&e.bAction)&&e.cd<=0){botCombatTick(e,t,f,d);}
     e.y=(e.y||0)+(gh(e.x,e.z,0)-(e.y||0))*Math.min(1,dt*10);e.g.position.set(e.x,e.y,e.z);e.g.visible=e.inv>0?Math.floor(tt*12)%2===0:true;
