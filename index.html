@@ -18,6 +18,7 @@
 <link rel="stylesheet" href="./src/styles/11-tactical-optics.css">
 <link rel="stylesheet" href="./src/styles/12-inventory-armory.css">
 <link rel="stylesheet" href="./src/styles/13-home-header.css">
+<link rel="stylesheet" href="./src/styles/14-room-browser.css">
 </head>
 <body class="lobby">
 <div id="hud">
@@ -103,22 +104,36 @@
 </section>
 
 <section id="lbrooms" class="lbp" data-shared-header aria-label="Local room lobby">
-  <header class="room-top">
-    <button id="roomBack" type="button" class="room-back">‹ BACK</button>
-    <div class="room-headings">
-      <h2>ROOM LOBBY</h2>
-      <p>POINT BLOCK ARMORY <span>·</span> CREATE OR SELECT A LOCAL MATCH</p>
-    </div>
-    <span class="room-local-flag">LOCAL · VS AI</span>
-  </header>
+  <h2 class="room-browser-title">ROOM LOBBY</h2>
   <div class="room-grid">
+    <aside class="room-operator-panel" aria-label="3D Police operator">
+      <div class="room-operator-head"><span>YOUR OPERATOR</span><small>POLICE · EQUIPPED LOADOUT</small></div>
+      <div id="roomBrowserPreview" class="ivpreview room-browser-preview" aria-label="Real interactive 3D Police character holding equipped weapon">
+        <span>DRAG TO TURN</span>
+      </div>
+      <footer class="room-operator-actions">
+        <button type="button" id="roomCreateOpen" class="room-open-create">＋ CREATE ROOM</button>
+        <button id="roomBack" class="room-back" type="button">‹ BACK</button>
+      </footer>
+    </aside>
+    <div class="room-browser-right">
     <section class="room-list-panel" aria-label="Available local rooms">
-      <div class="room-panel-head"><div><h3>AVAILABLE ROOMS</h3><small>ROOMS SAVED IN THIS BROWSER</small></div><button type="button" id="roomRefresh">↻ REFRESH</button></div>
+      <div class="room-panel-head"><div><h3>AVAILABLE ROOMS</h3><small>LOCAL MATCHES · VS AI</small></div><button type="button" id="roomRefresh">↻ REFRESH</button></div>
       <div class="room-cols" aria-hidden="true"><span>ID</span><span>ROOM NAME</span><span>MAP / MODE</span><span>PLAYERS</span><span>STATUS</span><span></span></div>
       <div id="roomEntries" class="room-entries" aria-live="polite"></div>
       <div id="roomEmpty" class="room-empty"><strong>NO LOCAL ROOMS YET</strong><p>Create a room on the right to start a match against bots.</p></div>
       <footer class="room-list-footer"><span>LOCAL ROOMS ONLY · NO ONLINE SERVER CONNECTED</span><strong id="roomCount">0 ROOMS</strong></footer>
     </section>
+      <section class="room-chat-panel" aria-label="Public chat status">
+        <header class="room-chat-head"><div><h3>PUBLIC CHAT</h3><small>GLOBAL PLAYER COMMUNICATION</small></div><span class="room-chat-state">OFFLINE</span></header>
+        <div class="room-chat-body"><div class="room-chat-unavailable"><strong>CHAT SERVER NOT CONNECTED</strong><p>Public chat requires an online server. No messages are sent or received in the offline game.</p></div></div>
+        <div class="room-chat-compose"><input id="roomPublicChatInput" type="text" maxlength="280" placeholder="PUBLIC CHAT UNAVAILABLE" aria-label="Public chat requires a server" disabled><button type="button" disabled>SEND</button></div>
+      </section>
+    </div>
+  </div>
+  <div id="roomCreateOverlay" class="room-create-overlay" hidden>
+    <div class="room-create-dialog" role="dialog" aria-modal="true" aria-labelledby="roomPanelTitle">
+      <button id="roomCreateCancel" class="room-create-cancel" type="button" aria-label="Close create room">× CLOSE</button>
     <section class="room-create-panel" aria-label="Create room controls">
       <header class="room-create-head"><span class="room-gear">⚙</span><div><h3 id="roomPanelTitle">CREATE ROOM</h3><p id="roomPanelSub">BECOME ROOM MASTER</p></div></header>
       <div class="room-form-scroll">
@@ -145,6 +160,7 @@
         <div id="roomMasterActions" class="room-master-actions" hidden><button id="roomSave" type="button">SAVE SETTINGS</button><button id="roomClose" type="button">CLOSE ROOM</button><button id="roomStart" class="room-primary" type="button">▶ START MATCH</button></div>
       </footer>
     </section>
+    </div>
   </div>
 </section>
 
@@ -165,7 +181,7 @@
    <div class="rml-team-grid"><section class="rml-team police"><header><h3>POLICE</h3><span id="rmlPoliceCount"></span></header><div class="rml-slots" id="rmlPoliceSlots"></div></section>
    <section class="rml-team terrorists"><header><h3>TERRORISTS</h3><span id="rmlTerrorCount"></span></header><div class="rml-slots" id="rmlTerrorSlots"></div></section></div>
   </section>
-  <section class="rml-log"><h3>ROOM LOG</h3><div id="rmlLogLines" aria-live="polite"></div><footer>LOCAL SESSION · NO ONLINE CHAT</footer></section>
+  <section class="rml-log"><header class="rml-public-chat-head"><h3>PUBLIC CHAT</h3><span>OFFLINE</span></header><div class="rml-chat-unavailable">CHAT SERVER NOT CONNECTED · PUBLIC MESSAGING COMING WITH ONLINE SERVICES</div><div id="rmlLogLines" class="rml-system-log" aria-live="polite"></div><div class="rml-chat-compose"><input type="text" placeholder="PUBLIC CHAT UNAVAILABLE" aria-label="Public chat server not connected" disabled><button type="button" disabled>SEND</button></div></section>
   <nav class="rml-actions" aria-label="Room Master actions"><button id="rmlSettings" type="button">⚙ ROOM SETTINGS</button><button id="rmlLeave" type="button">LEAVE ROOM</button><button id="rmlStart" type="button">▶ START MATCH</button></nav>
  </div>
 
