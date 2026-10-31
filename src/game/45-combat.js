@@ -66,7 +66,8 @@ function fire(o,face,w,own,adv){
         yawOffset=patternedShotgun?pelletOffset[0]:(Math.random()-.5)*2,
         a=face+yawOffset*w.spr*spreadScale,g=tracer(own,w.rk);
     var mx0,my0,mz0;if(own==="p"){if(w.dual)shotSide=shotSide?0:1;var lx=hold.position.x-(w.dual&&shotSide?.52:0),dd=-(hold.position.z+MZ[pl.w]);mx0=o.x+Math.sin(face)*dd-Math.cos(face)*lx;mz0=o.z+Math.cos(face)*dd+Math.sin(face)*lx;my0=1.5+(o.y||0)+hold.position.y+.02;a+=Math.atan(lx/D);}else{var ey=face;mx0=o.x+Math.sin(ey)*1.1+Math.cos(ey)*.05;mz0=o.z+Math.cos(ey)*1.1-Math.sin(ey)*.05;my0=1.07+(o.y||0)-.3*(o.crA||0);}
-    var vy0=own==="p"?w.spd*(1.5+(o.y||0)+D*Math.tan(pl.pitch)-my0)/D:0;
+    var vy0=own==="p"?w.spd*(1.5+(o.y||0)+D*Math.tan(pl.pitch)-my0)/D:
+      (Number.isFinite(o.aimShotPitch)?w.spd*Math.tan(o.aimShotPitch):0);
     // Add elevation only to shotgun pellets, on top of the existing
     // player muzzle-to-crosshair pitch or bot's original flat trajectory.
     if(patternedShotgun)vy0+=w.spd*Math.tan(pelletOffset[1]*w.spr*spreadScale);
