@@ -27,6 +27,7 @@ function gPath(x0,z0,x1,z1){if(!GB)gInit();var N=GN,s=gFree(gc(x0),gc(z0)),g=gFr
   return out;}
 // botPath(): assigns bot e a path to goal (gx,gz) and a repath timer.
 function botPath(e,gx,gz){var p=gPath(e.x,e.z,gx,gz);
+  if(typeof botQaEnabled!=='undefined'&&botQaEnabled)botQaPath(p);
   // Never charge directly into a solid wall if A* finds no route.
   // Never fall back to a direct wall-crossing goal if A* has no route.
   e.path=p||[];e.pi=0;e.pt=1.1+Math.random()*.8;e.goalX=gx;e.goalZ=gz;
@@ -95,6 +96,7 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
     e.x+=mvx*sp*dt;e.z+=mvz*sp*dt;resolve(e,.55);
     var dm=Math.hypot(e.x-ox,e.z-oz);
     footstepAdvance(e,dm,!cdn&&dm>.002,sp>4.4,false);
+    if(typeof botQaEnabled!=='undefined'&&botQaEnabled)botQaMove(wantedMovement,dm,sp,dt);
     botMoveTrack(e,ox,oz,dt,sp,wantedMovement,combat);
     e.g.rotation.y=f;e.cd-=dt;
     if(t&&e.lok&&!cdn&&!(isBombMode()&&e.bAction)&&e.cd<=0){botCombatTick(e,t,f,d);}
