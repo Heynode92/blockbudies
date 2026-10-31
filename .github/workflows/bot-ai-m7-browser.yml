@@ -36,6 +36,8 @@ jobs:
           - {map: lockdown, team: terrorist, rounds: 50}
           - {map: block-town, team: police, rounds: 10}
           - {map: block-town, team: terrorist, rounds: 10}
+          - {map: hospital, team: police, rounds: 10}
+          - {map: hospital, team: terrorist, rounds: 10}
           - {map: block-labs, team: police, rounds: 1}
           - {map: block-labs, team: terrorist, rounds: 1}
     env:
