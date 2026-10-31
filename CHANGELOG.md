@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-31 WIB — Block Town V4: maximum 70-unit visual range and physical urban LOS breaks
+
+- Addressed the owner screenshot of the exposed, long straight Block Town street. Kept the **160×160 Bomb Mission map** and all original Police/Terrorist spawn positions and A/B site coordinates; **no weapon range, damage, BOT perception or Bomb rules changed**.
+- Set `BLOCK_TOWN_DEF.visibility` as the map-only view budget (**fog starts at 30 and reaches full haze at 70 units**); restored unchanged settings on Lockdown/TDM map switches. Unlike a fog-only disguise, also placed **37 physically collidable, staggered hard-cover elements** across the perimeter and inner street canyons, with data-owned coordinates. Actual bullets, movement and BOT A* respect these `wl()/OB` solids.
+- Visually replaced empty stretches with five distinct town setpiece classes: service vans, utility cabinets, roadwork pods, staffed-kiosk silhouettes and tall hedged civic planters, with independent roof/cab, vent, wheel, stripe and signage details. Added contrasting elevation bands, balconies, rooftop utility equipment and road crosswalks to break repetitive facades, using existing batched materials and no new dependencies.
+- Added dense deterministic **eye-height LOS audit (3-unit sampling grid, 6-degree directions)** against the active world collider set, enforcing ≤70.12 sampled physical LOS, as well as 70-unit renderer fog cap and correct collision registration for all new setpieces. This is sampled physical coverage, not a proof for every sub-grid ray. Existing multi-map regression/QA remains intact.
+- [Windows regression #316](https://github.com/Heynode92/blockbudies/actions/runs/41193301789) **383/383 Node tests PASS**, source bundle parity and syntax PASS on the final gameplay source. [Windows Chromium #59](https://github.com/Heynode92/blockbudies/actions/runs/41193301729) must be reviewed for Police/Terrorist Block Town functional completion; player-side visual quality/FPS is not inferred from software-rendered CI.
+
 ## 2026-10-31 WIB — Block Town V3 browser functional QA verified
 
 - [Windows Chromium M7 #54](https://github.com/Heynode92/blockbudies/actions/runs/41191396368): **Block Town Police SUCCESS 10/10 Bomb rounds** (Police 7/Terrorist 3 wins; planted at finish A 1/B 2), **Block Town Terrorist SUCCESS 10/10** (Police 8/Terrorist 2; planted at finish A 2/B 0). **0 browser JavaScript exceptions** in both jobs. This uses the new owner blueprint and solid delivery-van/kiosk map geometry.
