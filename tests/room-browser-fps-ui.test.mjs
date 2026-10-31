@@ -23,7 +23,7 @@ test('room browser uses actual equipped Police model and a single existing WebGL
  assert.doesNotMatch(style,/url\(|data:image|background-image:/i,'background must be the live Block District canvas, not a fabricated image');
 });
 
-test('room browser is left operator + right room list and explicit unavailable public chat',()=>{
+test('room browser is left operator + maximized room list with Inventory Shop Settings footer',()=>{
  const begin=html.indexOf('<section id="lbrooms"'),end=html.indexOf('<section id="lbroomlive"',begin);
  const panel=html.slice(begin,end);
  assert.ok(begin>=0&&end>begin);
@@ -33,9 +33,18 @@ test('room browser is left operator + right room list and explicit unavailable p
  assert.match(panel,/id="roomBack"/);
  assert.match(panel,/id="roomCreateOpen"/);
  assert.match(panel,/id="roomEntries"/);
- assert.match(panel,/PUBLIC CHAT/);
- assert.match(panel,/CHAT SERVER NOT CONNECTED/);
- assert.match(panel,/id="roomPublicChatInput"[^>]*disabled/);
+ assert.match(panel,/class="room-quick-nav"/);
+ for(const id of ['roomQuickInventory','roomQuickShop','roomQuickSettings'])assert.match(panel,new RegExp('id="'+id+'"'));
+ assert.match(panel,/id="roomQuickNotice"[^>]*hidden/);
+ assert.doesNotMatch(panel,/class="room-chat-panel"/);
+ assert.match(style,/#lbrooms \.room-quick-nav \{/);
+ assert.match(style,/#lbrooms \.room-list-panel \{/);
+ assert.match(room,/roomQuickOpen\("inventory"\)/);
+ assert.match(room,/roomQuickOpen\("shop"\)/);
+ assert.match(room,/function roomQuickBack\(\)/);
+ const shop=read('src/game/89-shop.js');
+ assert.match(inv,/document\.getElementById\("ivback"\)\.addEventListener\("click",roomQuickBack\)/);
+ assert.match(shop,/document\.getElementById\("shopBack"\)\.addEventListener\("click",roomQuickBack\)/);
  assert.match(panel,/id="roomCreateOverlay" class="room-create-overlay" hidden/);
  assert.match(panel,/id="roomName"/);
  assert.match(panel,/id="roomMap"/);
