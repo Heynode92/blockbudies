@@ -251,10 +251,15 @@ function makeBombMap(){
 // Every map owns immutable geometry snapshots. Map swaps invalidate BOT pathfinding.
 function selectGameMap(bombActive){
   var id=bombActive?bombMapId(selectedBombMapId):"lockdown",
-      town=bombActive&&id==="block-town";
-  BOMB_CITY.forEach(function(m){m.visible=!bombActive;});
+      town=bombActive&&id==="block-town",
+      labs=!bombActive&&tdmMapId(selectedTdmMapId)==="block-labs";
+  BOMB_CITY.forEach(function(m){m.visible=!bombActive&&!labs;});
   if(BOMB_WORLD)BOMB_WORLD.forEach(function(m){m.visible=bombActive&&!town;});
   if(BLOCK_TOWN_WORLD)BLOCK_TOWN_WORLD.forEach(function(m){m.visible=!!town;});
+  if(BLOCK_LABS_WORLD)BLOCK_LABS_WORLD.forEach(function(m){m.visible=!!labs;});
+  // Labs is indoor: hide the outdoor TDM sky dome/clouds but preserve all old maps.
+  if(typeof SKF!=="undefined")SKF.visible=!labs;
+  if(typeof SKW!=="undefined")SKW.visible=!labs;
   OB.length=0;BR.length=0;LT.length=0;
   if(bombActive){
     A=BOMB_RULES.cellSize*BOMB_RULES.cells/2;
@@ -271,8 +276,14 @@ function selectGameMap(bombActive){
   }else{
     A=BOMB_CITY_HALF;
     bombMapSites("lockdown");
-    Array.prototype.push.apply(OB,BOMB_CITY_OB);Array.prototype.push.apply(BR,BOMB_CITY_BR);Array.prototype.push.apply(LT,BOMB_CITY_LT);
-    S.background=BOMB_BACKGROUND;S.fog=BOMB_FOG;
+    if(labs){
+      if(!BLOCK_LABS_WORLD)makeBlockLabs();
+      else{Array.prototype.push.apply(OB,BLOCK_LABS_OB);Array.prototype.push.apply(BR,BLOCK_LABS_BR);Array.prototype.push.apply(LT,BLOCK_LABS_LT);}
+      S.background=new T.Color(0x263642);S.fog=new T.Fog(0x263642,35,115);
+    }else{
+      Array.prototype.push.apply(OB,BOMB_CITY_OB);Array.prototype.push.apply(BR,BOMB_CITY_BR);Array.prototype.push.apply(LT,BOMB_CITY_LT);
+      S.background=BOMB_BACKGROUND;S.fog=BOMB_FOG;
+    }
   }
   GB=null;
 }
