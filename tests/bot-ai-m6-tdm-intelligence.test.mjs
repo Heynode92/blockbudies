@@ -150,8 +150,11 @@ test('M6: active TDM patrol goal stays until arrival/expiry; new contact cancels
 test('M6: invalid map-control anchors never force a direct-wall route',()=>{
  const {c,bot}=scene({inObs(){return true;}});
  assert.equal(c.botTdmPatrolGoal(bot),null);
+ bot.wx=42;bot.wz=37;
  c.botTdmPatrol(bot);
  assert.equal(bot.tdmRouteGoal,null);
+ assert.equal(bot.wx,bot.x,'failed route must discard stale enemy chase waypoint');
+ assert.equal(bot.wz,bot.z);
 });
 test('M6: M6 does not add RPG to BOT pool or mutate weapon damage or recoil',()=>{
  const pool=read('src/game/41-bot-weapons.js');
