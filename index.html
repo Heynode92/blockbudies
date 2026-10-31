@@ -124,11 +124,18 @@
       <div id="roomEmpty" class="room-empty"><strong>NO LOCAL ROOMS YET</strong><p>Create a room on the left to start a match against bots.</p></div>
       <footer class="room-list-footer"><span>LOCAL ROOMS ONLY · NO ONLINE SERVER CONNECTED</span><strong id="roomCount">0 ROOMS</strong></footer>
     </section>
-      <section class="room-chat-panel" aria-label="Public chat status">
-        <header class="room-chat-head"><div><h3>PUBLIC CHAT</h3><small>GLOBAL PLAYER COMMUNICATION</small></div><span class="room-chat-state">OFFLINE</span></header>
-        <div class="room-chat-body"><div class="room-chat-unavailable"><strong>CHAT SERVER NOT CONNECTED</strong><p>Public chat requires an online server. No messages are sent or received in the offline game.</p></div></div>
-        <div class="room-chat-compose"><input id="roomPublicChatInput" type="text" maxlength="280" placeholder="PUBLIC CHAT UNAVAILABLE" aria-label="Public chat requires a server" disabled><button type="button" disabled>SEND</button></div>
-      </section>
+      <nav class="room-quick-nav" aria-label="Room lobby navigation">
+        <button id="roomQuickInventory" type="button" aria-label="Open inventory">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M4 8h16v12H4zM8 8V5h8v3M10 14h4M12 12v4"/></svg><span>INVENTORY</span>
+        </button>
+        <button id="roomQuickShop" type="button" aria-label="Open weapon shop">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M5 8h14l-1 12H6zM9 8V6a3 3 0 0 1 6 0v2"/></svg><span>SHOP</span>
+        </button>
+        <button id="roomQuickSettings" type="button" aria-label="Settings information">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="6.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg><span>SETTINGS</span>
+        </button>
+      </nav>
+      <div id="roomQuickNotice" class="room-quick-notice" role="status" hidden>SETTINGS · COMING SOON</div>
     </div>
   </div>
   <div id="roomCreateOverlay" class="room-create-overlay" hidden>
