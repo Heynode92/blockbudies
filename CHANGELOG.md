@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-31 WIB — Block Town: restore solid outdoor perimeter and correct map-specific spawn direction
+
+- Audited original Deathmatch source: `src/game/00-bootstrap.js` creates four 3D perimeter walls, but the Bomb map switch hides the entire original Deathmatch scene. Block Town had no corresponding outer walls. The A-side Police spawn also used legacy `Math.PI` orientation, which aimed the player toward an empty map edge.
+- Added map-owned **four visible, collision-registered perimeter walls** (original `wl()/OB` API) at the 160×160 arena limits, with palette-consistent skyline buildings beyond the shell. All Block Town buildings, spawn coordinates, A/B sites and interior obstacles remain untouched.
+- Added a map-specific `bombMapSpawnYaw()` derived from configurable attack/defense goals, used for human and BOT spawns. Police now faces toward Site A, Terrorists toward the inner town connector. **Lockdown and TDM keep their previous yaw unchanged**.
+- Updated `assets/game.js` using the canonical source-manifest ordering. Extended Node and CI-only Chromium regression assertions for four visible physical perimeter walls, inward-looking spawn direction, skyline, and cross-map isolation. **No Bomb rules, AI behavior, weapons, match duration or damage balancing were changed**.
+- Windows Node and browser CI for this exact patch must be checked before reporting a green release; performance and screenshot appearance are not inferred from geometry-only tests.
+
 ## 2026-10-31 WIB — Block Town visual v2: remove flickering grid and vary architecture
 
 - **Fixed original city grid showing through the outdoor Bomb map:** `GridHelper` is a Three.js line object, not a normal scene mesh, so map isolation now explicitly toggles `type==="GridHelper"` when switching Bomb/TDM. This keeps the original TDM GridHelper intact.
