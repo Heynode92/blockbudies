@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-31 WIB — Hospital screenshot-accurate QA (386/386 Node + 20/20 Bomb rounds)
+
+- Corrected the Hospital playable footprint to the **32-turn gray corridor outline** and **8 white room islands / 10 physical wall rectangles** traced directly from the owner's reference image and arrow annotation. Removed the prior guess-based building/block geometry. Gray means traversable; white means solid, in both rendering and player/BOT collision.
+- Adjusted seven hospital cover props so the centerline of the owner's black-arrow corridors remains physically passable. Police still starts upper-left, Terrorist bottom-right; Site A remains upper-right, and Site B was aligned to left-middle at **(-67,3)**. All 20 spawn-to-site A* routes stay connected.
+- [Windows regression #343](https://github.com/Heynode92/blockbudies/actions/runs/41198370309): **386/386 PASS**, shipped JS bundle/source parity PASS. Tests assert the exact 32 outline sections, ten screenshot WHITE blocked points, twenty screenshot GRAY route points open, scene isolation and actual A/B plant clearance.
+- [Windows Chromium #74](https://github.com/Heynode92/blockbudies/actions/runs/41198370465): **Hospital Police 10/10 PASS and Hospital Terrorist 10/10 PASS** (zero JS errors in each). All reported planted-at-finish objectives were Site B (5 and 7 respectively), so A/B choice balance is not certified even though both sites are reachable.
+- Replaced outdated Hospital documentation with [the authoritative owner-blueprint specification](docs/HOSPITAL_IMPLEMENTATION.md). No changes to weapon tables, BOT policy, Bomb rules, other maps, or Windows player's direct-open workflow.
+
 ## 2026-10-31 WIB — HOSPITAL corridor blueprint fidelity correction
 
 - Rebuilt Hospital's map structure from the user's annotated arrow blueprint. **Grey is the playable corridor network; white is full-height room/wing partition**, not an alternative route. This supersedes the previous guess-based Hospital room arrangement.
