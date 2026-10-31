@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-31 WIB — M7 browser CI round coverage verified; performance smoke differentiated
+
+- [M7 browser run #4](https://github.com/Heynode92/blockbudies/actions/runs/41180818644) **SUCCESS in both Windows Chromium jobs**, completing **50 canonical BOT-only Bomb finishes per faction configuration (100 total)** with no JS errors. Police-slot: 25 Police/25 Terrorist wins, 25 planted-at-finish; Terrorist-slot: 22 Police/28 Terrorist wins, 32 planted-at-finish. This is accelerated in-browser functional testing, **not true real-time FPS or 100 human matches**.
+- Follow-up #5 and #6 each produced 50 round finishes per job, but selected jobs failed because the hosted software WebGL VM returned only 5–6 qualifying frame samples during its separate 12-second smoke period and the runner incorrectly required ≥10 samples.
+- Adjusted `tools/bot-ai-m7-browser.mjs` to require functional WebGL initialization, nonzero frame/BOT CPU samples and zero JS errors while **separately recording CI performance status as NOT_CERTIFIED_CI_SOFTWARE_WEBGL_UNPAIRED** (with insufficient sample coverage where applicable). This removes a misleading functional failure without claiming software VM performance is acceptable. CI validation of the correction is pending.
+- Gameplay, weapon damage, BOT tuning, original `assets/game.js`, `index.html`, UI and Bomb rules unchanged. M7 Final Release remains **IN PROGRESS**, pending full acceptance evidence.
+
 ## 2026-10-31 WIB — M7 Windows browser QA harness bootstrap fixes (no gameplay changes)
 
 - Diagnosed GitHub Actions M7 browser jobs that originally timed out because the browser game intentionally keeps `begin/update/BOMB_RULES` inside its IIFE. Added a **CI-generated temporary index/game bundle** plus isolated `tools/bot-ai-m7-browser-bridge.js` to reach the canonical game loop without exposing test APIs in shipped player assets.
