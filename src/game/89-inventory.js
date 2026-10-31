@@ -185,6 +185,15 @@ function inventoryRoomPreviewOpen(side){
  inventoryPreviewMount("rmlpreview");
  inventoryStartPreview();
 }
+// Room Browser reuses Inventory's ONE live soldier renderer and equipped primary.
+// This is the same actual Police character and mkGun geometry, never a mock asset.
+function inventoryBrowserPreviewOpen(){
+ var id=inventoryEquipped("main");
+ inventoryPreviewSetSide(0);
+ inventoryShowModel(id);
+ inventoryPreviewMount("roomBrowserPreview");
+ inventoryStartPreview();
+}
 function inventoryShowModel(id){
  inventoryPreviewInit();
  var p=inventoryPreview;p.selected=id;
@@ -224,9 +233,10 @@ function inventoryPreviewFrame(now){
  // The lobby class may remain on its page while #lb is hidden in a match.
  // Do not spend GPU time rendering an invisible Inventory/Room 3D preview.
  var inInventory=lob&&document.getElementById("lbiv").classList.contains("on"),
-     inRoom=lob&&document.getElementById("lbroomlive").classList.contains("on");
- if(!inInventory&&!inRoom){inventoryPreviewLive=false;return;}
- var p=inventoryPreview,hostId=inRoom?"rmlpreview":"ivpreview";
+     inRoom=lob&&document.getElementById("lbroomlive").classList.contains("on"),
+     inBrowser=lob&&document.getElementById("lbrooms").classList.contains("on");
+ if(!inInventory&&!inRoom&&!inBrowser){inventoryPreviewLive=false;return;}
+ var p=inventoryPreview,hostId=inRoom?"rmlpreview":inBrowser?"roomBrowserPreview":"ivpreview";
  inventoryPreviewMount(hostId);
  var w=Math.max(1,p.host.clientWidth),h=Math.max(1,p.host.clientHeight);
  if(p.renderer.domElement.width!==Math.round(w*p.renderer.getPixelRatio())||
@@ -237,8 +247,8 @@ function inventoryPreviewFrame(now){
  if(inInventory&&inventoryTab==="helm"){
   p.camera.position.set(1.35,2.05,2.35);
   p.camera.lookAt(0,1.68,0);
- }else if(inRoom){
-  // Keep the whole soldier and held weapon visible in tall, narrow room panels.
+ }else if(inRoom||inBrowser){
+  // Keep the actual soldier and held weapon visible in tall, narrow lobby panels.
   var pullback=Math.max(1,Math.min(1.75,.73/(w/h)));
   p.camera.position.set(2.45*pullback,2.30+(pullback-1)*1.05,3.8*pullback);
   p.camera.lookAt(0,1.22,0);
