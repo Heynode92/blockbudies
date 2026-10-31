@@ -1,4 +1,4 @@
-# BLOCK BUDDIES — M3 Movement & Tactical Cover Validation
+# POINT BLOCK — M3 Movement & Tactical Cover Validation
 
 > **Status:** M3 VERIFIED (CORE EXIT GATE: WINDOWS CI + OWNER-REPORTED 7/7 PLAYTEST); REAL-MAP QUANTITATIVE KPIs OPEN
 > **Date:** 2026-10-31 WIB
