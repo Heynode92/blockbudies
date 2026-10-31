@@ -29,6 +29,19 @@ Spawn points are predeclared, individually validated against physical colliders 
 - \`src/game/70-kills-and-damage-hud.js\`: use the chosen room map during canonical \`begin()\` before \`startMatch()\`; default direct-launch Bomb remains Lockdown.
 - \`tools/source-manifest.json\` and regenerated \`assets/game.js\` remain the only direct-open build pipeline; **no local npm, WSL, Docker, backend or runner installation for players**.
 
+## Visual correction v2 — surface flicker and urban detail (2026-10-31 WIB)
+
+Owner gameplay captures revealed repetitive near-identical rectangular facades, excessive tiled/grid lines across streets and shimmering overlapping surfaces. The original V1 source actually had **two overlapping coplanar A-side pavement rectangles** and the original TDM grid was a Three.js `GridHelper` (`LineSegments`), which may not satisfy the `isMesh`/nonstandard `isGridHelper` checks used by the Bomb map visibility filter.
+
+**Code fixes (no weapon/timer/BOT AI changes):**
+- `src/game/11-bomb-map.js` explicitly hides the original `GridHelper` by `type==="GridHelper"` while any Bomb map is active and restores it on TDM return.
+- `src/game/12-block-town.js` now keeps disjoint paving rectangles in `BLOCK_TOWN_DEF.paving` and assigns separate ground heights to foundation, paving, road markings and Bomb ring. No old A-side overlap or town-wide graph-paper grid. Paving is visual-only and never inserts invisible path blockers.
+- Distinct real-building **solid collider footprints are unchanged**, while the shared batching/material helpers provide six visual archetypes: storefront/shutters, pitched-roof residence, industrial warehouse, parapet office, cafe/shopfront and rowhouse. Includes varied trims, rooflines, window depth separation, awnings, shutters, shop plaques, downpipes and realistic town-oriented palettes.
+- Existing collision cover positions are unchanged but now render as raised planters, dumpsters, wooden pallets or stone traffic barricades with **one grounded `wl()` collider each**. Tree trunks, solid walls, site centers, all ten spawn points and Town/Lockdown map-switch semantics are preserved.
+- New Node regression explicitly checks all paving rectangles for X/Z overlap at one depth plane, hides/restores legacy TDM GridHelper during map transitions, checks presence of batched architectural detail and real collision cover.
+
+**Evidence:** [Windows regression #256](https://github.com/Heynode92/blockbudies/actions/runs/41187629635) **376/376 Node tests PASS**, standalone build parity and syntax PASS. The map-aware Chromium round QA run [#25](https://github.com/Heynode92/blockbudies/actions/runs/41187608474) was still running when this change was recorded. Green synthetic/browser functional tests do not substitute for owner-side visual verification of the previous flicker on actual hardware.
+
 ## Safety and validation gates
 
 **Existing Windows regression:** [CI #247](https://github.com/Heynode92/blockbudies/actions/runs/41186755439) **375/375 Node tests PASS**, generated bundle parity PASS, syntax PASS. The original suite was updated to load the canonical new map module in VM test fixtures instead of weakening Lockdown assertions. Added two new map-specific tests: outdoor 160×160 scale, Police-A spawn placement, valid A/B sites, all five spawn slots per faction, every Police/Terrorist spawn sightline blocked, canonical A* route availability and multi-map collider/snapshot isolation; plus Room Master map switching, persistence, Cancel/Save and invalid map ID fallback.
