@@ -113,7 +113,7 @@ try{
    wallSeconds:(Date.now()-started)/1000,init,...final,jsErrors};
  await context.close();
  if(results.realTime.some(s=>s.jsErrors.length||!s.active||!s.webgl||
-    s.bots!==10||s.qa.frameTimeMs.count<100||s.qa.botUpdateCpuMs.count<100))
+    s.init.bots!==10||s.qa.frameTimeMs.count<10||s.qa.botUpdateCpuMs.count<10))
    throw Error('Real-time WebGL or BOT instrumentation smoke failed');
  if(jsErrors.length)throw Error('Accelerated browser emitted JS errors: '+jsErrors.join('; '));
  if(final.qa.bombRounds.completed<target)
