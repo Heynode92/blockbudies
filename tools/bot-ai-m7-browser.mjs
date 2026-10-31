@@ -11,7 +11,7 @@ const out=path.join(root,'artifacts','m7-browser');
 fs.mkdirSync(out,{recursive:true});
 const team=process.env.M7_TEAM==='terrorist'?1:0;
 const name=team?'terrorist':'police';
-const mapId=process.env.M7_MAP==='block-town'?'block-town':'lockdown';
+const mapId=process.env.M7_MAP==='block-labs'?'block-labs':process.env.M7_MAP==='block-town'?'block-town':'lockdown';
 const target=Number(process.env.M7_BOMB_ROUNDS||50);
 if(!Number.isInteger(target)||target<1||target>150)
   throw Error('M7_BOMB_ROUNDS must be an integer 1..150');
@@ -81,7 +81,7 @@ async function start(page,mode){
 }
 try{
  // Actual rAF, GPU/WebGL and BOT CPU in two separate live-mode windows.
- for(const mode of [0,1]){
+ for(const mode of (mapId==='block-labs'?[0]:[0,1])){
    const {page,context,jsErrors}=await createPage();
    const init=await start(page,mode);
    await page.waitForTimeout(Number(process.env.M7_REALTIME_MS||12000));
@@ -89,6 +89,26 @@ try{
      ...(await page.evaluate(()=>window.__BlockBuddiesM7CI.summary())),jsErrors});
    await context.close();
  }
+ if(mapId==='block-labs'){
+   // ACTUAL Deathmatch engine, 5v5 BOT-only, fixed timestep in real Chromium.
+   // No Bomb match is run or mislabelled as Lab Deathmatch.
+   const {page,context,jsErrors}=await createPage();
+   const init=await start(page,0);
+   await page.evaluate(()=>window.__BlockBuddiesM7CI.pauseForStepping());
+   const beginAt=Date.now();let ticks=0,done=false;
+   for(;ticks<2*60*60+180;ticks+=180){
+     const state=await page.evaluate(()=>window.__BlockBuddiesM7CI.step(180));
+     if(state.over){done=true;break;}
+     if(Date.now()-beginAt>25*60*1000)throw Error('Block Labs TDM browser smoke exceeded CI safety limit');
+   }
+   const final=await page.evaluate(()=>window.__BlockBuddiesM7CI.summary());
+   results.simulation={label:'ACCELERATED_PRODUCTION_BROWSER_TDM_NOT_REALTIME',
+     gameplay:'TEAM_DEATHMATCH',simulatedTicks:ticks+180,dtSeconds:1/60,
+     wallSeconds:(Date.now()-beginAt)/1000,init,...final,jsErrors};
+   await context.close();
+   if(!done||!final.over)throw Error('Block Labs canonical Deathmatch did not complete');
+   if(final.scores[0]+final.scores[1]<1)throw Error('Block Labs deathmatch produced no BOT kills');
+ }else{
  const {page,context,jsErrors}=await createPage();
  const init=await start(page,1);
  await page.evaluate(()=>window.__BlockBuddiesM7CI.pauseForStepping());
@@ -112,11 +132,13 @@ try{
      matches++;
    }
  }
- const final=await page.evaluate(()=>window.__BlockBuddiesM7CI.summary());
+ const bombFinal=await page.evaluate(()=>window.__BlockBuddiesM7CI.summary());
  results.simulation={label:'ACCELERATED_PRODUCTION_BROWSER_SIMULATION_NOT_REALTIME',
    requestedRounds:target,matches,simulationTicks:ticks,dtSeconds:1/60,
-   wallSeconds:(Date.now()-started)/1000,init,...final,jsErrors};
+   wallSeconds:(Date.now()-started)/1000,init,...bombFinal,jsErrors};
  await context.close();
+ }
+ const final=results.simulation;
  // Windows hosted CI uses a SwiftShader software renderer. A CPU-contended
  // 12-second wall-time window can produce just 5-6 qualifying rAF samples.
  // One observed valid frame/update is enough to establish runtime smoke,
@@ -136,12 +158,14 @@ try{
     s.init.bots!==10||s.qa.frameTimeMs.count<1||s.qa.botUpdateCpuMs.count<1))
    throw Error('Real-time WebGL runtime or BOT instrumentation smoke failed');
  if(jsErrors.length)throw Error('Accelerated browser emitted JS errors: '+jsErrors.join('; '));
- if(final.qa.bombRounds.completed<target)
-   throw Error('Only '+final.qa.bombRounds.completed+'/'+target+' authentic Bomb finishes');
+ if(mapId!=='block-labs'){
+   if(final.qa.bombRounds.completed<target)
+     throw Error('Only '+final.qa.bombRounds.completed+'/'+target+' authentic Bomb finishes');
+   if(final.qa.bombRounds.policeWins+final.qa.bombRounds.terroristWins!==
+      final.qa.bombRounds.completed)throw Error('Bomb winner accounting mismatch');
+ }
  if(final.qa.pathAttempts===0||final.qa.projectileCount===0)
    throw Error('Missing real A* or BOT projectile activity in production simulation');
- if(final.qa.bombRounds.policeWins+final.qa.bombRounds.terroristWins!==
-    final.qa.bombRounds.completed)throw Error('Bomb winner accounting mismatch');
  results.result='AUTOMATED_FUNCTIONAL_PASS_NOT_FINAL_M7_RELEASE';
 }catch(err){
  results.errors.push(String(err.stack||err));results.result='FAIL';process.exitCode=1;
@@ -150,7 +174,7 @@ try{
  console.log(JSON.stringify({result:results.result,team:name,mapId,
    realtime:results.realTime.map(s=>({mode:s.mode,frames:s.qa.frameTimeMs.count,
      cpu:s.qa.botUpdateCpuMs.count,frameP95:s.qa.frameTimeMs.p95,errors:s.jsErrors})),
-   bombRounds:results.simulation?.qa?.bombRounds,
+   scores:results.simulation?.scores,bombRounds:results.simulation?.qa?.bombRounds,
    performanceAssessment:results.performanceAssessment,errors:results.errors},null,2));
  await browser.close();
 }
