@@ -8,6 +8,7 @@ const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const read=(path)=>readFileSync(resolve(root,path),'utf8');
 const tactics=read('src/game/87-bomb-tactics.js');
 const perception=read('src/game/88-bot-perception.js');
+const intelligence=read('src/game/86-bomb-intelligence.js');
 const mission=read('src/game/86-bomb-mission.js');
 const audio=read('src/game/65-audio.js');
 const damage=read('src/game/70-kills-and-damage-hud.js');
@@ -32,6 +33,7 @@ function makeState(){
   ctx.bombActionFor=function(e){if(ctx.bombMatch.state==='planted'&&e.tm===0)return {type:'defuse',site:1};
     if(ctx.bombMatch.state==='idle'&&e.tm===1&&ctx.bombMatch.carrier===e&&ctx.bombArea(e)>=0)return {type:'plant',site:1};return null;};
   runInNewContext(perception,ctx);
+  runInNewContext(intelligence,ctx);
   runInNewContext(tactics,ctx);
   ctx.botIntelAcquire(cop);ctx.botIntelAcquire(terror);
   // The actual damage handlers depend on defenseDamage; include its production implementation.
