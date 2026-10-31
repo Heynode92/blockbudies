@@ -115,6 +115,7 @@ function bombPlant(e,site){var b=bombMatch;if(!b||b.done||b.state!=='idle'||b.ca
 }
 function bombDefuse(e){if(bombMatch&&bombMatch.state==='planted'&&!bombMatch.done){toast(BOMB_TEXT.defused);bombFinish(0,BOMB_TEXT.defused);}}
 function bombFinish(winner,reason){var b=bombMatch;if(!b||b.done)return;
+  if(typeof botQaEnabled!=='undefined'&&botQaEnabled)botQaBomb(winner,b.site,b.state);
   b.done=true;b.winner=winner;b.finishDelay=BOMB_RULES.roundBreakSeconds;ts[winner]++;
   b.roundWins=ts.slice();
   en.concat([pl]).forEach(function(e){e.bAction=null;});
