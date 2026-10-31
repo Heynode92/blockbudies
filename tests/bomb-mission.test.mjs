@@ -583,9 +583,9 @@ test('Hospital blueprint registers as an indoor 160x160 Bomb map with real physi
  c.selectGameMap(true);
  assert.equal(c.A,80);
  assert.equal(c.BOMB_SITES[0].id,'A');assert.equal(c.BOMB_SITES[0].x,67);assert.equal(c.BOMB_SITES[0].z,-43);
- assert.equal(c.BOMB_SITES[1].id,'B');assert.equal(c.BOMB_SITES[1].x,-67);assert.equal(c.BOMB_SITES[1].z,10);
+ assert.equal(c.BOMB_SITES[1].id,'B');assert.equal(c.BOMB_SITES[1].x,-67);assert.equal(c.BOMB_SITES[1].z,3);
  assert.ok(c.HOSPITAL_WORLD.length>20);
- assert.equal(c.HOSPITAL_DEF.wings.length,14);
+ assert.equal(c.HOSPITAL_DEF.wings.length,10);
  assert.equal(c.HOSPITAL_DEF.furniture.length,20);
  assert.equal(c.HOSPITAL_DEF.halfSize,80);
  assert.ok(c.HOSPITAL_LT.some(x=>x.hw===80&&x.hd===80&&x.y0>10),'hospital has a physical ceiling');
@@ -636,4 +636,41 @@ test('Hospital blueprint registers as an indoor 160x160 Bomb map with real physi
  c.selectedBombMapId='hospital';c.selectGameMap(true);
  assert.equal(c.OB.length,clinicalOb,'Hospital reuses only its own cached obstacles');
  assert.equal(c.HOSPITAL_WORLD.every(m=>m.visible),true);
+});
+
+test('Hospital corridor geometry is traced from owner artwork, not arbitrary rectangular maze',()=>{
+ const c=makeContext();c.selectedBombMapId='hospital';c.selectGameMap(true);
+ const d=c.HOSPITAL_DEF,source=c.HOSPITAL_BLUEPRINT;
+ assert.equal(source.width,632);
+ assert.equal(source.height,627);
+ assert.equal(source.outlinePx.length,32,'every outer gray-border step is retained');
+ assert.equal(source.roomsPx.length,10,'eight original isolated white room islands including 3-piece L');
+ assert.equal(d.wings.length,10);
+ // Actual screenshot-based WHITE samples are impassable, not invented paths.
+ const white=[[150,185],[329,120],[510,200],[331,245],
+   [445,354],[440,540],[100,422],[250,467],[207,527],[170,560]];
+ for(const px of white){
+   const point=c.hospitalPxPoint(px[0],px[1]);
+   assert.ok(c.inObs(point[0],point[1],.4),
+     'white owner-blueprint room must be truly solid '+px);
+ }
+ // The arrow endpoints / corridor centerline junctions remain walkable.
+ const grey=[[49,52],[52,150],[50,240],[125,139],
+   [252,196],[330,192],[436,194],[584,138],[586,291],
+   [260,296],[58,323],[46,405],[162,405],[239,393],
+   [355,398],[525,397],[350,471],[538,548],
+   [112,601],[450,594]];
+ for(const px of grey){
+   const point=c.hospitalPxPoint(px[0],px[1]);
+   assert.equal(c.inObs(point[0],point[1],.6),false,
+      'grey owner-blueprint corridor must not have any blocking wall/prop '+px);
+ }
+ // At least 30 edge segments physically enforce the stepped external footprint.
+ for(let i=0;i<source.outlinePx.length;i++){
+   const a=source.outlinePx[i],b=source.outlinePx[(i+1)%source.outlinePx.length],
+     p=c.hospitalPxPoint((a[0]+b[0])/2,(a[1]+b[1])/2);
+   assert.ok(c.inObs(p[0],p[1],.1),
+     'outer corridor outline must have a physical solid boundary '+i);
+ }
+ assert.ok(c.HOSPITAL_LT.some(o=>o.hw===80&&o.hd===80&&o.y0>10));
 });
