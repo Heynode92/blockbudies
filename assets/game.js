@@ -3404,6 +3404,111 @@ function botSquadLane(e,vx,vz){
  var ax=vx+rx,az=vz+rz,n=Math.hypot(ax,az);
  return n>1?[ax/n,az/n]:[ax,az];
 }
+// M6 — TDM-only situational threat scoring, class-driven engagement and fair patrol lanes.
+// No change to weapons, aim dispersion, projectile damage, spawn points, or Bomb tactics.
+var BOT_TDM=Object.freeze({
+ thinkSeconds:3.8,maxPatrolChecks:3,spawnMargin:13,
+ patrolFraction:.46,patrolLimit:24,patrolArrival:2.3,
+ targetHysteresis:3.5,repositionRetry:3.5,searchRange:45,
+ bands:Object.freeze({
+  shotgun:Object.freeze({min:3.5,near:7,far:12}),
+  smg:Object.freeze({min:5,near:10,far:18}),
+  dual:Object.freeze({min:4,near:8,far:15}),
+  rifle:Object.freeze({min:9,near:17,far:27}),
+  sniper:Object.freeze({min:20,near:28,far:42}),
+  pistol:Object.freeze({min:6,near:11,far:19})
+ })
+});
+function botTdmReset(e){
+ e.tdmRouteAt=0;e.tdmRouteIndex=0;e.tdmRouteGoal=null;
+ e.tdmEngagementAt=0;e.tdmContactAt=0;
+}
+function botTdmWeaponKind(e){
+ var weapon=WP[e.weapon]||WP[e.primary];
+ return weapon&&weapon.stats&&weapon.stats.kind||'rifle';
+}
+function botTdmBand(e){
+ return BOT_TDM.bands[botTdmWeaponKind(e)]||BOT_TDM.bands.rifle;
+}
+function botTdmScore(e,foe){
+ if(!botIntelVisible(e,foe))return Infinity;
+ var distance=Math.hypot(foe.x-e.x,foe.z-e.z),
+     band=botTdmBand(e),
+     score=distance;
+ // A visible enemy with spawn protection is not a preferred target.
+ if((foe.inv||0)>0)return Infinity;
+ // A currently visible, wounded opponent is a sensible finishing target,
+ // without revealing unknown enemy health to the squad.
+ if(Number.isFinite(foe.hp)&&foe.hp>0&&foe.hp<40)score-=2;
+ // Avoid keeping a shotgun BOT focused on an extreme-range target when an
+ // equally visible closer threat exists. No fire-range/stat modification.
+ if(distance>band.far)score+=(distance-band.far)*.45;
+ // Minor hysteresis prevents instant target swapping in 5v5 encounters.
+ if(e.tg===foe)score-=BOT_TDM.targetHysteresis;
+ return score;
+}
+function botTdmAcquire(e){
+ if(!e||e.dead||isBombMode())return null;
+ var target=null,best=Infinity;
+ function consider(o){
+  if(!o||o===e||o.dead||o.tm===e.tm)return;
+  var score=botTdmScore(e,o);
+  if(Number.isFinite(score)&&score<best){best=score;target=o;}
+ }
+ en.forEach(consider);
+ if(!pl.dead)consider(pl);
+ // The only authorized target object is one that passes *live* M1 LOS.
+ if(target)botIntelObserve(e,target);
+ return target;
+}
+function botTdmCombatMove(e,d,fw,strafe){
+ if(isBombMode()||e.dead||e.hp<=BOT_TACTICS.criticalHP||
+    e.smartRetreat||botNeedsMelee(e))return [fw,strafe];
+ var band=botTdmBand(e);
+ if(d>band.far)fw=1.08;
+ else if(d>band.near)fw=.55;
+ else if(d<band.min)fw=-.85;
+ else fw=Math.max(-.22,Math.min(.24,fw));
+ // No movement-speed modification. M3 handles genuine dodge/collision.
+ return [fw,strafe];
+}
+function botTdmPatrolGoal(e){
+ if(!e||e.dead||isBombMode())return null;
+ var lim=Math.min(BOT_TDM.patrolLimit,Math.max(6,A*BOT_TDM.patrolFraction)),
+     side=(e.tm?1:-1),rank=e.idx||0,
+     anchors=[[-.8,-.4],[-.3,.7],[.5,-.55],[.9,.4],
+       [0,0],[.4,.85],[-.65,.35],[.65,-.15]],
+     start=(rank*3+(e.tdmRouteIndex||0))%anchors.length;
+ // Anchors stay in central map-control area, outside opponent spawn band
+ // (the canonical TDM spawn center is z=+/-38, +/-10 drift).
+ for(var i=0;i<BOT_TDM.maxPatrolChecks;i++){
+  var a=anchors[(start+i)%anchors.length],
+      x=a[0]*lim,z=a[1]*lim*side;
+  if(!Number.isFinite(x)||!Number.isFinite(z)||
+     Math.abs(x)>A-2||Math.abs(z)>A-2||
+     Math.abs(z)>38-BOT_TDM.spawnMargin||inObs(x,z,.72))continue;
+  if(botMoveReachable(e,x,z))return [x,z];
+ }
+ return null;
+}
+function botTdmPatrol(e){
+ if(!e||e.dead||isBombMode())return;
+ var fresh=botIntelKnown(e);
+ // Valid M1 vision/radio/audio reports are always handled first.
+ if(fresh&&fresh.until>tt){e.tdmRouteGoal=null;return;}
+ if(!e.tdmRouteGoal&&tt<(e.tdmRouteAt||0))return;
+ if(e.tdmRouteGoal&&tt<(e.tdmRouteAt||0)&&
+    Math.hypot(e.x-e.tdmRouteGoal[0],e.z-e.tdmRouteGoal[1])>
+      BOT_TDM.patrolArrival){
+  e.wx=e.tdmRouteGoal[0];e.wz=e.tdmRouteGoal[1];return;
+ }
+ // One bounded planning pass per route, never every animation frame.
+ e.tdmRouteAt=tt+BOT_TDM.thinkSeconds;
+ e.tdmRouteIndex=(e.tdmRouteIndex||0)+1;
+ var goal=botTdmPatrolGoal(e);
+ if(!goal){e.tdmRouteGoal=null;return;}
+ e.tdmRouteGoal=goal;e.wx=goal[0];e.wz=goal[1];
+}
 // Five-star BOT decision layer: uses existing A* navigation, LOS, HP,
 // canonical weapon ammo, and Bomb Mission objectives. No duplicate combat engine.
 var BOT_TACTICS=Object.freeze({
@@ -3568,7 +3673,7 @@ function newBot(tm,i){var b=terro(tm);b.tm=tm;b.idx=i;b.name=BN[tm][i];b.ph=Math
   var cv=document.createElement("canvas");cv.width=256;cv.height=64;var cx=cv.getContext("2d"),nt=b.name.toUpperCase();cx.font='700 40px Rajdhani,"Trebuchet MS",sans-serif';cx.textAlign="center";cx.textBaseline="middle";cx.lineWidth=7;cx.strokeStyle="rgba(0,0,0,.85)";cx.strokeText(nt,128,34);cx.fillStyle=tm?"#ff8a65":"#74c0fc";cx.fillText(nt,128,34);
   var sp=new T.Sprite(new T.SpriteMaterial({map:new T.CanvasTexture(cv),depthTest:false,transparent:true,fog:false}));sp.scale.set(3,.75,1);sp.position.set(0,2.75,0);sp.renderOrder=1000;sp.visible=tm===pl.tm;b.g.add(sp);b.nm=sp;return b;}
 // placeBot(b): (re)spawns bot b at a spawn point with full HP and short invulnerability.
-function placeBot(b){var s=spawnPt(b.tm);b.stepTrail=0;b.stepIndex=0;b.x=s[0];b.z=s[1];b.y=0;defenseSpawn(b);if(b.hm)b.hm.visible=true;b.inv=2;b.cd=1+Math.random();b.dead=false;b.tg=null;b.bn=0;b.wx=b.x;b.wz=b.z;b.stk=0;b.lastSeen=null;b.coverGoal=null;b.coverExpires=0;b.coverHoldUntil=0;b.smartRetreat=false;if(typeof botMoveReset==='function')botMoveReset(b);if(typeof botSquadReset==='function')botSquadReset(b);if(typeof bombM5Reset==='function')bombM5Reset(b);b.siteChoice=undefined;b.g.rotation.y=b.tm?0:Math.PI;botInitialLoadout(b);en.push(b);}
+function placeBot(b){var s=spawnPt(b.tm);b.stepTrail=0;b.stepIndex=0;b.x=s[0];b.z=s[1];b.y=0;defenseSpawn(b);if(b.hm)b.hm.visible=true;b.inv=2;b.cd=1+Math.random();b.dead=false;b.tg=null;b.bn=0;b.wx=b.x;b.wz=b.z;b.stk=0;b.lastSeen=null;b.coverGoal=null;b.coverExpires=0;b.coverHoldUntil=0;b.smartRetreat=false;if(typeof botMoveReset==='function')botMoveReset(b);if(typeof botSquadReset==='function')botSquadReset(b);if(typeof bombM5Reset==='function')bombM5Reset(b);if(typeof botTdmReset==='function')botTdmReset(b);b.siteChoice=undefined;b.g.rotation.y=b.tm?0:Math.PI;botInitialLoadout(b);en.push(b);}
 // startMatch(tm): sets up scores, timer (60 s) and the countdown, spawns the player and 4+5 bots, resets weapons to the chosen primary.
 function startMatch(tm){inventoryForNewMatch();starsReset();SPH=[[],[]];var s=spawnPt(tm);pl.tm=tm;pl.x=s[0];pl.z=s[1];pl.face=tm?0:Math.PI;pl.inv=2;ts=[0,0];rq=[];mt={t:roomMatchSeconds(),cd:5,over:false};pl.prim=favPrim;pl.w=favPrim;pl.mag=WP[favPrim].mag;pl.res=WP[favPrim].res;scopeOn=false;ROS=[];pl.st={name:"You",tm:tm,k:0,d:0};ROS.push(pl.st);
   S.remove(pm.g);pm=mkPm(tm);pm.g.visible=false;[armR,armL].forEach(function(ar){ar.children[0].material.color.setHex(tm?0x4b5320:0x1c4a8a);ar.children[1].material.color.setHex(tm?0x23272b:0x142a52);});
@@ -4819,19 +4924,14 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
     botUpdateReload(e,dt);e.inv=Math.max(0,(e.inv||0)-(cdn?0:dt));e.vis=Math.max(0,(e.vis||0)-dt);e.tq=(e.tq||0)-dt;e.navT=Math.max(0,(e.navT||0)-dt);
     if(e.tq<=0){e.tq=.22+Math.random()*.16;
       // Target acquisition is an actual observation, never an unseen enemy pointer.
-      e.tg=botIntelAcquire(e);e.lok=!!e.tg;
+      e.tg=isBombMode()?botIntelAcquire(e):botTdmAcquire(e);e.lok=!!e.tg;
       botIntelHearing(e);
       if(isBombMode()){var objective=bombBotGoal(e);if(objective){e.wx=objective[0];e.wz=objective[1];}}
       if(!e.tg&&!isBombMode()){
         // Pursue the last visible contact, never unseen live player coordinates.
         var clue=botIntelKnown(e);
         if(clue){e.wx=clue.x;e.wz=clue.z;}
-        else if(!e.patrolUntil||tt>e.patrolUntil||Math.hypot(e.wx-e.x,e.wz-e.z)<2){
-          e.patrolUntil=tt+3+Math.random()*3;
-          var side=e.idx%2?1:-1,angle=Math.atan2(e.z,e.x)+side*(.6+Math.random()*1.3);
-          e.wx=Math.max(-A+3,Math.min(A-3,e.x+Math.cos(angle)*(9+Math.random()*11)));
-          e.wz=Math.max(-A+3,Math.min(A-3,e.z+Math.sin(angle)*(9+Math.random()*11)));
-        }}}
+        else botTdmPatrol(e);}}
     t=e.tg;
     // Reject the old actor reference immediately after LOS loss. Even pathing
     // must use the last observed snapshot, never new hidden coordinates.
@@ -4855,6 +4955,7 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
     if(combat){var fw=botNeedsMelee(e)?1:(isBombMode()&&bombMatch&&bombMatch.state==='planted'&&e.tm===0)?
       (d>BOMB_AI.retakeCombatDistance?1:-.3):(d>16?1:d<7?-.6:0),st;e.bt=(e.bt||0)-dt;if(e.bt<=0){e.bt=.7+Math.random()*1.4;e.sd=[-1,0,1][(Math.random()*3)|0];}st=(e.sd||0)*.9;
       var dodge=botSmartVelocity(e,d,fw,st);fw=dodge[0];st=dodge[1];
+      dodge=botTdmCombatMove(e,d,fw,st);fw=dodge[0];st=dodge[1];
       dodge=botMoveDodge(e,t,dt,fw,st);fw=dodge[0];st=dodge[1];
       mvx=dx/d*fw+(dz/d)*st;mvz=dz/d*fw-(dx/d)*st;
       if(!botMoveIsClear(e,mvx,mvz,sp,dt)){e.sd=-(e.sd||1);}}
