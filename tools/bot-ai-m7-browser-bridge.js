@@ -5,8 +5,8 @@ if(botQaEnabled){
   window.__BlockBuddiesM7CI=Object.freeze({
     start:function(mode,team,mapId){
       // Test the actual room whitelist and production map activation.
-      var activeMap=mode===1?bombMapId(mapId):"block-district";
-      roomMatchConfig={mode:mode,mapId:activeMap,kills:100,minutes:1,rounds:12,roundMinutes:1};
+      var activeMap=mode===1?bombMapId(mapId):tdmMapId(mapId);
+      roomMatchConfig={mode:mode,mapId:activeMap,kills:100,minutes:activeMap==="block-labs"?2:1,rounds:12,roundMinutes:1};
       selM=mode;
       begin(team);
       if(!window.__BlockBuddiesM7CI.substitute())throw Error('Expected canonical 9-BOT roster');
@@ -64,8 +64,44 @@ if(botQaEnabled){
         mapChecks={routes:routes.length,clearSpawnSightlinePairs:clearPairs,
           perimeterWalls:shells.length,playerSpawnFacing:pl.face,sites:BOMB_SITES.map(function(q){return q.id;})};
       }
+      if(mode===0&&activeMap==="block-labs"){
+        var d=BLOCK_LABS_DEF;
+        if(A!==60||!BLOCK_LABS_WORLD||d.blocks.length!==6||d.reactors.length!==6)
+          throw Error('BLOCK LABS wrong map scale or required 6+6 block layout');
+        var solids=0,labRoutes=0;
+        d.blocks.forEach(function(b){
+          if(!OB.some(function(o){return o.x===b[0]&&o.z===b[1]&&o.hw===b[2]/2&&o.hd===b[3]/2;}))
+            throw Error('BLOCK LABS lab wall has no projectile/player collider '+b);
+          solids++;
+        });
+        d.reactors.forEach(function(q){
+          if(!OB.some(function(o){return o.x===q[0]&&o.z===q[1]&&o.hw===q[2]&&o.hd===q[2];}))
+            throw Error('BLOCK LABS reactor has no collider '+q);
+        });
+        if(!LT.some(function(o){return o.hw===60&&o.hd===60&&o.y0>10;}))
+          throw Error('BLOCK LABS missing solid overhead indoor ceiling');
+        [d.spawns.police,d.spawns.terrorist].forEach(function(group,side){
+          group.forEach(function(pt){
+            if(inObs(pt[0],pt[1],.85))
+              throw Error('BLOCK LABS spawn intersects lab walls '+pt);
+            var look=side?d.spawnLook.terrorist:d.spawnLook.police,
+                yaw=labsSpawnYaw(side,pt[0],pt[1]),dx=look[0]-pt[0],dz=look[1]-pt[1];
+            if((Math.sin(yaw)*dx+Math.cos(yaw)*dz)/Math.hypot(dx,dz)<.99)
+              throw Error('BLOCK LABS spawn not facing inside');
+            [-45,0,45].forEach(function(x){
+              var pts=gPath(pt[0],pt[1],x,0);
+              if(!pts||!pts.length)throw Error('BLOCK LABS missing tactical lane path '+pt+' -> '+x);
+              labRoutes++;
+            });
+          });
+        });
+        if(Math.abs(pl.face-labsSpawnYaw(team,pl.x,pl.z))>.001)
+          throw Error('BLOCK LABS player yaw does not match team inward view');
+        mapChecks={solidLabBlocks:solids,realReactors:d.reactors.length,
+          tacticalRoutes:labRoutes,perimeterCount:4,roof:true,playerYaw:pl.face};
+      }
       BlockBuddiesQA.reset();
-      return {map:mode===1?bombMapInfo(activeMap).name:'BLOCK DISTRICT',mapChecks:mapChecks,bots:en.length,
+      return {map:mode===1?bombMapInfo(activeMap).name:tdmMapInfo(activeMap).name,mapChecks:mapChecks,bots:en.length,
         teams:[en.filter(e=>e.tm===0).length,en.filter(e=>e.tm===1).length],
         roundSeconds:roomRoundSeconds(),roundLimit:roomRoundLimit()};
     },
@@ -119,7 +155,7 @@ if(botQaEnabled){
       window.__m7RoundRef=bombMatch;},
     summary:function(){
       return {qa:BlockBuddiesQA.report(),rendering:R.info.render.calls,
-        active:run,over:mt.over,bots:en.length,webgl:!!R.getContext(),
+        active:run,over:mt.over,bots:en.length,scores:ts.slice(),webgl:!!R.getContext(),
         round:bombMatch&&bombMatch.round,
         carrierSubstitutions:window.__m7CarrierSubstitutions||0,
         teams:[en.filter(e=>e.tm===0).length,en.filter(e=>e.tm===1).length]};
