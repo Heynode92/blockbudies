@@ -1,3 +1,10 @@
+## 2026-10-31 — Match approved tactical FPS header reference
+- Implement a dedicated full-width tactical header with an orange left-chevron motif, a single-line white/orange BLOK BUDDIES wordmark, and inline FPS | 5V5 | POLICE VS TERRORIST information.
+- Align Personal Best with a trophy icon, the outlined Connect Wallet button, and functional Settings and Fullscreen shortcuts on the far right.
+- Preserve the existing wallet connection action and account updates while keeping its icon visible after state changes.
+- Reuse the existing Settings menu response and browser Fullscreen API without changing the five home-menu buttons, showcase videos, or match logic.
+- Keep the 1 MINUTE / MOST KILLS WINS tagline removed.
+
 ## 2026-10-31 — Full-width main menu header
 - Relocate BLOK BUDDIES, FPS / 5V5 / POLICE VS TERRORIST, Personal Best, and Connect Wallet into one dedicated full-width header.
 - Remove the redundant "1 MINUTE · MOST KILLS WINS" description from the home menu.
