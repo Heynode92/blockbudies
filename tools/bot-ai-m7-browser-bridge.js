@@ -3,14 +3,49 @@
 // are called unchanged. Neither BOMB_RULES nor projectile/winner logic is patched.
 if(botQaEnabled){
   window.__BlockBuddiesM7CI=Object.freeze({
-    start:function(mode,team){
-      roomMatchConfig={mode:mode,kills:100,minutes:1,rounds:12,roundMinutes:1};
+    start:function(mode,team,mapId){
+      // Test the actual room whitelist and production map activation.
+      var activeMap=mode===1?bombMapId(mapId):"block-district";
+      roomMatchConfig={mode:mode,mapId:activeMap,kills:100,minutes:1,rounds:12,roundMinutes:1};
       selM=mode;
       begin(team);
       if(!window.__BlockBuddiesM7CI.substitute())throw Error('Expected canonical 9-BOT roster');
       window.__m7RoundRef=bombMatch;
+      var mapChecks=null;
+      if(mode===1&&activeMap==="block-town"){
+        // Assert no spawn inside solids, no direct team spawn LOS, and A* routes
+        // from each spawn faction to both playable bomb sites.
+        var sides=[BLOCK_TOWN_DEF.spawns.police,BLOCK_TOWN_DEF.spawns.terrorist];
+        sides.forEach(function(group){group.forEach(function(p){
+          if(inObs(p[0],p[1],.85))throw Error('BLOCK TOWN spawn intersects a solid: '+p);
+        });});
+        BOMB_SITES.forEach(function(site){
+          if(inObs(site.x,site.z,1))throw Error('BLOCK TOWN bomb site intersects a solid: '+site.id);
+        });
+        var routes=[];
+        sides.forEach(function(group,t){
+          group.forEach(function(p){
+            BOMB_SITES.forEach(function(site){
+              var pts=gPath(p[0],p[1],site.x,site.z);
+              if(!pts||pts.length<2)throw Error('BLOCK TOWN inaccessible '+t+' spawn '+p+' -> '+site.id);
+              routes.push({team:t,site:site.id,points:pts.length});
+            });
+          });
+        });
+        var clearPairs=0;
+        sides[0].forEach(function(p){sides[1].forEach(function(q){
+          var steps=Math.ceil(Math.hypot(p[0]-q[0],p[1]-q[1])/.5),blocked=false;
+          for(var i=1;i<steps;i++){
+            var k=i/steps;
+            if(inObs(p[0]+(q[0]-p[0])*k,p[1]+(q[1]-p[1])*k,.02)){blocked=true;break;}
+          }
+          if(!blocked)clearPairs++;
+        });});
+        if(clearPairs)throw Error('BLOCK TOWN opposing spawn direct sightline count: '+clearPairs);
+        mapChecks={routes:routes.length,clearSpawnSightlinePairs:clearPairs,sites:BOMB_SITES.map(function(q){return q.id;})};
+      }
       BlockBuddiesQA.reset();
-      return {map:isBombMode()?'LOCKDOWN':'BLOCK DISTRICT',bots:en.length,
+      return {map:mode===1?bombMapInfo(activeMap).name:'BLOCK DISTRICT',mapChecks:mapChecks,bots:en.length,
         teams:[en.filter(e=>e.tm===0).length,en.filter(e=>e.tm===1).length],
         roundSeconds:roomRoundSeconds(),roundLimit:roomRoundLimit()};
     },
