@@ -18,7 +18,7 @@ var BOMB_PROPS=Object.freeze({inset:3.05,doorClearance:2.8,
   rack:{w:1.85,d:.95,h:2.85},locker:{w:2.3,d:.95,h:2.55},
   desk:{w:2.3,d:1.15,h:1.15},generator:{w:1.85,d:1.25,h:2.7},
   cover:{w:2.3,d:1.55}});
-var BOMB_CITY=S.children.filter(function(o){return o.isMesh||o.isGridHelper;});
+var BOMB_CITY=S.children.filter(function(o){return o.isMesh||o.isGridHelper||o.type==="GridHelper";});
 var BOMB_CITY_OB=OB.slice(),BOMB_CITY_BR=BR.slice(),BOMB_CITY_LT=LT.slice();
 var BOMB_WORLD=null,BOMB_OB=[],BOMB_BR=[],BOMB_LT=[],BOMB_FOG=S.fog,BOMB_BACKGROUND=S.background,BOMB_NAV_WALLS=[];
 var BOMB_CITY_HALF=A;
