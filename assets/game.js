@@ -1271,6 +1271,89 @@ function animHands(){
     else bh8.position.set(.07,.03,-.08);}
   aim(armR,[handR.position.x,handR.position.y,handR.position.z],SHR);aim(armL,[lx,ly,lz],SHL);handL.visible=armL.visible=(w<4||w>5);
 }
+// M2 BOT fire control: legal live-sight 3D yaw/pitch and bounded human-like response.
+// Never read target coordinates after LOS is lost. Never change shared weapon damage.
+var BOT_AIM=Object.freeze({
+ reactionMin:.18,reactionMax:.46,turnYaw:4.6,turnPitch:2.8,
+ maxLeadSeconds:.18,maxObservedVelocity:8,torsoHeight:1.12,
+ yawTolerance:.19,pitchTolerance:.15,maxPitch:1.08,
+ classNoise:Object.freeze({pistol:.034,rifle:.025,smg:.043,dual:.052,
+   shotgun:.046,sniper:.014,rocket:.035})
+});
+function botAimDelta(a,b){
+ return Math.atan2(Math.sin(b-a),Math.cos(b-a));
+}
+function botAimClear(e){
+ e.aimTarget=null;e.aimReadyAt=0;e.aimCanFire=false;
+ e.aimSample=null;e.aimShotPitch=null;e.aimShots=0;
+}
+function botAimUpdate(e,target,dt){
+ if(!target||!botIntelVisible(e,target)){
+  botAimClear(e);return false;
+ }
+ var current=e.aimTarget===target;
+ if(!current){
+  e.aimTarget=target;
+  e.aimReadyAt=tt+BOT_AIM.reactionMin+
+    Math.random()*(BOT_AIM.reactionMax-BOT_AIM.reactionMin);
+  e.aimYaw=Number.isFinite(e.aimYaw)?e.aimYaw:
+    e.g&&e.g.rotation?e.g.rotation.y||0:0;
+  e.aimPitch=Number.isFinite(e.aimPitch)?e.aimPitch:0;
+  e.aimSample=null;e.aimShots=0;
+ }
+ // Sample velocity only while the opponent is actually visible.
+ var sample=e.aimSample,vx=0,vz=0,vy=0;
+ if(sample&&tt>sample.at&&tt-sample.at<.35){
+  var elapsed=tt-sample.at;
+  vx=(target.x-sample.x)/elapsed;vz=(target.z-sample.z)/elapsed;
+  vy=((target.y||0)-sample.y)/elapsed;
+  var speed=Math.hypot(vx,vz,vy);
+  if(speed>BOT_AIM.maxObservedVelocity){
+   var scale=BOT_AIM.maxObservedVelocity/speed;
+   vx*=scale;vz*=scale;vy*=scale;
+  }
+ }
+ e.aimSample={x:target.x,z:target.z,y:target.y||0,at:tt};
+ var w=WP[e.weapon]||WP[e.primary]||WP[0],
+     dx=target.x-e.x,dz=target.z-e.z,dist=Math.hypot(dx,dz)||.01,
+     lead=Math.min(BOT_AIM.maxLeadSeconds,dist/Math.max(1,w.spd||160));
+ // Predictions originate ONLY from fresh visual samples; do not pursue unseen positions.
+ var tx=target.x+vx*lead,tz=target.z+vz*lead,
+     horizontal=Math.max(.01,Math.hypot(tx-e.x,tz-e.z)),
+     targetHeight=(target.y||0)+vy*lead+BOT_AIM.torsoHeight-.3*(target.crA||0),
+     muzzleHeight=(e.y||0)+1.07-.3*(e.crA||0),
+     desiredYaw=Math.atan2(tx-e.x,tz-e.z),
+     desiredPitch=Math.max(-BOT_AIM.maxPitch,Math.min(BOT_AIM.maxPitch,
+       Math.atan2(targetHeight-muzzleHeight,horizontal))),
+     yawStep=Math.max(-BOT_AIM.turnYaw*dt,Math.min(BOT_AIM.turnYaw*dt,
+       botAimDelta(e.aimYaw,desiredYaw))),
+     pitchStep=Math.max(-BOT_AIM.turnPitch*dt,Math.min(BOT_AIM.turnPitch*dt,
+       desiredPitch-e.aimPitch));
+ e.aimYaw+=yawStep;
+ e.aimPitch+=pitchStep;
+ e.aimYawError=Math.abs(botAimDelta(e.aimYaw,desiredYaw));
+ e.aimPitchError=Math.abs(desiredPitch-e.aimPitch);
+ e.aimShots=Math.max(0,(e.aimShots||0)-dt*2.2);
+ e.aimCanFire=tt>=e.aimReadyAt&&
+   e.aimYawError<=BOT_AIM.yawTolerance&&
+   e.aimPitchError<=BOT_AIM.pitchTolerance;
+ return e.aimCanFire;
+}
+function botAimShot(e,w,d){
+ // One lawful bullet direction, with independent class-specific angular error.
+ // Shared fire() still applies canonical spread, pellet pattern, hitboxes and damage.
+ if(!e.aimCanFire||!e.aimTarget||!botIntelVisible(e,e.aimTarget))return null;
+ var kind=w.stats&&w.stats.kind||'rifle',
+     base=BOT_AIM.classNoise[kind]||.032,
+     distancePenalty=Math.min(.065,Math.max(0,d)*.0013),
+     burstPenalty=Math.min(.04,(e.aimShots||0)*.006),
+     spread=base+distancePenalty+burstPenalty,
+     yaw=(Math.random()-.5)*2*spread,
+     pitch=(Math.random()-.5)*2*spread;
+ e.aimShots=(e.aimShots||0)+1;
+ return {yaw:e.aimYaw+yaw,
+  pitch:Math.max(-BOT_AIM.maxPitch,Math.min(BOT_AIM.maxPitch,e.aimPitch+pitch))};
+}
 // AI weapons share exactly the same WP profiles, ballistics, ammo and reload as players.
 // Only accuracy and loadout selection are AI-specific, not bullet damage.
 var BOT_WEAPONS=Object.freeze({
@@ -1341,9 +1424,12 @@ function botAttack(e,target,face,d){
     else dmgE(target,w.dmg,Math.sin(face),Math.cos(face),0,'melee');
   }else{
     var ammo=e.ammo[id];if(!ammo||ammo.mag<=0)return false;
+    var solution=botAimShot(e,w,d);
+    if(!solution)return false;
     ammo.mag--;
-    var inaccuracy=(Math.random()-.5)*2*(BOT_WEAPONS.aimNoise+d*BOT_WEAPONS.noisePerUnit);
-    fire(e,face+inaccuracy,w,'e',0);
+    e.aimShotPitch=solution.pitch;
+    fire(e,solution.yaw,w,'e',0);
+    e.aimShotPitch=null;
   }
   e.weapon=id;botVisualWeapon(e,id);e.cd=w.cd;e.rc=1;e.vis=1.6;
   return true;
@@ -1457,7 +1543,8 @@ function fire(o,face,w,own,adv){
         yawOffset=patternedShotgun?pelletOffset[0]:(Math.random()-.5)*2,
         a=face+yawOffset*w.spr*spreadScale,g=tracer(own,w.rk);
     var mx0,my0,mz0;if(own==="p"){if(w.dual)shotSide=shotSide?0:1;var lx=hold.position.x-(w.dual&&shotSide?.52:0),dd=-(hold.position.z+MZ[pl.w]);mx0=o.x+Math.sin(face)*dd-Math.cos(face)*lx;mz0=o.z+Math.cos(face)*dd+Math.sin(face)*lx;my0=1.5+(o.y||0)+hold.position.y+.02;a+=Math.atan(lx/D);}else{var ey=face;mx0=o.x+Math.sin(ey)*1.1+Math.cos(ey)*.05;mz0=o.z+Math.cos(ey)*1.1-Math.sin(ey)*.05;my0=1.07+(o.y||0)-.3*(o.crA||0);}
-    var vy0=own==="p"?w.spd*(1.5+(o.y||0)+D*Math.tan(pl.pitch)-my0)/D:0;
+    var vy0=own==="p"?w.spd*(1.5+(o.y||0)+D*Math.tan(pl.pitch)-my0)/D:
+      (Number.isFinite(o.aimShotPitch)?w.spd*Math.tan(o.aimShotPitch):0);
     // Add elevation only to shotgun pellets, on top of the existing
     // player muzzle-to-crosshair pitch or bot's original flat trajectory.
     if(patternedShotgun)vy0+=w.spd*Math.tan(pelletOffset[1]*w.spr*spreadScale);
@@ -4301,6 +4388,7 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
     // Post-plant guards do not pursue opponents far from the device.
     if(t&&isBombMode()&&bombMatch&&bombMatch.state==='planted'&&e.tm===1&&
        bombTacticalStage(e)==='hold'&&Math.hypot(t.x-bombMatch.device.position.x,t.z-bombMatch.device.position.z)>BOMB_AI.roamRadius)t=null;
+    botAimUpdate(e,t,dt);
     e.lt=(e.lt||0)-dt;if(t&&e.lt<=0){e.lt=.15;e.lok=los(e.x,e.z,t.x,t.z);}
     if(t){dx=t.x-e.x;dz=t.z-e.z;d=Math.hypot(dx,dz)||1;}
     botSmartReload(e,t);intent=botSmartIntent(e,t);e.smartRetreat=intent.retreat;
@@ -4325,7 +4413,7 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
       if(sq<space&&sq>.01){mvx+=sx/sq*.75;mvz+=sz/sq*.75;}
     }});
     ml=Math.hypot(mvx,mvz);if(ml>1){mvx/=ml;mvz/=ml;}if(cdn)mvx=mvz=0;
-    f=(t&&e.lok)?Math.atan2(dx,dz):(mvx||mvz)?Math.atan2(mvx,mvz):e.g.rotation.y;
+    f=(t&&e.lok)?e.aimYaw:(mvx||mvz)?Math.atan2(mvx,mvz):e.g.rotation.y;
     e.x+=mvx*sp*dt;e.z+=mvz*sp*dt;resolve(e,.55);
     if(isBombMode()&&!e.bAction&&(mvx||mvz)){
       // If a narrow corner blocks movement, try sliding instead of oscillating into it.
