@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-31 WIB — HOSPITAL indoor Bomb Mission map (first playable implementation)
+
+- Added **Hospital** (`hospital`) as a new, standalone **160×160 indoor Bomb Mission** arena based directly on the owner blueprint: Police spawn upper-left, Terrorists lower-right, Site A upper-right Surgical/Operating Wing, Site B left-middle Ward/Imaging Wing. Gray blueprint corridors remain playable and 14 white architectural masses are registered as solid walls; no fake unlocked patient rooms.
+- Hospital's `HOSPITAL_DEF` owns 5 safe spawn candidates per faction, site-adjacent department themes, 20 physically collidable medical cover props, four perimeter walls, clinical wall paneling, observation glass, counters, gurneys, beds, nurse station, imaging equipment, storage, medical wayfinding and luminaires. Visual details are batched by the pre-existing Three.js helpers; the indoor ceiling is a real overhead collision layer.
+- Preserved existing **Lockdown, Block Town, Block District and Block Labs**, their coordinates, map dimensions, weapon/BOT tuning, Bomb plant/defuse timers, scoring and room settings. The canonical registry exposes **Hospital** automatically in Create Room → Bomb Mission and Room Master Settings, with whitelisted persisted IDs and a below-ceiling 3D preview.
+- Added `src/game/14-hospital.js`, registered it in `tools/source-manifest.json`, and synchronized `assets/game.js` for the existing direct-open `index.html` workflow. Node regression now verifies 20 genuine A* spawn-to-site routes, 25 blocked opposing-spawn sightlines, fully clear A/B plant circles, solid clinical props/ceiling and all map-switching collision snapshots. Windows Chromium CI includes separate Police and Terrorist 10-round Bomb jobs for Hospital.
+- **CI results must be recorded only after the exact committed run completes**, and software-rendered browser smoke is not a substitute for real-machine FPS or final aesthetic acceptance. See [Hospital implementation](docs/HOSPITAL_IMPLEMENTATION.md).
+
 ## 2026-10-31 WIB — Block Town V4 live browser functional QA evidence
 
 - [Chromium #59](https://github.com/Heynode92/blockbudies/actions/runs/41193301729) confirms **Block Town Police 10/10 canonical Bomb finishes PASS**, **Block Town Terrorist 10/10 PASS**, with **zero reported JavaScript exceptions** on the final V4 game bundle. Police slot: Police 4/Terrorist 6, planted-at-finish 6 (B 6). Terrorist slot: Police 3/Terrorist 7, planted-at-finish 7 (B 7).
