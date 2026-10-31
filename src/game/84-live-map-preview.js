@@ -43,6 +43,12 @@ function modePreviewDraw(now){
    var modalCanvas=document.getElementById("roomModalMapPreview"),
        modalCtx=modalCanvas.getContext("2d",{alpha:false});
    modalCtx.drawImage(src,(sw-ww)/2,(sh-hh)/2,ww,hh,0,0,modalCanvas.width,modalCanvas.height);
+   roomModalMapCardFrame(modalCanvas);
+   // In-room Settings uses the same cached real-map thumbnails as Create Room.
+   if(typeof roomMapCapturePendingPreview==="function"&&
+      typeof R.clear==="function"&&typeof R.render==="function"){
+    roomMapCapturePendingPreview();
+   }
   }
  }
  // Only read WebGL pixels synchronously after this frame's R.render().
