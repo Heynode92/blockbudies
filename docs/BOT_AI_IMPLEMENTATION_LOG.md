@@ -7,6 +7,8 @@
 > **Master specification:** [BOT_AI_MASTER_PLAN.md](BOT_AI_MASTER_PLAN.md)  
 > **Tracking rule:** A feature is not complete unless code, tests, measured evidence and committed release notes are recorded.
 
+**Windows Chromium browser automation added (2026-10-31 WIB):** new opt-in CI-only workflow `.github/workflows/bot-ai-m7-browser.yml` and `tools/bot-ai-m7-browser.mjs` collect 12-second live rAF/WebGL samples and automatically step production 5v5 BOT-only Bomb rounds (50/team by default). Fast-stepped Bomb outcomes are explicitly simulated browser functional coverage, **not real-time FPS or owner gameplay acceptance**. CI status must be confirmed per run; M7 FINAL RELEASE stays OPEN until all release gates are evidenced. See [M7 Validation](BOT_AI_M7_VALIDATION.md).
+
 ## 1. Executive status
 
 **Second M7 owner-browser capture (2026-10-31 WIB):** reviewed a follow-up opt-in JSON with 2,264 projectiles / 369 character collisions (16.30%), TDM 233/1,757 (13.26%), Bomb 136/507 (26.82%), 2,848 A* attempts/0 failed, 125.78/1,917.32 low-displacement BOT-seconds (6.56%), 5 Bomb finishes (Police 3, Terrorists 2, planted-at-finish 2), rAF interval median/p95 7.0/13.9 ms, JS work median 7.6 ms, BOT CPU p95 0.5 ms, and sight-to-shot 283 events median/p95 332.1/602.4 ms. Mixed modes, unpaired baseline, incomplete Bomb/map/faction coverage, and frame-timing inconsistency **remain blockers to M7 FINAL VERIFIED**. See [second owner browser capture](BOT_AI_M7_VALIDATION.md). No gameplay/source changes authorized by this capture.
