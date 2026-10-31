@@ -1,3 +1,11 @@
+## 2026-10-31 — PointBlock project-wide brand migration
+- **Canonical name:** PointBlock. Display copy and primary wordmark: **POINT BLOCK**.
+- Rebranded browser title, home header, showcase overlays, armory, Room Lobby, match-deployment text, introductory overlay, JavaScript source modules and the direct-open `assets/game.js` bundle.
+- Rebranded BOT QA runtime API to `PointBlockQA`, QA schema to `POINT_BLOCK_M7_QA_V1`, future JSON export name to `point-block-m7-qa.json`, and the CI browser bridge to `__PointBlockM7CI`. Updated the dependent QA tests/tooling together.
+- Updated brand references across documentation, test labels, workflow comments, and gameplay notes. Retained current map names, existing gameplay rules, localStorage namespaces, file paths and offline behavior.
+- **Exceptions deliberately preserved:** the immutable original-game baseline `tests/fixtures/source-original.html`, historical uploaded QA artifact filenames, and valid GitHub URLs/local directory examples using `Heynode92/blockbudies`. Rename the repository separately before changing URLs. Existing external QA scripts using the former console API must switch to `PointBlockQA`.
+- Binary videos were left unchanged; embedded video graphics, if any, require a separate media edit.
+
 ## 2026-10-31 — Shared DeFi header across pre-match lobbies
 - Moved the existing DeFi gaming header into the common `#lb` lobby container. It is a single shared DOM component: no duplicate wallet, PBT controls, handlers, or IDs.
 - Enabled header visibility declaratively for Main Menu, Room Browser, and Room Master waiting lobby using the panels' `data-shared-header` flag and the existing `lobP()` navigation function.
@@ -8,32 +16,32 @@
 ## 2026-10-31 — Home header CSS consolidation and DeFi control proportions
 - Removed obsolete header override blocks (V3/V4/V6) from lobby CSS to eliminate competing size, positioning and typography rules; preserved the working two-video crossfade styles.
 - Moved the main-menu header to dedicated `src/styles/13-home-header.css` loaded after other game styles.
-- Rebalanced the 86px-wide-screen header with readable single-line BLOK BUDDIES wordmark, compact mode metadata, slim PBT token preview, small + button and aligned Connect Wallet action.
+- Rebalanced the 86px-wide-screen header with readable single-line POINT BLOCK wordmark, compact mode metadata, slim PBT token preview, small + button and aligned Connect Wallet action.
 - Added laptop, tablet and mobile layout rules without changing gameplay, shop, room lobby, wallets, balances, or showcase logic.
 - PBT stays a marked coming-soon visual placeholder with no token contract/balance integration.
 
 ## 2026-10-31 — DeFi gaming header with future PBT token
 - Replace the Personal Best header widget with a DeFi-style PBT token display (visual 0.00 placeholder) and + button that explicitly says PBT TOKEN · COMING SOON; no purchase, minting, balance fetch or on-chain operation is implied.
 - Keep the existing Connect Wallet request behavior, styling it consistently with the PBT widget.
-- Rebuild the BLOK BUDDIES wordmark using a new isolated `home-wordmark` class instead of legacy `.lt` styles; use solid colors, clean line-height and overflow-safe padding to prevent glyph clipping.
+- Rebuild the POINT BLOCK wordmark using a new isolated `home-wordmark` class instead of legacy `.lt` styles; use solid colors, clean line-height and overflow-safe padding to prevent glyph clipping.
 - Leave the old personal-best localStorage score intact and make the legacy UI display update null-safe because the header no longer shows Personal Best.
 - Do not change gameplay, map, showcase videos, or the main navigation.
 
 ## 2026-10-31 — Main-menu header cleanup and unclipped wordmark
 - Remove the redundant Settings and Fullscreen header icons and their associated browser event handlers. The existing Settings item remains in the main menu.
-- Repair the single-line BLOK BUDDIES logo with safe line height, explicit text padding, and no clipping or skew transform. Keep the white/orange identity.
+- Repair the single-line POINT BLOCK logo with safe line height, explicit text padding, and no clipping or skew transform. Keep the white/orange identity.
 - Simplify the tactical header: compact FPS / 5V5 / POLICE VS TERRORIST metadata, Personal Best, and Connect Wallet aligned across the viewport.
 - Preserve home showcase, video carousel/crossfade, wallet connection, and all match navigation/gameplay behavior.
 
 ## 2026-10-31 — Match approved tactical FPS header reference
-- Implement a dedicated full-width tactical header with an orange left-chevron motif, a single-line white/orange BLOK BUDDIES wordmark, and inline FPS | 5V5 | POLICE VS TERRORIST information.
+- Implement a dedicated full-width tactical header with an orange left-chevron motif, a single-line white/orange POINT BLOCK wordmark, and inline FPS | 5V5 | POLICE VS TERRORIST information.
 - Align Personal Best with a trophy icon, the outlined Connect Wallet button, and functional Settings and Fullscreen shortcuts on the far right.
 - Preserve the existing wallet connection action and account updates while keeping its icon visible after state changes.
 - Reuse the existing Settings menu response and browser Fullscreen API without changing the five home-menu buttons, showcase videos, or match logic.
 - Keep the 1 MINUTE / MOST KILLS WINS tagline removed.
 
 ## 2026-10-31 — Full-width main menu header
-- Relocate BLOK BUDDIES, FPS / 5V5 / POLICE VS TERRORIST, Personal Best, and Connect Wallet into one dedicated full-width header.
+- Relocate POINT BLOCK, FPS / 5V5 / POLICE VS TERRORIST, Personal Best, and Connect Wallet into one dedicated full-width header.
 - Remove the redundant "1 MINUTE · MOST KILLS WINS" description from the home menu.
 - Adjust responsive header spacing without modifying gameplay showcase, existing wallet connection logic, gameplay, or navigation.
 
@@ -43,7 +51,7 @@
 - Retain existing wallet connection handler, menu navigation, video assets, and crossfade logic.
 
 ## 2026-10-31 — Horizontal main-menu identity, wallet entry and video crossfade
-- Display the BLOK BUDDIES wordmark on one horizontal line, with Personal Best and Connect Wallet in the upper header area.
+- Display the POINT BLOCK wordmark on one horizontal line, with Personal Best and Connect Wallet in the upper header area.
 - Add optional EIP-1193 wallet connection via injected provider, validate the returned account format and handle account changes; wallet connection is not gameplay authentication and does not yet enable on-chain features.
 - Crossfade between existing Deathmatch and Bomb Mission videos every 10 seconds using two muted video layers, without visitor playback controls.
 - Keep existing gameplay navigation and local match behavior unchanged.
@@ -198,7 +206,7 @@
 
 ## 2026-10-31 WIB — M7 first owner browser QA capture (provisional, no gameplay changes)
 
-- Reviewed the first owner-uploaded local Firefox `BlockBuddiesQA` JSON and Console screenshot. The QA collector initialized successfully; `BlockBuddiesQA.reset()` returned the expected `undefined`. Browser Tracking Prevention storage warnings referencing the existing external Three.js CDN were **not proven fatal**; the separate DevTools paste warning is a browser security safeguard.
+- Reviewed the first owner-uploaded local Firefox `PointBlockQA` JSON and Console screenshot. The QA collector initialized successfully; `PointBlockQA.reset()` returned the expected `undefined`. Browser Tracking Prevention storage warnings referencing the existing external Three.js CDN were **not proven fatal**; the separate DevTools paste warning is a browser security safeguard.
 - **Measured but unpaired browser sample:** 2,400 rolling frames with rAF interval median **7.0 ms** / p95 **14.0 ms**; per-frame JavaScript work median **8.7 ms** / p95 **10.8 ms**; BOT update CPU median **0.6 ms** / p95 **1.1 ms**; first observed sight to fired shot median **332.3 ms**, p95 **457.0 ms** across 120 events. **Measurement anomaly:** JavaScript work median exceeds rAF interval median. Derived median **142.9 FPS is provisional**, not a release/relative-improvement claim.
 - BOT projectile collisions: **154/1,075 = 14.33%** across both modes; TDM **126/819 = 15.38%**, Bomb **28/256 = 10.94%**. These are fired projectile/pellet vs actual character-collision ratios, **not per-trigger accuracy, headshot rate, successful HP damage or a full-match win rate**. Shotgun TDM long-range concern: **72 pellets fired at 30+ units, only 1 character impact**; no balancing edits made from this single capture.
 - A* path attempts **1,006**, recorded failures **0**; low-displacement movement **41.56/748.8 BOT-seconds (5.55%)**, which does not establish permanent stuck. Only **2 Bomb rounds** completed, both Police wins and none recorded a planted finish, so Bomb success and retake performance remain unverified.
@@ -207,7 +215,7 @@
 ## 2026-10-31 WIB — M6 owner verification and M7 local BOT QA instrumentation (final release still OPEN)
 
 - **M6 core VERIFIED:** owner explicitly reported all **7/7 manual M6 checks PASS** in TDM and Bomb: Police/Terrorist aggression, class-specific approach/spacing (shotgun/SMG vs rifle/sniper), M1 LOS fairness, patrol rotation after lost contact, no repeated spawn camping or spawn-shield abuse observed, unchanged Bomb round/plant/defuse, and no perceived severe freeze/crash/lag. Qualitative owner self-report plus [Windows CI #172](https://github.com/Heynode92/blockbudies/actions/runs/41176995240) **361/361 PASS**; real hit percentages, FPS and exact spawn-camp rate remain unmeasured.
-- **M7 diagnostic-only module:** added `src/game/94-bot-qa.js`, **OFF by default**, enabled only by explicitly opening `index.html?bbBotQa=1` (including `file://`). Counts actual browser rAF wall-frame intervals, measured per-frame JavaScript work and BOT-update CPU; actual BOT-fired projectiles and their character impacts grouped by real weapon class/mode/0–10,10–20,20–30,30+ distance bands; simulation-clock first-sight→first-shot latency; low-displacement movement and actual failed A* paths; genuine Bomb round winners/sites/planted status. Capped ring buffers and explicit `BlockBuddiesQA.report()/download()/reset()` console API export a **local** JSON file. No network APIs, telemetry uploads, persistent storage, player-identifying data, game UI changes or normal-play overhead beyond a disabled flag branch. Original game mechanics remain unchanged.
+- **M7 diagnostic-only module:** added `src/game/94-bot-qa.js`, **OFF by default**, enabled only by explicitly opening `index.html?bbBotQa=1` (including `file://`). Counts actual browser rAF wall-frame intervals, measured per-frame JavaScript work and BOT-update CPU; actual BOT-fired projectiles and their character impacts grouped by real weapon class/mode/0–10,10–20,20–30,30+ distance bands; simulation-clock first-sight→first-shot latency; low-displacement movement and actual failed A* paths; genuine Bomb round winners/sites/planted status. Capped ring buffers and explicit `PointBlockQA.report()/download()/reset()` console API export a **local** JSON file. No network APIs, telemetry uploads, persistent storage, player-identifying data, game UI changes or normal-play overhead beyond a disabled flag branch. Original game mechanics remain unchanged.
 - **Measurement integrity:** frame interval data is sampled from actual `requestAnimationFrame` intervals, never the engine's capped simulation `dt`; per-frame JavaScript time is distinct from BOT CPU and does not represent GPU time. Projectile impact percentage is **pellet/projectile collisions divided by fired projectiles**, not trigger pull accuracy or confirmed HP damage. Sight→fire times are simulation-game time, not real-life sensory reaction; no-shot contacts are counted separately. Stuck proxy measures movement attempts vs small displacement, not complete map-route success. Bomb round totals come exclusively from original authoritative `bombFinish()`.
 - **Reproducible Windows scenario matrix:** created `tools/bot-ai-m7-scenarios.mjs`, executed on every GitHub Actions push. Uses original real-function 10-BOT synthetic fixture: **3 seeds × TDM/Bomb × open/blocked LOS (12 cases) plus 3 low-HP TDM cases**, reproducibility replay per condition, no shots into completely occluded opponents, both teams firing on open LOS, bounded coordinates and retreat. [Windows CI #187](https://github.com/Heynode92/blockbudies/actions/runs/41177646441) **373/373 Node tests PASS, 15/15 synthetic scenarios PASS**, bundle parity, syntax, seeded replay and synthetic CPU benchmark green. **Not evidence of real browser FPS, projectile hit rate or live Bomb match outcomes**.
 - **Regression QA:** 12 dedicated tests validate default-disabled no-network/no-storage mode, console opt-in, frame-time vs per-frame JS work and BOT CPU, shot/pellet denominator, first visual-contact shot latency and lost-sight cases, class/range bucketing, actual motion/path counting, canonical Bomb winner/site counts, bounded memory/reset and integration of instrumentation hooks with production functions. The committed `assets/game.js` source-manifest bundle remains direct-open on Windows, without Node, backend, Docker or WSL.
@@ -468,7 +476,7 @@
 - Preserved user-specified **horizontal-only** scatter (no vertical randomization). The original `w.spr` spread width still comes from each shotgun's Control rating; ADS retains its existing spread reduction.
 - Retained all six pellets, total damage, ammunition, range, pellet ballistics, recoil, firing interval, original Shotgun pump, Saiga-12 semi-auto operation, AI and other weapon classes. All pellet traces still begin at the existing muzzle per volley.
 - Added reusable weapon-class-based helper `src/game/weapon/21-shotgun-spread-pattern.js`, regression tests for deterministic groupings and player/bot ADS behavior, and rebuilt `assets/game.js` for direct Windows launch.
-- Inspired by Valve's official 2018 shotgun spread-pattern change, adapted to Block Buddies' horizontal-only rule; not an exact Valve 2D pattern.
+- Inspired by Valve's official 2018 shotgun spread-pattern change, adapted to Point Block' horizontal-only rule; not an exact Valve 2D pattern.
 
 ## 2026-10-30 — HOTFIX: restore lobby after five-star BOT update
 
@@ -594,7 +602,7 @@
 
 ## 2026-10-30 — Inventory toolbar alignment and clean Back header
 
-- Removed the redundant BLOCK BUDDIES wordmark from the Inventory header; retained one visible Back button at the upper right.
+- Removed the redundant POINT BLOCK wordmark from the Inventory header; retained one visible Back button at the upper right.
 - Aligned the six main Inventory category tabs into equal-height, equal-width tracks instead of uneven space-between placement.
 - Separated class filter pills from the Default sorting and grid/list controls; all controls have consistent heights, reliable widths, and aligned spacing.
 - Added explicit desktop, tablet, and mobile layout rules to prevent overlap, cropped tabs, or cramped tools. Preserved the original soldier/weapon previews, inventory ownership, Shop, weapon statistics, and game logic.
@@ -732,7 +740,7 @@
 ## 2026-10-29 — CS-style distance damage and per-weapon source layout
 
 ### Damage: Counter-Strike-inspired exponential falloff
-- Activated distance-based bullet damage falloff in **both Deathmatch and Bomb Mission**, for player and BOT shots through the shared projectile pipeline. Formula: `damage = baseDamage × rangeModifier^(distance / 20 world units)`. Based on the CS:GO/CS2 range modifier model, but **20 BLOCK BUDDIES units represent one falloff interval**, not the native Counter-Strike 500 game units.
+- Activated distance-based bullet damage falloff in **both Deathmatch and Bomb Mission**, for player and BOT shots through the shared projectile pipeline. Formula: `damage = baseDamage × rangeModifier^(distance / 20 world units)`. Based on the CS:GO/CS2 range modifier model, but **20 POINT BLOCK units represent one falloff interval**, not the native Counter-Strike 500 game units.
 - Weapon modifiers are configurable in **each weapon's own file**: AK-47 **0.98**, K2 **0.98**, AK SOPMOD **0.97**; Kriss & Dual Kriss **0.83**, MP7 **0.85**, P90 **0.86**; AWP **0.99**; Handgun **0.91**; Shotgun **0.70 per pellet**. Rocket, Knife and Grenade have no bullet falloff.
 - Damage decays smoothly and never increases as distance grows. Projectile lifetime and original Range ratings remain **hard maximum ranges**; the previous bug where fo was never populated is resolved.
 - Falloff is applied **before** hit-location multiplier, helmet and vest damage absorption. Body armor remains **50 vest durability / 20% torso reduction**, HP **100**, and headshot multiplier **3×**; there is no simultaneous defense rebalance.
@@ -858,7 +866,7 @@
 ## 2026-10-29 — Tactical armory UI and player-facing weapon labels
 
 ### Visual design
-- Reworked Inventory into a **BLOCK BUDDIES tactical armory** over the existing 3D arena backdrop with translucent layered panels, a cool-blue equipment scanner, orange team accents, hazard-strip trim and combat-inspired weapon cards.
+- Reworked Inventory into a **POINT BLOCK tactical armory** over the existing 3D arena backdrop with translucent layered panels, a cool-blue equipment scanner, orange team accents, hazard-strip trim and combat-inspired weapon cards.
 - Enlarged colored 3D weapon thumbnails, moved names to a clean card footer, replaced the desktop nested page scrolling with a single controlled weapon-grid scrollbar; mobile layouts remain scrollable.
 - Preserved the original draggable 3D soldier, animated two-hand weapon poses, all five Inventory tabs and one-equipped-per-slot rules.
 
@@ -948,7 +956,7 @@ Every update must record its date, scope, affected modules, user-visible strings
 ### Changed
 - Renamed the playable Rifle to **AK-47** in all dynamic weapon labels; retained the weapon ID, model, slot and controls.
 - Centralized pistol, AK-47, shotgun, RPG, knife, grenade, Kriss, Dual Kriss and AWP ratings in `WEAPON_PROFILES`, with runtime conversion settings in `WEAPON_TUNING` (`src/game/40-weapons-and-viewmodels.js`).
-- Preserved supplied Damage/RPM/Control/Speed/V.Recoil/H.Recoil/Ammo/Range values exactly. The RPG profile (85 damage, 35 RPM rating, 1/6 ammo, 65 range) is an explicitly chosen Block Buddies setting.
+- Preserved supplied Damage/RPM/Control/Speed/V.Recoil/H.Recoil/Ammo/Range values exactly. The RPG profile (85 damage, 35 RPM rating, 1/6 ammo, 65 range) is an explicitly chosen Point Block setting.
 - Fire interval derives from RPM *rating* via archetype-specific bounds; RPM ratings are not literal rounds per minute. Control derives spread, Speed derives player movement multiplier, and V/H recoil drive camera/viewmodel effects. These conversions are project-specific, not purported official Point Blank formulas.
 - Range now corresponds to bullet velocity times lifetime, so shots cannot vanish before the configured range; no unspecified damage-falloff formula was invented.
 - Shotgun damage 168 is the **sum of six pellets**, not 168 per pellet. AWP now deals 81 base body damage, so its select-card text no longer promises a one-shot kill.
