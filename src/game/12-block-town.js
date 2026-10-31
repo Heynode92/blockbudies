@@ -71,6 +71,12 @@ var BLOCK_TOWN_DEF=Object.freeze({
   [-62,17,11,24,1],[68,49,17,12,1],[47,71,18,10,1]
  ]),
  streetMarks:Object.freeze([[-56,-34,1,8],[-44,42,1,8],[2,-41,1,9],[67,17,1,8],[40,52,8,1]]),
+ // Site A commercial loading and B-side service alley landmarks: both are
+ // collidable, registered cover and use original Lambert-material primitives.
+ landmarks:Object.freeze([
+  {kind:"delivery-van",x:43,z:-58,w:8,d:3.6,h:2.3},
+  {kind:"street-kiosk",x:-36,z:15,w:4,d:3.2,h:2.8}
+ ]),
  plazaFeature:Object.freeze({x:-43,z:-3,width:3,depth:3,height:1.25})
 
 });
@@ -275,6 +281,38 @@ function makeBlockTown(){
    }else{ // 1.3m masonry traffic barricade, not a full concrete block
      detail(w+.13,.12,dep+.15,c.frame,x,h+.05,z);
      detail(w-.2,.16,.095,0xe3af69,x,h*.65,z+dep/2+.058);
+   }
+ });
+ // Recognizable, useful urban cover. Exact bounding volumes are defined in
+ // BLOCK_TOWN_DEF; no graphical vehicle/booth is secretly walk-through.
+ d.landmarks.forEach(function(item){
+   var x=item.x,z=item.z,w=item.w,dep=item.d,h=item.h;
+   if(item.kind==="delivery-van"){
+     wall(x,z,w,dep,h,0x657b84);
+     detail(w+.20,.20,dep+.20,0x2f4655,x,h+.08,z);
+     // Driver cab, raised glazing and cargo bands sit on the solid chassis.
+     detail(w*.24,.48,dep-.24,0x263c4b,x-w*.28,h+.36,z);
+     detail(.10,.8,dep-.34,c.glass,x-w*.30,h-.16,z);
+     for(var side=-1;side<=1;side+=2){
+       detail(w*.32,.54,.09,c.glass,x-w*.24,h-.51,z+side*(dep/2+.065));
+       detail(w*.36,.13,.10,0xf0c77d,x+w*.17,1.05,z+side*(dep/2+.075));
+       for(var axle=-1;axle<=1;axle+=2){
+         var wheel=new T.Mesh(new T.CylinderGeometry(.56,.56,.24,10),
+           new T.MeshLambertMaterial({color:0x222b32}));
+         wheel.rotation.x=Math.PI/2;
+         wheel.position.set(x+axle*w*.31,.56,z+side*(dep/2+.11));
+         wheel.castShadow=false;S.add(wheel);
+       }
+     }
+     detail(.13,.36,1.1,0xe3b868,x+w/2+.12,1.22,z);
+   }else if(item.kind==="street-kiosk"){
+     wall(x,z,w,dep,h,0x9a795a);
+     detail(w+.75,.21,dep+.85,0x2f5a5c,x,h+.20,z);
+     detail(w-.25,1.20,.11,0x294b55,x,1.66,z+dep/2+.10);
+     detail(w-.40,.11,.35,0xdec399,x,1.02,z+dep/2+.20);
+     detail(w*.75,.47,.16,0xe7c379,x,h+.52,z+dep/2+.12);
+     for(var side=-1;side<=1;side+=2)
+       detail(.18,h,.18,c.metal,x+side*(w/2-.22),h/2,z+dep/2+.17);
    }
  });
  // Small service-street fountain/utility island. Map data owns its new location;
