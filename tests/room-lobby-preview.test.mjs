@@ -33,7 +33,7 @@ test('room weapon reads saved equipped main through Inventory ownership validati
  assert.equal(state.labels.rmlWeaponName,'Selected SMG');
  assert.equal(state.labels.rmlWeaponClass,'SMG');
 });
-test('Inventory and Room reuse one WebGL canvas, keeping Inventory pose and drag controls',()=>{
+test('Inventory, Room Browser and Room Master reuse one WebGL canvas, keeping poses and drag controls',()=>{
  const init=inv.slice(inv.indexOf('function inventoryPreviewInit(){'),inv.indexOf('function inventoryPreviewMount('));
  const mount=inv.slice(inv.indexOf('function inventoryPreviewMount('),inv.indexOf('function inventoryRoomPreviewOpen('));
  assert.match(init,/var actor=terro\(0\)/);
@@ -42,14 +42,15 @@ test('Inventory and Room reuse one WebGL canvas, keeping Inventory pose and drag
  assert.match(inv,/inventoryPoseFrame\(p,now\)/);
  assert.match(inv,/aimA\(a\.arms\[1\]/);
  const canvas={id:'one-canvas'},preview={host:null,renderer:{domElement:canvas}};
- const hosts={ivpreview:{insertBefore(el){this.child=el;}},rmlpreview:{insertBefore(el){this.child=el;}}};
+ const hosts={ivpreview:{insertBefore(el){this.child=el;}},rmlpreview:{insertBefore(el){this.child=el;}},roomBrowserPreview:{insertBefore(el){this.child=el;}}};
  const ctx={inventoryPreview:preview,inventoryPreviewInit(){},document:{getElementById:id=>hosts[id]}};
  vm.createContext(ctx);
- vm.runInContext(mount+'inventoryPreviewMount("rmlpreview");inventoryPreviewMount("ivpreview")',ctx);
+ vm.runInContext(mount+'inventoryPreviewMount("rmlpreview");inventoryPreviewMount("roomBrowserPreview");inventoryPreviewMount("ivpreview")',ctx);
  assert.equal(hosts.rmlpreview.child,canvas);
+ assert.equal(hosts.roomBrowserPreview.child,canvas);
  assert.equal(hosts.ivpreview.child,canvas);
  assert.equal(preview.host,hosts.ivpreview);
- assert.match(inv,/if\(!inInventory&&!inRoom\)\{inventoryPreviewLive=false;return;\}/);
+ assert.match(inv,/if\(!inInventory&&!inRoom&&!inBrowser\)\{inventoryPreviewLive=false;return;\}/);
  assert.match(inv,/inRoom=lob&&document\.getElementById\("lbroomlive"\)/,"rendering must stop in gameplay");
 });
 test('equipped selection is not the catalog highlight and gameplay remains intact',()=>{
