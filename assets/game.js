@@ -5064,7 +5064,7 @@ var BOT_QA=Object.freeze({
  ranges:['0-10','10-20','20-30','30+','unknown']
 });
 function botQaState(){
- return {startedAt:Date.now(),frames:[],cpu:[],reactions:[],
+ return {startedAt:Date.now(),frames:[],frameJs:[],cpu:[],reactions:[],
   projectiles:0,hits:0,shots:{},blockedSeconds:0,movingSeconds:0,
   pathAttempts:0,pathFailures:0,rounds:[],lostSight:0,observations:0,
   outOfWindowFrames:0,renderSamples:0};
@@ -5087,6 +5087,8 @@ function botQaFrame(deltaMs,renderMs,active){
  // RequestAnimationFrame wall-clock period: no game-dt clamp (which is 50ms).
  if(deltaMs>0&&deltaMs<500){
   botQaBounded(botQaData.frames,deltaMs,BOT_QA.maxFrames);
+  if(Number.isFinite(renderMs)&&renderMs>=0)
+   botQaBounded(botQaData.frameJs,renderMs,BOT_QA.maxFrames);
   botQaData.renderSamples++;
  }else botQaData.outOfWindowFrames++;
 }
@@ -5153,6 +5155,7 @@ function botQaBomb(winner,site,state){
 }
 function botQaReport(){
  var frames=botQaPercentiles(botQaData.frames),
+     frameJs=botQaPercentiles(botQaData.frameJs),
      cpu=botQaPercentiles(botQaData.cpu),
      latency=botQaPercentiles(botQaData.reactions);
  var rows=Object.keys(botQaData.shots).sort().map(function(k){
@@ -5175,7 +5178,7 @@ function botQaReport(){
  return {schema:'BLOCK_BUDDIES_M7_QA_V1',enabled:true,
   recordedStartUnixMs:botQaData.startedAt,
   limitation:'Only events observed in this browser tab with opt-in flag; samples are rolling windows, not M0 paired baseline. Projectile hit rate is character-hit projectile / fired projectile, not trigger accuracy; shotgun pellets counted separately. CPU measures botsUpd only. No claims of full map coverage.',
-  frameTimeMs:frames,botUpdateCpuMs:cpu,
+  frameTimeMs:frames,frameJavaScriptWorkMs:frameJs,botUpdateCpuMs:cpu,
   firstSightToShotMs:latency,
   approximateFpsMedian:frames.median?Math.round(1000/frames.median*10)/10:null,
   projectileCount:botQaData.projectiles,
