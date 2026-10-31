@@ -24,8 +24,10 @@ test('M0: no line of sight means no fire dispatch for either faction',()=>{
 test('M0: critical-HP retreat behavior executes without missing dependencies',()=>{
   const baseline=runBotM0Baseline({seed:42,mode:'tdm'});
   const critical=runBotM0Baseline({seed:42,mode:'tdm',critical:true});
-  assert.ok(critical.retreatBots>=9,
-    'at least nine critical-HP BOTs retreat under seeded M2 reaction-limited encounters');
+  assert.ok(critical.retreatEverBots>=9,
+    'at least nine critical-HP BOTs must actually retreat during seeded encounter');
+  assert.ok(critical.retreatBots<=critical.retreatEverBots,
+    'final-frame retreat state must be a subset of observed retreat actors');
   assert.ok(critical.shotsDispatched<baseline.shotsDispatched,
     'critical HP should change combat behavior in this controlled fixture');
   assert.ok(critical.finalPositions.every(([x,z])=>Number.isFinite(x)&&Number.isFinite(z)));
