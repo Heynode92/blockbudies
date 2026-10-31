@@ -9,6 +9,7 @@ const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const source=(p)=>readFileSync(resolve(root,p),'utf8');
 const tactics=source('src/game/87-bomb-tactics.js');
 const perception=source('src/game/88-bot-perception.js');
+const intelligence=source('src/game/86-bomb-intelligence.js');
 const radarSrc=source('src/game/96-hud-and-radar.js');
 const radarHelpers=radarSrc.slice(radarSrc.indexOf('var BOMB_RADAR='),radarSrc.indexOf('// cfont():'));
 const css=source('src/styles/07-bomb-mission.css');
@@ -26,6 +27,7 @@ function state(){
     bombActionFor(){return null;}
   };
   runInNewContext(perception,ctx);
+  runInNewContext(intelligence,ctx);
   runInNewContext(tactics,ctx);
   return {ctx,defuser,officer,guard};
 }
