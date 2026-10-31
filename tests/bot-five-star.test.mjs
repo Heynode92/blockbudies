@@ -46,7 +46,7 @@ test('Bomb Mission assigns one recoverer and separate post-plant defenders',()=>
   BOMB_SITES:[{x:0,z:0},{x:25,z:0}],BOMB_RULES:{interactRadius:2},
   bombMatch:{state:'idle',done:false,dropped:{x:3,z:0},round:1,carrier:null},
   isBombMode:()=>true,inObs:()=>false,los:()=>true,bombArea:()=>-1};
- vm.createContext(c);vm.runInContext(perception,c);vm.runInContext(read('src/game/87-bomb-tactics.js'),c);
+ vm.createContext(c);vm.runInContext(perception,c);vm.runInContext(read('src/game/86-bomb-intelligence.js'),c);vm.runInContext(read('src/game/87-bomb-tactics.js'),c);
  assert.equal(vm.runInContext('bombSmartRecoverer()',c),a);
  assert.equal(vm.runInContext('bombTacticalStage(en[0])',c),'recover');
  assert.equal(vm.runInContext('bombTacticalStage(en[1])',c),'recover-cover');
