@@ -403,3 +403,60 @@ test('Block Town spawn orientation faces interior objective rather than empty ou
  assert.match(src,/pl\.face=bombMapSpawnYaw\(pl\.tm,pl\.x,pl\.z\)/,'respawn uses map yaw');
  assert.match(src,/b\.g\.rotation\.y=bombMapSpawnYaw\(b\.tm,b\.x,b\.z\)/,'BOT spawn uses map yaw');
 });
+
+test('Block Labs follows the six-block indoor Deathmatch blueprint and isolates all map states',()=>{
+ const c=makeContext(),oldCity=c.OB.slice(),def=c.BLOCK_LABS_DEF;
+ c.selectedGameMode=0;c.selectedTdmMapId='block-labs';
+ c.selectGameMap(false);
+ assert.equal(c.A,60);
+ assert.equal(def.blocks.length,6,'three rows and two columns of solid laboratory blocks');
+ assert.equal(def.reactors.length,6,'four outer green reactors and two central reactors');
+ assert.ok(c.BLOCK_LABS_WORLD.length>=25,'world has complete physical and visual facility geometry');
+ for(const b of def.blocks){
+   assert.ok(c.OB.some(o=>o.x===b[0]&&o.z===b[1]&&o.hw===b[2]/2&&o.hd===b[3]/2),
+     'white building is solid rather than a fake walk-through block: '+b);
+ }
+ for(const reactor of def.reactors){
+   assert.ok(c.OB.some(o=>o.x===reactor[0]&&o.z===reactor[1]&&o.hw===reactor[2]&&o.hd===reactor[2]),
+     'green reactor is grounded, collidable and registered: '+reactor);
+ }
+ assert.ok(c.LT.some(o=>o.hw===60&&o.hd===60&&o.y0>10),'indoor ceiling blocks overhead projectiles');
+ const edge=def.halfSize+.52,span=def.halfSize*2+1.6;
+ for(const w of [[0,-edge,span,1.2],[0,edge,span,1.2],[-edge,0,1.2,span],[edge,0,1.2,span]])
+   assert.ok(c.OB.some(o=>o.x===w[0]&&o.z===w[1]&&o.hw===w[2]/2&&o.hd===w[3]/2),
+     'full perimeter has a matching grounded solid collider');
+ for(const pts of [def.spawns.police,def.spawns.terrorist])
+   for(const v of pts)assert.equal(c.inObs(v[0],v[1],.85),false,'spawn must be clear of all lab walls');
+ runInNewContext(navSource,c);
+ for(const tm of [0,1]){
+   const goal=tm?def.spawnLook.terrorist:def.spawnLook.police;
+   for(const v of (tm?def.spawns.terrorist:def.spawns.police)){
+     const yaw=c.bombMapSpawnYaw(tm,v[0],v[1]);
+     assert.ok((Math.sin(yaw)*(goal[0]-v[0])+Math.cos(yaw)*(goal[1]-v[1]))/
+       Math.hypot(goal[0]-v[0],goal[1]-v[1])>.99,'team must face toward inner lab');
+     const path=c.gPath(v[0],v[1],-45,0);
+     assert.ok(path&&path.length>0,'A* traverses the left route from spawn '+v);
+     const right=c.gPath(v[0],v[1],45,0);
+     assert.ok(right&&right.length>0,'A* traverses the right route from spawn '+v);
+   }
+ }
+ c.selectedGameMode=1;c.selectedBombMapId='block-town';c.selectGameMap(true);
+ assert.equal(c.A,80);assert.ok(c.BLOCK_LABS_WORLD.every(o=>o.visible===false),'Labs never bleeds into Bomb');
+ c.selectedGameMode=0;c.selectedTdmMapId='block-district';c.selectGameMap(false);
+ assert.equal(c.A,60);
+ assert.ok(c.BLOCK_LABS_WORLD.every(o=>o.visible===false),'Labs geometry is hidden in original TDM');
+ assert.deepEqual(c.OB,oldCity,'existing Block District collision is unchanged');
+ c.selectedTdmMapId='block-labs';c.selectGameMap(false);
+ assert.equal(c.OB.length,c.BLOCK_LABS_OB.length,'restores only Labs colliders');
+});
+test('Block Labs preserves old TDM orientation and physical respawn handling elsewhere',()=>{
+ const c=makeContext();
+ c.selectedGameMode=0;c.selectedTdmMapId='block-district';
+ assert.equal(c.bombMapSpawnYaw(0,0,38),Math.PI);
+ assert.equal(c.bombMapSpawnYaw(1,0,-38),0);
+ assert.equal(c.tdmMapId('__proto__'),'block-district','unsafe map ID is rejected');
+ assert.equal(c.tdmMapId('../block-labs'),'block-district');
+ const source=readFileSync(resolve(root,'src/game/85-lobby-and-match.js'),'utf8');
+ assert.match(source,/if\(tdmMapId\(selectedTdmMapId\)==="block-labs"\)return labsSpawnPt\(tm\)/);
+ assert.match(source,/pl\.face=bombMapSpawnYaw\(tm,pl\.x,pl\.z\)/);
+});
