@@ -481,8 +481,8 @@ var BOMB_MAP_REGISTRY=Object.freeze({
   lockdown:Object.freeze({id:"lockdown",name:"LOCKDOWN",caption:"Indoor Tactical Arena",
     sites:Object.freeze([{id:"A",x:-25,z:-5,col:0xffa94d},{id:"B",x:25,z:5,col:0x4dabf7}])}),
   "block-town":Object.freeze({id:"block-town",name:"BLOCK TOWN",caption:"Outdoor Urban Town",
-    sites:Object.freeze([{id:"A",x:-44,z:-39,col:0xffa94d},{id:"B",x:49,z:-37,col:0x4dabf7}]),
-    preview:Object.freeze({x:-28,y:32,z:49,lookX:-8,lookY:0,lookZ:-27,fov:70})})
+    sites:Object.freeze([{id:"A",x:55,z:-58,col:0xffa94d},{id:"B",x:-16,z:8,col:0x4dabf7}]),
+    preview:Object.freeze({x:12,y:47,z:35,lookX:0,lookY:0,lookZ:-12,fov:74})})
 });
 var selectedBombMapId="lockdown",BLOCK_TOWN_WORLD=null,BLOCK_TOWN_OB=[],BLOCK_TOWN_BR=[],BLOCK_TOWN_LT=[];
 function bombMapId(value){return Object.prototype.hasOwnProperty.call(BOMB_MAP_REGISTRY,value)?value:"lockdown";}
@@ -498,7 +498,7 @@ var BLOCK_TOWN_DEF=Object.freeze({
  // Walls sit just OUTSIDE [-halfSize,halfSize] so the existing A* grid stays clear.
  perimeter:Object.freeze({height:9.5,thickness:1.2,color:0x71818b,skylineOffset:3.6,
    facadeDepth:3.4,facadeSpacing:18,facadeMinHeight:12,facadeHeightStep:2.4}),
- spawnLook:Object.freeze({policeSite:"A",terrorist:[-28,30]}),
+ spawnLook:Object.freeze({police:[-69,-72],terrorist:[45,45]}),
  palette:Object.freeze({
    road:0x59636a,stone:0xc3b9a6,walk:0x908b7e,curb:0xa4a29a,
    plaster:[0xc49c74,0xa8b3ac,0xd2b59b,0x99b3bf,0xb5a19a,0xc2b17b,0x8da8a0],
@@ -506,44 +506,49 @@ var BLOCK_TOWN_DEF=Object.freeze({
    glass:0x355269,frame:0xe0d7c5,wood:0x59483c,metal:0x536773,
    foliage:0x69805e,foliage2:0x4f6d56,accent:0xd6a05a
  }),
- // First 5 slots in each team are distinct and safe. Police controls A-side courtyard.
+ // V3 replaces the OLD map footprint with the owner's latest top-down blueprint:
+ // purple Police entrance at WEST-NORTH, red Terrorist entrance at SOUTH-EAST;
+ // A site NORTH-EAST, B site in the CENTRAL-SOUTH intersection.
+ // Coordinate conversion: 640px diagram maps to 160 gameplay world units.
+ // One-way corridors are NEVER permitted; all large white masses are solid.
  spawns:Object.freeze({
-   police:[[-61,-54],[-67,-55],[-55,-59],[-62,-63],[-70,-63]],
-   terrorist:[[-38,64],[-44,69],[-32,69],[-37,74],[-47,75]]
+   police:[[-72,-55],[-72,-49],[-72,-43],[-72,-37],[-72,-31]],
+   terrorist:[[45,70],[50,74],[45,75],[61,70],[59,75]]
  }),
- // x,z,width,depth,storeys(visual),paletteIndex; all buildings are *solid* 1-level exterior blocks.
- // Streets form an offset loop, rather than symmetrical lanes or a procedural maze.
+ // x,z,w,depth,storeys,paletteIndex: asymmetric obstacle masses,
+ // including the original illustrated upper-left L (two touching solids).
  buildings:Object.freeze([
-  [-69,-19,14,20,2,0],[-21,-34,20,24,3,1],[2,-59,16,16,2,2],
-  [27,-61,20,15,2,3],[69,-55,15,24,3,4],
-  [-70,18,16,20,2,5],[-31,8,21,21,2,3],
-  [7,-7,20,25,3,0],[37,9,22,21,2,2],[70,14,15,18,3,6],
-  [-70,42,16,17,2,4],[-6,46,23,18,2,5],
-  [37,48,24,17,3,1],[69,60,14,16,2,0],
-  [-15,-71,16,12,2,6],[7,70,15,13,2,4],
-  [55,-5,12,15,2,5]
+  [-35,-46,58,36,2,0],[-54,-18,20,20,2,2],
+  [28,-74,33,10,2,3],[17,-35,14,18,3,1],[40,-39,12,12,2,6],
+  [58,-13,44,32,3,4],
+  [-17,-7,23,19,2,5],[17,-7,14,18,2,1],
+  [-50,23,10,43,2,3],[-75,41,8,74,2,4],
+  [-17,29,23,31,2,0],[36,29,53,31,3,6],
+  [-40,61,29,11,2,5],[14,61,46,11,2,2],[58,61,10,11,2,1]
  ]),
- // Permanent real collisions used by actual projectiles, player movement and A*.
- // Short offset sightline breakers; neither spawn pair has a straight LOS.
+ // Real walls split long vistas at street corners, following existing wl/OB.
  walls:Object.freeze([
-  [-49,4,11,1.5,2.7],[-48,-12,7,1.5,2.1], // bent A main
-  [-5,-30,11,1.5,2.5],[46,26,10,1.5,2.7], // broken mid / B approach
-  [60,-19,1.5,9,2.9]
+  [-56,-3,2,5,2.8],[2,-22,3.5,2,2.7],[27,-58,1.5,5,3.1],
+  [69,-36,1.7,6,3],[18,7,6,1.5,2.5],[-37,51,3,2,2.7]
  ]),
- // x,z,w,d: available cover at entrances, not inside the 3.1-unit planting circle.
+ // A-site = commercial courtyard; B-site = service street.
+ // Cover islands are distributed to break long LOS, with free flanking lanes.
  cover:Object.freeze([
-  [-51,-31,3.2,2.3],[-34,-50,3,2.3],[-38,-21,2.7,2],
-  [58,-48,3.5,2.4],[40,-48,2.9,2.5],[50,-23,3,2.1],
-  [-53,31,3,2],[-12,18,2.6,2.3],[24,24,3,2.1],[49,40,3,2]
+  [-42,6,4,3],[0,9,3,3],[28,7,3.5,3.2],[68,8,4,3],
+  [31,-49,3.5,4],[56,-47,3,3],[64,-65,3,3],
+  [-32,8,4,3],[-3,9,3,3],[-63,13,4,3],[-39,24,4,3],
+  [0,28,3,3],[71,25,3,3],[-62,56,4,3],[44,51,4,3]
  ]),
- trees:Object.freeze([[-75,-40],[-60,0],[-58,58],[-12,25],[23,28],[60,58],[74,-32]]),
- // No two paving rectangles overlap on the same Y plane (prevent z-fighting).
+ trees:Object.freeze([[-70,-17],[-63,17],[-64,68],[70,-57],[68,53],[0,-56],[4,48]]),
+ // Non-overlapping, entirely decorative asphalt-side plazas. World foundation
+ // remains ONE continuous solid-free road plane; different Y tiers avoid flicker.
  paving:Object.freeze([
-  [-49,-40,33,31,0], [49,-37,34,29,0],
-  [-43,26,23,32,1], [7,20,24,21,1], [34,-9,21,24,1],
-  [-38,64,29,18,1], [55,47,23,21,0]
+  [54,-57,31,23,0],[-15,8,26,10,0],[-71,-46,11,33,1],
+  [-62,17,11,24,1],[68,49,17,12,1],[47,71,18,10,1]
  ]),
- streetMarks:Object.freeze([[-50,38,2,10],[-50,20,2,7],[0,25,7,2],[25,-27,8,2],[48,-5,2,9]])
+ streetMarks:Object.freeze([[-56,-34,1,8],[-44,42,1,8],[2,-41,1,9],[67,17,1,8],[40,52,8,1]]),
+ plazaFeature:Object.freeze({x:-43,z:-3,width:3,depth:3,height:1.25})
+
 });
 function townSpawnPt(team){
  var slots=team?BLOCK_TOWN_DEF.spawns.terrorist:BLOCK_TOWN_DEF.spawns.police;
@@ -562,8 +567,7 @@ function bombMapSpawnYaw(team,x,z){
    return team?0:Math.PI;
  }
  if(bombMapId(selectedBombMapId)!=="block-town")return team?0:Math.PI;
- var def=BLOCK_TOWN_DEF.spawnLook,site=BOMB_MAP_REGISTRY["block-town"].sites.find(function(p){return p.id===def.policeSite;}),
-     goal=team?def.terrorist:[site.x,site.z];
+ var def=BLOCK_TOWN_DEF.spawnLook,goal=team?def.terrorist:def.police;
  return Math.atan2(goal[0]-x,goal[1]-z);
 }
 function makeBlockTown(){
@@ -749,12 +753,13 @@ function makeBlockTown(){
      detail(w-.2,.16,.095,0xe3af69,x,h*.65,z+dep/2+.058);
    }
  });
- // Central plaza fountain: old solid body preserved, now has a layered rim and
- // upright stone centerpiece anchored entirely on the same footprint.
- wall(-11,26,3,3,1.25,c.stone);
- detail(3.4,.17,3.4,c.frame,-11,1.25,26);
- detail(1.15,.42,1.15,0x6b9ca7,-11,1.5,26);
- detail(.55,.64,.55,c.stone,-11,1.85,26);
+ // Small service-street fountain/utility island. Map data owns its new location;
+ // the collider is exactly the stone pedestal rather than a hidden extra wall.
+ var feature=d.plazaFeature;
+ wall(feature.x,feature.z,feature.width,feature.depth,feature.height,c.stone);
+ detail(feature.width+.35,.17,feature.depth+.35,c.frame,feature.x,feature.height,feature.z);
+ detail(1.15,.42,1.15,0x6b9ca7,feature.x,feature.height+.25,feature.z);
+ detail(.55,.64,.55,c.stone,feature.x,feature.height+.6,feature.z);
  // Existing registered tree-trunk colliders remain unchanged.
  d.trees.forEach(function(t,i){
    wall(t[0],t[1],.62,.62,3.5,c.wood);
