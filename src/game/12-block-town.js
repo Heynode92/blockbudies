@@ -6,12 +6,15 @@ var BOMB_MAP_REGISTRY=Object.freeze({
     sites:Object.freeze([{id:"A",x:-25,z:-5,col:0xffa94d},{id:"B",x:25,z:5,col:0x4dabf7}])}),
   "block-town":Object.freeze({id:"block-town",name:"BLOCK TOWN",caption:"Outdoor Urban Town",
     sites:Object.freeze([{id:"A",x:55,z:-58,col:0xffa94d},{id:"B",x:-16,z:8,col:0x4dabf7}]),
-    preview:Object.freeze({x:12,y:47,z:35,lookX:0,lookY:0,lookZ:-12,fov:74})})
+    preview:Object.freeze({x:12,y:47,z:35,lookX:0,lookY:0,lookZ:-12,fov:74})}),
+  hospital:Object.freeze({id:"hospital",name:"HOSPITAL",caption:"Indoor Medical Center",
+    sites:Object.freeze([{id:"A",x:67,z:-43,col:0xffa94d},{id:"B",x:-67,z:10,col:0x4dabf7}]),
+    preview:Object.freeze({x:-67,y:5.2,z:-25,lookX:-61,lookY:2,lookZ:8,fov:73})})
 });
 var selectedBombMapId="lockdown",BLOCK_TOWN_WORLD=null,BLOCK_TOWN_OB=[],BLOCK_TOWN_BR=[],BLOCK_TOWN_LT=[];
 function bombMapId(value){return Object.prototype.hasOwnProperty.call(BOMB_MAP_REGISTRY,value)?value:"lockdown";}
 function bombMapInfo(value){return BOMB_MAP_REGISTRY[bombMapId(value)];}
-function bombMapOptions(mode){return mode===1?[BOMB_MAP_REGISTRY.lockdown,BOMB_MAP_REGISTRY["block-town"]]:[];}
+function bombMapOptions(mode){return mode===1?[BOMB_MAP_REGISTRY.lockdown,BOMB_MAP_REGISTRY["block-town"],BOMB_MAP_REGISTRY.hospital]:[];}
 function bombMapSites(id){
   var sites=bombMapInfo(id).sites;
   BOMB_SITES.length=0;sites.forEach(function(q){BOMB_SITES.push({id:q.id,x:q.x,z:q.z,col:q.col});});
@@ -147,6 +150,7 @@ function bombMapSpawnYaw(team,x,z){
    if(tdmMapId(selectedTdmMapId)==="block-labs")return labsSpawnYaw(team,x,z);
    return team?0:Math.PI;
  }
+ if(bombMapId(selectedBombMapId)==="hospital")return hospitalSpawnYaw(team,x,z);
  if(bombMapId(selectedBombMapId)!=="block-town")return team?0:Math.PI;
  var def=BLOCK_TOWN_DEF.spawnLook,goal=team?def.terrorist:def.police;
  return Math.atan2(goal[0]-x,goal[1]-z);
