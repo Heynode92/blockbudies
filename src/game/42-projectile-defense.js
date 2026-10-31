@@ -1,6 +1,7 @@
 // Unified bullet impact resolution for bot and human targets.
 // The armor/headshot rules are identical, independent of who fired.
 function projectileHitCharacter(b,target,head){
+  if(typeof botQaEnabled!=='undefined'&&botQaEnabled)botQaHit(b);
   var damage=b.dmg*(b.fo?fall(b,b.m.position):1),source=b.by;
   if(head){
     if(target.helm){
