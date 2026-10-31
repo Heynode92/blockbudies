@@ -1,3 +1,8 @@
+
+## 2026-10-31 — Main menu branding and autoplay gameplay showcase
+- Reduced main-menu logo scale and consolidated FPS, 5V5, and team labels into a compact, consistent metadata row.
+- Replaced interactive showcase playback and mode-selection buttons with a passive muted preview that rotates between the existing Deathmatch and Bomb Mission videos every 10 seconds using a fade transition.
+- Preserved the existing Start, Inventory, Shop, Leaderboard, and Settings navigation and original game footage. Scoped layout changes to the home screen.
 # Changelog
 
 ## 2026-10-31 WIB — Main Menu cinematic video showcase (Deathmatch / Bomb Mission)
