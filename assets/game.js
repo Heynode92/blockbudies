@@ -3852,9 +3852,15 @@ function roomFillMapSelect(select,mode,mapId){
  select.value=mode===1?bombMapId(mapId):tdmMapId(mapId);
  select.disabled=options.length<2;
 }
-// Create Room map cards use ONLY the canonical TDM/Bomb map registries.
-// A card's canvas receives the current actual Three.js preview; never simulate a map.
-var roomMapActiveCardCanvas=null;
+// Create Room thumbnails are actual frames from the game's ONE Three.js renderer.
+// Cache inactive maps after one authoritative offscreen-camera capture per frame.
+var roomMapActiveCardCanvas=null,roomMapThumbnailCache=Object.create(null),
+    roomMapThumbnailFailures=Object.create(null);
+function roomMapThumbnailDraw(target,source){
+ var context=target.getContext("2d",{alpha:false});
+ if(context)context.drawImage(source,0,0,source.width,source.height,
+  0,0,target.width,target.height);
+}
 function roomPaintMapCards(){
  var root=document.getElementById("roomMapCards");
  if(!root)return;
@@ -3876,15 +3882,74 @@ function roomPaintMapCards(){
   button.appendChild(canvas);button.appendChild(title);button.appendChild(desc);
   button.addEventListener("click",function(){roomChooseMap(map.id);});
   root.appendChild(button);
+  if(roomMapThumbnailCache[map.id])roomMapThumbnailDraw(canvas,roomMapThumbnailCache[map.id]);
   if(selected)roomMapActiveCardCanvas=canvas;
  });
 }
-// Copy only already-rendered 2D pixels. No extra WebGL context or scene cloning.
+// Keep the selected thumbnail live at 30 FPS; cache its latest real map pixels.
+// Inactive thumbnails use the same single renderer, captured at most once each.
 function roomMapCardFrame(preview){
  if(!roomMapActiveCardCanvas)return;
- var context=roomMapActiveCardCanvas.getContext("2d",{alpha:false});
- if(context)context.drawImage(preview,0,0,preview.width,preview.height,
-  0,0,roomMapActiveCardCanvas.width,roomMapActiveCardCanvas.height);
+ roomMapThumbnailDraw(roomMapActiveCardCanvas,preview);
+ var activeId=roomDraftMode===1?bombMapId(roomDraftMapId):tdmMapId(roomDraftMapId);
+ var cached=roomMapThumbnailCache[activeId];
+ if(!cached){
+  cached=document.createElement("canvas");
+  cached.width=roomMapActiveCardCanvas.width;cached.height=roomMapActiveCardCanvas.height;
+  roomMapThumbnailCache[activeId]=cached;
+ }
+ roomMapThumbnailDraw(cached,roomMapActiveCardCanvas);
+}
+// Only called when Create Room is open, in the PRE-MATCH browser lobby.
+// Temporarily render one unseen map with the existing R/S and a separate CAMERA,
+// then restore the selected world and regular camera before returning to the loop.
+// No duplicate WebGLRenderer, no placeholder map image, no physics rule edits.
+function roomMapCapturePendingPreview(){
+ if(run||!lob||document.hidden||document.getElementById("roomCreateOverlay").hidden||
+    !document.getElementById("lbrooms").classList.contains("on"))return;
+ var bomb=roomDraftMode===1,options=bomb?bombMapOptions(1):tdmMapOptions(),
+     selectedId=bomb?bombMapId(roomDraftMapId):tdmMapId(roomDraftMapId),target=null;
+ for(var i=0;i<options.length;i++){
+  var candidate=options[i];
+  if(candidate.id!==selectedId&&!roomMapThumbnailCache[candidate.id]&&!roomMapThumbnailFailures[candidate.id]
+     &&candidate.preview){target=candidate;break;}
+ }
+ if(!target)return;
+ var previousTdm=selectedTdmMapId,previousBomb=selectedBombMapId,
+     previousMode=mapPreviewSceneBomb,needsRestore=false;
+ try{
+  if(bomb)selectedBombMapId=target.id;else selectedTdmMapId=target.id;
+  needsRestore=true;selectGameMap(bomb);
+  var view=target.preview,src=R.domElement,
+      aspect=src.width/src.height,
+      shotCam=new T.PerspectiveCamera(view.fov,aspect,C.near,C.far);
+  shotCam.position.set(view.x,view.y,view.z);
+  shotCam.lookAt(view.lookX,view.lookY,view.lookZ);
+  R.clear();R.render(S,shotCam);
+  var snapshot=document.createElement("canvas");snapshot.width=240;snapshot.height=130;
+  var context=snapshot.getContext("2d",{alpha:false});
+  if(!context)throw new Error("2D thumbnail canvas unavailable");
+  var ratio=snapshot.width/snapshot.height,sw=src.width,sh=src.height,
+      ww=Math.min(sw,sh*ratio),hh=Math.min(sh,sw/ratio);
+  context.drawImage(src,(sw-ww)/2,(sh-hh)/2,ww,hh,0,0,snapshot.width,snapshot.height);
+  roomMapThumbnailCache[target.id]=snapshot;
+  // Update the existing card without repainting the whole selection or inputs.
+  var cards=document.getElementById("roomMapCards").children;
+  for(var k=0;k<cards.length;k++){
+   if(cards[k].getAttribute("aria-label")==="Choose "+target.name){
+    roomMapThumbnailDraw(cards[k].children[0],snapshot);break;
+   }
+  }
+ }catch(error){
+  roomMapThumbnailFailures[target.id]=true;
+  console.warn("[PointBlock] Real map thumbnail unavailable: "+target.id,error);
+ }finally{
+  if(needsRestore){
+   selectedTdmMapId=previousTdm;selectedBombMapId=previousBomb;
+   selectGameMap(previousMode);
+   R.clear();R.render(S,C);
+  }
+ }
 }
 function roomText(id,value){document.getElementById(id).textContent=String(value);}
 function roomModeSelect(mode){
@@ -4238,6 +4303,12 @@ function modePreviewDraw(now){
       createCtx=createCanvas.getContext("2d",{alpha:false});
   createCtx.drawImage(src,(sw-ww)/2,(sh-hh)/2,ww,hh,0,0,createCanvas.width,createCanvas.height);
   roomMapCardFrame(createCanvas);
+  // Warm one inactive map thumbnail per preview frame using the SAME Three.js
+  // renderer; selected live map pixels and the normal canvas are restored.
+  if(typeof roomMapCapturePendingPreview==="function"&&
+     typeof R.clear==="function"&&typeof R.render==="function"){
+   roomMapCapturePendingPreview();
+  }
  }
  if(inLive){
   var c=document.getElementById("rmlMapPreview"),ctx=c.getContext("2d",{alpha:false});
