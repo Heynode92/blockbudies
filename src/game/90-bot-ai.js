@@ -28,7 +28,8 @@ function gPath(x0,z0,x1,z1){if(!GB)gInit();var N=GN,s=gFree(gc(x0),gc(z0)),g=gFr
 // botPath(): assigns bot e a path to goal (gx,gz) and a repath timer.
 function botPath(e,gx,gz){var p=gPath(e.x,e.z,gx,gz);
   // Never charge directly into a solid wall if A* finds no route.
-  e.path=p||(isBombMode()?[]:[[gx,gz]]);e.pi=0;e.pt=1.1+Math.random()*.8;e.goalX=gx;e.goalZ=gz;
+  // Never fall back to a direct wall-crossing goal if A* has no route.
+  e.path=p||[];e.pi=0;e.pt=1.1+Math.random()*.8;e.goalX=gx;e.goalZ=gz;
 }
 // botsUpd(dt): LIVE bot AI (movement along paths, target choice, line-of-sight, shooting with fire(..., "e")).
 function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
@@ -64,14 +65,16 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
     e.lt=(e.lt||0)-dt;if(t&&e.lt<=0){e.lt=.15;e.lok=los(e.x,e.z,t.x,t.z);}
     if(t){dx=t.x-e.x;dz=t.z-e.z;d=Math.hypot(dx,dz)||1;}
     botSmartReload(e,t);intent=botSmartIntent(e,t);e.smartRetreat=intent.retreat;
+    botMoveIntent(e,t,intent);
     combat=!!t&&e.lok&&e.navT<=0&&!(intent.retreat&&intent.goal)&&!intent.hold;
     sp*=intent.retreat?BOT_TACTICS.retreatSpeed:combat?BOT_TACTICS.fightSpeed:BOT_TACTICS.approachSpeed;
     if(isBombMode()&&e.bAction)combat=false;
     if(combat){var fw=botNeedsMelee(e)?1:(isBombMode()&&bombMatch&&bombMatch.state==='planted'&&e.tm===0)?
       (d>BOMB_AI.retakeCombatDistance?1:-.3):(d>16?1:d<7?-.6:0),st;e.bt=(e.bt||0)-dt;if(e.bt<=0){e.bt=.7+Math.random()*1.4;e.sd=[-1,0,1][(Math.random()*3)|0];}st=(e.sd||0)*.9;
       var dodge=botSmartVelocity(e,d,fw,st);fw=dodge[0];st=dodge[1];
+      dodge=botMoveDodge(e,t,dt,fw,st);fw=dodge[0];st=dodge[1];
       mvx=dx/d*fw+(dz/d)*st;mvz=dz/d*fw-(dx/d)*st;
-      if(GB[gc(e.z+mvz*sp*dt*4)*GN+gc(e.x+mvx*sp*dt*4)]){e.sd=-(e.sd||1);mvx=dx/d*fw;mvz=dz/d*fw;}}
+      if(!botMoveIsClear(e,mvx,mvz,sp,dt)){e.sd=-(e.sd||1);}}
     else{gx=intent.goal?intent.goal[0]:(t?t.x:e.wx);gz=intent.goal?intent.goal[1]:(t?t.z:e.wz);e.pt=(e.pt||0)-dt;
       if(!e.path||e.pt<=0||e.stk>.5||
          Math.hypot((e.goalX||0)-gx,(e.goalZ||0)-gz)>(isBombMode()?BOMB_AI.repathGoalDistance:2.4)){
@@ -85,19 +88,15 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
       if(sq<space&&sq>.01){mvx+=sx/sq*.75;mvz+=sz/sq*.75;}
     }});
     ml=Math.hypot(mvx,mvz);if(ml>1){mvx/=ml;mvz/=ml;}if(cdn)mvx=mvz=0;
+    var wantedMovement=!!(mvx||mvz),holdMovement=cdn||(isBombMode()&&e.bAction)||intent.hold;
+    var recovery=botMoveRecovery(e,mvx,mvz,sp,dt,holdMovement);
+    var steering=botMoveSteer(e,recovery[0],recovery[1],sp,dt,holdMovement);
+    mvx=steering[0];mvz=steering[1];
     f=(t&&e.lok)?e.aimYaw:(mvx||mvz)?Math.atan2(mvx,mvz):e.g.rotation.y;
     e.x+=mvx*sp*dt;e.z+=mvz*sp*dt;resolve(e,.55);
-    if(isBombMode()&&!e.bAction&&(mvx||mvz)){
-      // If a narrow corner blocks movement, try sliding instead of oscillating into it.
-      var forward=Math.hypot(e.x-ox,e.z-oz);
-      if(forward<sp*dt*.2){
-        var side=e.idx%2?1:-1,tx=e.x+side*(-mvz)*sp*dt,tz=e.z+side*mvx*sp*dt;
-        if(!inObs(tx,tz,.65)){e.x=tx;e.z=tz;resolve(e,.55);}
-      }
-    }
     var dm=Math.hypot(e.x-ox,e.z-oz);
     footstepAdvance(e,dm,!cdn&&dm>.002,sp>4.4,false);
-    if((mvx||mvz)&&dm<sp*dt*.3){e.stk=(e.stk||0)+dt;if(combat&&e.stk>.5){e.navT=1.2;e.sd=-(e.sd||1);e.stk=0;e.pt=0;}}else e.stk=0;
+    botMoveTrack(e,ox,oz,dt,sp,wantedMovement,combat);
     e.g.rotation.y=f;e.cd-=dt;
     if(t&&e.lok&&!cdn&&!(isBombMode()&&e.bAction)&&e.cd<=0){botCombatTick(e,t,f,d);}
     e.y=(e.y||0)+(gh(e.x,e.z,0)-(e.y||0))*Math.min(1,dt*10);e.g.position.set(e.x,e.y,e.z);e.g.visible=e.inv>0?Math.floor(tt*12)%2===0:true;
