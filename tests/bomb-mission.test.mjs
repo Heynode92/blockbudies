@@ -20,7 +20,7 @@ function fakeThree(){
   class Material{constructor(props){Object.assign(this,props);}}
   class Geometry{constructor(){}}
   class Color{constructor(color){this.value=color;}}
-  return {Group,Mesh,Sprite,Vector3:Position,Color,Fog:class{},MeshBasicMaterial:Material,MeshLambertMaterial:Material,SpriteMaterial:Material,BoxGeometry:Geometry,CylinderGeometry:Geometry,SphereGeometry:Geometry,IcosahedronGeometry:Geometry,CircleGeometry:Geometry,RingGeometry:Geometry,CanvasTexture:class{}};
+  return {Group,Mesh,Sprite,Vector3:Position,Color,Fog:class{constructor(color,near,far){this.color=color;this.near=near;this.far=far;}},MeshBasicMaterial:Material,MeshLambertMaterial:Material,SpriteMaterial:Material,BoxGeometry:Geometry,CylinderGeometry:Geometry,SphereGeometry:Geometry,IcosahedronGeometry:Geometry,CircleGeometry:Geometry,RingGeometry:Geometry,CanvasTexture:class{}};
 }
 function makeContext(){
   const T=fakeThree();
@@ -512,4 +512,62 @@ test('Block Town V3 obeys owner blueprint anchors and offers connected, broken-s
    for(const site of c.BOMB_SITES)
      assert.ok(c.gPath(point[0],point[1],site.x,site.z).length>0,
        'landmarks may not obstruct either actual Bomb Site');
+});
+
+test('Block Town V4 limits sampled eye-height geometric LOS to 70 units via real urban cover',()=>{
+ const c=makeContext();c.selectedBombMapId='block-town';c.selectGameMap(true);
+ const d=c.BLOCK_TOWN_DEF,limit=d.visibility.far;
+ assert.equal(d.visibility.eyeHeight,1.7);
+ assert.equal(limit,70,'view distance belongs to Block Town config');
+ assert.equal(c.S.fog.near,d.visibility.near);
+ assert.equal(c.S.fog.far,70,'rendered exterior is completely fogged at 70 units');
+ assert.equal(d.sightlineBreakers.length,37,'all deliberate chicane profiles are declared');
+ const blockers=d.sightlineBreakers;
+ for(const q of blockers){
+   const hit=c.OB.find(o=>o.x===q[1]&&o.z===q[2]&&o.hw===q[3]/2&&o.hd===q[4]/2&&o.h===q[5]);
+   assert.ok(hit,'each visible street chicane must also stop players, projectiles and A* '+q[0]);
+   assert.ok(hit.h>d.visibility.eyeHeight,'eye-height sightline blocker is not a knee-high prop');
+ }
+ // Actual world collision array, not a second curated cover list.
+ // Slab entry ray-vs-AABB at human eye height. The independent dense probe
+ // detects 160-unit straight street leaks, including along perimeter streets.
+ const walls=c.OB.filter(o=>!o.fl&&o.h>=d.visibility.eyeHeight&&(!o.y0||o.y0<=d.visibility.eyeHeight));
+ const directions=[];
+ for(let angle=0;angle<360;angle+=d.visibility.auditDegrees){
+   const rad=angle*Math.PI/180;directions.push([Math.cos(rad),Math.sin(rad)]);
+ }
+ let checked=0,longest=0;
+ for(let z=-76;z<=76;z+=d.visibility.auditGrid)
+ for(let x=-76;x<=76;x+=d.visibility.auditGrid){
+   if(c.inObs(x,z,.9))continue;
+   for(const direction of directions){
+     const vx=direction[0],vz=direction[1];
+     let nearest=200;
+     for(const box of walls){
+       const x0=box.x-box.hw,x1=box.x+box.hw,z0=box.z-box.hd,z1=box.z+box.hd;
+       let ax=-Infinity,bx=Infinity,az=-Infinity,bz=Infinity;
+       if(Math.abs(vx)<1e-9){
+         if(x<x0||x>x1)continue;
+       }else{
+         const a=(x0-x)/vx,b=(x1-x)/vx;ax=Math.min(a,b);bx=Math.max(a,b);
+       }
+       if(Math.abs(vz)<1e-9){
+         if(z<z0||z>z1)continue;
+       }else{
+         const a=(z0-z)/vz,b=(z1-z)/vz;az=Math.min(a,b);bz=Math.max(a,b);
+       }
+       const entry=Math.max(0,ax,az);
+       if(entry<=Math.min(bx,bz)&&entry<nearest)nearest=entry;
+     }
+     checked++;longest=Math.max(longest,nearest);
+     assert.ok(nearest<=limit+.12,
+       'LOS leak '+nearest.toFixed(2)+' > '+limit+' from '+x+','+z+' toward '+vx.toFixed(3)+','+vz.toFixed(3));
+   }
+ }
+ assert.ok(checked>45000,'survey must sample enough real traversable streets');
+ assert.ok(longest>45,'no artificial universal weapon or projectile range nerf was introduced');
+ c.selectedBombMapId='lockdown';c.selectGameMap(true);
+ assert.ok(c.S.fog.far!==70,'Block Town visibility must not leak to Lockdown');
+ c.selectGameMap(false);
+ assert.ok(c.S.fog===c.BOMB_FOG,'original Deathmatch fog restored');
 });
