@@ -157,7 +157,7 @@ try{
  if(results.realTime.some(s=>s.jsErrors.length||!s.active||!s.webgl||
     s.init.bots!==10||s.qa.frameTimeMs.count<1||s.qa.botUpdateCpuMs.count<1))
    throw Error('Real-time WebGL runtime or BOT instrumentation smoke failed');
- if(jsErrors.length)throw Error('Accelerated browser emitted JS errors: '+jsErrors.join('; '));
+ if(final.jsErrors.length)throw Error('Accelerated browser emitted JS errors: '+final.jsErrors.join('; '));
  if(mapId!=='block-labs'){
    if(final.qa.bombRounds.completed<target)
      throw Error('Only '+final.qa.bombRounds.completed+'/'+target+' authentic Bomb finishes');
