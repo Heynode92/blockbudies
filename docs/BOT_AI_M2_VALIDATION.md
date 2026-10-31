@@ -35,7 +35,7 @@
 
 The owner explicitly submitted **“M2 playtest PASS bro”** and confirmed **all 7 checks passed**: (1) elevation tracking and shooting, (2) no instant first-shot reaction, (3) reasonably imperfect moving-target pursuit, (4) no through-wall shooting, (5) normal Police/Terrorist combat, (6) Bomb plant/defuse/round resolution and (7) no freeze/crash/perceptible severe performance regression. This is a **self-reported qualitative gameplay smoke test**, not independently observed performance telemetry. Map names, game/browser version, session durations and per-team samples are not provided. The existing quantitative KPI checkboxes stay OPEN.
 
-**Decision:** M2 core exit gate **VERIFIED**, supported by [Windows Actions run #98](https://github.com/Heynode92/blockbudies/actions/runs/41173880185) (306/306 pass) plus owner manual 7/7 PASS. User approved subsequent M3 development. **M3 remains a distinct milestone requiring its own automated CI and later gameplay acceptance.**
+**Decision:** M2 core exit gate **VERIFIED**, supported by [Windows Actions run #98](https://github.com/Heynode92/blockbudies/actions/runs/41173880185) (306/306 pass) plus owner manual 7/7 PASS. User approved subsequent M3 development. **M3 is a distinct later milestone:** it has now been implemented and passed [Windows CI #112](https://github.com/Heynode92/blockbudies/actions/runs/41174449879) (318/318); manual M3 gameplay acceptance remains pending. See [M3 validation](BOT_AI_M3_VALIDATION.md).
 
 ## Synthetic M2 behavior observation (not real-match accuracy)
 
@@ -55,4 +55,4 @@ After `git pull origin main`, open `index.html` on Windows (no build). Play both
 3. Fast-moving players can still evade: BOT needs a finite acquisition/reaction interval, aims with class-appropriate misses, and consumes actual bullets.
 4. Police and Terrorists remain able to plant/defuse/attack/defend; no freeze/stuck or UI/weapon regressions.
 
-An aggregate owner-reported PASS can close the **M2 core feature gate**, while detailed numerical performance and per-map/faction scenario acceptance remain explicitly open for continued M7-quality validation. **M3 is NOT STARTED** and must be implemented/verified as a separate milestone.
+An aggregate owner-reported PASS can close the **M2 core feature gate**, while detailed numerical performance and per-map/faction scenario acceptance remain explicitly open for continued M7-quality validation. **M3 was subsequently implemented as a separate milestone and automated tests passed; its owner gameplay validation is still pending**. See [M3 validation](BOT_AI_M3_VALIDATION.md).
