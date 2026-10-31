@@ -84,6 +84,42 @@ function roomModalPaint(){
  roomFillMapSelect(select,mode,roomModalDraft.mapId);
  roomText("roomModalMapName",map?map.name:"UNAVAILABLE");
  roomText("roomModalMapCaption",map?map.caption:"");
+ roomModalPaintMapCards();
+}
+// Share the exact map registry and cached Three.js thumbnail frames with Create Room.
+var roomModalActiveCardCanvas=null;
+function roomModalPaintMapCards(){
+ if(!roomModalDraft)return;
+ var root=document.getElementById("roomModalMapCards");
+ if(!root)return;
+ var mode=roomModalDraft.mode,id=roomModalDraft.mapId;
+ var options=mode===1?bombMapOptions(1):tdmMapOptions();
+ root.replaceChildren();roomModalActiveCardCanvas=null;
+ options.forEach(function(map){
+  var active=map.id===id,button=document.createElement("button"),canvas=document.createElement("canvas");
+  button.type="button";button.className="room-map-card"+(active?" is-selected":"");
+  button.setAttribute("aria-pressed",String(active));
+  button.setAttribute("aria-label","Choose "+map.name);
+  canvas.width=240;canvas.height=130;canvas.className="room-map-card-preview";
+  canvas.setAttribute("aria-hidden","true");
+  var title=document.createElement("strong");title.textContent=map.name;
+  var desc=document.createElement("small");desc.textContent=map.caption;
+  button.appendChild(canvas);button.appendChild(title);button.appendChild(desc);
+  button.addEventListener("click",function(){roomModalChooseMap(map.id);});
+  root.appendChild(button);
+  if(roomMapThumbnailCache[map.id])roomMapThumbnailDraw(canvas,roomMapThumbnailCache[map.id]);
+  if(active)roomModalActiveCardCanvas=canvas;
+ });
+}
+function roomModalMapCardFrame(preview){
+ if(!roomModalActiveCardCanvas||!roomModalDraft)return;
+ roomMapThumbnailDraw(roomModalActiveCardCanvas,preview);
+ var id=roomModalDraft.mapId,cached=roomMapThumbnailCache[id];
+ if(!cached){cached=document.createElement("canvas");
+  cached.width=roomModalActiveCardCanvas.width;cached.height=roomModalActiveCardCanvas.height;
+  roomMapThumbnailCache[id]=cached;
+ }
+ roomMapThumbnailDraw(cached,roomModalActiveCardCanvas);
 }
 function roomModalChooseMode(mode){
  if(!roomModalDraft)return;
@@ -108,6 +144,7 @@ function roomModalSelect(key,value){
 function roomModalHide(restorePreview){
  if(!roomModalActive())return;
  document.getElementById("roomSettingsModal").hidden=true;
+ roomModalActiveCardCanvas=null;
  roomModalDraft=null;
  roomText("roomModalError","");
  if(restorePreview&&roomCurrent){
@@ -124,6 +161,11 @@ function roomShowSettings(){
  document.getElementById("roomModalName").value=roomCurrent.name;
  roomText("roomModalError","");
  roomModalPaint();
+ // Draft preview is separate from roomCurrent until SAVE.
+ selM=roomModalDraft.mode;
+ selectedBombMapId=bombMapId(roomModalDraft.mapId);
+ selectedTdmMapId=tdmMapId(roomModalDraft.mapId);
+ modePreviewSelect(selM);
  document.getElementById("roomSettingsModal").hidden=false;
  // The lobby map frame fills the thumbnail immediately; next render updates the live map.
  var source=document.getElementById("rmlMapPreview"),dest=document.getElementById("roomModalMapPreview");
@@ -226,10 +268,16 @@ function roomMapCardFrame(preview){
 // then restore the selected world and regular camera before returning to the loop.
 // No duplicate WebGLRenderer, no placeholder map image, no physics rule edits.
 function roomMapCapturePendingPreview(){
- if(run||!lob||document.hidden||document.getElementById("roomCreateOverlay").hidden||
-    !document.getElementById("lbrooms").classList.contains("on"))return;
- var bomb=roomDraftMode===1,options=bomb?bombMapOptions(1):tdmMapOptions(),
-     selectedId=bomb?bombMapId(roomDraftMapId):tdmMapId(roomDraftMapId),target=null;
+ if(run||!lob||document.hidden)return;
+ var inBrowser=!document.getElementById("roomCreateOverlay").hidden&&
+    document.getElementById("lbrooms").classList.contains("on");
+ var inMaster=!inBrowser&&!document.getElementById("roomSettingsModal").hidden&&
+    document.getElementById("lbroomlive").classList.contains("on")&&!!roomModalDraft;
+ if(!inBrowser&&!inMaster)return;
+ var draftMode=inMaster?roomModalDraft.mode:roomDraftMode,
+     draftId=inMaster?roomModalDraft.mapId:roomDraftMapId,
+     bomb=draftMode===1,options=bomb?bombMapOptions(1):tdmMapOptions(),
+     selectedId=bomb?bombMapId(draftId):tdmMapId(draftId),target=null;
  for(var i=0;i<options.length;i++){
   var candidate=options[i];
   if(candidate.id!==selectedId&&!roomMapThumbnailCache[candidate.id]&&!roomMapThumbnailFailures[candidate.id]
@@ -255,7 +303,7 @@ function roomMapCapturePendingPreview(){
   context.drawImage(src,(sw-ww)/2,(sh-hh)/2,ww,hh,0,0,snapshot.width,snapshot.height);
   roomMapThumbnailCache[target.id]=snapshot;
   // Update the existing card without repainting the whole selection or inputs.
-  var cards=document.getElementById("roomMapCards").children;
+  var cards=document.getElementById(inMaster?"roomModalMapCards":"roomMapCards").children;
   for(var k=0;k<cards.length;k++){
    if(cards[k].getAttribute("aria-label")==="Choose "+target.name){
     roomMapThumbnailDraw(cards[k].children[0],snapshot);break;
@@ -567,6 +615,7 @@ document.getElementById("roomStart").addEventListener("click",roomLaunch);
 
 document.getElementById("rmlSettings").addEventListener("click",roomShowSettings);
 document.getElementById("roomModalCancel").addEventListener("click",function(){roomModalHide(true);});
+document.getElementById("roomModalClose").addEventListener("click",function(){roomModalHide(true);});
 document.getElementById("roomModalSave").addEventListener("click",roomModalSave);
 document.getElementById("roomModalTdm").addEventListener("click",function(){roomModalChooseMode(0);});
 document.getElementById("roomModalBomb").addEventListener("click",function(){roomModalChooseMode(1);});
