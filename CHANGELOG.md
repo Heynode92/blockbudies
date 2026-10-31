@@ -1,3 +1,8 @@
+## 2026-10-31 — Main menu HUD alignment correction
+- Move Personal Best and Connect Wallet out of the gameplay showcase column into an independent upper-right account toolbar.
+- Rebalance desktop game menu columns and preserve the native 16:9 showcase framing.
+- Retain existing wallet connection handler, menu navigation, video assets, and crossfade logic.
+
 ## 2026-10-31 — Horizontal main-menu identity, wallet entry and video crossfade
 - Display the BLOK BUDDIES wordmark on one horizontal line, with Personal Best and Connect Wallet in the upper header area.
 - Add optional EIP-1193 wallet connection via injected provider, validate the returned account format and handle account changes; wallet connection is not gameplay authentication and does not yet enable on-chain features.
