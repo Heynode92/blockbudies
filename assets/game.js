@@ -3550,35 +3550,26 @@ var HOME_DEMOS=Object.freeze({
 });
 var homeDemoKey="deathmatch",homeDemoHasError=false;
 var homeDemoVideo=document.getElementById("homeDemoVideo"),
+    homeDemoScreen=document.querySelector("#lbs .home-demo-screen"),
     homeDemoStatus=document.getElementById("homeDemoStatus"),
     homeDemoLabel=document.getElementById("homeDemoLabel"),
     homeDemoDetail=document.getElementById("homeDemoDetail"),
     homeDemoCounter=document.getElementById("homeDemoCounter"),
-    homeDemoAudio=document.getElementById("homeDemoAudio"),
-    homeDemoPlay=document.getElementById("homeDemoPlay"),
+    homeDemoProgress=document.getElementById("homeDemoProgress"),
     homeDemoEmpty=document.getElementById("homeDemoEmpty");
+var homeDemoInterval=null,homeDemoFadeTimer=null;
 function homeDemoVisible(){
  return !document.hidden&&!run&&!!lob&&
    document.getElementById("lbs").classList.contains("on");
 }
 function homeDemoSetStatus(message){homeDemoStatus.textContent=message;}
-function homeDemoAudioState(){
- homeDemoAudio.textContent=homeDemoVideo.muted?"SOUND OFF":"SOUND ON";
- homeDemoAudio.setAttribute("aria-pressed",String(!homeDemoVideo.muted));
-}
-function homeDemoPlayState(){
- homeDemoPlay.textContent=homeDemoVideo.paused?"▶ PLAY":"Ⅱ PAUSE";
- homeDemoPlay.setAttribute("aria-label",homeDemoVideo.paused?"Play gameplay preview":"Pause gameplay preview");
-}
 function homeDemoAttemptPlay(){
  if(!homeDemoVisible()||homeDemoHasError)return;
- // Autoplay on local file:// requires muted playback in modern browsers.
+ homeDemoVideo.muted=true;
  var attempt=homeDemoVideo.play();
  if(attempt&&typeof attempt.catch==="function")attempt.catch(function(){
-   if(homeDemoVisible()&&!homeDemoHasError)homeDemoSetStatus("PRESS PLAY FOR PREVIEW");
-   homeDemoPlayState();
+   if(homeDemoVisible()&&!homeDemoHasError)homeDemoSetStatus("GAMEPLAY PREVIEW");
  });
- homeDemoPlayState();
 }
 function homeDemoSelect(value){
  if(!Object.prototype.hasOwnProperty.call(HOME_DEMOS,value))return;
@@ -3588,11 +3579,6 @@ function homeDemoSelect(value){
  homeDemoLabel.textContent=demo.label;homeDemoDetail.textContent=demo.detail;
  homeDemoCounter.textContent=demo.number+" / 02";
  homeDemoEmpty.hidden=true;
- document.querySelectorAll("[data-home-demo]").forEach(function(button){
-   var active=button.getAttribute("data-home-demo")===value;
-   button.classList.toggle("active",active);
-   button.setAttribute("aria-pressed",String(active));
- });
  if(changed){
    homeDemoVideo.pause();
    homeDemoVideo.setAttribute("src",demo.src);homeDemoVideo.load();
@@ -3600,39 +3586,47 @@ function homeDemoSelect(value){
  homeDemoSetStatus("GAMEPLAY FOOTAGE");
  homeDemoAttemptPlay();
 }
+function homeDemoResetProgress(){
+ if(!homeDemoProgress)return;
+ homeDemoProgress.style.animation="none";
+ void homeDemoProgress.offsetWidth;
+ homeDemoProgress.style.animation="";
+}
+function homeDemoRotate(){
+ if(!homeDemoVisible())return;
+ homeDemoScreen.classList.add("is-fading");
+ clearTimeout(homeDemoFadeTimer);
+ homeDemoFadeTimer=setTimeout(function(){
+   if(homeDemoVisible()){
+     homeDemoSelect(homeDemoKey==="deathmatch"?"bomb":"deathmatch");
+     homeDemoResetProgress();
+   }
+   homeDemoScreen.classList.remove("is-fading");
+ },420);
+}
 function homeShowcaseSync(){
  if(!homeDemoVideo)return;
- if(homeDemoVisible())homeDemoAttemptPlay();
- else homeDemoVideo.pause();
- homeDemoPlayState();
+ if(homeDemoVisible()){
+   homeDemoAttemptPlay();
+   if(homeDemoInterval===null){
+     homeDemoResetProgress();
+     homeDemoInterval=setInterval(homeDemoRotate,10000);
+   }
+ }else{
+   homeDemoVideo.pause();
+   if(homeDemoInterval!==null){clearInterval(homeDemoInterval);homeDemoInterval=null;}
+   clearTimeout(homeDemoFadeTimer);
+   homeDemoScreen.classList.remove("is-fading");
+ }
 }
-document.querySelectorAll("[data-home-demo]").forEach(function(button){
- button.addEventListener("click",function(){homeDemoSelect(button.getAttribute("data-home-demo"));});
-});
-homeDemoAudio.addEventListener("click",function(){
- homeDemoVideo.muted=!homeDemoVideo.muted;
- homeDemoAudioState();
- if(!homeDemoVideo.paused&&homeDemoVisible())homeDemoSetStatus("GAMEPLAY FOOTAGE");
-});
-homeDemoPlay.addEventListener("click",function(){
- if(!homeDemoVisible())return;
- if(homeDemoVideo.paused)homeDemoAttemptPlay();
- else homeDemoVideo.pause();
- homeDemoPlayState();
-});
-homeDemoVideo.addEventListener("playing",function(){
- homeDemoSetStatus("GAMEPLAY FOOTAGE");homeDemoPlayState();
-});
-homeDemoVideo.addEventListener("pause",homeDemoPlayState);
 homeDemoVideo.addEventListener("error",function(){
  homeDemoHasError=true;homeDemoVideo.pause();
  homeDemoEmpty.hidden=false;homeDemoSetStatus("PREVIEW UNAVAILABLE");
- homeDemoPlayState();
 });
 document.addEventListener("visibilitychange",homeShowcaseSync);
 homeDemoVideo.muted=true;
-homeDemoAudioState();
 homeDemoSelect("deathmatch");
+homeShowcaseSync();
 // Room Lobby: browser-local room master flow; no network rooms or invented pings.
 // Uses existing mode maps, 5v5 bots, and canonical combat/plant/defuse systems.
 var ROOM_STORAGE_KEY="bbfps_local_rooms_v1";
