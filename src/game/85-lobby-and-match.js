@@ -9,12 +9,14 @@ show("Point Block FPS",'<p>Survive the terrorist assault. There are no drops in 
 document.getElementById("go").onclick=function(){this.blur();reset();ov.style.display="none";run=true;};
 // Lobby (mode select screen). lobBest() reads the best score from localStorage key "bbfps_best" (try/catch).
 var lb=document.getElementById("lb");
-function lobBest(){var b=0;try{b=+localStorage.getItem("bbfps_best")||0;}catch(e){}document.getElementById("lbbest").textContent=b;}
+function lobBest(){var b=0;try{b=+localStorage.getItem("bbfps_best")||0;}catch(e){}var el=document.getElementById("lbbest");if(el)el.textContent=b;}
 function lobP(id){
  if(id==="lbs"&&roomCurrent)roomCloseLocal();
  ["lbs","lbm","lbrooms","lbroomlive","lbiv","lbshop"].forEach(function(i){
   document.getElementById(i).classList.toggle("on",i===id);
  });
+ var header=document.getElementById("gameLobbyHeader"),activePanel=document.getElementById(id);
+ if(header)header.hidden=!(activePanel&&activePanel.hasAttribute("data-shared-header"));
  if(id==="lbs"){
   lobBest();
   // The main menu cinematic is ALWAYS the authentic Block District world,
