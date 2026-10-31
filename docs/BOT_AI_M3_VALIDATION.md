@@ -1,6 +1,6 @@
 # BLOCK BUDDIES — M3 Movement & Tactical Cover Validation
 
-> **Status:** IMPLEMENTED / AUTOMATED VERIFIED; OWNER WINDOWS GAMEPLAY PLAYTEST PENDING
+> **Status:** M3 VERIFIED (CORE EXIT GATE: WINDOWS CI + OWNER-REPORTED 7/7 PLAYTEST); REAL-MAP QUANTITATIVE KPIs OPEN
 > **Date:** 2026-10-31 WIB
 > **Scope:** M3 only — reactive cover, peek based on legitimate enemy memory, bounded dodge, obstacle-safe steering and safe stuck recovery for Police and Terrorist BOTs
 > **Evidence:** [Windows GitHub Actions run #112](https://github.com/Heynode92/blockbudies/actions/runs/41174449879): **318/318 Node tests PASS, zero failures**, committed direct-open bundle parity, JavaScript syntax, deterministic 10-BOT replay, synthetic CPU sampling
@@ -34,8 +34,14 @@
 - [x] No fallback to direct TDM wall charge when A* reports no route.
 - [x] Existing 10-BOT synthetic critical-HP encounter observed **10/10 BOTs retreat at least once**, while last-frame instantaneous retreat may correctly be zero after they reach safety. This is **not** evidence of actual path success, cover win-rate or real-match survival.
 - [x] Windows Node 22 Actions [run #112](https://github.com/Heynode92/blockbudies/actions/runs/41174449879): **318 tests, 318 pass, 0 fail**, canonical standalone bundle check, syntax and synthetic CPU benchmark green.
-- [ ] Human Windows gameplay M3 playtest: BOTs dodge/strafe naturally, use cover and peek without freezing, no excessive jitter or collision clipping, no new Bomb plant/defuse failures.
+- [x] **Owner-reported 7/7 M3 gameplay smoke PASS, 2026-10-31 WIB:** natural strafe/dodge, cover/peek, no observed wall/object penetration, no persistent jitter/stuck, aiming remains normal during movement, Bomb plant/defuse/retake functional, and no freeze/crash/perceptible severe lag. Qualitative self-report, not independent telemetry.
 - [ ] Real map/team navigation and cover benchmarks: measured duration stuck, successful peeks, obstacle corrections, exposure time, real browser frame-time median/p95, and both-map/faction gameplay samples. **No claim these have passed.**
+
+## Owner acceptance and milestone decision — 2026-10-31 WIB
+
+The owner explicitly confirmed **7/7 M3 checks PASS** after Windows gameplay, including both factions, damage-triggered dodge, cover/peek, geometry safety, absence of persistent jitter/stuck, M2 firing continuity, Bomb objective behavior, and no perceived severe performance regressions. This is **owner-reported manual acceptance**, not instrumented game data. Source check: [Windows CI #118](https://github.com/Heynode92/blockbudies/actions/runs/41174607049), 318/318 tests PASS, bundle and syntax green.
+
+**Decision: M3 VERIFIED for its core feature exit gate.** Real-map measured stuck time, cover exposure, navigation completion and browser FPS/p95 remain OPEN. This sign-off does not certify those numerical KPIs. **M4 subsequently authorized** by the owner.
 
 ## Review limitations
 
@@ -50,4 +56,4 @@ After `git pull origin main`, open `index.html` directly. No runner, Node, WSL, 
 3. **Bomb Mission:** verify carrier plants, Police can defuse/retake and guards still engage; new movement must not abandon an urgent objective.
 4. **Regression:** verify BOTs still fire with M2 elevation/finite reaction, damage and reload remain intact and game stays responsive.
 
-Record either **“M3 playtest PASS”** or a concrete failure with map/mode and what the BOT did. An aggregate self-reported PASS can close the **M3 core feature acceptance gate** after CI, while quantitative performance/edge-map metrics remain OPEN. **M4 NOT STARTED.**
+The owner subsequently submitted **“M3 playtest PASS bro”**, explicitly marking all seven checks PASS. This satisfies the agreed qualitative manual acceptance alongside green Windows CI. Map names, durations, browser version and raw movement/frame-time telemetry were not provided; measurable quality gates remain OPEN. M4 may proceed as a separate authorized implementation.
