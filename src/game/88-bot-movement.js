@@ -32,31 +32,34 @@ function botMovePeek(e,clue){
  var dx=clue.x-e.x,dz=clue.z-e.z,dist=Math.hypot(dx,dz);
  if(dist<1||dist>BOT_TACTICS.threatRange*1.5)return null;
  // Sample lateral edges from the last AUTHORIZED observed position only.
- var sideX=dz/dist,sideZ=-dx/dist,best=null,bestScore=Infinity;
+ var sideX=dz/dist,sideZ=-dx/dist,candidates=[];
  for(var i=0;i<BOT_MOVE.peekOffsets.length;i++)
  for(var sign=-1;sign<=1;sign+=2){
   var offset=BOT_MOVE.peekOffsets[i]*sign,
       x=e.x+sideX*offset,z=e.z+sideZ*offset;
   if(Math.abs(x)>A-1.5||Math.abs(z)>A-1.5||
      inObs(x,z,.72)||!los(x,z,clue.x,clue.z))continue;
-  // Avoid occupied lanes and repeated exposure if a shorter safe edge exists.
-  var score=Math.abs(offset)+Math.hypot(x-e.x,z-e.z)*.2;
+  var score=Math.abs(offset)*1.2;
   for(var j=0;j<en.length;j++){
    var ally=en[j];
    if(ally!==e&&!ally.dead&&ally.tm===e.tm&&
       Math.hypot(x-ally.x,z-ally.z)<1.8)score+=6;
   }
-  if(score<bestScore&&botMoveReachable(e,x,z)){
-   best=[x,z];bestScore=score;
-  }
+  candidates.push({x:x,z:z,score:score});
  }
- return best;
+ candidates.sort(function(a,b){return a.score-b.score;});
+ // Bound A* cost on crowded 5v5 scenes.
+ for(var n=0;n<Math.min(2,candidates.length);n++){
+  var c=candidates[n];
+  if(botMoveReachable(e,c.x,c.z))return [c.x,c.z];
+ }
+ return null;
 }
 function botMoveIntent(e,t,intent){
  if(e.dead||botMoveUrgent(e)||intent.retreat){
   e.m3Mode=null;e.m3Goal=null;return;
  }
- if(e.m3Mode&&tt>(e.m3Expires||0)){
+ if(e.m3Mode&&e.m3Mode!=='hold'&&tt>(e.m3Expires||0)){
   e.m3Mode=null;e.m3Goal=null;e.m3RetryAt=Math.max(e.m3RetryAt||0,tt+.7);
  }
  if(e.m3Mode==='cover'&&e.m3Goal){
