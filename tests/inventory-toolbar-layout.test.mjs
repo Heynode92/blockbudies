@@ -9,8 +9,8 @@ const css=read('src/styles/12-inventory-armory.css');
 const html=read('index.html');
 const inv=read('src/game/89-inventory.js');
 const panel=html.slice(html.indexOf('<section id="lbiv"'),html.indexOf('<section id="lbshop"'));
-test('inventory header removes Block Buddies branding and keeps one functional Back button',()=>{
- assert.doesNotMatch(panel,/class="ivbrand"|aria-label="Block Buddies"/);
+test('inventory header removes Point Block branding and keeps one functional Back button',()=>{
+ assert.doesNotMatch(panel,/class="ivbrand"|aria-label="Point Block"/);
  assert.doesNotMatch(css,/\.ivbrand/);
  assert.equal((panel.match(/id="ivback"/g)||[]).length,1);
  assert.match(inv,/getElementById\("ivback"\)\.addEventListener\("click"/);
