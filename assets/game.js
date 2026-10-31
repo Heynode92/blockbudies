@@ -3638,8 +3638,9 @@ homeShowcaseSync();
 // Wallet connection is optional UI preparation; it does not authenticate gameplay.
 var homeWalletButton=document.getElementById("homeWalletConnect");
 var homeWalletAccount=null;
+var homeWalletLabel=document.getElementById("homeWalletLabel");
 function homeWalletRender(){
- homeWalletButton.textContent=homeWalletAccount?
+ homeWalletLabel.textContent=homeWalletAccount?
   homeWalletAccount.slice(0,6)+"…"+homeWalletAccount.slice(-4):"CONNECT WALLET";
  homeWalletButton.classList.toggle("connected",!!homeWalletAccount);
  homeWalletButton.setAttribute("aria-label",homeWalletAccount?"Connected wallet "+homeWalletAccount:"Connect wallet");
@@ -3647,10 +3648,10 @@ function homeWalletRender(){
 homeWalletButton.addEventListener("click",function(){
  var provider=window.ethereum;
  if(!provider||typeof provider.request!=="function"){
-   homeWalletButton.textContent="WALLET NOT FOUND";
+   homeWalletLabel.textContent="WALLET NOT FOUND";
    return;
  }
- homeWalletButton.disabled=true;homeWalletButton.textContent="CONNECTING…";
+ homeWalletButton.disabled=true;homeWalletLabel.textContent="CONNECTING…";
  provider.request({method:"eth_requestAccounts"}).then(function(accounts){
    homeWalletAccount=Array.isArray(accounts)&&typeof accounts[0]==="string"&&/^0x[a-fA-F0-9]{40}$/.test(accounts[0])?accounts[0]:null;
    homeWalletRender();
@@ -3665,6 +3666,32 @@ if(window.ethereum&&typeof window.ethereum.on==="function"){
  });
 }
 homeWalletRender();
+// Reuse the existing Settings navigation action; do not fork Settings behavior.
+var homeHeaderSettings=document.getElementById("homeHeaderSettings");
+homeHeaderSettings.addEventListener("click",function(){
+ var menuSettings=document.querySelector("#lbs .lmn .mb[data-n='SETTINGS']");
+ if(menuSettings)menuSettings.click();
+});
+// The fullscreen control is local-only and has no effect on match state.
+var homeHeaderFullscreen=document.getElementById("homeHeaderFullscreen");
+function homeHeaderFullscreenSync(){
+ var active=!!document.fullscreenElement;
+ homeHeaderFullscreen.setAttribute("aria-pressed",String(active));
+ homeHeaderFullscreen.setAttribute("aria-label",active?"Exit fullscreen":"Enter fullscreen");
+ homeHeaderFullscreen.title=active?"Exit fullscreen":"Fullscreen";
+}
+homeHeaderFullscreen.addEventListener("click",function(){
+ var action=document.fullscreenElement?
+   document.exitFullscreen&&document.exitFullscreen.bind(document):
+   document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen.bind(document.documentElement);
+ if(!action)return;
+ try{
+   var result=action();
+   if(result&&typeof result.catch==="function")result.catch(function(){homeHeaderFullscreenSync();});
+ }catch(error){homeHeaderFullscreenSync();}
+});
+document.addEventListener("fullscreenchange",homeHeaderFullscreenSync);
+homeHeaderFullscreenSync();
 // Room Lobby: browser-local room master flow; no network rooms or invented pings.
 // Uses existing mode maps, 5v5 bots, and canonical combat/plant/defuse systems.
 var ROOM_STORAGE_KEY="bbfps_local_rooms_v1";
