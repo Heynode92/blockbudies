@@ -1,4 +1,4 @@
-# Blok Buddies architecture and development rules
+# Point Block architecture and development rules
 
 ## Source of truth
 
