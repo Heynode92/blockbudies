@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-10-31 WIB — Main Menu cinematic video showcase (Deathmatch / Bomb Mission)
+
+- Verified the owner's local **1920×1080 MP4** gameplay videos are committed on `main`: `src/assets/video/deatch_match_demo.mp4` (21.27 MB) and `src/assets/video/bomb_mission_demo.mp4` (8.48 MB). Kept the actual original file names and local file-relative paths.
+- Redesigned the **Home Menu only**: left 16:9 gameplay video showcase with Deathmatch/Bomb Mission selection tabs, play/pause, explicit opt-in audio, mode headline, loading/error feedback, responsive layout and updated navy/orange esports styling. Retained the logo, Personal Best and all original functional right-side menu actions.
+- The animated background continues to use the existing, live **3D Block District Three.js world**. Returning to the Home Menu after other map previews explicitly restores Block District; there is no second WebGL renderer or static replacement image.
+- Playback is scoped to the Home Menu: starts muted (browser autoplay policy), pauses in gameplay/Inventory/Shop/Room Lobby or hidden browser tabs, and resumes only when the menu becomes visible. A strict local clip whitelist prevents arbitrary media URL injection. Failed media playback displays a fallback instead of failing the UI.
+- Added the isolated `src/game/82-home-showcase.js` module, registered it in `tools/source-manifest.json`, and regenerated `assets/game.js`. No changes to map geometry, bot behavior, inventory content, weapons, Bomb scoring, UI button actions or their existing keyboard mappings.
+- [Windows standalone regression #355](https://github.com/Heynode92/blockbudies/actions/runs/41200372925) **390/390 tests PASS**, including newly added MP4 presence/header, safe media-control lifecycle, Block District scene restore and source bundle parity. Browser playback depends on MP4 codec support and actual user-side visual/CPU/GPU confirmation. See [Home Menu Showcase](docs/HOME_MENU_SHOWCASE.md).
+
 ## 2026-10-31 WIB — Hospital screenshot-accurate QA (386/386 Node + 20/20 Bomb rounds)
 
 - Corrected the Hospital playable footprint to the **32-turn gray corridor outline** and **8 white room islands / 10 physical wall rectangles** traced directly from the owner's reference image and arrow annotation. Removed the prior guess-based building/block geometry. Gray means traversable; white means solid, in both rendering and player/BOT collision.
