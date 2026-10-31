@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-31 WIB — M7 automated browser functional CI #7 VERIFIED; final release remains open
+
+- [Windows Chromium M7 QA #7](https://github.com/Heynode92/blockbudies/actions/runs/41183834642) **SUCCESS for both Police and Terrorist**; each automatically completed **50 canonical 5v5 BOT-only Bomb finishes**, **100 total**, zero browser JavaScript errors. Police-slot: Police 20/Terrorist 30 wins; planted-at-finish 35 (A 12/B 23). Terrorist-slot: Police 22/Terrorist 28 wins; planted-at-finish 31 (A 9/B 22).
+- Runner's former false-negative threshold is fixed: CI software WebGL provided only 3–34 qualifying rAF frame samples across the four short live smoke windows, which is **insufficient for FPS/CPU performance certification**. The collected artifact explicitly marks `NOT_CERTIFIED_CI_SOFTWARE_WEBGL_UNPAIRED` and `comparableToM0=false`, rather than inventing an M0 comparison.
+- [Windows standalone regression #222](https://github.com/Heynode92/blockbudies/actions/runs/41183872895) **SUCCESS**. M7 **AUTOMATED BROWSER FUNCTIONAL GATE VERIFIED**, but **M7 FINAL RELEASE IN PROGRESS** until matched performance and remaining quantitative objective/aim/navigation gates have evidence. No shipped gameplay, weapon, map, UI or standalone build changes.
+
 ## 2026-10-31 WIB — M7 browser CI round coverage verified; performance smoke differentiated
 
 - [M7 browser run #4](https://github.com/Heynode92/blockbudies/actions/runs/41180818644) **SUCCESS in both Windows Chromium jobs**, completing **50 canonical BOT-only Bomb finishes per faction configuration (100 total)** with no JS errors. Police-slot: 25 Police/25 Terrorist wins, 25 planted-at-finish; Terrorist-slot: 22 Police/28 Terrorist wins, 32 planted-at-finish. This is accelerated in-browser functional testing, **not true real-time FPS or 100 human matches**.
