@@ -1296,8 +1296,10 @@ function botAimUpdate(e,target,dt){
   e.aimTarget=target;
   e.aimReadyAt=tt+BOT_AIM.reactionMin+
     Math.random()*(BOT_AIM.reactionMax-BOT_AIM.reactionMin);
-  e.aimYaw=Number.isFinite(e.aimYaw)?e.aimYaw:
-    e.g&&e.g.rotation?e.g.rotation.y||0:0;
+  // Start each new engagement from the body's actual current orientation.
+  // Reusing a previous target's stale yaw would visually snap after patrolling.
+  e.aimYaw=e.g&&e.g.rotation&&Number.isFinite(e.g.rotation.y)?
+    e.g.rotation.y:Number.isFinite(e.aimYaw)?e.aimYaw:0;
   e.aimPitch=Number.isFinite(e.aimPitch)?e.aimPitch:0;
   e.aimSample=null;e.aimShots=0;
  }
