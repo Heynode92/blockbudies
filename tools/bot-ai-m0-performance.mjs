@@ -37,7 +37,7 @@ for(const config of configs){
   });
 }
 console.log(JSON.stringify({
-  kind:'BLOCK_BUDDIES_M0_SYNTHETIC_CPU_BENCHMARK',
+  kind:'POINT_BLOCK_M0_SYNTHETIC_CPU_BENCHMARK',
   runtime:{node:process.version,platform:process.platform,arch:process.arch},
   fixture:'synthetic-flat-10-bot-no-human',
   semantics:'CPU time includes vm.runInContext and synthetic stubs, not browser frame time',
