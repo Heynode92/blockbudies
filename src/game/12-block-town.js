@@ -18,6 +18,11 @@ function bombMapSites(id){
 }
 var BLOCK_TOWN_DEF=Object.freeze({
  halfSize:BOMB_RULES.cellSize*BOMB_RULES.cells/2,
+ // Reuse the original Deathmatch four-wall enclosure pattern at this map's scale.
+ // Walls sit just OUTSIDE [-halfSize,halfSize] so the existing A* grid stays clear.
+ perimeter:Object.freeze({height:9.5,thickness:1.2,color:0x71818b,skylineOffset:3.6,
+   facadeDepth:3.4,facadeSpacing:18,facadeMinHeight:12,facadeHeightStep:2.4}),
+ spawnLook:Object.freeze({policeSite:"A",terrorist:[-28,30]}),
  palette:Object.freeze({
    road:0x59636a,stone:0xc3b9a6,walk:0x908b7e,curb:0xa4a29a,
    plaster:[0xc49c74,0xa8b3ac,0xd2b59b,0x99b3bf,0xb5a19a,0xc2b17b,0x8da8a0],
@@ -73,6 +78,14 @@ function townSpawnPt(team){
  if(!free.length)throw Error("BLOCK TOWN: blocked team spawn "+team);
  var p=free[(Math.random()*free.length)|0];hist.push([p[0],p[1]]);return[p[0],p[1]];
 }
+// Spawn orientation uses the player's canonical yaw convention:
+ // ground forward vector = (sin(yaw), cos(yaw)).
+function bombMapSpawnYaw(team,x,z){
+ if(!isBombMode()||bombMapId(selectedBombMapId)!=="block-town")return team?0:Math.PI;
+ var def=BLOCK_TOWN_DEF.spawnLook,site=BOMB_MAP_REGISTRY["block-town"].sites.find(function(p){return p.id===def.policeSite;}),
+     goal=team?def.terrorist:[site.x,site.z];
+ return Math.atan2(goal[0]-x,goal[1]-z);
+}
 function makeBlockTown(){
  var before=S.children.slice(),d=BLOCK_TOWN_DEF,c=d.palette,half=d.halfSize;
  // Single street foundation, at ground y=0. Unlike V1 there are no coplanar
@@ -80,6 +93,42 @@ function makeBlockTown(){
  var base=mk(half*2,.28,half*2,c.road,0,-.14,0);base.castShadow=false;
  function detail(w,h,dep,color,x,y,z){dk(w,h,dep,color,x,y,z);}
  function wall(x,z,w,dep,h,color){wl(x,z,w,dep,h,color);}
+ // TDM source-of-truth creates FOUR outer mk() walls at A+0.5. Bomb hides
+ // the TDM scene, so Block Town must own its own four VISIBLE solid walls.
+ // These share its original OB collision API and are cached with BLOCK_TOWN_WORLD.
+ (function perimeterShell(){
+   var p=d.perimeter,h=p.height,th=p.thickness,off=half+th/2+.02,span=half*2+th*2;
+   [[0,-off,span,th],[0,off,span,th],[-off,0,th,span],[off,0,th,span]].forEach(function(q,i){
+     wall(q[0],q[1],q[2],q[3],h,i%2?shade(p.color,.91):p.color);
+     // The cornice and base have distinct heights to avoid coincident faces.
+     detail(q[2]+.14,.22,q[3]+.14,c.frame,q[0],h+.105,q[1]);
+     detail(q[2]+.10,.19,q[3]+.10,shade(p.color,.70),q[0],.11,q[1]);
+   });
+   // Skyline storefront/roof silhouettes behind the physical shell. These
+   // non-collidable facades are OUTSIDE the arena, not fake internal cover.
+   var lane=0;
+   for(var distance=-half+12;distance<half-7;distance+=p.facadeSpacing){
+     for(var side=0;side<4;side++){
+       var facingZ=side<2,sgn=(side%2)?1:-1,
+           sx=facingZ?distance:sgn*(half+p.skylineOffset),
+           sz=facingZ?sgn*(half+p.skylineOffset):distance,
+           height=p.facadeMinHeight+((lane+side*2)%4)*p.facadeHeightStep,
+           width=p.facadeSpacing-2.6,depth=p.facadeDepth,
+           color=c.plaster[(lane+side*3)%c.plaster.length],
+           bw=facingZ?width:depth,bd=facingZ?depth:width;
+       var silhouette=mk(bw,height,bd,color,sx,height/2,sz);
+       silhouette.castShadow=false;
+       detail(bw+.4,.42,bd+.4,c.roof[(lane+side)%c.roof.length],sx,height+.21,sz);
+       // Raised contrasting facade trim is decorative and far behind shell.
+       for(var floor=1;floor<height/3.55;floor++)for(var n=-width/2+2;n<width/2-1;n+=3.5){
+         var front=half+p.skylineOffset-p.facadeDepth/2-.09;
+         if(facingZ)detail(1.45,1.2,.08,c.glass,sx+n,1.55+floor*3.1,sgn*front);
+         else detail(.08,1.2,1.45,c.glass,sgn*front,1.55+floor*3.1,sz+n);
+       }
+     }
+     lane++;
+   }
+ })();
  // Each pavement region is disjoint from all other pavement regions.
  // Distinct Y tiers (foundation 0, pavement .05, paint .09) prevent z-fighting.
  d.paving.forEach(function(p){
