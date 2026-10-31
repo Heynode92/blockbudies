@@ -132,4 +132,4 @@ function shopOpen(){
   lobP("lbshop");shopAnim=true;inventoryBuildThumbnails();document.getElementById("shopGrid").scrollTop=0;shopRender();
 }
 document.getElementById("lshop").addEventListener("click",shopOpen);
-document.getElementById("shopBack").addEventListener("click",function(){lobP("lbs");});
+document.getElementById("shopBack").addEventListener("click",roomQuickBack);
