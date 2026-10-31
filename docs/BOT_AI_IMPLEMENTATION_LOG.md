@@ -1,7 +1,7 @@
 # BLOCK BUDDIES — BOT AI Implementation Log
 
 > **Document ID:** BB-AI-LOG-001  
-> **Status:** M0 VERIFIED (FOUNDATION) / M1 VERIFIED (CORE EXIT GATE, MANUAL OWNER PASS) / M2 READY, NOT STARTED / M3–M7 NOT STARTED  
+> **Status:** M0/M1 VERIFIED (CORE) / M2 IMPLEMENTED + CI VERIFIED; MANUAL WINDOWS PLAYTEST PENDING / M3–M7 NOT STARTED  
 > **Created:** 2026-10-30  
 > **Audited baseline commit:** `23cd2bb71a2535de86ba49ccdfc3d23455be2ff9`  
 > **Master specification:** [BOT_AI_MASTER_PLAN.md](BOT_AI_MASTER_PLAN.md)  
@@ -11,13 +11,13 @@
 
 This log is intended as the **single handoff tracker** for future assistants and maintainers. The 2026-10-30 request authorized **planning and documentation only**. The existing AI, weapon balance, UI, audio, modes, and runtime were **not upgraded** by creating these documents.
 
-**M0 BASELINE FOUNDATION VERIFIED** against the exact exit gate in [Master Plan](BOT_AI_MASTER_PLAN.md): real active BOT functions run in seeded tests, behavior traces are reproducible, baseline dispatch/navigation counts and synthetic per-tick CPU samples are measured, and gameplay source is unchanged. [Windows CI #38](https://github.com/Heynode92/blockbudies/actions/runs/41105582716) **SUCCESS (289/289 Node tests)**; owner reported **8/8 core gameplay smoke checks PASS**. **M1 IMPLEMENTED / AUTOMATED VERIFIED**: legitimate LOS snapshots, 3.6s memory, 2.4s team radio, bounded audio evidence and Bomb knowledge isolation are committed and Windows [CI #67](https://github.com/Heynode92/blockbudies/actions/runs/41108118435) passed 297/297 tests. **M1 owner-reported manual smoke PASS (2026-10-31 WIB); the scoped M1 core exit gate is VERIFIED.** [Full M1 acceptance record](BOT_AI_M1_VALIDATION.md). Individual maps, scenarios and browser telemetry were not provided. Real browser FPS/p95, real hit percentage, true reaction latency, navigation/stuck rate, statistically sampled Bomb outcomes and all map/faction scenarios are **NOT MEASURED / OPEN**; their absence must not be represented as a successful KPI. The next phases must measure those metrics before claiming improvements and final M7 release.
+**M0 BASELINE FOUNDATION VERIFIED** against the exact exit gate in [Master Plan](BOT_AI_MASTER_PLAN.md): real active BOT functions run in seeded tests, behavior traces are reproducible, baseline dispatch/navigation counts and synthetic per-tick CPU samples are measured, and gameplay source is unchanged. [Windows CI #38](https://github.com/Heynode92/blockbudies/actions/runs/41105582716) **SUCCESS (289/289 Node tests)**; owner reported **8/8 core gameplay smoke checks PASS**. **M1 IMPLEMENTED / AUTOMATED VERIFIED**: legitimate LOS snapshots, 3.6s memory, 2.4s team radio, bounded audio evidence and Bomb knowledge isolation are committed and Windows [CI #67](https://github.com/Heynode92/blockbudies/actions/runs/41108118435) passed 297/297 tests. **M1 owner-reported manual smoke PASS (2026-10-31 WIB); the scoped M1 core exit gate is VERIFIED.** [Full M1 acceptance record](BOT_AI_M1_VALIDATION.md). Individual maps, scenarios and browser telemetry were not provided. Real browser FPS/p95, real hit percentage, true reaction latency, navigation/stuck rate, statistically sampled Bomb outcomes and all map/faction scenarios are **NOT MEASURED / OPEN**; their absence must not be represented as a successful KPI. **M2 IMPLEMENTED / AUTOMATED VERIFIED:** genuine vertical BOT projectile velocity, capped aim turns, 180–460 ms intended reaction window and per-class bullet dispersion; [CI #93](https://github.com/Heynode92/blockbudies/actions/runs/41173731387) **306/306 PASS**. **M2 manual playtest PENDING, M3 NOT STARTED**. The next phases must measure the remaining live-match KPIs before claiming superior accuracy or final M7 release.
 
 | ID | Priority | Milestone | Status | Evidence / blocker |
 |---|---|---|---|---|
 | M0 | P0 | Baseline, deterministic tests and performance harness | VERIFIED (FOUNDATION EXIT GATE) | Seeded behavioral + CPU tick baseline: [M0 Baseline](BOT_AI_M0_BASELINE.md); [Windows CI #38](https://github.com/Heynode92/blockbudies/actions/runs/41105582716) 289/289 PASS; owner smoke 8/8 PASS. Real browser/aim/reaction/navigation KPI fields stay explicitly open for future stages |
 | M1 | P0 | Legitimate perception, acoustic events, memory and team intel | VERIFIED (CORE EXIT GATE) | [M1 validation and owner acceptance](BOT_AI_M1_VALIDATION.md), [Windows CI #72](https://github.com/Heynode92/blockbudies/actions/runs/41108545600): 297/297 PASS; owner-reported M1 manual smoke PASS (2026-10-31 WIB). Quantitative live gameplay KPIs remain OPEN |
-| M2 | P0 | Real 3D aiming, reaction and per-weapon firing discipline | READY / NOT STARTED | M1 core exit gate verified; distinct owner approval required before implementation |
+| M2 | P0 | Real 3D aiming, reaction and per-weapon firing discipline | IN PROGRESS (IMPLEMENTED + CI VERIFIED) | [M2 validation](BOT_AI_M2_VALIDATION.md), [Windows CI #93](https://github.com/Heynode92/blockbudies/actions/runs/41173731387): 306/306 PASS; M2 owner playtest and measured real-match hit/reaction/FPS KPIs pending |
 | M3 | P1 | Locomotion, dodge, peek, reposition and offensive cover | NOT STARTED | Requires M1–M2 |
 | M4 | P1 | Squad roles, crossfire, flank and coordination | NOT STARTED | Requires M1–M3 |
 | M5 | P1 | Police/Terrorist Bomb-specific objectives and retake fidelity | NOT STARTED | Requires M1–M4 |
@@ -67,6 +67,8 @@ This log is intended as the **single handoff tracker** for future assistants and
 | 2026-10-30 UTC / 2026-10-31 WIB | M1 perception implementation | Added real sight snapshots with provenance/TTL, team radio, acoustic evidence on real gunfire/grounded footsteps, TDM investigation, Bomb anti-omniscience decision helpers and round-reset cleanup. Preserved canonical bullets/damage/plant/defuse/weapon balance. M1 tests cover occluded movement, radio, hearing, observer-only Bomb chase, event emitter integrations. One-shot Windows bundle builder was removed after creating canonical browser asset. | [M1 validation](BOT_AI_M1_VALIDATION.md); `src/game/88-bot-perception.js`, `src/game/90-bot-ai.js`, `src/game/89-bot-tactical-intelligence.js`, `src/game/87-bomb-tactics.js`, `src/game/66-footsteps.js`, `src/game/45-combat.js`, `assets/game.js`, `tests/bot-ai-m1-perception.test.mjs`; [CI run #67](https://github.com/Heynode92/blockbudies/actions/runs/41108118435) | **IMPLEMENTED / AUTOMATED VERIFIED: 297/297 PASS. Manual browser M1 gameplay and real KPI verification PENDING.** |
 
 | 2026-10-31 WIB | M1 owner acceptance and core exit-gate decision | Owner explicitly reported "M1 playtest pasa bro" after request for post-update manual gameplay validation. Recorded **aggregate owner-reported manual PASS**; specific map/faction/LOS/hearing/Bomb session results and numerical FPS/accuracy/reaction/navigation metrics were not supplied. Independent source regression and bundle checks passed on latest code. | [M1 validation](BOT_AI_M1_VALIDATION.md); owner report in project conversation; [Windows CI #72](https://github.com/Heynode92/blockbudies/actions/runs/41108545600) on code/docs head `79919e9`, **297/297 PASS** | **M1 CORE EXIT GATE VERIFIED; M2 READY / NOT STARTED; quantitative KPIs and detailed scenario matrix remain OPEN.** |
+
+| 2026-10-31 WIB | M2 3D fire-control implementation | Owner asked whether to implement M2+M3 at once; chose **sequentially, M2 first** to isolate aim/physics regression. Implemented `src/game/40-bot-aim.js` (bounded 3D yaw/pitch, first-sighting delay, legal visible target velocity, limited lead, class-specific shot dispersion, no instant snap), wired BOT shooting through existing `fire()` vertical velocity and canonical ammo/CD, preserved player shots, M1 LOS, Bomb objective mechanics. 9 focused M2 tests + all legacy regressions pass; bundle regenerated in Windows CI and temporary builder removed. | [M2 validation](BOT_AI_M2_VALIDATION.md); `src/game/40-bot-aim.js`, `src/game/41-bot-weapons.js`, `src/game/45-combat.js`, `src/game/90-bot-ai.js`, `assets/game.js`, `tools/source-manifest.json`; [Windows CI #93](https://github.com/Heynode92/blockbudies/actions/runs/41173731387) | **M2 IMPLEMENTED + AUTOMATED VERIFIED 306/306 PASS. User gameplay and live aim/FPS telemetry pending. M3 NOT STARTED.** |
 
 Append every future milestone entry, including failed attempts, reverted changes, measured regressions, decisions and outstanding risk. Never rewrite a past released outcome to hide a failure.
 
@@ -136,6 +138,20 @@ Next milestone: **M1 perception, hearing, target memory and knowledge provenance
 - [ ] Detailed per-map/per-faction wall occlusion, footsteps, gunfire and Bomb objective playtest evidence, including duration and browser version — not provided.
 - [ ] Real live-match browser FPS/p95, actual hit percentage, reaction latency, path/stuck metrics and Bomb objective statistics — not measured.
 
+## M2 implementation checklist (2026-10-31 WIB)
+
+- [x] Source-of-truth audit: active AI, canonical BOT weapon dispatch, user/projectile ballistics, vertical character hitboxes, M1 perception and M2 roadmap.
+- [x] Independent `40-bot-aim.js` module: yaw/pitch, finite reaction, bounded turning, short lawful target-velocity lead, per-class angular error.
+- [x] Projectile `vy` respects BOT aim; player projectile formula, damage, armor and bullet collision preserved.
+- [x] No ammo subtraction or gunfire before aim permission; class-specific spread/cooldown and LOS enforced.
+- [x] Reacquired target begins from current facing; no immediate 180° body heading snap.
+- [x] Dedicated aim and actual canonical projectile regression tests passed; stable seed scenario captures nonzero BOT vertical pitch and zero shots behind blocked LOS.
+- [x] Canonical direct-open bundle built and validated on Windows GitHub Actions; [run #93](https://github.com/Heynode92/blockbudies/actions/runs/41173731387) **306/306 PASS**, zero failed.
+- [x] Dedicated [M2 validation report](BOT_AI_M2_VALIDATION.md).
+- [ ] Owner Windows playable TDM/Bomb M2 review: actual elevated/lowered targets, moving target, turn/reaction/weapon feel, Bomb objectives.
+- [ ] Actual browser accuracy/headshot distributions by weapon/range/elevation, median/p95 first-shot reaction, FPS/frame-time and map/faction matrix.
+- [ ] M2 VERIFIED after manual acceptance; **M3 MUST NOT START before this gate**.
+
 ## 5. Mandatory future entry template
 
 Copy this block and fill actual, checkable evidence:
@@ -159,15 +175,15 @@ Copy this block and fill actual, checkable evidence:
 
 - [x] M0: foundational seeded real-function BOT replay, synthetic behavior + CPU measurement, test compatibility, Windows CI and core manual smoke verified against the Master Plan M0 exit gate. **Not a claim of real browser FPS, hit%, reaction or navigation KPI completion.**
 - [x] M1: core perception/knowledge protection tests PASS, Windows CI #72 PASS (297/297), owner-reported post-update manual playtest PASS. **M1 core exit gate VERIFIED**; exact per-map/LOS/audio scenario results and quantitative FPS/accuracy/reaction/navigation KPIs are not established. See [M1 validation](BOT_AI_M1_VALIDATION.md).
-- [ ] M2: actual 3D ballistic aim and bounded reactions verified with meaningful accuracy measurements.
+- [ ] M2: 3D pitch/yaw, reaction delay, LOS-fair leading and class dispersion **IMPLEMENTED and 306/306 regression PASS**; manual gameplay M2 acceptance and quantitative hit/reaction measures still OPEN. See [M2 validation](BOT_AI_M2_VALIDATION.md).
 - [ ] M3: cover/movement and collision tests pass, no endless jitter or wall clipping.
 - [ ] M4: coordinated squad behavior demonstrated without global position leakage.
 - [ ] M5: both Bomb teams complete valid objectives and edge cases within existing rules.
 - [ ] M6: TDM and weapon categories behave competitively, preserving BOT RPG exclusion.
 - [ ] M7: all automated tests, browser playtests, performance and bundle checks pass; release recorded.
 
-**M0 FOUNDATION VERIFIED. M1 CORE EXIT GATE VERIFIED** using source-level regression, green Windows CI #72 and owner-reported post-update manual playtest. **M2 READY / NOT STARTED; M3–M7 NOT STARTED.** Advanced browser and live-match KPI checkboxes remain OPEN; do not assert them verified without recorded samples. 'Verified foundation' does not mean a production-quality BOT upgrade is released.
+**M0 FOUNDATION VERIFIED, M1 CORE VERIFIED. M2 IMPLEMENTED / AUTOMATED VERIFIED (306/306) with manual Windows playtest PENDING; M3–M7 NOT STARTED.** Advanced browser and live-match KPI checkboxes remain OPEN; do not assert them verified without recorded samples. 'Verified foundation' does not mean a production-quality BOT upgrade is released.
 
 ## 7. Next assistant: exact first action
 
-**M1 perception is VERIFIED for its core exit gate**: source tests (297/297 on Windows CI #72) plus owner-reported aggregate manual playtest PASS have been recorded in [M1 validation](BOT_AI_M1_VALIDATION.md). Next authorized milestone may be M2 (3D aim, reaction and weapon discipline) **only after a separate owner instruction**. Inspect actual source and preserve canonical projectile/weapon/objective systems. Keep real-browser FPS, hit%, reaction and navigation metrics OPEN for comparative QA; do not misrepresent user-reported smoke as per-scenario quantified evidence.
+**M1 perception is VERIFIED for its core exit gate**: source tests (297/297 on Windows CI #72) plus owner-reported aggregate manual playtest PASS have been recorded in [M1 validation](BOT_AI_M1_VALIDATION.md). Owner has authorized M2 and M3 planning, with sequential implementation recommended and adopted. **M2 has been implemented and CI-tested; M3 remains NOT STARTED** until M2 manual acceptance and separate validation. Inspect actual source and preserve canonical projectile/weapon/objective systems. Keep real-browser FPS, hit%, reaction and navigation metrics OPEN for comparative QA; do not misrepresent user-reported smoke as per-scenario quantified evidence.
