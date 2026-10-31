@@ -6,86 +6,130 @@ var HOME_DEMOS=Object.freeze({
 });
 var homeDemoKey="deathmatch",homeDemoHasError=false;
 var homeDemoVideo=document.getElementById("homeDemoVideo"),
-    homeDemoStatus=document.getElementById("homeDemoStatus"),
-    homeDemoLabel=document.getElementById("homeDemoLabel"),
-    homeDemoDetail=document.getElementById("homeDemoDetail"),
-    homeDemoCounter=document.getElementById("homeDemoCounter"),
-    homeDemoAudio=document.getElementById("homeDemoAudio"),
-    homeDemoPlay=document.getElementById("homeDemoPlay"),
-    homeDemoEmpty=document.getElementById("homeDemoEmpty");
+ homeDemoNextVideo=document.getElementById("homeDemoNextVideo"),
+ homeDemoScreen=document.querySelector("#lbs .home-demo-screen"),
+ homeDemoStatus=document.getElementById("homeDemoStatus"),
+ homeDemoLabel=document.getElementById("homeDemoLabel"),
+ homeDemoDetail=document.getElementById("homeDemoDetail"),
+ homeDemoCounter=document.getElementById("homeDemoCounter"),
+ homeDemoProgress=document.getElementById("homeDemoProgress"),
+ homeDemoEmpty=document.getElementById("homeDemoEmpty");
+var homeDemoInterval=null,homeDemoFadeTimer=null,homeDemoTransitioning=false;
 function homeDemoVisible(){
- return !document.hidden&&!run&&!!lob&&
-   document.getElementById("lbs").classList.contains("on");
+ return !document.hidden&&!run&&!!lob&&document.getElementById("lbs").classList.contains("on");
 }
 function homeDemoSetStatus(message){homeDemoStatus.textContent=message;}
-function homeDemoAudioState(){
- homeDemoAudio.textContent=homeDemoVideo.muted?"SOUND OFF":"SOUND ON";
- homeDemoAudio.setAttribute("aria-pressed",String(!homeDemoVideo.muted));
-}
-function homeDemoPlayState(){
- homeDemoPlay.textContent=homeDemoVideo.paused?"▶ PLAY":"Ⅱ PAUSE";
- homeDemoPlay.setAttribute("aria-label",homeDemoVideo.paused?"Play gameplay preview":"Pause gameplay preview");
-}
-function homeDemoAttemptPlay(){
+function homeDemoAttemptPlay(video){
  if(!homeDemoVisible()||homeDemoHasError)return;
- // Autoplay on local file:// requires muted playback in modern browsers.
- var attempt=homeDemoVideo.play();
+ var target=video||homeDemoVideo;target.muted=true;
+ var attempt=target.play();
  if(attempt&&typeof attempt.catch==="function")attempt.catch(function(){
-   if(homeDemoVisible()&&!homeDemoHasError)homeDemoSetStatus("PRESS PLAY FOR PREVIEW");
-   homeDemoPlayState();
+   if(homeDemoVisible()&&!homeDemoHasError)homeDemoSetStatus("GAMEPLAY PREVIEW");
  });
- homeDemoPlayState();
 }
-function homeDemoSelect(value){
- if(!Object.prototype.hasOwnProperty.call(HOME_DEMOS,value))return;
- var demo=HOME_DEMOS[value],changed=homeDemoKey!==value||
-   homeDemoVideo.getAttribute("src")!==demo.src;
- homeDemoKey=value;homeDemoHasError=false;
+function homeDemoUpdateLabel(value){
+ var demo=HOME_DEMOS[value];homeDemoKey=value;
  homeDemoLabel.textContent=demo.label;homeDemoDetail.textContent=demo.detail;
  homeDemoCounter.textContent=demo.number+" / 02";
- homeDemoEmpty.hidden=true;
- document.querySelectorAll("[data-home-demo]").forEach(function(button){
-   var active=button.getAttribute("data-home-demo")===value;
-   button.classList.toggle("active",active);
-   button.setAttribute("aria-pressed",String(active));
- });
- if(changed){
-   homeDemoVideo.pause();
-   homeDemoVideo.setAttribute("src",demo.src);homeDemoVideo.load();
+ homeDemoEmpty.hidden=true;homeDemoSetStatus("GAMEPLAY FOOTAGE");
+}
+function homeDemoResetProgress(){
+ if(!homeDemoProgress)return;
+ homeDemoProgress.style.animation="none";
+ void homeDemoProgress.offsetWidth;
+ homeDemoProgress.style.animation="";
+}
+function homeDemoRotate(){
+ if(!homeDemoVisible()||homeDemoTransitioning)return;
+ homeDemoTransitioning=true;
+ var nextKey=homeDemoKey==="deathmatch"?"bomb":"deathmatch";
+ var outgoing=homeDemoVideo,incoming=homeDemoNextVideo;
+ incoming.classList.remove("is-current");incoming.muted=true;
+ incoming.src=HOME_DEMOS[nextKey].src;incoming.load();
+ function finish(){
+   if(!homeDemoTransitioning)return;
+   incoming.classList.add("is-current");
+   homeDemoUpdateLabel(nextKey);
+   homeDemoResetProgress();
+   clearTimeout(homeDemoFadeTimer);
+   homeDemoFadeTimer=setTimeout(function(){
+     outgoing.pause();outgoing.classList.remove("is-current");outgoing.removeAttribute("src");outgoing.load();
+     homeDemoVideo=incoming;homeDemoNextVideo=outgoing;homeDemoTransitioning=false;
+   },780);
  }
- homeDemoSetStatus("GAMEPLAY FOOTAGE");
- homeDemoAttemptPlay();
+ var play=incoming.play();
+ if(play&&typeof play.then==="function"){
+   play.then(function(){if(homeDemoVisible())finish();else homeDemoTransitioning=false;})
+   .catch(function(){homeDemoTransitioning=false;homeDemoSetStatus("GAMEPLAY PREVIEW");});
+ }else finish();
 }
 function homeShowcaseSync(){
  if(!homeDemoVideo)return;
- if(homeDemoVisible())homeDemoAttemptPlay();
- else homeDemoVideo.pause();
- homeDemoPlayState();
+ if(homeDemoVisible()){
+   homeDemoAttemptPlay();
+   if(homeDemoInterval===null){
+     homeDemoResetProgress();
+     homeDemoInterval=setInterval(homeDemoRotate,10000);
+   }
+ }else{
+   homeDemoVideo.pause();homeDemoNextVideo.pause();
+   if(homeDemoInterval!==null){clearInterval(homeDemoInterval);homeDemoInterval=null;}
+   clearTimeout(homeDemoFadeTimer);
+   homeDemoVideo.classList.add("is-current");
+   homeDemoNextVideo.classList.remove("is-current");
+   homeDemoTransitioning=false;
+ }
 }
-document.querySelectorAll("[data-home-demo]").forEach(function(button){
- button.addEventListener("click",function(){homeDemoSelect(button.getAttribute("data-home-demo"));});
-});
-homeDemoAudio.addEventListener("click",function(){
- homeDemoVideo.muted=!homeDemoVideo.muted;
- homeDemoAudioState();
- if(!homeDemoVideo.paused&&homeDemoVisible())homeDemoSetStatus("GAMEPLAY FOOTAGE");
-});
-homeDemoPlay.addEventListener("click",function(){
- if(!homeDemoVisible())return;
- if(homeDemoVideo.paused)homeDemoAttemptPlay();
- else homeDemoVideo.pause();
- homeDemoPlayState();
-});
-homeDemoVideo.addEventListener("playing",function(){
- homeDemoSetStatus("GAMEPLAY FOOTAGE");homeDemoPlayState();
-});
-homeDemoVideo.addEventListener("pause",homeDemoPlayState);
-homeDemoVideo.addEventListener("error",function(){
- homeDemoHasError=true;homeDemoVideo.pause();
- homeDemoEmpty.hidden=false;homeDemoSetStatus("PREVIEW UNAVAILABLE");
- homeDemoPlayState();
+[homeDemoVideo,homeDemoNextVideo].forEach(function(video){
+ video.muted=true;
+ video.addEventListener("error",function(){
+   if(video!==homeDemoVideo)return;
+   homeDemoHasError=true;
+   homeDemoEmpty.hidden=false;homeDemoSetStatus("PREVIEW UNAVAILABLE");
+ });
 });
 document.addEventListener("visibilitychange",homeShowcaseSync);
-homeDemoVideo.muted=true;
-homeDemoAudioState();
-homeDemoSelect("deathmatch");
+homeDemoUpdateLabel("deathmatch");
+homeShowcaseSync();
+// Wallet connection is optional UI preparation; it does not authenticate gameplay.
+var homeWalletButton=document.getElementById("homeWalletConnect");
+var homeWalletAccount=null;
+var homeWalletLabel=document.getElementById("homeWalletLabel");
+function homeWalletRender(){
+ homeWalletLabel.textContent=homeWalletAccount?
+  homeWalletAccount.slice(0,6)+"…"+homeWalletAccount.slice(-4):"CONNECT WALLET";
+ homeWalletButton.classList.toggle("connected",!!homeWalletAccount);
+ homeWalletButton.setAttribute("aria-label",homeWalletAccount?"Connected wallet "+homeWalletAccount:"Connect wallet");
+}
+homeWalletButton.addEventListener("click",function(){
+ var provider=window.ethereum;
+ if(!provider||typeof provider.request!=="function"){
+   homeWalletLabel.textContent="WALLET NOT FOUND";
+   return;
+ }
+ homeWalletButton.disabled=true;homeWalletLabel.textContent="CONNECTING…";
+ provider.request({method:"eth_requestAccounts"}).then(function(accounts){
+   homeWalletAccount=Array.isArray(accounts)&&typeof accounts[0]==="string"&&/^0x[a-fA-F0-9]{40}$/.test(accounts[0])?accounts[0]:null;
+   homeWalletRender();
+ }).catch(function(){
+   homeWalletRender();
+ }).finally(function(){homeWalletButton.disabled=false;});
+});
+if(window.ethereum&&typeof window.ethereum.on==="function"){
+ window.ethereum.on("accountsChanged",function(accounts){
+   homeWalletAccount=Array.isArray(accounts)&&typeof accounts[0]==="string"&&/^0x[a-fA-F0-9]{40}$/.test(accounts[0])?accounts[0]:null;
+   homeWalletRender();
+ });
+}
+homeWalletRender();
+// PBT is a visual placeholder until the token system has an audited contract and trusted balance source.
+var homePbtAdd=document.getElementById("homePbtAdd");
+var homePbtNotice=document.getElementById("homePbtNotice");
+var homePbtNoticeTimer=null;
+if(homePbtAdd&&homePbtNotice){
+ homePbtAdd.addEventListener("click",function(){
+  homePbtNotice.hidden=false;
+  clearTimeout(homePbtNoticeTimer);
+  homePbtNoticeTimer=setTimeout(function(){homePbtNotice.hidden=true;},3500);
+ });
+}
