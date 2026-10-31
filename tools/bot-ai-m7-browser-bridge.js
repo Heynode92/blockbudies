@@ -2,14 +2,14 @@
 // Never included in assets/game.js or loaded by players. Production functions
 // are called unchanged. Neither BOMB_RULES nor projectile/winner logic is patched.
 if(botQaEnabled){
-  window.__BlockBuddiesM7CI=Object.freeze({
+  window.__PointBlockM7CI=Object.freeze({
     start:function(mode,team,mapId){
       // Test the actual room whitelist and production map activation.
       var activeMap=mode===1?bombMapId(mapId):tdmMapId(mapId);
       roomMatchConfig={mode:mode,mapId:activeMap,kills:100,minutes:activeMap==="block-labs"?2:1,rounds:12,roundMinutes:1};
       selM=mode;
       begin(team);
-      if(!window.__BlockBuddiesM7CI.substitute())throw Error('Expected canonical 9-BOT roster');
+      if(!window.__PointBlockM7CI.substitute())throw Error('Expected canonical 9-BOT roster');
       window.__m7RoundRef=bombMatch;
       var mapChecks=null;
       if(mode===1&&activeMap==="block-town"){
@@ -172,7 +172,7 @@ if(botQaEnabled){
         mapChecks={solidLabBlocks:solids,realReactors:d.reactors.length,
           tacticalRoutes:labRoutes,perimeterCount:4,roof:true,playerYaw:pl.face};
       }
-      BlockBuddiesQA.reset();
+      PointBlockQA.reset();
       return {map:mode===1?bombMapInfo(activeMap).name:tdmMapInfo(activeMap).name,mapChecks:mapChecks,bots:en.length,
         teams:[en.filter(e=>e.tm===0).length,en.filter(e=>e.tm===1).length],
         roundSeconds:roomRoundSeconds(),roundLimit:roomRoundLimit()};
@@ -202,7 +202,7 @@ if(botQaEnabled){
       R.shadowMap.enabled=false;
       R.setPixelRatio(1);
       R.setSize(1,1,false);
-      BlockBuddiesQA.reset();
+      PointBlockQA.reset();
     },
     step:function(steps){
       if(run)throw Error('Refusing accelerated update while real-time rAF simulation is active');
@@ -214,19 +214,19 @@ if(botQaEnabled){
         // when canonical bombNextRound creates a NEW bombMatch object.
         if(bombMatch&&bombMatch!==window.__m7RoundRef&&!mt.over){
           window.__m7RoundRef=bombMatch;
-          if(!window.__BlockBuddiesM7CI.substitute())
+          if(!window.__PointBlockM7CI.substitute())
             throw Error('Cannot restore 5v5 QA roster after canonical round reset');
         }
       }
-      var r=BlockBuddiesQA.report();
+      var r=PointBlockQA.report();
       return {over:mt.over,round:bombMatch&&bombMatch.round,
         completed:r.bombRounds.completed,planted:r.bombRounds.plantedAtFinish};
     },
     restart:function(team){begin(team);run=false;
-      if(!window.__BlockBuddiesM7CI.substitute())throw Error('5v5 QA restore failed on new match');
+      if(!window.__PointBlockM7CI.substitute())throw Error('5v5 QA restore failed on new match');
       window.__m7RoundRef=bombMatch;},
     summary:function(){
-      return {qa:BlockBuddiesQA.report(),rendering:R.info.render.calls,
+      return {qa:PointBlockQA.report(),rendering:R.info.render.calls,
         active:run,over:mt.over,bots:en.length,scores:ts.slice(),webgl:!!R.getContext(),
         round:bombMatch&&bombMatch.round,
         carrierSubstitutions:window.__m7CarrierSubstitutions||0,
