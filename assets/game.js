@@ -658,24 +658,30 @@ function makeBlockTown(){
  // Every gameplay-scale prop has a real collision body, unlike visual window trim.
  // Shapes are grounded urban planters, concrete low walls, dumpsters or stacked crates.
  d.cover.forEach(function(q,i){
-   var x=q[0],z=q[1],w=q[2],dep=q[3],kind=i%4,h=kind===1?1.45:1.28,
-       body=kind===0?c.stone:kind===1?c.metal:kind===2?c.wood:c.curb;
+   var x=q[0],z=q[1],w=q[2],dep=q[3],kind=i%4,
+       // Preserve the original V1 cBox/cBar collision height precisely.
+       h=i%2===0?2.4:1.3,
+       body=kind===0?c.wood:kind===1?c.stone:kind===2?c.metal:c.curb;
    wall(x,z,w,dep,h,body);
    detail(w+.08,.12,dep+.08,shade(body,.70),x,.085,z);
-   if(kind===0){ // concrete planter, with grounded soil and low leaves
+   if(kind===0){ // stacked shop-delivery crates, 2.4 m solid footprint
+     for(var a=1;a<4;a++){
+       detail(w+.09,.095,dep+.13,shade(body,a%2?.84:.67),x,a*h/4,z);
+       detail(.15,h,.15,c.metal,x-w/2+.12,h/2,z+dep/2-.1);
+       detail(.15,h,.15,c.metal,x+w/2-.12,h/2,z+dep/2-.1);
+     }
+     detail(w+.12,.16,dep+.1,c.wood,x,h+.05,z);
+   }else if(kind===1){ // knee-high civic concrete planter
      detail(w+.12,.18,dep+.12,c.frame,x,h-.04,z);
      detail(w-.34,.12,dep-.34,c.wood,x,h+.09,z);
      for(var a=-1;a<=1;a++)
        detail(.35,.42,.35,c.foliage,x+a*w*.22,h+.29,z);
-   }else if(kind===1){ // urban dumpster, with trim and lid
+   }else if(kind===2){ // tall 2.4 m municipal equipment cabinet / delivery container
      detail(w+.18,.16,dep+.14,0x344a51,x,h+.04,z);
-     detail(w*.55,.17,.07,c.frame,x,h*.55,z+dep/2+.045);
-     detail(.12,.65,.12,0x222b30,x-w/2+.18,.85,z+dep/2+.085);
-   }else if(kind===2){ // low stacked wooden pallets / delivery crates
-     for(var a=-1;a<=1;a++)detail(w-.22,.095,dep+.10,shade(body,a===0?.72:.86),x,.4+a*.29,z);
-     detail(.15,h,.15,c.metal,x-w/2+.12,h/2,z+dep/2-.1);
-     detail(.15,h,.15,c.metal,x+w/2-.12,h/2,z+dep/2-.1);
-   }else{ // stone traffic barricade
+     for(var k=0;k<3;k++)detail(w*.72,.10,.09,c.frame,x,.6+k*.57,z+dep/2+.045);
+     detail(.15,h-.3,.13,c.frame,x-w/2+.18,h/2,z+dep/2+.075);
+     detail(.15,h-.3,.13,c.frame,x+w/2-.18,h/2,z+dep/2+.075);
+   }else{ // 1.3m masonry traffic barricade, not a full concrete block
      detail(w+.13,.12,dep+.15,c.frame,x,h+.05,z);
      detail(w-.2,.16,.095,0xe3af69,x,h*.65,z+dep/2+.058);
    }
