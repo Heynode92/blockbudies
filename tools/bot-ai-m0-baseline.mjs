@@ -76,9 +76,12 @@ export function runBotM0Baseline({
     },
     gh:()=>0,flash:()=>{},aimArms:()=>{},
     footstepAdvance(){metrics.footstepCalls++;},
-    fire(e,yaw,weapon,side,pitch){
+    fire(e,yaw,weapon,side,adv){
+      // M2 bot pitch is transient on the shooter during canonical fire().
+      // The fifth argument is elapsed sub-frame time, NOT a pitch angle.
       shots.push({t:round(c.tt),team:e.tm,bot:e.idx,
-        yaw:round(yaw),pitch:round(pitch),weapon:weapon.stats.kind,side});
+        yaw:round(yaw),pitch:round(Number.isFinite(e.aimShotPitch)?e.aimShotPitch:0),
+        weapon:weapon.stats.kind,side});
     },
     clearTo:()=>true,
     hurt(){metrics.meleeCalls++;},
