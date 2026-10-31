@@ -59,6 +59,7 @@ To compute FPS, the export offers `approximateFpsMedian` from the **median frame
 - [x] Windows CI multi-seed deterministic **15/15 synthetic scenarios**; open/blocked LOS on both teams and modes, low-HP retreat and stable replay. Distinguish synthetic evidence from real-browser measurements.
 - [x] Canonical direct-open bundle/syntax, no backend, Docker, WSL or player-side build.
 - [x] No modifications to `BOT_WEAPONS.primaries`, WP damage/recoil, player aim, Bomb plant/defuse/fuse/score rules, spawn rules, UI, game mode descriptions or map geometry.
+- [x] **Automated 5v5 browser functional Bomb coverage VERIFIED**: [Windows M7 CI #7](https://github.com/Heynode92/blockbudies/actions/runs/41183834642) completed 50 canonical round finishes for Police-slot plus 50 for Terrorist-slot; both Windows Chromium jobs SUCCESS, zero JavaScript exceptions. These accelerated canonical gameplay simulations certify functional round completion **only**, not native hardware performance or all final quality gates.
 - [ ] Actual browser frame time and BOT CPU p95 sampled with hardware/browser, per-mode/map/team run metadata and comparison to M0-equivalent measurements.
 - [ ] Actual per-class/range projectile hit distributions, headshot and reaction-outlier assessment with proposed Master Plan engagement samples (including misses and no-shot contacts).
 - [ ] Real full-map navigation time/stuck/collision results, squad congestion, genuine Bomb plant/defuse and TDM win-rate outcomes.
@@ -134,12 +135,31 @@ The resulting per-team JSON artifacts contain browser error counts, rendered fra
 
 **Run #5:** [Windows M7 browser #5](https://github.com/Heynode92/blockbudies/actions/runs/41181192598) Police **SUCCESS**, Terrorist **FAIL** despite 50/50 round finishes (Police 25/Terrorist 25; planted-at-finish 25). **Run #6:** [Windows M7 browser #6](https://github.com/Heynode92/blockbudies/actions/runs/41181195533) both jobs **FAIL** despite 50/50 finishes in each (Police-slot Police 26/Terrorist 24, planted-at-finish 32; Terrorist-slot Police 22/Terrorist 28, planted-at-finish 31). The exact failure was the CI test runner's arbitrary **≥10 qualifying frame samples** condition in the 12-second software-WebGL smoke window, not round simulation, crashes, or JS errors. Those specific Bomb sessions recorded 5–6 rAF frames (with 21–24 BOT CPU samples); **that is insufficient for a real performance claim** but still demonstrates browser initialization and instrumentation.
 
-**Correction:** `tools/bot-ai-m7-browser.mjs` now keeps the smoke test fail-closed for startup errors, missing WebGL, invalid starting 5v5 roster, no qualifying frames or BOT CPU samples, and incomplete canonical Bomb round outcomes. For scarce samples on hosted software-WebGL, it records `performanceAssessment.status=NOT_CERTIFIED_CI_SOFTWARE_WEBGL_UNPAIRED` and per-mode `INSUFFICIENT_FOR_PERFORMANCE_BENCHMARK`, rather than failing unrelated functional coverage. A new CI run must be confirmed green before claiming the correction is verified.
+**Correction:** `tools/bot-ai-m7-browser.mjs` now keeps the smoke test fail-closed for startup errors, missing WebGL, invalid starting 5v5 roster, no qualifying frames or BOT CPU samples, and incomplete canonical Bomb round outcomes. For scarce samples on hosted software-WebGL, it records `performanceAssessment.status=NOT_CERTIFIED_CI_SOFTWARE_WEBGL_UNPAIRED` and per-mode `INSUFFICIENT_FOR_PERFORMANCE_BENCHMARK`, rather than failing unrelated functional coverage. The corrected runner passed both team jobs in CI #7; software-WebGL performance remains explicitly NOT_CERTIFIED.
 
 **Final status:** M7 automated browser **functional** round-coverage gate has positive #4 evidence. M7 Final release **still NOT VERIFIED**; outstanding: matched M0-equivalent browser performance, quantitative aim/headshot/outlier and per-distance samples, actual plant/defuse event denominators, two-map/faction long-run stability and measured gameplay quality. Do **not** reinterpret software-VM FPS as a player hardware benchmark.
 
+### Automated browser CI #7 — both teams PASS (2026-10-31 WIB)
+
+[Windows M7 browser run #7](https://github.com/Heynode92/blockbudies/actions/runs/41183834642), on commit `f3c8b7b58a351ca4a0e05dac40c5577ff2f2ecca`, completed with **SUCCESS on both Police and Terrorist Windows Chromium jobs**. The CI-generated, QA-only 5v5 replacement used the same canonical production simulation and finished **50/50 Bomb rounds per faction configuration (100 total)**, with **0 reported JavaScript errors**.
+
+| Actual evidence | Police human-slot replaced by BOT | Terrorist human-slot replaced by BOT |
+|---|---:|---:|
+| Completed authentic `bombFinish()` round outcomes | 50 | 50 |
+| Police wins | 20 | 22 |
+| Terrorist wins | 30 | 28 |
+| Bomb planted at round finish | 35 | 31 |
+| Site A / site B / no-site at finish | 12 / 23 / 15 | 9 / 22 / 19 |
+| TDM real-time CI rAF samples | 28 | 34 |
+| Bomb real-time CI rAF samples | 3 | 17 |
+| Browser JS exceptions | 0 | 0 |
+
+The separate live WebGL smoke proved initialization/active instrumentation but its **12-second software-rendered frame sample is insufficient** and explicitly reports `performanceAssessment.status=NOT_CERTIFIED_CI_SOFTWARE_WEBGL_UNPAIRED`, `comparableToM0=false`, and `INSUFFICIENT_FOR_PERFORMANCE_BENCHMARK` per mode. The source game, canonical `assets/game.js`, weapon balance, Bomb timers and UI were not modified. [Windows regression #222](https://github.com/Heynode92/blockbudies/actions/runs/41183872895) also concluded **SUCCESS** on the latest documentation commit.
+
+**Decision:** M7 automated **BROWSER FUNCTIONAL QA = VERIFIED**; M7 **FINAL RELEASE = IN PROGRESS / NOT VERIFIED**. The missing release evidence remains matched M0-equivalent hardware/browser performance, measurement anomaly resolution, objective-specific plant/defuse denominators, representative per-range/weapon/headshot/reaction observations and full long-run navigation/map quality gates. Automation removes the need for a 50-round manual owner test; it does not certify requirements it does not measure.
+
 ## Audit verdict
 
-**M6 core VERIFIED by owner 7/7 manual PASS and prior Windows CI. M7 instrumentation and automated synthetic suite implemented; M7 FINAL QA/RELEASE REMAINS OPEN.** No real browser or match session was executed by GitHub Actions; thus no recorded FPS, real BOT hit-rate improvement, measured true reaction percentile, navigation stuck improvement, measured Bomb-win percentages or proven 10%/15% performance overhead thresholds may be claimed. The original M0 fixed-seed arena changed significantly across M1–M6, so comparing a 2026-10-30 M0 synthetic dispatch count directly with a 2026-10-31 M7 result would **not** prove a causal real-game gain.
+**M6 core VERIFIED by owner 7/7 manual PASS and Windows regression CI. M7 live instrumentation, deterministic synthetic suite and automated browser 100-round Bomb functional suite VERIFIED; M7 FINAL QA/RELEASE REMAINS OPEN.** CI executed real browser startup/rAF smoke and accelerated canonical 5v5 BOT-only Bomb simulations, but these did **not** establish player-hardware FPS, a matched M0 browser baseline, independently measured human-like reaction percentiles, headshot/damage accuracy, navigation-stuck reductions or proven 10%/15% performance-overhead limits. The original M0 fixed-seed arena changed significantly across M1–M6, so comparing a 2026-10-30 M0 synthetic dispatch count directly with a 2026-10-31 M7 result would **not** prove a causal real-game gain.
 
 M7 is an evaluation milestone. Do not turn on game telemetry for ordinary users, auto-send reports, loosen the old gameplay contract or mark a release PASS simply because tests are green.
