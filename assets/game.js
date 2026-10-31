@@ -3666,6 +3666,17 @@ if(window.ethereum&&typeof window.ethereum.on==="function"){
  });
 }
 homeWalletRender();
+// PBT is a visual placeholder until the token system has an audited contract and trusted balance source.
+var homePbtAdd=document.getElementById("homePbtAdd");
+var homePbtNotice=document.getElementById("homePbtNotice");
+var homePbtNoticeTimer=null;
+if(homePbtAdd&&homePbtNotice){
+ homePbtAdd.addEventListener("click",function(){
+  homePbtNotice.hidden=false;
+  clearTimeout(homePbtNoticeTimer);
+  homePbtNoticeTimer=setTimeout(function(){homePbtNotice.hidden=true;},3500);
+ });
+}
 // Room Lobby: browser-local room master flow; no network rooms or invented pings.
 // Uses existing mode maps, 5v5 bots, and canonical combat/plant/defuse systems.
 var ROOM_STORAGE_KEY="bbfps_local_rooms_v1";
@@ -4731,7 +4742,7 @@ show("Blok Buddies FPS",'<p>Survive the terrorist assault. There are no drops in
 document.getElementById("go").onclick=function(){this.blur();reset();ov.style.display="none";run=true;};
 // Lobby (mode select screen). lobBest() reads the best score from localStorage key "bbfps_best" (try/catch).
 var lb=document.getElementById("lb");
-function lobBest(){var b=0;try{b=+localStorage.getItem("bbfps_best")||0;}catch(e){}document.getElementById("lbbest").textContent=b;}
+function lobBest(){var b=0;try{b=+localStorage.getItem("bbfps_best")||0;}catch(e){}var el=document.getElementById("lbbest");if(el)el.textContent=b;}
 function lobP(id){
  if(id==="lbs"&&roomCurrent)roomCloseLocal();
  ["lbs","lbm","lbrooms","lbroomlive","lbiv","lbshop"].forEach(function(i){
