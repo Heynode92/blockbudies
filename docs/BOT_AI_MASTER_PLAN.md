@@ -1,7 +1,7 @@
 # BLOCK BUDDIES — BOT Intelligence Modernization Master Plan
 
 > **Document ID:** BB-AI-ROADMAP-001  
-> **Status:** M0–M4 CORE VERIFIED (M4 OWNER 7/7 PASS) / M5 IMPLEMENTED + CI VERIFIED, OWNER PLAYTEST PENDING / M6–M7 NOT STARTED  
+> **Status:** M0–M5 CORE VERIFIED (M5 OWNER 7/7 PASS) / M6 IMPLEMENTED + CI VERIFIED, OWNER PLAYTEST PENDING / M7 NOT STARTED  
 > **Baseline reviewed:** `main` at `23cd2bb71a2535de86ba49ccdfc3d23455be2ff9` (2026-10-30)  
 > **Scope:** Police and Terrorist BOTs in Team Deathmatch (TDM) and Bomb Mission  
 > **Source of truth:** repository production sources, `docs/ARCHITECTURE.md`, original-game fixture, existing test suite  
@@ -11,7 +11,8 @@
 > **M2 implementation and manual checklist:** [BOT_AI_M2_VALIDATION.md](BOT_AI_M2_VALIDATION.md)  
 > **M3 implementation and manual checklist:** [BOT_AI_M3_VALIDATION.md](BOT_AI_M3_VALIDATION.md)  
 > **M4 implementation and manual checklist:** [BOT_AI_M4_VALIDATION.md](BOT_AI_M4_VALIDATION.md)  
-> **M5 implementation and manual checklist:** [BOT_AI_M5_VALIDATION.md](BOT_AI_M5_VALIDATION.md)
+> **M5 implementation and manual checklist:** [BOT_AI_M5_VALIDATION.md](BOT_AI_M5_VALIDATION.md)  
+> **M6 implementation and manual checklist:** [BOT_AI_M6_VALIDATION.md](BOT_AI_M6_VALIDATION.md)
 
 ## 1. Product outcome
 
@@ -208,13 +209,15 @@ Mark a milestone complete **only after its acceptance gates pass**. Each milesto
 
 ### M5 — Bomb fidelity
 
-**Current tracking (2026-10-31 WIB): IMPLEMENTED / AUTOMATED VERIFIED.** New decision-only `src/game/86-bomb-intelligence.js` preserves original `86-bomb-mission.js` and `11-bomb-map.js`, while providing a limited A/B site switch on legal M1 contact, critical-fuse Police defuse assignment, dropped-bomb recovery and separated post-plant/retake support goals. [Windows CI #149](https://github.com/Heynode92/blockbudies/actions/runs/41175963944): **346/346 PASS**, all original Bomb timers/scoring, TDM and M1–M4 regression tests remain enabled. [M5 validation](BOT_AI_M5_VALIDATION.md). **Human Windows Bomb playtest and real-map objective outcome / FPS KPI measurement remain OPEN; M5 NOT CORE VERIFIED yet. M6–M7 NOT STARTED.**
+**Current tracking (2026-10-31 WIB): IMPLEMENTED / AUTOMATED VERIFIED.** New decision-only `src/game/86-bomb-intelligence.js` preserves original `86-bomb-mission.js` and `11-bomb-map.js`, while providing a limited A/B site switch on legal M1 contact, critical-fuse Police defuse assignment, dropped-bomb recovery and separated post-plant/retake support goals. [Windows CI #149](https://github.com/Heynode92/blockbudies/actions/runs/41175963944): **346/346 PASS**, all original Bomb timers/scoring, TDM and M1–M4 regression tests remain enabled. [M5 validation](BOT_AI_M5_VALIDATION.md). **M5 owner-reported manual Bomb gameplay 7/7 PASS, so M5 CORE VERIFIED.** Statistical Bomb outcomes and actual FPS remain OPEN; M6 now implemented separately. [M6 validation](BOT_AI_M6_VALIDATION.md).
 
 **Work:** role scoring for carriers, entries, hold positions, site switching, defuse urgency and late-fuse rescue; objective-aware cover while obeying hearing/vision information.
 
 **Exit gate:** repeated simulations cover A/B attacks, 1vX, contested/uncontested defuse, bomb carrier elimination, dropped bomb, plant interrupts, fuse expiry and all-living/team-wipe outcomes with valid winner.
 
 ### M6 — TDM & armament
+
+**Current tracking (2026-10-31 WIB): IMPLEMENTED / AUTOMATED VERIFIED.** New TDM-only `src/game/88-bot-tdm.js`: M1 LOS-only visible opponent scoring (no human targeting bias, spawn-protected targets excluded), per-class shotgun/SMG/dual/rifle/sniper/pistol *movement distance* bands, central map-control patrol positions away from canonical ±38 spawn regions, finite A* planning budgets, and fail-closed stale-target routing. Original `BOT_WEAPONS.primaries` and **RPG exclusion are unchanged**. Bomb objectives, player controls, damage/recoil, M2 aim, M3 movement and M4 squad director remain authoritative. [Windows CI #167](https://github.com/Heynode92/blockbudies/actions/runs/41176771936) **361/361 PASS**, [M6 validation](BOT_AI_M6_VALIDATION.md). **Owner TDM browser playtest and actual live-match hit%, spawn-camp rates, per-class engagement distance/FPS remain OPEN; M6 NOT CORE VERIFIED yet. M7 NOT STARTED.**
 
 **Work:** TDM threat prioritization, patrol/rotation lanes and per-class engagement distance; balance toward aggression without spawn camping.
 
@@ -322,4 +325,4 @@ These are **maintainer-only** actions. The user must never be told to install No
 5. Keep tactical input honest and preserve canonical gameplay mechanics. Test in realistic scenarios; record baseline deltas.
 6. Commit only after verification; update documentation and implementation log in the same commit. Never claim an upgrade was completed while only the plan was edited.
 
-**Approval boundary:** The original request on 2026-10-30 authorized documentation and logging only. A later explicit owner instruction authorized M0 harness and testing work. M1 gameplay update was explicitly authorized by the owner, implemented, and accepted through green Windows CI and owner-reported manual gameplay PASS. **M1 core feature gate VERIFIED**, not a quantified browser performance sign-off. The owner authorized sequential M2 and M3 implementation. **M2 has been VERIFIED for the core feature gate after CI 306/306 plus owner-reported manual 7/7 PASS.** **M3 core feature gate is now VERIFIED** via full Windows CI 318/318 and explicit owner-reported 7/7 manual gameplay PASS. **M4 squad coordination was separately authorized and VERIFIED** via Windows CI 332/332 and explicit owner-reported 7/7 manual gameplay PASS; real squad KPI measurement remains OPEN. **M5 Bomb tactical intelligence is subsequently authorized, implemented and automated-verified** via Windows CI #149 346/346 PASS; M5 human browser gameplay and actual Bomb success-rate/FPS measurements remain OPEN. **M6–M7 NOT STARTED.**
+**Approval boundary:** The original request on 2026-10-30 authorized documentation and logging only. A later explicit owner instruction authorized M0 harness and testing work. M1 gameplay update was explicitly authorized by the owner, implemented, and accepted through green Windows CI and owner-reported manual gameplay PASS. **M1 core feature gate VERIFIED**, not a quantified browser performance sign-off. The owner authorized sequential M2 and M3 implementation. **M2 has been VERIFIED for the core feature gate after CI 306/306 plus owner-reported manual 7/7 PASS.** **M3 core feature gate is now VERIFIED** via full Windows CI 318/318 and explicit owner-reported 7/7 manual gameplay PASS. **M4 squad coordination was separately authorized and VERIFIED** via Windows CI 332/332 and explicit owner-reported 7/7 manual gameplay PASS; real squad KPI measurement remains OPEN. **M5 Bomb tactical intelligence was separately accepted by the owner (7/7 Bomb gameplay PASS) after full Windows CI #154 346/346 PASS, so M5 CORE VERIFIED.** Numerical Bomb success-rate/FPS benchmarks remain OPEN. **M6 TDM aggression and class-specific movement was then authorized, implemented and CI verified** via Windows run #167 361/361 PASS, but owner M6 gameplay acceptance and quantified real-map TDM metrics remain OPEN. **M7 NOT STARTED.**
