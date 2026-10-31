@@ -74,7 +74,7 @@ var BN=[["Jack","Mike","Ryan","Alex","Owen"],["Viper","Razor","Hawk","Shadow","G
 //  - at least 9 units from the last 8 spawn points used by this team (SPH history, reset in startMatch).
 // One accepted candidate is chosen at random. If none is acceptable (crowded map) it falls back to the safest candidate.
 var SPH=[[],[]];
-function spawnPt(tm){if(isBombMode())return bombSpawnPt(tm);var cz=tm?-38:38,hist=SPH[tm?1:0],ok=[],all=[],k,x,z,i,o,d,dE,dF,h,near,c,p;
+function spawnPt(tm){if(isBombMode())return bombSpawnPt(tm);if(tdmMapId(selectedTdmMapId)==="block-labs")return labsSpawnPt(tm);var cz=tm?-38:38,hist=SPH[tm?1:0],ok=[],all=[],k,x,z,i,o,d,dE,dF,h,near,c,p;
   for(k=0;k<60;k++){x=(Math.random()*2-1)*(A-12);z=cz+(Math.random()*2-1)*10;if(inObs(x,z,1.2)||inB(x,z))continue;
     dE=1e9;dF=1e9;for(i=0;i<en.length;i++){o=en[i];d=Math.hypot(o.x-x,o.z-z);if(o.tm===tm)dF=Math.min(dF,d);else dE=Math.min(dE,d);}
     if(!pl.dead&&pl.tm!==undefined){d=Math.hypot(pl.x-x,pl.z-z);if(pl.tm===tm)dF=Math.min(dF,d);else dE=Math.min(dE,d);}
