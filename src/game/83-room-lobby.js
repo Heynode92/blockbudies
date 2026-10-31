@@ -2,7 +2,7 @@
 // Uses existing mode maps, 5v5 bots, and canonical combat/plant/defuse systems.
 var ROOM_STORAGE_KEY="bbfps_local_rooms_v1";
 var ROOM_LIMITS=Object.freeze({kills:[20,30,50,75,100],minutes:[1,3,5,10,15],rounds:[3,5,7,9,12],roundMinutes:[1,2,3,4]});
-var roomList=[],roomCurrent=null,roomMatchConfig=null,roomDraftMode=0;
+var roomList=[],roomCurrent=null,roomMatchConfig=null,roomDraftMode=0,roomDraftMapId="block-district";
 
 /* Team slots preview the real 5v5 roster. AI is created by startMatch, never here. */
 var ROOM_START_COUNTDOWN=3,roomSide=0,roomSeat=0,roomLog=[];
@@ -40,7 +40,7 @@ function roomLiveTeams(){
 function roomLiveOpen(room){
  if(!room)return;
  roomEditState(room);
- var map=roomMapsForMode(room.mode);
+ var map=roomMapsForMode(room.mode,room.mapId);
  roomText("rmlBotSummary","1 PLAYER + "+(BOMB_RULES.teamSize*2-1)+" BOTS ON START");
  roomText("rmlRoomName",room.name);roomText("rmlMapName",map?map.name:"UNAVAILABLE");roomText("rmlMapCaption",map?map.caption:"");
  roomText("rmlGameMode",room.mode===1?"BOMB MODE":"TEAM DEATH MATCH");
@@ -79,16 +79,25 @@ function roomModalPaint(){
  ["kills","minutes","rounds","roundMinutes"].forEach(function(key){
   document.getElementById("roomModal"+key.charAt(0).toUpperCase()+key.slice(1)).value=String(roomModalDraft[key]);
  });
- var map=roomMapsForMode(mode);
+ var map=roomMapsForMode(mode,roomModalDraft.mapId);
+ var select=document.getElementById("roomModalMap");
+ roomFillMapSelect(select,mode,roomModalDraft.mapId);
  roomText("roomModalMapName",map?map.name:"UNAVAILABLE");
  roomText("roomModalMapCaption",map?map.caption:"");
 }
 function roomModalChooseMode(mode){
  if(!roomModalDraft)return;
  roomModalDraft.mode=mode===1?1:0;
+ roomModalDraft.mapId=mode===1?bombMapId(roomModalDraft.mapId):"block-district";
  roomModalPaint();
  // Only the 3D preview changes until SAVE; roomCurrent remains unchanged.
- selM=roomModalDraft.mode;modePreviewSelect(selM);
+ selM=roomModalDraft.mode;selectedBombMapId=bombMapId(roomModalDraft.mapId);modePreviewSelect(selM);
+}
+function roomModalChooseMap(value){
+ if(!roomModalDraft)return;
+ roomModalDraft.mapId=roomModalDraft.mode===1?bombMapId(value):"block-district";
+ roomModalPaint();
+ selM=roomModalDraft.mode;selectedBombMapId=bombMapId(roomModalDraft.mapId);modePreviewSelect(selM);
 }
 function roomModalSelect(key,value){
  if(!roomModalDraft||ROOM_LIMITS[key]===undefined)return;
@@ -102,7 +111,7 @@ function roomModalHide(restorePreview){
  roomModalDraft=null;
  roomText("roomModalError","");
  if(restorePreview&&roomCurrent){
-  selM=roomCurrent.mode;modePreviewSelect(selM);
+  selM=roomCurrent.mode;selectedBombMapId=bombMapId(roomCurrent.mapId);modePreviewSelect(selM);
  }
  var focus=roomModalReturnFocus;roomModalReturnFocus=null;
  if(focus&&typeof focus.focus==="function")focus.focus();
@@ -138,7 +147,9 @@ function roomNormalize(obj){
  if(obj.mode!==0&&obj.mode!==1)return null;
  var name=String(obj.name||"").trim().slice(0,32);
  if(!name)return null;
- return{id:obj.id,name:name,mode:obj.mode,kills:roomAllowed(obj.kills,ROOM_LIMITS.kills,50),
+ return{id:obj.id,name:name,mode:obj.mode,
+ mapId:obj.mode===1?bombMapId(obj.mapId):"block-district",
+ kills:roomAllowed(obj.kills,ROOM_LIMITS.kills,50),
  minutes:roomAllowed(obj.minutes,ROOM_LIMITS.minutes,10),
  rounds:roomAllowed(obj.rounds,ROOM_LIMITS.rounds,12),
  roundMinutes:roomAllowed(obj.roundMinutes,ROOM_LIMITS.roundMinutes,2)};
@@ -148,10 +159,19 @@ function roomLoad(){
  roomList=Array.isArray(data)?data.slice(0,40).map(roomNormalize).filter(Boolean):[];
 }
 function roomPersist(){try{localStorage.setItem(ROOM_STORAGE_KEY,JSON.stringify(roomList));return true;}catch(err){return false;}}
-function roomMapsForMode(mode){
- // The existing map data and map selection engine are authoritative.
- var m=MODE_MAP_PREVIEWS[mode];
+function roomMapsForMode(mode,mapId){
+ var m=mode===1?bombMapInfo(mapId):MODE_MAP_PREVIEWS[mode];
  return m?{name:m.name,caption:m.caption}:null;
+}
+function roomFillMapSelect(select,mode,mapId){
+ select.replaceChildren();
+ var options=mode===1?bombMapOptions(mode):[{id:"block-district",name:MODE_MAP_PREVIEWS[0].name}];
+ options.forEach(function(m){
+  var option=document.createElement("option");option.value=m.id;option.textContent=m.name;
+  select.appendChild(option);
+ });
+ select.value=mode===1?bombMapId(mapId):"block-district";
+ select.disabled=options.length<2;
 }
 function roomText(id,value){document.getElementById(id).textContent=String(value);}
 function roomModeSelect(mode){
@@ -162,18 +182,22 @@ function roomModeSelect(mode){
  });
  document.getElementById("roomTdmSettings").hidden=roomDraftMode!==0;
  document.getElementById("roomBombSettings").hidden=roomDraftMode!==1;
- var map=roomMapsForMode(roomDraftMode),mapSelect=document.getElementById("roomMap");
- mapSelect.replaceChildren();
- if(map){var option=document.createElement("option");option.value=String(roomDraftMode);option.textContent=map.name;mapSelect.appendChild(option);}
+ roomDraftMapId=roomDraftMode===1?bombMapId(roomDraftMapId):"block-district";
+ var map=roomMapsForMode(roomDraftMode,roomDraftMapId),mapSelect=document.getElementById("roomMap");
+ roomFillMapSelect(mapSelect,roomDraftMode,roomDraftMapId);
  roomText("roomMapName",map?map.name:"UNAVAILABLE");
  roomText("roomMapCaption",map?map.caption:"");
- selM=roomDraftMode;
+ selM=roomDraftMode;selectedBombMapId=bombMapId(roomDraftMapId);
  modePreviewSelect(roomDraftMode);
+}
+function roomChooseMap(value){
+ roomDraftMapId=roomDraftMode===1?bombMapId(value):"block-district";
+ roomModeSelect(roomDraftMode);
 }
 function roomFormData(){
  var name=document.getElementById("roomName").value.trim().slice(0,32);
  if(!name)return null;
- return{name:name,mode:roomDraftMode,
+ return{name:name,mode:roomDraftMode,mapId:roomDraftMode===1?bombMapId(document.getElementById("roomMap").value):"block-district",
   kills:roomAllowed(document.getElementById("roomKills").value,ROOM_LIMITS.kills,50),
   minutes:roomAllowed(document.getElementById("roomMinutes").value,ROOM_LIMITS.minutes,10),
   rounds:roomAllowed(document.getElementById("roomRounds").value,ROOM_LIMITS.rounds,12),
@@ -189,7 +213,7 @@ function roomRender(){
   cell("span","#"+r.id.slice(-4));
   cell("strong",r.name);
   var map=document.createElement("div");map.className="rm-map";
-  var mapTitle=document.createElement("span");mapTitle.textContent=(roomMapsForMode(r.mode)||{}).name||"UNKNOWN";
+  var mapTitle=document.createElement("span");mapTitle.textContent=(roomMapsForMode(r.mode,r.mapId)||{}).name||"UNKNOWN";
   var mode=document.createElement("small");mode.textContent=r.mode===1?"BOMB MODE":"TDM";
   map.appendChild(mapTitle);map.appendChild(mode);row.appendChild(map);
   cell("span","1 / 10");cell("span","WAITING","rm-status");
@@ -212,7 +236,7 @@ function roomEditState(room){
   document.getElementById("roomMinutes").value=String(room.minutes);
   document.getElementById("roomRounds").value=String(room.rounds);
   document.getElementById("roomRoundMinutes").value=String(room.roundMinutes);
-  roomModeSelect(room.mode);
+  roomDraftMapId=room.mapId;roomModeSelect(room.mode);
  }else roomModeSelect(roomDraftMode);
 }
 function roomOpenSaved(id){
@@ -376,6 +400,8 @@ document.getElementById("roomBack").addEventListener("click",function(){if(roomC
 document.getElementById("roomRefresh").addEventListener("click",function(){roomLoad();roomRender();roomSetMessage("Local room list refreshed.");});
 document.getElementById("roomTdm").addEventListener("click",function(){roomModeSelect(0);});
 document.getElementById("roomBomb").addEventListener("click",function(){roomModeSelect(1);});
+document.getElementById("roomMap").addEventListener("change",function(){roomChooseMap(this.value);});
+document.getElementById("roomModalMap").addEventListener("change",function(){roomModalChooseMap(this.value);});
 document.getElementById("roomCreate").addEventListener("click",roomCreateLocal);
 document.getElementById("roomSave").addEventListener("click",function(){var saved=roomSaveLocal();if(saved){roomLiveLog("Room settings updated.");roomLiveOpen(saved);}});
 document.getElementById("roomClose").addEventListener("click",roomCloseLocal);
