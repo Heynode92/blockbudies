@@ -1,4 +1,4 @@
-# BLOCK BUDDIES — Room Lobby (Local MVP)
+# POINT BLOCK — Room Lobby (Local MVP)
 
 The main menu's **START** button opens the new two-panel **Room Lobby** instead of the previous Select Mode screen. The left panel lists rooms created and saved in the **current browser**; the right panel creates/edits rooms, presents a real live map preview and provides Room Master controls.
 
