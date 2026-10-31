@@ -431,7 +431,7 @@ test('Block Town and Lockdown selection is persisted, reversible and validated i
  const {context,doc,data}=setup();
  call(context,'roomLobbyOpen()');call(context,'roomModeSelect(1)');
  const choose=doc.getElementById('roomMap');
- assert.deepEqual(choose.children.map(o=>o.value),['lockdown','block-town']);
+ assert.deepEqual(choose.children.map(o=>o.value),['lockdown','block-town','hospital']);
  choose.value='block-town';choose.events.change.call(choose);
  assert.equal(doc.getElementById('roomMapName').textContent,'BLOCK TOWN');
  assert.equal(call(context,'roomDraftMapId'),'block-town');
@@ -484,4 +484,32 @@ test('Block Labs Deathmatch is selectable, persisted and validated in Create Roo
  assert.equal(call(context,'roomNormalize({id:"123456789",name:"Old",mode:0}).mapId'),'block-district');
  assert.equal(call(context,'roomNormalize({id:"123456789",name:"Unsafe",mode:0,mapId:"../evil"}).mapId'),'block-district');
  assert.equal(call(context,'roomNormalize({id:"123456789",name:"Labs",mode:0,mapId:"block-labs"}).mapId'),'block-labs');
+});
+
+test('Hospital Bomb Mission is selectable and persisted without changing older map rooms',()=>{
+ const {context,doc,data}=setup();
+ call(context,'roomLobbyOpen()');call(context,'roomModeSelect(1)');
+ const select=doc.getElementById('roomMap');
+ assert.equal(select.children.length,3);
+ select.value='hospital';select.events.change.call(select);
+ assert.equal(doc.getElementById('roomMapName').textContent,'HOSPITAL');
+ assert.equal(call(context,'selectedBombMapId'),'hospital');
+ call(context,'roomCreateLocal()');
+ assert.equal(call(context,'roomCurrent.mapId'),'hospital');
+ assert.equal(JSON.parse(data.get('bbfps_local_rooms_v1'))[0].mapId,'hospital');
+ doc.getElementById('rmlSettings').click();
+ const modal=doc.getElementById('roomModalMap');
+ assert.equal(modal.value,'hospital');
+ modal.value='lockdown';modal.events.change.call(modal);
+ assert.equal(call(context,'roomCurrent.mapId'),'hospital','draft map must not mutate saved room');
+ doc.getElementById('roomModalCancel').click();
+ assert.equal(call(context,'roomCurrent.mapId'),'hospital');
+ doc.getElementById('rmlSettings').click();
+ const modal2=doc.getElementById('roomModalMap');
+ modal2.value='block-town';modal2.events.change.call(modal2);
+ doc.getElementById('roomModalSave').click();
+ assert.equal(call(context,'roomCurrent.mapId'),'block-town');
+ assert.equal(call(context,'bombMapId("hospital")'),'hospital');
+ assert.equal(call(context,'bombMapId("hospital/../bad")'),'lockdown');
+ assert.equal(call(context,'roomNormalize({id:"123456789",name:"Legacy",mode:1}).mapId'),'lockdown');
 });
