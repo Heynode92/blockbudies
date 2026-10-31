@@ -36,6 +36,8 @@ jobs:
           - {map: lockdown, team: terrorist, rounds: 50}
           - {map: block-town, team: police, rounds: 10}
           - {map: block-town, team: terrorist, rounds: 10}
+          - {map: block-labs, team: police, rounds: 1}
+          - {map: block-labs, team: terrorist, rounds: 1}
     env:
       M7_TEAM: ${{ matrix.team }}
       M7_MAP: ${{ matrix.map }}
@@ -63,7 +65,7 @@ jobs:
       - name: Install Chromium browser binaries
         shell: pwsh
         run: npx playwright install chromium
-      - name: Run real-time WebGL plus accelerated canonical Bomb round checks
+      - name: Run real-time WebGL plus canonical Bomb or TDM BOT functional checks
         shell: pwsh
         run: node tools/bot-ai-m7-browser.mjs
       - name: Upload machine-readable PASS/FAIL and timing evidence even on failure
