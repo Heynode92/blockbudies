@@ -25,16 +25,21 @@ permissions:
 
 jobs:
   browser-qa:
-    name: Windows Chromium M7 ${{ matrix.team }}
+    name: Windows Chromium M7 ${{ matrix.map }} ${{ matrix.team }}
     runs-on: windows-latest
     timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
-        team: [police, terrorist]
+        include:
+          - {map: lockdown, team: police, rounds: 50}
+          - {map: lockdown, team: terrorist, rounds: 50}
+          - {map: block-town, team: police, rounds: 10}
+          - {map: block-town, team: terrorist, rounds: 10}
     env:
       M7_TEAM: ${{ matrix.team }}
-      M7_BOMB_ROUNDS: ${{ inputs.rounds || '50' }}
+      M7_MAP: ${{ matrix.map }}
+      M7_BOMB_ROUNDS: ${{ inputs.rounds || matrix.rounds }}
       M7_REALTIME_MS: '12000'
     steps:
       - name: Preserve source line endings
@@ -65,7 +70,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: m7-windows-${{ matrix.team }}
+          name: m7-windows-${{ matrix.map }}-${{ matrix.team }}
           path: artifacts/m7-browser/*.json
           if-no-files-found: warn
           retention-days: 14
