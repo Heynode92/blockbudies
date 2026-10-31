@@ -6,6 +6,7 @@ import vm from 'node:vm';
 const root=new URL('../',import.meta.url);
 const read=path=>readFileSync(new URL(path,root),'utf8').replace(/\r\n/g,'\n');
 const module=read('src/game/83-room-lobby.js');
+const mapRegistry=read('src/game/12-block-town.js');
 
 class FakeElement{
  constructor(){
@@ -62,7 +63,8 @@ function setup(){
   R:{domElement:{width:1280,height:720}},
   lb:{style:{}},run:false,lob:true,documentBodyUnused:null,
   addEventListener:()=>{}};
- vm.createContext(context);vm.runInContext(module,context,{filename:'83-room-lobby.js'});
+ vm.createContext(context);vm.runInContext(mapRegistry,context,{filename:'12-block-town.js'});
+ vm.runInContext(module,context,{filename:'83-room-lobby.js'});
  return {context,doc,data,view,advance};
 }
 function call(c,expression){return vm.runInContext(expression,c);}
