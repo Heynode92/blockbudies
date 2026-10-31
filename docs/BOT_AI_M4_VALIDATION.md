@@ -1,4 +1,4 @@
-# BLOCK BUDDIES — M4 Squad Coordination Validation
+# POINT BLOCK — M4 Squad Coordination Validation
 
 > **Status:** VERIFIED (CORE EXIT GATE: 332/332 WINDOWS CI + OWNER-REPORTED 7/7 MANUAL PASS); QUANTITATIVE LIVE KPIs OPEN
 > **Date:** 2026-10-31 WIB
