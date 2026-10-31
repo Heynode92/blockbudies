@@ -13,101 +13,124 @@ const html=read('index.html'),css=read('src/styles/04-lobby.css'),
       manifest=JSON.parse(read('tools/source-manifest.json'));
 
 function fixture(){
- const elements=new Map(),events={},state={home:true};
- class Node{
-  constructor(){this.textContent='';this.hidden=false;this.paused=true;this.muted=true;
-    this.attrs={};this.listeners={};this.selected=false;
-    this.classList={contains:n=>state.home&&n==='on',
-       toggle:(n,v)=>{if(n==='active')this.selected=v;}};}
+ const elements=new Map(),events={},timeouts=new Map(),intervals=new Map();
+ const state={home:true};
+ let nextTimer=1;
+ class Node {
+  constructor(){
+   this.textContent='';this.hidden=false;this.paused=true;this.muted=true;
+   this.attrs={};this.style={};this.listeners={};this.offsetWidth=640;
+   const classes=new Set();
+   this.classList={
+    add:n=>classes.add(n),remove:n=>classes.delete(n),
+    contains:n=>classes.has(n),
+    toggle:(n,v)=>{const yes=v===undefined?!classes.has(n):v;if(yes)classes.add(n);else classes.delete(n);return yes;}
+   };
+  }
+  set src(value){this.attrs.src=value;}
+  get src(){return this.attrs.src;}
   setAttribute(k,v){this.attrs[k]=String(v);}
   getAttribute(k){return this.attrs[k]??null;}
+  removeAttribute(k){delete this.attrs[k];}
   addEventListener(k,fn){this.listeners[k]=fn;}
-  click(){this.listeners.click?.();}
-  pause(){this.paused=true;this.listeners.pause?.();}
+  pause(){this.paused=true;}
   play(){this.paused=false;this.playCount=(this.playCount||0)+1;return Promise.resolve();}
   load(){this.loadCount=(this.loadCount||0)+1;}
  }
- const video=new Node();video.attrs.src='./src/assets/video/deatch_match_demo.mp4';
- const death=new Node(),bomb=new Node();
- death.attrs['data-home-demo']='deathmatch';bomb.attrs['data-home-demo']='bomb';
+ const primary=new Node(),secondary=new Node(),screen=new Node();
+ primary.attrs.src='./src/assets/video/deatch_match_demo.mp4';
  const doc={
-   hidden:false,
-   getElementById(id){if(id==='homeDemoVideo')return video;if(!elements.has(id))elements.set(id,new Node());return elements.get(id);},
-   querySelectorAll(q){return q==='[data-home-demo]'?[death,bomb]:[];},
-   addEventListener(k,fn){events[k]=fn;}
+  hidden:false,
+  getElementById(id){
+   if(!elements.has(id))elements.set(id,new Node());
+   if(id==='lbs')return {classList:{contains:n=>n==='on'&&state.home}};
+   if(id==='homeDemoVideo')return primary;
+   if(id==='homeDemoNextVideo')return secondary;
+   return elements.get(id);
+  },
+  querySelector:q=>q==='#lbs .home-demo-screen'?screen:null,
+  addEventListener:(k,fn)=>{events[k]=fn;}
  };
- const context={document:doc,lob:true,run:false,Math,Object,Promise};
+ const context={
+  document:doc,window:{},lob:true,run:false,Math,Object,Promise,
+  setInterval:(fn,delay)=>{const id=nextTimer++;intervals.set(id,{fn,delay});return id;},
+  clearInterval:id=>intervals.delete(id),
+  setTimeout:(fn,delay)=>{const id=nextTimer++;timeouts.set(id,{fn,delay});return id;},
+  clearTimeout:id=>timeouts.delete(id)
+ };
  runInNewContext(source,context,{filename:'82-home-showcase.js'});
- return{context,doc,video,death,bomb,elements,events,state};
+ return {context,doc,primary,secondary,elements,events,state,intervals,timeouts,
+  completeFade(){for(const [id,value] of [...timeouts]){
+   if(value.delay===780){timeouts.delete(id);value.fn();}
+  }}
+ };
 }
-test('both official local MP4 videos are committed and the hero keeps a native 16:9 playback surface',()=>{
- const cases=[
-  ['src/assets/video/deatch_match_demo.mp4','deathmatch'],
-  ['src/assets/video/bomb_mission_demo.mp4','bomb']
- ];
- for(const [filename,key] of cases){
-   const n=statSync(resolve(root,filename)).size;
-   assert.ok(n>1024,'source MP4 exists and is nonempty: '+key);
-   assert.ok(n<100*1024*1024,'demo is safely below GitHub hard 100MiB limit: '+key);
-   const header=readFileSync(resolve(root,filename)).subarray(4,8).toString('ascii');
-   assert.equal(header,'ftyp','native MP4 file header, not a renamed arbitrary blob');
+
+test('both official local MP4s exist; passive showcase keeps true 16:9 and no visitor controls',()=>{
+ for(const file of ['deatch_match_demo.mp4','bomb_mission_demo.mp4']){
+  const filename=resolve(root,'src/assets/video',file),size=statSync(filename).size;
+  assert.ok(size>1024&&size<100*1024*1024);
+  assert.equal(readFileSync(filename).subarray(4,8).toString('ascii'),'ftyp');
  }
- for(const id of ['lbs','homeDemoVideo','homeDemoPlay','homeDemoAudio',
-     'homeDemoStatus','homeDemoEmpty'])assert.ok(html.includes('id="'+id+'"'));
+ for(const id of ['lbs','homeDemoVideo','homeDemoNextVideo','homeDemoStatus','homeDemoProgress','homeDemoEmpty'])
+  assert.ok(html.includes('id="'+id+'"'),id);
  assert.match(html,/autoplay muted loop playsinline preload="metadata"/);
  assert.match(css,/#lbs \.home-demo-screen\{[^}]*aspect-ratio:16\/9/);
- assert.match(html,/data-home-demo="deathmatch"/);
- assert.match(html,/data-home-demo="bomb"/);
- assert.doesNotMatch(source,/https?:\/\//,'local videos are not redirected to untrusted remote hosts');
+ assert.doesNotMatch(html,/id="homeDemoPlay"|id="homeDemoAudio"|data-home-demo=/);
+ assert.match(source,/setInterval\(homeDemoRotate,10000\)/);
+ assert.doesNotMatch(source,/https?:\/\//,'video sources must remain local');
 });
-test('video is muted by default, source is whitelisted and only one clip plays at a time',()=>{
- const f=fixture();
- assert.equal(f.video.muted,true);
- assert.equal(f.video.attrs.src,'./src/assets/video/deatch_match_demo.mp4');
- assert.ok(f.video.playCount>0);
- assert.equal(f.death.selected,true);
- f.bomb.click();
- assert.equal(f.video.attrs.src,'./src/assets/video/bomb_mission_demo.mp4');
- assert.equal(f.bomb.selected,true);assert.equal(f.death.selected,false);
- assert.equal(f.video.loadCount,1);
- assert.equal(f.context.homeDemoKey,'bomb');
- f.context.homeDemoSelect('../custom-malicious.mp4');
- assert.equal(f.video.attrs.src,'./src/assets/video/bomb_mission_demo.mp4');
- assert.equal(f.video.loadCount,1,'no path traversal or user-supplied media URL can be loaded');
+
+test('showcase starts muted, and automatically crossfades between only the two whitelisted MP4s',async()=>{
+ const f=fixture(),{context,primary,secondary}=f;
+ assert.equal(primary.muted,true);
+ assert.equal(secondary.muted,true);
+ assert.ok(primary.playCount>0);
+ assert.equal(context.homeDemoKey,'deathmatch');
+ assert.equal([...f.intervals.values()].some(x=>x.delay===10000),true);
+ context.homeDemoRotate();
+ await Promise.resolve();await Promise.resolve();
+ assert.equal(secondary.attrs.src,'./src/assets/video/bomb_mission_demo.mp4');
+ assert.equal(context.homeDemoKey,'bomb');
+ assert.equal(secondary.classList.contains('is-current'),true);
+ f.completeFade();
+ assert.equal(primary.paused,true);
+ assert.equal(context.homeDemoTransitioning,false);
+ context.homeDemoRotate();
+ await Promise.resolve();await Promise.resolve();
+ assert.equal(primary.attrs.src,'./src/assets/video/deatch_match_demo.mp4');
+ assert.equal(context.homeDemoKey,'deathmatch');
+ f.completeFade();
+ assert.ok(Object.isFrozen(context.HOME_DEMOS));
 });
-test('home video pauses outside home menu, in gameplay and hidden tab, then resumes safely',()=>{
+
+test('video pauses outside home, in a hidden tab and during gameplay; no network calls',()=>{
  const f=fixture();
  f.state.home=false;f.context.homeShowcaseSync();
- assert.equal(f.video.paused,true,'leave Home Menu');
+ assert.equal(f.primary.paused,true);
+ assert.equal(f.secondary.paused,true);
+ assert.equal(f.intervals.size,0);
  f.state.home=true;f.context.homeShowcaseSync();
- assert.equal(f.video.paused,false);
+ assert.equal(f.primary.paused,false);
  f.doc.hidden=true;f.events.visibilitychange();
- assert.equal(f.video.paused,true);
+ assert.equal(f.primary.paused,true);
+ assert.equal(f.intervals.size,0);
  f.doc.hidden=false;f.context.run=true;f.context.homeShowcaseSync();
- assert.equal(f.video.paused,true,'do not play in match');
+ assert.equal(f.primary.paused,true);
  f.context.run=false;f.context.homeShowcaseSync();
- assert.equal(f.video.paused,false);
- f.elements.get('homeDemoAudio').click();
- assert.equal(f.video.muted,false);
- f.elements.get('homeDemoAudio').click();
- assert.equal(f.video.muted,true);
- f.elements.get('homeDemoPlay').click();
- assert.equal(f.video.paused,true);
- f.elements.get('homeDemoPlay').click();
- assert.equal(f.video.paused,false);
- f.video.listeners.error();
+ assert.equal(f.primary.paused,false);
+ f.primary.listeners.error();
  assert.equal(f.elements.get('homeDemoEmpty').hidden,false);
- assert.equal(f.video.paused,true,'invalid codec/file displays fallback not noisy looping errors');
+ assert.equal(f.elements.get('homeDemoStatus').textContent,'PREVIEW UNAVAILABLE');
+ assert.doesNotMatch(source,/fetch\(|XMLHttpRequest|WebSocket/);
 });
-test('Home Menu resets Block District 3D world and does not change combat code or video-loop architecture',()=>{
+
+test('Block District home view and direct-open bundle parity are preserved',()=>{
  assert.match(lobby,/selectedTdmMapId="block-district";selectGameMap\(false\)/);
  assert.match(lobby,/homeShowcaseSync\(\)/);
- assert.ok(manifest.parts.indexOf('src/game/80-input.js')<
-           manifest.parts.indexOf('src/game/82-home-showcase.js'));
  assert.ok(manifest.parts.indexOf('src/game/82-home-showcase.js')<
-           manifest.parts.indexOf('src/game/83-room-lobby.js'));
- assert.doesNotMatch(source,/WebGLRenderer|requestAnimationFrame|fetch\(|XMLHttpRequest|innerHTML/,
-   'showcase must not create render loops, network requests or HTML injection');
+  manifest.parts.indexOf('src/game/83-room-lobby.js'));
+ assert.doesNotMatch(source,/WebGLRenderer|requestAnimationFrame|innerHTML/);
  const built='(function(){\n'+manifest.parts.map(read).join('')+'})();\n';
- assert.equal(read('assets/game.js'),built,'Windows direct-open artifact matches canonical source');
+ assert.equal(read('assets/game.js'),built);
 });
