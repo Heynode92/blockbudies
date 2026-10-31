@@ -1,3 +1,12 @@
+## 2026-10-31 — PointBlock FPS Room Browser UI and real 3D operator
+- Rebuilt **pre-match Room Browser only** to match the requested FPS mockup: left interactive Police operator holding the equipped primary, Create Room and Back underneath; right Available Rooms above the Public Chat panel.
+- Reused the existing Inventory/Master Three.js soldier, gun meshes, idle animation, drag-rotation renderer and shared canvas without creating a fake 2D character or duplicating WebGL resources.
+- Exposed the live original **Block District** map through the Three.js game canvas as the room background. When the create dialog changes mode/map, the authoritative map preview remains available.
+- Kept the canonical Create Room controls, validation and Room Master flow, but moved the existing form to a dismissible dialog so it no longer crowds the room list.
+- Replaced the visual Room Log heading with **Public Chat**; delivery and message input are explicitly **OFFLINE / disabled** until an actual authenticated chat server is built. No fabricated messages, online users, fake transport or insecure untrusted WebSocket endpoint.
+- Preserved all existing local room storage, map/mode/round settings, team selection, room launch, BOT logic, match HUD and the shared DeFi header (which remains absent during gameplay).
+- Added room-browser UI regression assertions and aligned legacy showcase/WebGL preview tests with their current canonical behavior. Bundle kept in sync with modular sources.
+
 ## 2026-10-31 — PointBlock project-wide brand migration
 - **Canonical name:** PointBlock. Display copy and primary wordmark: **POINT BLOCK**.
 - Rebranded browser title, home header, showcase overlays, armory, Room Lobby, match-deployment text, introductory overlay, JavaScript source modules and the direct-open `assets/game.js` bundle.
