@@ -1,3 +1,10 @@
+## 2026-10-31 — Home header CSS consolidation and DeFi control proportions
+- Removed obsolete header override blocks (V3/V4/V6) from lobby CSS to eliminate competing size, positioning and typography rules; preserved the working two-video crossfade styles.
+- Moved the main-menu header to dedicated `src/styles/13-home-header.css` loaded after other game styles.
+- Rebalanced the 86px-wide-screen header with readable single-line BLOK BUDDIES wordmark, compact mode metadata, slim PBT token preview, small + button and aligned Connect Wallet action.
+- Added laptop, tablet and mobile layout rules without changing gameplay, shop, room lobby, wallets, balances, or showcase logic.
+- PBT stays a marked coming-soon visual placeholder with no token contract/balance integration.
+
 ## 2026-10-31 — DeFi gaming header with future PBT token
 - Replace the Personal Best header widget with a DeFi-style PBT token display (visual 0.00 placeholder) and + button that explicitly says PBT TOKEN · COMING SOON; no purchase, minting, balance fetch or on-chain operation is implied.
 - Keep the existing Connect Wallet request behavior, styling it consistently with the PBT widget.
