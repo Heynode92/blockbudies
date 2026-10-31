@@ -1,4 +1,4 @@
-# BLOCK BUDDIES — BLOCK LABS
+# POINT BLOCK — BLOCK LABS
 
 ## Scope and source of truth
 
