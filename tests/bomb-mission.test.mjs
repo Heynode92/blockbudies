@@ -6,6 +6,7 @@ import {resolve} from 'node:path';
 const root = resolve(import.meta.dirname, '..');
 const mapSource=readFileSync(resolve(root,'src/game/11-bomb-map.js'),'utf8');
 const townSource=readFileSync(resolve(root,'src/game/12-block-town.js'),'utf8');
+const labsSource=readFileSync(resolve(root,'src/game/13-block-labs.js'),'utf8');
 const missionSource=readFileSync(resolve(root,'src/game/86-bomb-mission.js'),'utf8');
 const tacticsSource=readFileSync(resolve(root,'src/game/87-bomb-tactics.js'),'utf8');
 const perceptionSource=readFileSync(resolve(root,'src/game/88-bot-perception.js'),'utf8');
@@ -48,7 +49,7 @@ function makeContext(){
     inObs(x,z,m){return ctx.OB.some(o=>Math.abs(x-o.x)<o.hw+(m||0)&&Math.abs(z-o.z)<o.hd+(m||0));},
     reset(){},startMatch(){},endMatch(){ctx.mt.over=true;}
   };
-  runInNewContext(mapSource+'\n'+townSource+'\n'+missionSource+'\n'+perceptionSource+'\n'+intelligenceSource+'\n'+tacticsSource+'\n'+cameraSource,ctx);
+  runInNewContext(mapSource+'\n'+townSource+'\n'+labsSource+'\n'+missionSource+'\n'+perceptionSource+'\n'+intelligenceSource+'\n'+tacticsSource+'\n'+cameraSource,ctx);
   ctx.selectedGameMode=1;
   return ctx;
 }
