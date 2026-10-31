@@ -14,6 +14,7 @@ const modules=[
   'src/game/41-bot-weapons.js',
   'src/game/88-bot-perception.js',
   'src/game/88-bot-movement.js',
+  'src/game/88-bot-squad.js',
   'src/game/89-bot-tactical-intelligence.js',
   'src/game/87-bomb-tactics.js'
 ];
