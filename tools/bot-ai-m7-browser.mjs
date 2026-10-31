@@ -92,11 +92,15 @@ try{
  const init=await start(page,1);
  await page.evaluate(()=>window.__BlockBuddiesM7CI.pauseForStepping());
  const started=Date.now();
- let ticks=0,matches=1,prev=0,stagnant=0;
+ let ticks=0,matches=1,prev=0,stagnant=0,reported=0;
  const maxTicks=target*120*60*3;
  while(ticks<maxTicks){
    const progress=await page.evaluate(()=>window.__BlockBuddiesM7CI.step(180));
    ticks+=180;
+   if(progress.completed>=reported+10){
+     reported=progress.completed;
+     console.log('M7 '+name+' automated production Bomb finishes: '+reported+'/'+target);
+   }
    if(progress.completed>=target)break;
    if(progress.completed===prev)stagnant++;else stagnant=0;
    prev=progress.completed;
