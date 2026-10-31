@@ -42,7 +42,27 @@ if(botQaEnabled){
           if(!blocked)clearPairs++;
         });});
         if(clearPairs)throw Error('BLOCK TOWN opposing spawn direct sightline count: '+clearPairs);
-        mapChecks={routes:routes.length,clearSpawnSightlinePairs:clearPairs,sites:BOMB_SITES.map(function(q){return q.id;})};
+        var cfg=BLOCK_TOWN_DEF.perimeter,half=BLOCK_TOWN_DEF.halfSize,
+            offset=half+cfg.thickness/2+.02,span=half*2+cfg.thickness*2,
+            shells=[[0,-offset,span,cfg.thickness],[0,offset,span,cfg.thickness],
+              [-offset,0,cfg.thickness,span],[offset,0,cfg.thickness,span]];
+        shells.forEach(function(w){
+          if(!OB.some(function(o){return Math.abs(o.x-w[0])<.001&&Math.abs(o.z-w[1])<.001&&
+               Math.abs(o.hw-w[2]/2)<.001&&Math.abs(o.hd-w[3]/2)<.001&&o.h===cfg.height;}))
+            throw Error('BLOCK TOWN missing physical boundary: '+w);
+        });
+        sides.forEach(function(group,t){group.forEach(function(p){
+          var yaw=bombMapSpawnYaw(t,p[0],p[1]),
+              site=BOMB_MAP_REGISTRY["block-town"].sites[0],
+              target=t?BLOCK_TOWN_DEF.spawnLook.terrorist:[site.x,site.z],
+              dx=target[0]-p[0],dz=target[1]-p[1];
+          if((Math.sin(yaw)*dx+Math.cos(yaw)*dz)/Math.hypot(dx,dz)<.99)
+            throw Error('BLOCK TOWN spawn faces outward: '+t+' '+p);
+        });});
+        if(Math.abs(pl.face-bombMapSpawnYaw(team,pl.x,pl.z))>.001)
+          throw Error('BLOCK TOWN player initial camera yaw does not match map interior');
+        mapChecks={routes:routes.length,clearSpawnSightlinePairs:clearPairs,
+          perimeterWalls:shells.length,playerSpawnFacing:pl.face,sites:BOMB_SITES.map(function(q){return q.id;})};
       }
       BlockBuddiesQA.reset();
       return {map:mode===1?bombMapInfo(activeMap).name:'BLOCK DISTRICT',mapChecks:mapChecks,bots:en.length,
