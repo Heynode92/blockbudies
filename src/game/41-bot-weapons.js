@@ -68,9 +68,12 @@ function botAttack(e,target,face,d){
     else dmgE(target,w.dmg,Math.sin(face),Math.cos(face),0,'melee');
   }else{
     var ammo=e.ammo[id];if(!ammo||ammo.mag<=0)return false;
+    var solution=botAimShot(e,w,d);
+    if(!solution)return false;
     ammo.mag--;
-    var inaccuracy=(Math.random()-.5)*2*(BOT_WEAPONS.aimNoise+d*BOT_WEAPONS.noisePerUnit);
-    fire(e,face+inaccuracy,w,'e',0);
+    e.aimShotPitch=solution.pitch;
+    fire(e,solution.yaw,w,'e',0);
+    e.aimShotPitch=null;
   }
   e.weapon=id;botVisualWeapon(e,id);e.cd=w.cd;e.rc=1;e.vis=1.6;
   return true;
