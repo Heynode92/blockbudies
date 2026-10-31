@@ -114,6 +114,27 @@ test('START routes to a real Room Lobby while retaining existing game screens',(
  assert.equal(doc.getElementById('roomMapName').textContent,'BLOCK DISTRICT');
 });
 
+test('Create Room map cards come from real map registries and update preview selection',()=>{
+ const {context,doc,view}=setup();
+ call(context,'roomLobbyOpen()');
+ const cards=doc.getElementById('roomMapCards');
+ assert.deepEqual(cards.children.map(node=>node.children[1].textContent),['BLOCK DISTRICT','BLOCK LABS']);
+ assert.deepEqual(cards.children.map(node=>node.attributes['aria-pressed']),['true','false']);
+ cards.children[1].click();
+ assert.equal(call(context,'roomDraftMapId'),'block-labs');
+ assert.equal(doc.getElementById('roomMap').value,'block-labs');
+ assert.equal(doc.getElementById('roomMapName').textContent,'BLOCK LABS');
+ assert.ok(view.previews.includes(0));
+ call(context,'roomModeSelect(1)');
+ assert.deepEqual(cards.children.map(node=>node.children[1].textContent),['LOCKDOWN','BLOCK TOWN','HOSPITAL']);
+ cards.children[2].click();
+ assert.equal(call(context,'roomDraftMapId'),'hospital');
+ assert.equal(doc.getElementById('roomMap').value,'hospital');
+ assert.equal(doc.getElementById('roomMapName').textContent,'HOSPITAL');
+ assert.equal(view.previews.at(-1),1);
+ assert.equal(cards.children[2].attributes['aria-pressed'],'true');
+});
+
 test('creating room grants Room Master, creates a safe local listing and persists settings',()=>{
  const {context,doc,data,view}=setup();
  call(context,'roomLobbyOpen()');
