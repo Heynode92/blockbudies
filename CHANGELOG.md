@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-10-31 WIB — BLOCK LABS indoor Team Deathmatch map
+
+- Added **Block Labs** (`block-labs`) as an independent **120×120 indoor Team Deathmatch** arena. Recreated the owner's blueprint: north Police spawn, south Terrorist spawn, **six solid white lab buildings** (3 rows × 2 columns), outer left/right lanes, narrow middle corridor, two crossing streets, four large green corner reactors, two small middle reactors, and an enclosed four-sided boundary.
+- Implemented a real indoor laboratory: complete ceiling/overhead bullet blocker, overhead lighting and service conduits, metal facade panels, warning stripes, tinted laboratory windows and colored deployment-zone markings. All major objects and the reactor bases use canonical grounded `wl()/OB` collision; lighting and trim reuse existing Three.js/decoration batching.
+- Data-driven `BLOCK_LABS_DEF` and `TDM_MAP_REGISTRY` live exclusively in `src/game/13-block-labs.js`; no map geometry is hardcoded into BOT combat logic. Existing Block District remains the default; Lockdown and Block Town Bomb Mission stay intact.
+- Updated Create Room and Room Master Settings with **Deathmatch: Block District / Block Labs** and preserved **Bomb Mission: Lockdown / Block Town**. Map ID persistence, strict whitelist/fallback, scene preview, cached `OB/BR/LT` isolation, TDM bot/human spawn placement and inward facing are integrated into the original runtime.
+- Updated the canonical source manifest and directly openable `assets/game.js` bundle. Added Node tests for Lab layout, collider and A* coverage, map isolation, spawn safety, Room Master settings, and legacy fallback. Extended CI-only Chromium matrix to run **Block Labs Police/Terrorist** genuine browser TDM functional smoke with accelerated canonical AI-vs-AI completion. **Do not mark green until the latest Windows jobs actually pass.**
+- No modifications to TDM kill scoring, respawn timing, shield, weapons, damage, inventory, BOT AI tactics, Bomb timers or Bomb Site placements. No new player dependencies or local build requirements. See [Block Labs implementation](docs/BLOCK_LABS_IMPLEMENTATION.md).
+
 ## 2026-10-31 WIB — Block Town perimeter and spawn QA evidence (browser verified)
 
 - [Windows M7 Chromium map QA #33](https://github.com/Heynode92/blockbudies/actions/runs/41188457444): **Block Town Police and Terrorist job SUCCESS**, each **10/10 completed canonical Bomb rounds** with zero JS exceptions. Includes CI assertions for all four **visible, collision-registered physical perimeter walls**, all 10 inward-facing spawn slots, Player first-spawn yaw, A* site accessibility and blocked opposing-spawn sightlines.
