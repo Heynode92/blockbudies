@@ -140,6 +140,6 @@ if(process.argv[1]&&fileURLToPath(import.meta.url)===resolve(process.argv[1])){
     {seed:42,mode:'tdm',critical:true},
     {seed:42,mode:'bomb'}
   ];
-  console.log(JSON.stringify({kind:'BLOCK_BUDDIES_M0_SYNTHETIC_BASELINE',
+  console.log(JSON.stringify({kind:'POINT_BLOCK_M0_SYNTHETIC_BASELINE',
     results:scenarios.map(runBotM0Baseline)},null,2));
 }
