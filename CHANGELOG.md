@@ -1,3 +1,10 @@
+## 2026-10-31 — DeFi gaming header with future PBT token
+- Replace the Personal Best header widget with a DeFi-style PBT token display (visual 0.00 placeholder) and + button that explicitly says PBT TOKEN · COMING SOON; no purchase, minting, balance fetch or on-chain operation is implied.
+- Keep the existing Connect Wallet request behavior, styling it consistently with the PBT widget.
+- Rebuild the BLOK BUDDIES wordmark using a new isolated `home-wordmark` class instead of legacy `.lt` styles; use solid colors, clean line-height and overflow-safe padding to prevent glyph clipping.
+- Leave the old personal-best localStorage score intact and make the legacy UI display update null-safe because the header no longer shows Personal Best.
+- Do not change gameplay, map, showcase videos, or the main navigation.
+
 ## 2026-10-31 — Main-menu header cleanup and unclipped wordmark
 - Remove the redundant Settings and Fullscreen header icons and their associated browser event handlers. The existing Settings item remains in the main menu.
 - Repair the single-line BLOK BUDDIES logo with safe line height, explicit text padding, and no clipping or skew transform. Keep the white/orange identity.
