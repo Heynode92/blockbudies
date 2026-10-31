@@ -1,4 +1,4 @@
-// CS:GO-inspired range simulator for BLOCK BUDDIES.
+// CS:GO-inspired range simulator for POINT BLOCK.
 // node tools/damage-sim.mjs
 // Ideal hits only (all pellets connect); TTK excludes reload, travel time and misses.
 import {readFileSync} from "node:fs";
@@ -31,7 +31,7 @@ function kill(w,d,head,vest,helmet){
  if(hp>0)throw Error("Simulation failed for "+w.n);
  return shots+" / "+((shots-1)*w.cd).toFixed(2)+"s";
 }
-console.log("BLOCK BUDDIES — CS-inspired range falloff");
+console.log("POINT BLOCK — CS-inspired range falloff");
 console.log("damage = base × modifier ^ (distance / "+ctx.DAMAGE_FALLOFF.referenceUnits+" world units)");
 console.log("100 HP | 50 vest | 20% body reduction | 3× unhelmeted headshots");
 console.log("Each cell: bullets to kill / ideal TTK. Assumes all pellets hit.");
