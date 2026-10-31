@@ -1284,6 +1284,7 @@ function botAimDelta(a,b){
  return Math.atan2(Math.sin(b-a),Math.cos(b-a));
 }
 function botAimClear(e){
+ if(typeof botQaEnabled!=='undefined'&&botQaEnabled)botQaSightLost(e);
  e.aimTarget=null;e.aimReadyAt=0;e.aimCanFire=false;
  e.aimSample=null;e.aimShotPitch=null;e.aimShots=0;
 }
@@ -1293,6 +1294,7 @@ function botAimUpdate(e,target,dt){
  }
  var current=e.aimTarget===target;
  if(!current){
+  if(typeof botQaEnabled!=='undefined'&&botQaEnabled)botQaObserve(e,target);
   e.aimTarget=target;
   e.aimReadyAt=tt+BOT_AIM.reactionMin+
     Math.random()*(BOT_AIM.reactionMax-BOT_AIM.reactionMin);
@@ -1449,6 +1451,7 @@ function botCombatTick(e,target,face,d){
 // Unified bullet impact resolution for bot and human targets.
 // The armor/headshot rules are identical, independent of who fired.
 function projectileHitCharacter(b,target,head){
+  if(typeof botQaEnabled!=='undefined'&&botQaEnabled)botQaHit(b);
   var damage=b.dmg*(b.fo?fall(b,b.m.position):1),source=b.by;
   if(head){
     if(target.helm){
@@ -1553,7 +1556,7 @@ function fire(o,face,w,own,adv){
     o.tc=(o.tc||0)+1;g.visible=!!(w.rk||w.pel>1||w.snp||o.tc%3===1);g.rotation.order="YXZ";g.rotation.set(-Math.atan2(vy0,w.spd||1),a,0);if(Math.abs(mx0)>=A||Math.abs(mz0)>=A||sweepObs(o.x,my0,o.z,mx0,my0,mz0)||sweepLT(o.x,my0,o.z,mx0,my0,mz0)||obsAt(mx0,mz0,my0)){mx0=o.x;mz0=o.z;}
     g.position.set(mx0,my0,mz0);S.add(g);
     var ad=adv||0;
-    bl.push({m:g,vx:Math.sin(a)*w.spd,vy:vy0,vz:Math.cos(a)*w.spd,life:w.life,ad:ad,dmg:w.dmg,own:own,tm:o.tm,by:o,rk:w.rk,sx:o.x,sz:o.z,wid:WP.indexOf(w),fo:w.rangeModifier?[w.rangeModifier,w.rangeUnit]:null});if(own==="e"&&i===0)enemyShotFx(o,mx0,my0,mz0);if(w.rk&&own==="p")smoke(mx0,my0,mz0,6,1.4,.3,1.3,.25,0);}
+    bl.push({m:g,vx:Math.sin(a)*w.spd,vy:vy0,vz:Math.cos(a)*w.spd,life:w.life,ad:ad,dmg:w.dmg,own:own,tm:o.tm,by:o,rk:w.rk,sx:o.x,sz:o.z,wid:WP.indexOf(w),fo:w.rangeModifier?[w.rangeModifier,w.rangeUnit]:null});if(typeof botQaEnabled!=='undefined'&&botQaEnabled)botQaShot(o,w,own,bl[bl.length-1]);if(own==="e"&&i===0)enemyShotFx(o,mx0,my0,mz0);if(w.rk&&own==="p")smoke(mx0,my0,mz0,6,1.4,.3,1.3,.25,0);}
 }
 // boom(): explosion (rocket or grenade) at (x,z): splash damage with line-of-sight check, scorch decal, particles, camera shake. lab = kill-feed label.
 function boom(x,z,dmg,lab,by,shooter){var attacker=shooter||pl;curK=attacker;boomLab=lab||"RPG";killW=boomLab==="GRENADE"?5:3;if((by===undefined||by<1.1)&&Math.abs(x)<A&&Math.abs(z)<A)gDecal(TXS,x,z,3.2+Math.random()*.6);
@@ -3805,6 +3808,7 @@ function bombPlant(e,site){var b=bombMatch;if(!b||b.done||b.state!=='idle'||b.ca
 }
 function bombDefuse(e){if(bombMatch&&bombMatch.state==='planted'&&!bombMatch.done){toast(BOMB_TEXT.defused);bombFinish(0,BOMB_TEXT.defused);}}
 function bombFinish(winner,reason){var b=bombMatch;if(!b||b.done)return;
+  if(typeof botQaEnabled!=='undefined'&&botQaEnabled)botQaBomb(winner,b.site,b.state);
   b.done=true;b.winner=winner;b.finishDelay=BOMB_RULES.roundBreakSeconds;ts[winner]++;
   b.roundWins=ts.slice();
   en.concat([pl]).forEach(function(e){e.bAction=null;});
@@ -4916,6 +4920,7 @@ function gPath(x0,z0,x1,z1){if(!GB)gInit();var N=GN,s=gFree(gc(x0),gc(z0)),g=gFr
   return out;}
 // botPath(): assigns bot e a path to goal (gx,gz) and a repath timer.
 function botPath(e,gx,gz){var p=gPath(e.x,e.z,gx,gz);
+  if(typeof botQaEnabled!=='undefined'&&botQaEnabled)botQaPath(p);
   // Never charge directly into a solid wall if A* finds no route.
   // Never fall back to a direct wall-crossing goal if A* has no route.
   e.path=p||[];e.pi=0;e.pt=1.1+Math.random()*.8;e.goalX=gx;e.goalZ=gz;
@@ -4984,6 +4989,7 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
     e.x+=mvx*sp*dt;e.z+=mvz*sp*dt;resolve(e,.55);
     var dm=Math.hypot(e.x-ox,e.z-oz);
     footstepAdvance(e,dm,!cdn&&dm>.002,sp>4.4,false);
+    if(typeof botQaEnabled!=='undefined'&&botQaEnabled)botQaMove(wantedMovement,dm,sp,dt);
     botMoveTrack(e,ox,oz,dt,sp,wantedMovement,combat);
     e.g.rotation.y=f;e.cd-=dt;
     if(t&&e.lok&&!cdn&&!(isBombMode()&&e.bAction)&&e.cd<=0){botCombatTick(e,t,f,d);}
@@ -5045,6 +5051,165 @@ document.getElementById("escB").onclick=function(){
  document.getElementById("dmn").onclick();
  if(document.pointerLockElement&&document.exitPointerLock)document.exitPointerLock();
 };
+// M7 diagnostic instrumentation: local, opt-in, bounded, decision-independent.
+// Enable only via index.html?bbBotQa=1 (including file://); no telemetry by default.
+// No network calls, persistence, user identity, coordinates, gameplay changes or UI.
+var botQaEnabled=false;
+try{
+ botQaEnabled=typeof location!=='undefined'&&
+   new URLSearchParams(location.search).get('bbBotQa')==='1';
+}catch(_qaError){botQaEnabled=false;}
+var BOT_QA=Object.freeze({
+ maxFrames:2400,maxCpuTicks:2400,maxReactions:500,
+ ranges:['0-10','10-20','20-30','30+','unknown']
+});
+function botQaState(){
+ return {startedAt:Date.now(),frames:[],cpu:[],reactions:[],
+  projectiles:0,hits:0,shots:{},blockedSeconds:0,movingSeconds:0,
+  pathAttempts:0,pathFailures:0,rounds:[],lostSight:0,observations:0,
+  outOfWindowFrames:0,renderSamples:0};
+}
+var botQaData=botQaState();
+function botQaBounded(arr,value,max){
+ if(arr.length>=max)arr.shift();
+ arr.push(value);
+}
+function botQaPercentiles(values){
+ if(!values.length)return {count:0,median:null,p95:null,max:null};
+ var s=values.slice().sort(function(a,b){return a-b;});
+ return {count:s.length,
+  median:Math.round(s[Math.floor((s.length-1)*.5)]*1000)/1000,
+  p95:Math.round(s[Math.floor((s.length-1)*.95)]*1000)/1000,
+  max:Math.round(s[s.length-1]*1000)/1000};
+}
+function botQaFrame(deltaMs,renderMs,active){
+ if(!botQaEnabled||!active||!Number.isFinite(deltaMs))return;
+ // RequestAnimationFrame wall-clock period: no game-dt clamp (which is 50ms).
+ if(deltaMs>0&&deltaMs<500){
+  botQaBounded(botQaData.frames,deltaMs,BOT_QA.maxFrames);
+  botQaData.renderSamples++;
+ }else botQaData.outOfWindowFrames++;
+}
+function botQaCpu(elapsedMs,bots){
+ if(!botQaEnabled||!Number.isFinite(elapsedMs)||bots<1)return;
+ botQaBounded(botQaData.cpu,elapsedMs,BOT_QA.maxCpuTicks);
+}
+function botQaObserve(e,target){
+ if(!botQaEnabled||!e||!target)return;
+ e.qaContactAt=tt;e.qaContactTarget=target;e.qaContactFired=false;
+ botQaData.observations++;
+}
+function botQaSightLost(e){
+ if(!botQaEnabled||!e)return;
+ if(e.qaContactTarget&&!e.qaContactFired)botQaData.lostSight++;
+ e.qaContactTarget=null;e.qaContactFired=false;
+}
+function botQaBand(distance){
+ if(!Number.isFinite(distance))return 'unknown';
+ return distance<10?'0-10':distance<20?'10-20':distance<30?'20-30':'30+';
+}
+function botQaShot(shooter,weapon,own,bullet){
+ if(!botQaEnabled||own!=='e'||!bullet)return;
+ var kind=weapon&&weapon.stats&&weapon.stats.kind||'unknown',
+     mode=typeof isBombMode==='function'&&isBombMode()?'bomb':'tdm',
+     target=shooter&&shooter.aimTarget,
+     distance=target&&typeof botIntelVisible==='function'&&
+       botIntelVisible(shooter,target)?
+       Math.hypot(target.x-shooter.x,target.z-shooter.z):NaN,
+     band=botQaBand(distance),
+     key=mode+'|'+kind+'|'+band,
+     stat=botQaData.shots[key]||(botQaData.shots[key]={mode:mode,kind:kind,
+       range:band,projectiles:0,hits:0});
+ bullet.qaKey=key;stat.projectiles++;botQaData.projectiles++;
+ // Shot-to-sight timing: first fired projectile after a live reacquisition.
+ if(shooter&&target&&shooter.qaContactTarget===target&&!shooter.qaContactFired){
+  var lag=(tt-shooter.qaContactAt)*1000;
+  if(Number.isFinite(lag)&&lag>=0&&lag<10000)
+   botQaBounded(botQaData.reactions,lag,BOT_QA.maxReactions);
+  shooter.qaContactFired=true;
+ }
+}
+function botQaHit(b){
+ if(!botQaEnabled||!b||!b.qaKey)return;
+ var row=botQaData.shots[b.qaKey];
+ if(!row)return;
+ row.hits++;botQaData.hits++;
+}
+function botQaMove(wanted,moved,speed,dt){
+ if(!botQaEnabled||!wanted||!Number.isFinite(dt)||dt<=0)return;
+ botQaData.movingSeconds+=dt;
+ if(moved<Math.max(.003,speed*dt*.22))botQaData.blockedSeconds+=dt;
+}
+function botQaPath(p){
+ if(!botQaEnabled)return;
+ botQaData.pathAttempts++;
+ if(!p||!p.length)botQaData.pathFailures++;
+}
+function botQaBomb(winner,site,state){
+ if(!botQaEnabled)return;
+ if(botQaData.rounds.length>=150)botQaData.rounds.shift();
+ botQaData.rounds.push({winner:winner,site:site,
+  planted:state==='planted'});
+}
+function botQaReport(){
+ var frames=botQaPercentiles(botQaData.frames),
+     cpu=botQaPercentiles(botQaData.cpu),
+     latency=botQaPercentiles(botQaData.reactions);
+ var rows=Object.keys(botQaData.shots).sort().map(function(k){
+  var r=botQaData.shots[k];
+  return {mode:r.mode,weaponKind:r.kind,rangeBand:r.range,
+   projectiles:r.projectiles,characterHits:r.hits,
+   projectileHitPercent:r.projectiles?
+    Math.round(r.hits/r.projectiles*10000)/100:null};
+ });
+ var bomb={completed:botQaData.rounds.length,policeWins:0,
+  terroristWins:0,plantedAtFinish:0,siteA:0,siteB:0,noSite:0};
+ botQaData.rounds.forEach(function(r){
+  if(r.winner===0)bomb.policeWins++;
+  else if(r.winner===1)bomb.terroristWins++;
+  if(r.planted)bomb.plantedAtFinish++;
+  if(r.site===0)bomb.siteA++;
+  else if(r.site===1)bomb.siteB++;
+  else bomb.noSite++;
+ });
+ return {schema:'BLOCK_BUDDIES_M7_QA_V1',enabled:true,
+  recordedStartUnixMs:botQaData.startedAt,
+  limitation:'Only events observed in this browser tab with opt-in flag; samples are rolling windows, not M0 paired baseline. Projectile hit rate is character-hit projectile / fired projectile, not trigger accuracy; shotgun pellets counted separately. CPU measures botsUpd only. No claims of full map coverage.',
+  frameTimeMs:frames,botUpdateCpuMs:cpu,
+  firstSightToShotMs:latency,
+  approximateFpsMedian:frames.median?Math.round(1000/frames.median*10)/10:null,
+  projectileCount:botQaData.projectiles,
+  characterProjectileHits:botQaData.hits,
+  projectileHitPercent:botQaData.projectiles?
+   Math.round(botQaData.hits/botQaData.projectiles*10000)/100:null,
+  byWeaponRange:rows,observations:botQaData.observations,
+  lostUnfiredSightings:botQaData.lostSight,
+  movementAttemptSeconds:Math.round(botQaData.movingSeconds*100)/100,
+  lowDisplacementSeconds:Math.round(botQaData.blockedSeconds*100)/100,
+  pathAttempts:botQaData.pathAttempts,pathFailures:botQaData.pathFailures,
+  bombRounds:bomb,invalidOrSuspendedFrames:botQaData.outOfWindowFrames,
+  frameSampleLimit:BOT_QA.maxFrames,cpuSampleLimit:BOT_QA.maxCpuTicks,
+  reactionSampleLimit:BOT_QA.maxReactions};
+}
+function botQaDownload(){
+ if(!botQaEnabled||typeof document==='undefined'||typeof Blob==='undefined')return false;
+ var data=JSON.stringify(botQaReport(),null,2),
+     blob=new Blob([data],{type:'application/json'}),
+     url=URL.createObjectURL(blob),
+     a=document.createElement('a');
+ a.href=url;a.download='block-buddies-m7-qa.json';
+ document.body.appendChild(a);a.click();a.remove();
+ setTimeout(function(){URL.revokeObjectURL(url);},2000);
+ return true;
+}
+if(botQaEnabled&&typeof window!=='undefined'){
+ // Explicit, opt-in console API. Never sends data to any server.
+ window.BlockBuddiesQA=Object.freeze({
+  report:botQaReport,download:botQaDownload,
+  reset:function(){botQaData=botQaState();}
+ });
+ console.info('BLOCK BUDDIES local M7 QA enabled: BlockBuddiesQA.report() / .download()');
+}
 // ---- MAIN SIMULATION ----
 // update(dt): one simulation step (dt in seconds, capped at .05 in loop()). Order: timers -> player movement/jump ->
 // aiming (ADS) and weapon timers (AWP bolt) -> player shooting -> crates -> grenades -> bots -> bullets -> particles -> HUD.
@@ -5095,7 +5260,9 @@ function update(dt){
     if(!pl.dead&&c.land&&Math.hypot(c.x-pl.x,c.z-pl.z)<1.2&&!(c.ci===3&&pl.hp>=100)){S.remove(c.m);cr.splice(i,1);pick(c.ci);}}
   updChutes(dt);
   // enemies
+  var qaBotStart=botQaEnabled?performance.now():0;
   botsUpd(dt);
+  if(botQaEnabled)botQaCpu(performance.now()-qaBotStart,en.length);
   updDead(dt);bloodPoolUpdate(dt);
   // bullets
   for(i=bl.length-1;i>=0;i--){var b2=bl[i],p=b2.m.position,hit=false,ho=null,hn=null,ddt=dt+(b2.ad||0),ns=Math.max(1,Math.ceil(Math.hypot(b2.vx,b2.vz,b2.vy||0)*ddt/.2)),sd=ddt/ns;b2.ad=0;
@@ -5252,7 +5419,7 @@ function hud(){var w=WP[pl.w],hp=pl.hp;tmUpd();wselUpd();abUpd();var tacticalAds
 // loop(now): runs update(dt) while a match is on, then positions the camera (normal view, lobby orbit, or death cam),
 // applies recoil/shake/FOV, animates the viewmodel (animHands), and renders: world first, then the viewmodel on top with depth cleared.
 var last=performance.now();
-(function loop(now){var dt=Math.min((now-last)/1000,.05);last=now;if(run)update(pl.dead&&pl.dt<.8?dt*(.3+.7*pl.dt/.8):dt);
+(function loop(now){var qaDeltaMs=now-last,qaFrameStart=botQaEnabled?performance.now():0;var dt=Math.min((now-last)/1000,.05);last=now;if(run)update(pl.dead&&pl.dt<.8?dt*(.3+.7*pl.dt/.8):dt);
   shakeT=Math.max(0,shakeT-dt);var sh=shakeT*.5;cs.s*=Math.max(0,1-dt*6);spr(cs,"k","kv",dt);spr(cs,"y","yv",dt);spr(cs,"r","rv",dt);var ft=70+(ADF[pl.w]-70)*adsT+6*sprT+Math.max(0,cs.k)*45*(1-.5*adsT);if(lob||mt.over){var la=performance.now()/9000;
     if(lob&&mapPreviewSceneBomb){var an=performance.now()/7500;C.position.set(25+Math.sin(an)*1.6,2.25,5+Math.cos(an)*1.6);C.lookAt(25+Math.sin(an+0.8)*12,2.1,5+Math.cos(an+0.8)*12);ft=72;}
     else{C.position.set(Math.sin(la)*34,13,Math.cos(la)*34);C.lookAt(0,2,0);ft=62;}
@@ -5260,5 +5427,5 @@ var last=performance.now();
   else{var cb=mvAmt*wtT*(1-.75*adsT)*(pl.vy===0?1:0)*(1+.35*sprT),bY=-cb*.022*(.5-.5*Math.cos(2*bobP)),tr=cs.s*(1-.4*adsT),ta=tr*tr,nt=performance.now()/1000,sj=sh+ta*.06,ads2=1-.4*adsT,pp=pl.pitch+cs.k*(1-.35*adsT)+snz(nt,1)*ta*.05,fy=pl.face+cs.y*ads2+snz(nt,2)*ta*.05;C.position.set(pl.x+snz(nt,3)*sj,1.5+camY+bY+snz(nt,4)*sj-(isBombMode()&&pl.bAction?.55:0),pl.z+snz(nt,5)*sj);C.lookAt(pl.x+Math.sin(fy)*Math.cos(pp),1.5+camY+bY+Math.sin(pp)-(isBombMode()&&pl.bAction?.55:0),pl.z+Math.cos(fy)*Math.cos(pp));C.rotateZ(cs.r*ads2+snz(nt,6)*ta*.06+Math.sin(bobP)*.004*cb);}
   if(Math.abs(C.fov-ft)>.02){C.fov=ft;C.updateProjectionMatrix();}
   kick*=Math.max(0,1-dt*14);flashT-=dt;var dl=pl.w===7;mflash.visible=flashT>0&&run&&!(dl&&shotSide);mflash2.visible=flashT>0&&run&&dl&&!!shotSide;var suppressedFlash=!!(GS[SFXI[pl.w]]&&GS[SFXI[pl.w]].suppressed);mflash.scale.setScalar((suppressedFlash?.17:.7)+Math.random()*(suppressedFlash?.12:.8));mflash2.scale.setScalar(.7+Math.random()*.8);mflash.position.set(0,.02,MZ[pl.w]);mflash2.position.set(-.52,.02,MZ[pl.w]);animHands();guns.forEach(function(g,i){g.visible=i===pl.w&&!(i===5&&pl.ghide>0);});sun.position.set(pl.x+14,30,pl.z+10);sun.target.position.set(pl.x,0,pl.z);sun.target.updateMatrixWorld();
-  footstepUpdateListener();updSky(dt);R.clear();R.render(S,C);modePreviewDraw(now);if(!pl.dead&&!lob&&!mt.over){R.clearDepth();R.render(VS,VC);}requestAnimationFrame(loop);})(last);
+  footstepUpdateListener();updSky(dt);R.clear();R.render(S,C);modePreviewDraw(now);if(!pl.dead&&!lob&&!mt.over){R.clearDepth();R.render(VS,VC);}if(botQaEnabled)botQaFrame(qaDeltaMs,performance.now()-qaFrameStart,run&&!lob&&!mt.over);requestAnimationFrame(loop);})(last);
 })();
