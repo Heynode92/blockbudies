@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-31 WIB — HOSPITAL corridor blueprint fidelity correction
+
+- Rebuilt Hospital's map structure from the user's annotated arrow blueprint. **Grey is the playable corridor network; white is full-height room/wing partition**, not an alternative route. This supersedes the previous guess-based Hospital room arrangement.
+- The original image's **32-step irregular exterior contour** and **eight internal white room islands** (decomposed into 10 solid rectangles, including the L-shaped room) now generate real `wl()/OB` collision. One image-to-world transform keeps the exact geometry tied to the 160×160 Bomb arena. Outdoor/other indoor maps remain unchanged.
+- Police remains at the upper-left purple spawn; Terrorist at lower-right red spawn; Site A upper-right (67,-43), Site B left-middle (-67,3). Twenty medical-cover elements retain their hospital theme but are tied to verified grey corridor positions; seven were moved to the side after the waypoint test flagged an obstructed user arrow.
+- Added source-grounded Node tests for **10 white pixels blocked, 20 grey corridor points open, 32 collidable border segments, 20 spawn-to-A/B A* paths**, plus map isolation, planted-site clearance and QA bridge checks in Chromium.
+- [Windows regression #latest](https://github.com/Heynode92/blockbudies/actions/runs/41198370309) **386/386 PASS**, source bundle parity PASS. [Chromium browser matrix](https://github.com/Heynode92/blockbudies/actions/runs/41198370465) still needs recorded individual Police/Terrorist conclusions; aesthetic and FPS visual checks are separately required. No changes to Bomb Mission rules, damage, weapons, BOT combat AI or other arenas.
+
 ## 2026-10-31 WIB — Hospital 385/385 Node PASS and 20 automated browser Bomb rounds
 
 - [Windows regression #334](https://github.com/Heynode92/blockbudies/actions/runs/41194683332): **385/385 PASS**, source manifest / shipped `assets/game.js` byte parity PASS. The final indoor Hospital includes six readable overhead department names and earlier medical décor with no gameplay modifications.
