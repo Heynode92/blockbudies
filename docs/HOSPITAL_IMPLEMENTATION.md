@@ -49,3 +49,13 @@ Spawns use **five fixed collision-free candidates per team**, picked through exi
 8. Non-monotone hospital presentation still needs screenshot verification in the owner's actual browser; software-rendered CI FPS is **not certified hardware performance**.
 
 **Important:** functional automated testing cannot prove competitive balance or subjective visual quality. Do not mark final VERIFIED before checking actual Windows CI. Keep Bomb rules and other maps unchanged.
+
+## Recorded QA evidence — October 31, 2026
+
+- [Windows Node regression #334](https://github.com/Heynode92/blockbudies/actions/runs/41194683332) validated the final playable source and department-signage bundle `351f779e8bbe36f51351949be5edc4ded414cffe`: **385/385 Node tests PASS**, generated bundle parity **PASS**, JavaScript syntax **PASS**. This includes both Hospital physical and Room Master persistence tests.
+- [Windows Chromium #66](https://github.com/Heynode92/blockbudies/actions/runs/41194482293) validated the first playable Hospital gameplay bundle before the subsequent **visual-only department signage** was added: **Hospital Police SUCCESS 10/10 canonical Bomb rounds** (5 Police wins / 5 Terrorist wins, planted-at-finish A 6 / B 0), **Hospital Terrorist SUCCESS 10/10** (0 Police wins / 10 Terrorist wins, planted-at-finish A 10 / B 0). Both jobs recorded **zero JavaScript exceptions** and passed the physical Hospital spawn/room/roof/collider/A* checks. This is functional simulation, not player-hardware FPS or subjective visual confirmation.
+- **Remaining visual-only final-browser check:** the latest [Chromium #68](https://github.com/Heynode92/blockbudies/actions/runs/41194683334) corresponds to the package containing the department signage. Its status must be checked independently; do **not** claim #66 ran against the signage change.
+- **Map balance observation:** B is physically plantable and all spawn-to-B A* routes pass, but the 20-round sampled outcomes in #66 all occurred at A. These data do not yet demonstrate balanced A/B tactical selection. This is not sufficient reason to edit Bomb tactical code or alter the owner's map layout.
+
+**Conclusion:** Hospital indoor map is implemented and source/bundle/node-verified. First-playable browser functional QA for both factions passed. Final signage build awaits matching browser evidence and the visual aesthetic should be checked on the user's Windows renderer.
+
