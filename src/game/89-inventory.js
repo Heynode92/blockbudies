@@ -441,4 +441,4 @@ document.getElementById("ivcards").addEventListener("scroll",function(){
  inventoryScroll[inventoryTab]=this.scrollTop;
 },{passive:true});
 document.getElementById("lbin").addEventListener("click",inventoryOpen);
-document.getElementById("ivback").addEventListener("click",function(){lobP("lbs");});
+document.getElementById("ivback").addEventListener("click",roomQuickBack);
