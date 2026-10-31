@@ -56,6 +56,12 @@ var BLOCK_TOWN_DEF=Object.freeze({
   [-53,31,3,2],[-12,18,2.6,2.3],[24,24,3,2.1],[49,40,3,2]
  ]),
  trees:Object.freeze([[-75,-40],[-60,0],[-58,58],[-12,25],[23,28],[60,58],[74,-32]]),
+ // No two paving rectangles overlap on the same Y plane (prevent z-fighting).
+ paving:Object.freeze([
+  [-49,-40,33,31,0], [49,-37,34,29,0],
+  [-43,26,23,32,1], [7,20,24,21,1], [34,-9,21,24,1],
+  [-38,64,29,18,1], [55,47,23,21,0]
+ ]),
  streetMarks:Object.freeze([[-50,38,2,10],[-50,20,2,7],[0,25,7,2],[25,-27,8,2],[48,-5,2,9]])
 });
 function townSpawnPt(team){
@@ -76,19 +82,13 @@ function makeBlockTown(){
  function wall(x,z,w,dep,h,color){wl(x,z,w,dep,h,color);}
  // Each pavement region is disjoint from all other pavement regions.
  // Distinct Y tiers (foundation 0, pavement .05, paint .09) prevent z-fighting.
- var paving=[
-  [-49,-40,33,31,c.stone],[49,-37,34,29,c.stone],
-  [-43,26,23,32,c.walk],[7,20,24,21,c.walk],[34,-9,21,24,c.walk],
-  [-38,64,29,18,c.walk],[55,47,23,21,c.stone]
- ];
- paving.forEach(function(p){
-   var slab=mk(p[2],.04,p[3],p[4],p[0],.03,p[1]);
+ d.paving.forEach(function(p){
+   var slab=mk(p[2],.04,p[3],p[4]===0?c.stone:c.walk,p[0],.03,p[1]);
    slab.castShadow=false;
  });
  // Building silhouettes share the gameplay-collider body but differ in architectural
  // vocabulary: shopfront, pitched-roof home, warehouse, office, cafe and rowhouse.
  function facadePane(ns,sgn,x,z,center,y,w,col,trimCol,style){
-   var at=ns?z+sgn*(center+.035):x+sgn*(center+.035),uu=0;
    // Dark recess, pane, sash and sill occupy successive NON-COPLANAR depth tiers.
    var bw=style===2?1.1:1.5,bh=style===3?1.7:1.37;
    function plane(width,height,depth,paint,offset,yy){
