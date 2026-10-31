@@ -47,7 +47,7 @@ function bombPickDefuser(){
   if(!bombMatch||bombMatch.done||bombMatch.state!=='planted')return null;
   var b=bombMatch,team=bombLiving(0),current=b.defuser;
   // A sole surviving officer clears a nearby Terrorist before risking the 7s defuse.
-  if(team.length===1&&team[0]!==pl&&bombSoloPoliceThreat(team[0])){
+  if(team.length===1&&team[0]!==pl&&bombSoloPoliceThreat(team[0])&&!bombM5CriticalFuse()){ 
     b.defuser=null;return null;
   }
   // A human who is merely standing near the bomb must not block bot defuse attempts.
@@ -55,6 +55,8 @@ function bombPickDefuser(){
   if(humansDefusing){b.defuser=pl;return pl;}
   var botOptions=team.filter(function(e){return e!==pl;});
   if(botOptions.length)team=botOptions;
+  var urgent=bombM5SelectDefuser(team,current);
+  if(urgent){b.defuser=urgent;return urgent;}
   if(bombUncontestedRetake()&&botOptions.length){
     // In an uncontested retake, use whichever officer can defuse soonest.
     // A bot already defusing must finish; otherwise reassign if a closer officer arrives.
@@ -81,6 +83,7 @@ function bombPickDefuser(){
 // One designated recoverer retrieves a dropped device while others screen it.
 function bombSmartRecoverer(){
  if(!bombMatch||!bombMatch.dropped)return null;
+ var selected=bombM5Recoverer();if(selected)return selected;
  var p=bombMatch.dropped,best=null,d=Infinity;
  bombLiving(1).forEach(function(e){if(e===pl)return;
   var n=Math.hypot(e.x-p.x,e.z-p.z);if(n<d){d=n;best=e;}
@@ -116,6 +119,7 @@ function bombSafeGoal(x,z,e){
 }
 function bombStrategicSite(e){
   if(e.siteChoice===undefined){var round=bombMatch?bombMatch.round:1;e.siteChoice=(e.idx+round+(e.tm?1:0))%BOMB_SITES.length;}
+  bombM5ChooseSite(e);
   return BOMB_SITES[e.siteChoice];
 }
 function bombTacticalGoal(e){
@@ -126,12 +130,18 @@ function bombTacticalGoal(e){
     site=BOMB_SITES[b.site];
     if(stage==='retake-defuse')return bombSafeGoal(b.device.position.x,b.device.position.z,e);
     if(stage==='retake-support'){
+      var reinforcement=bombM5RetakeSupportGoal(e,stage);
+      if(reinforcement)return reinforcement;
       // Do not camp the other bomb site. Keep a replacement officer at defuse range.
       angle=(idx*2+Math.floor(tt/BOMB_AI.retakeSweepStep))*Math.PI/4;
       return bombSafeGoal(b.device.position.x+Math.cos(angle)*BOMB_AI.clearSiteSupportRadius,
         b.device.position.z+Math.sin(angle)*BOMB_AI.clearSiteSupportRadius,e);
     }
     if(stage==='retake-assault'){
+      // The last seconds are for clearing/covering the real device, not hunting
+      // a stale attacker position on the far side of the map.
+      if(bombM5CriticalFuse())return bombSafeGoal(b.device.position.x+Math.cos(angle)*3.7,
+                                                 b.device.position.z+Math.sin(angle)*3.7,e);
       // When alone against a nearby defender, clear the threat before defusing.
       foe=bombSoloPoliceThreat(e);
       if(foe)return bombSafeGoal(foe.x,foe.z,e);
@@ -149,9 +159,15 @@ function bombTacticalGoal(e){
         b.device.position.z+Math.sin(angle)*radius,e);
     }
     if(stage==='intercept'){
+      var interceptGoal=bombM5PostPlantGoal(e,stage);
       foe=bombNearestThreat(1,site.x,site.z,BOMB_AI.roamRadius,e);
+      if(interceptGoal&&!foe)return interceptGoal;
       if(foe)return bombSafeGoal(foe.x,foe.z,e);
       radius=8+idx%3*2;
+    }
+    if(stage==='hold'){
+      var guarded=bombM5PostPlantGoal(e,stage);
+      if(guarded)return guarded;
     }
     if(stage==='hunt'){
       foe=bombNearestOpponent(e);
