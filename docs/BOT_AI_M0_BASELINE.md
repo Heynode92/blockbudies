@@ -1,4 +1,4 @@
-# BLOCK BUDDIES — M0 Synthetic BOT Baseline (2026-10-30)
+# POINT BLOCK — M0 Synthetic BOT Baseline (2026-10-30)
 
 > **Milestone:** M0 — Baseline & Harness  
 > **Status:** M0 BASELINE FOUNDATION VERIFIED / ADVANCED REAL-BROWSER KPIs DEFERRED (OPEN)  
