@@ -30,7 +30,17 @@ if(botQaEnabled){
       }
       return true;
     },
-    pauseForStepping:function(){run=false;BlockBuddiesQA.reset();},
+    pauseForStepping:function(){
+      run=false;
+      // Headless accelerated functional QA has already finished the true
+      // WebGL performance sample. Disable graphics work only for fast steps;
+      // update(), collision, AI and objective simulation are untouched.
+      R.render=function(){};
+      R.shadowMap.enabled=false;
+      R.setPixelRatio(1);
+      R.setSize(1,1,false);
+      BlockBuddiesQA.reset();
+    },
     step:function(steps){
       if(run)throw Error('Refusing accelerated update while real-time rAF simulation is active');
       for(var i=0;i<steps;i++){
