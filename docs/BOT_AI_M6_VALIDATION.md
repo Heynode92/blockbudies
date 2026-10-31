@@ -1,6 +1,6 @@
 # BLOCK BUDDIES — M6 TDM Aggression & Weapon-Class Intelligence Validation
 
-> **Status:** IMPLEMENTED / AUTOMATED VERIFIED; OWNER WINDOWS GAMEPLAY PLAYTEST PENDING
+> **Status:** VERIFIED (CORE EXIT GATE: 361/361 WINDOWS CI + OWNER-REPORTED 7/7 MANUAL PASS); QUANTITATIVE TDM/FPS KPIs OPEN
 > **Date:** 2026-10-31 WIB
 > **Scope:** TDM target prioritization, fair spawn-aware map rotation, canonical weapon-class movement bands; Bomb and weapon rules unchanged
 > **CI evidence:** [Windows GitHub Actions run #167](https://github.com/Heynode92/blockbudies/actions/runs/41176771936) — **361/361 Node tests PASS**, zero failed, committed direct-open bundle parity, JavaScript syntax, deterministic 10-BOT seed replay and synthetic CPU-time checks green.
@@ -44,14 +44,20 @@
 - [x] Active production A* routes around a synthetic solid building to an M6 waypoint.
 - [x] Original `BOT_WEAPONS.primaries` preserved; RPG ID 3 absent; no M6 damage, recoil or position mutation.
 - [x] Windows [Actions run #167](https://github.com/Heynode92/blockbudies/actions/runs/41176771936): **361/361 complete tests PASS**, committed bundle parity and syntax green, deterministic active BOT scenario replay and synthetic CPU checks completed.
-- [ ] Owner Windows TDM playtest: both teams, at least one long/short weapon encounter, target visibility lost and regained, spontaneous new patrol route, no enemy spawn camping, Bomb unaffected, no freeze/crash.
+- [x] **Owner-reported M6 manual gameplay 7/7 PASS (2026-10-31 WIB):** both teams aggressive, shotgun/SMG approach vs rifle/sniper positioning, legal LOS with no observed hidden-target tracking, natural patrol after lost contact, no persistent spawn camping or spawn-shield violations observed, Bomb plant/defuse/retake/round integrity unchanged, no visible permanent stuck/clipping/freeze/crash/heavy lag. User self-report, not raw measured FPS or map logs.
 - [ ] Real match per-weapon hit%, effective engagement range distributions, actual spawn camping frequency, player and BOT kill/death balance, navigation and FPS/frame-time p95, multi-map/team soak statistics. **Not measured by CI.**
 
 ## Limitations and sign-off
 
 M6 improves heuristics; it is **not** a machine-learning agent, and this update does not establish human competitive equivalence, quantitative accuracy improvements or absolute no-spawn-camping guarantees. Node VM synthetic 10-BOT replay and CPU benchmarks are not actual Chrome/Firefox/WebGL frame times, match hit percentages, headshots, win rates or real-map navigation success statistics.
 
-**M6 core implementation is AUTOMATED VERIFIED; manual owner gameplay acceptance remains PENDING.** M7 release/performance QA remains NOT STARTED and requires independently logged browser/real-match evidence. M0–M5 core milestones were separately accepted (M5 owner-reported 7/7 manual PASS).
+**M6 core feature exit gate VERIFIED** from 361/361 full Windows CI plus explicit owner-reported 7/7 manual gameplay PASS. M7 performance/release QA is separately authorized and **IN PROGRESS**, with actual browser metrics not yet collected. M0–M5 core milestones were previously accepted; no hit-rate or FPS value is inferred from the owner report.
+
+## M6 owner manual acceptance — 2026-10-31 WIB
+
+The repository owner explicitly reported **“M6 playtest PASS bro”** and **all 7 checks passed**: Police and Terrorist aggression, differentiated weapon-class positioning, no visible hidden-opponent coordinate leakage, map-control rotation after LOS lost, no repeated spawn camping or firing on spawn-shielded enemies, normal Bomb interactions/round completion, and no permanent stuck, wall clipping, freeze, crash or heavy perceived lag. **Self-reported qualitative results only**, not independent browser instrumentation; exact session lengths, FPS, hit percentages, weapon-band sample counts and full two-map test matrix were not supplied.
+
+**Decision:** M6 **CORE VERIFIED** based on owner acceptance and [CI #172](https://github.com/Heynode92/blockbudies/actions/runs/41176995240) (361/361 PASS). **M7 diagnostics and release QA are separately authorized; real quantitative KPI gates remain OPEN**.
 
 ## Owner Windows test procedure
 
