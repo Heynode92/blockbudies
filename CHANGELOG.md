@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-31 WIB — Block Town V4 live browser functional QA evidence
+
+- [Chromium #59](https://github.com/Heynode92/blockbudies/actions/runs/41193301729) confirms **Block Town Police 10/10 canonical Bomb finishes PASS**, **Block Town Terrorist 10/10 PASS**, with **zero reported JavaScript exceptions** on the final V4 game bundle. Police slot: Police 4/Terrorist 6, planted-at-finish 6 (B 6). Terrorist slot: Police 3/Terrorist 7, planted-at-finish 7 (B 7).
+- **Both Bomb Site A and B remain reachable in Node A***; this limited browser sample happened to contain no Site A planted finishes. Track as an objective-usage/balance observation, not a fabricated Site A success or proof of obstruction. No BOT tuning performed.
+- Overall Chromium workflow also includes unrelated Block Labs failures and still-running Lockdown jobs; the **two Block Town jobs alone** are verified PASS. Renderer fog cap and sampled physical sightline regression remain 70 units; actual user-GPU aesthetic and FPS confirmation are separate.
+
 ## 2026-10-31 WIB — Block Town V4: maximum 70-unit visual range and physical urban LOS breaks
 
 - Addressed the owner screenshot of the exposed, long straight Block Town street. Kept the **160×160 Bomb Mission map** and all original Police/Terrorist spawn positions and A/B site coordinates; **no weapon range, damage, BOT perception or Bomb rules changed**.
