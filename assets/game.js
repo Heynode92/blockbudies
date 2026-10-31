@@ -3550,41 +3550,32 @@ var HOME_DEMOS=Object.freeze({
 });
 var homeDemoKey="deathmatch",homeDemoHasError=false;
 var homeDemoVideo=document.getElementById("homeDemoVideo"),
-    homeDemoScreen=document.querySelector("#lbs .home-demo-screen"),
-    homeDemoStatus=document.getElementById("homeDemoStatus"),
-    homeDemoLabel=document.getElementById("homeDemoLabel"),
-    homeDemoDetail=document.getElementById("homeDemoDetail"),
-    homeDemoCounter=document.getElementById("homeDemoCounter"),
-    homeDemoProgress=document.getElementById("homeDemoProgress"),
-    homeDemoEmpty=document.getElementById("homeDemoEmpty");
-var homeDemoInterval=null,homeDemoFadeTimer=null;
+ homeDemoNextVideo=document.getElementById("homeDemoNextVideo"),
+ homeDemoScreen=document.querySelector("#lbs .home-demo-screen"),
+ homeDemoStatus=document.getElementById("homeDemoStatus"),
+ homeDemoLabel=document.getElementById("homeDemoLabel"),
+ homeDemoDetail=document.getElementById("homeDemoDetail"),
+ homeDemoCounter=document.getElementById("homeDemoCounter"),
+ homeDemoProgress=document.getElementById("homeDemoProgress"),
+ homeDemoEmpty=document.getElementById("homeDemoEmpty");
+var homeDemoInterval=null,homeDemoFadeTimer=null,homeDemoTransitioning=false;
 function homeDemoVisible(){
- return !document.hidden&&!run&&!!lob&&
-   document.getElementById("lbs").classList.contains("on");
+ return !document.hidden&&!run&&!!lob&&document.getElementById("lbs").classList.contains("on");
 }
 function homeDemoSetStatus(message){homeDemoStatus.textContent=message;}
-function homeDemoAttemptPlay(){
+function homeDemoAttemptPlay(video){
  if(!homeDemoVisible()||homeDemoHasError)return;
- homeDemoVideo.muted=true;
- var attempt=homeDemoVideo.play();
+ var target=video||homeDemoVideo;target.muted=true;
+ var attempt=target.play();
  if(attempt&&typeof attempt.catch==="function")attempt.catch(function(){
    if(homeDemoVisible()&&!homeDemoHasError)homeDemoSetStatus("GAMEPLAY PREVIEW");
  });
 }
-function homeDemoSelect(value){
- if(!Object.prototype.hasOwnProperty.call(HOME_DEMOS,value))return;
- var demo=HOME_DEMOS[value],changed=homeDemoKey!==value||
-   homeDemoVideo.getAttribute("src")!==demo.src;
- homeDemoKey=value;homeDemoHasError=false;
+function homeDemoUpdateLabel(value){
+ var demo=HOME_DEMOS[value];homeDemoKey=value;
  homeDemoLabel.textContent=demo.label;homeDemoDetail.textContent=demo.detail;
  homeDemoCounter.textContent=demo.number+" / 02";
- homeDemoEmpty.hidden=true;
- if(changed){
-   homeDemoVideo.pause();
-   homeDemoVideo.setAttribute("src",demo.src);homeDemoVideo.load();
- }
- homeDemoSetStatus("GAMEPLAY FOOTAGE");
- homeDemoAttemptPlay();
+ homeDemoEmpty.hidden=true;homeDemoSetStatus("GAMEPLAY FOOTAGE");
 }
 function homeDemoResetProgress(){
  if(!homeDemoProgress)return;
@@ -3593,16 +3584,28 @@ function homeDemoResetProgress(){
  homeDemoProgress.style.animation="";
 }
 function homeDemoRotate(){
- if(!homeDemoVisible())return;
- homeDemoScreen.classList.add("is-fading");
- clearTimeout(homeDemoFadeTimer);
- homeDemoFadeTimer=setTimeout(function(){
-   if(homeDemoVisible()){
-     homeDemoSelect(homeDemoKey==="deathmatch"?"bomb":"deathmatch");
-     homeDemoResetProgress();
-   }
-   homeDemoScreen.classList.remove("is-fading");
- },420);
+ if(!homeDemoVisible()||homeDemoTransitioning)return;
+ homeDemoTransitioning=true;
+ var nextKey=homeDemoKey==="deathmatch"?"bomb":"deathmatch";
+ var outgoing=homeDemoVideo,incoming=homeDemoNextVideo;
+ incoming.classList.remove("is-current");incoming.muted=true;
+ incoming.src=HOME_DEMOS[nextKey].src;incoming.load();
+ function finish(){
+   if(!homeDemoTransitioning)return;
+   incoming.classList.add("is-current");
+   homeDemoUpdateLabel(nextKey);
+   homeDemoResetProgress();
+   clearTimeout(homeDemoFadeTimer);
+   homeDemoFadeTimer=setTimeout(function(){
+     outgoing.pause();outgoing.classList.remove("is-current");outgoing.removeAttribute("src");outgoing.load();
+     homeDemoVideo=incoming;homeDemoNextVideo=outgoing;homeDemoTransitioning=false;
+   },780);
+ }
+ var play=incoming.play();
+ if(play&&typeof play.then==="function"){
+   play.then(function(){if(homeDemoVisible())finish();else homeDemoTransitioning=false;})
+   .catch(function(){homeDemoTransitioning=false;homeDemoSetStatus("GAMEPLAY PREVIEW");});
+ }else finish();
 }
 function homeShowcaseSync(){
  if(!homeDemoVideo)return;
@@ -3613,20 +3616,55 @@ function homeShowcaseSync(){
      homeDemoInterval=setInterval(homeDemoRotate,10000);
    }
  }else{
-   homeDemoVideo.pause();
+   homeDemoVideo.pause();homeDemoNextVideo.pause();
    if(homeDemoInterval!==null){clearInterval(homeDemoInterval);homeDemoInterval=null;}
    clearTimeout(homeDemoFadeTimer);
-   homeDemoScreen.classList.remove("is-fading");
+   homeDemoVideo.classList.add("is-current");
+   homeDemoNextVideo.classList.remove("is-current");
+   homeDemoTransitioning=false;
  }
 }
-homeDemoVideo.addEventListener("error",function(){
- homeDemoHasError=true;homeDemoVideo.pause();
- homeDemoEmpty.hidden=false;homeDemoSetStatus("PREVIEW UNAVAILABLE");
+[homeDemoVideo,homeDemoNextVideo].forEach(function(video){
+ video.muted=true;
+ video.addEventListener("error",function(){
+   if(video!==homeDemoVideo)return;
+   homeDemoHasError=true;
+   homeDemoEmpty.hidden=false;homeDemoSetStatus("PREVIEW UNAVAILABLE");
+ });
 });
 document.addEventListener("visibilitychange",homeShowcaseSync);
-homeDemoVideo.muted=true;
-homeDemoSelect("deathmatch");
+homeDemoUpdateLabel("deathmatch");
 homeShowcaseSync();
+// Wallet connection is optional UI preparation; it does not authenticate gameplay.
+var homeWalletButton=document.getElementById("homeWalletConnect");
+var homeWalletAccount=null;
+function homeWalletRender(){
+ homeWalletButton.textContent=homeWalletAccount?
+  homeWalletAccount.slice(0,6)+"…"+homeWalletAccount.slice(-4):"CONNECT WALLET";
+ homeWalletButton.classList.toggle("connected",!!homeWalletAccount);
+ homeWalletButton.setAttribute("aria-label",homeWalletAccount?"Connected wallet "+homeWalletAccount:"Connect wallet");
+}
+homeWalletButton.addEventListener("click",function(){
+ var provider=window.ethereum;
+ if(!provider||typeof provider.request!=="function"){
+   homeWalletButton.textContent="WALLET NOT FOUND";
+   return;
+ }
+ homeWalletButton.disabled=true;homeWalletButton.textContent="CONNECTING…";
+ provider.request({method:"eth_requestAccounts"}).then(function(accounts){
+   homeWalletAccount=Array.isArray(accounts)&&typeof accounts[0]==="string"&&/^0x[a-fA-F0-9]{40}$/.test(accounts[0])?accounts[0]:null;
+   homeWalletRender();
+ }).catch(function(){
+   homeWalletRender();
+ }).finally(function(){homeWalletButton.disabled=false;});
+});
+if(window.ethereum&&typeof window.ethereum.on==="function"){
+ window.ethereum.on("accountsChanged",function(accounts){
+   homeWalletAccount=Array.isArray(accounts)&&typeof accounts[0]==="string"&&/^0x[a-fA-F0-9]{40}$/.test(accounts[0])?accounts[0]:null;
+   homeWalletRender();
+ });
+}
+homeWalletRender();
 // Room Lobby: browser-local room master flow; no network rooms or invented pings.
 // Uses existing mode maps, 5v5 bots, and canonical combat/plant/defuse systems.
 var ROOM_STORAGE_KEY="bbfps_local_rooms_v1";
