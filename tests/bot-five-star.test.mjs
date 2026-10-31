@@ -75,6 +75,7 @@ test('active bot frame runs and retreats from visible enemy when HP is critical'
  fire:()=>{},clearTo:()=>true,grs:[],mkGren:()=>({}),newBot:()=>{},placeBot:()=>{},
  mkGun:()=>({rotation:{},scale:{setScalar(){}},position:{set(){}},traverse(){}})};
  vm.createContext(c);
+ vm.runInContext(read('src/game/40-bot-aim.js'),c);
  vm.runInContext(read('src/game/41-bot-weapons.js'),c);
  vm.runInContext(perception,c);
  vm.runInContext(tactics,c);
