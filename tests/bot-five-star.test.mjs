@@ -79,6 +79,7 @@ test('active bot frame runs and retreats from visible enemy when HP is critical'
  vm.runInContext(read('src/game/41-bot-weapons.js'),c);
  vm.runInContext(perception,c);
  vm.runInContext(read('src/game/88-bot-movement.js'),c);
+ vm.runInContext(read('src/game/88-bot-squad.js'),c);
  vm.runInContext(tactics,c);
  vm.runInContext(read('src/game/90-bot-ai.js').split('// botsUpdOld(dt)')[0],c);
  assert.doesNotThrow(()=>vm.runInContext('botsUpd(.016)',c));
