@@ -108,7 +108,7 @@ test('switching maps and modes drives the actual canonical game world',()=>{
 
 
 function thumbnailFixture(){
- const source=read('src/game/83-room-lobby.js'),start=source.indexOf('// Create Room map cards use ONLY'),
+ const source=read('src/game/83-room-lobby.js'),start=source.indexOf('// Create Room thumbnails are actual frames'),
   end=source.indexOf('function roomText(',start);
  assert.ok(start>=0&&end>start,'canonical map-card functions must be available');
  const calls={map:[],render:0,clear:0,pixels:0};
