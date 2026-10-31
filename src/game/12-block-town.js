@@ -8,8 +8,8 @@ var BOMB_MAP_REGISTRY=Object.freeze({
     sites:Object.freeze([{id:"A",x:55,z:-58,col:0xffa94d},{id:"B",x:-16,z:8,col:0x4dabf7}]),
     preview:Object.freeze({x:12,y:47,z:35,lookX:0,lookY:0,lookZ:-12,fov:74})}),
   hospital:Object.freeze({id:"hospital",name:"HOSPITAL",caption:"Indoor Medical Center",
-    sites:Object.freeze([{id:"A",x:67,z:-43,col:0xffa94d},{id:"B",x:-67,z:10,col:0x4dabf7}]),
-    preview:Object.freeze({x:-67,y:5.2,z:-25,lookX:-61,lookY:2,lookZ:8,fov:73})})
+    sites:Object.freeze([{id:"A",x:67,z:-43,col:0xffa94d},{id:"B",x:-67,z:3,col:0x4dabf7}]),
+    preview:Object.freeze({x:-67,y:5.2,z:-28,lookX:-67,lookY:2,lookZ:-5,fov:73})})
 });
 var selectedBombMapId="lockdown",BLOCK_TOWN_WORLD=null,BLOCK_TOWN_OB=[],BLOCK_TOWN_BR=[],BLOCK_TOWN_LT=[];
 function bombMapId(value){return Object.prototype.hasOwnProperty.call(BOMB_MAP_REGISTRY,value)?value:"lockdown";}
