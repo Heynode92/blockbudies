@@ -1,3 +1,9 @@
+## 2026-10-31 — Main-menu header cleanup and unclipped wordmark
+- Remove the redundant Settings and Fullscreen header icons and their associated browser event handlers. The existing Settings item remains in the main menu.
+- Repair the single-line BLOK BUDDIES logo with safe line height, explicit text padding, and no clipping or skew transform. Keep the white/orange identity.
+- Simplify the tactical header: compact FPS / 5V5 / POLICE VS TERRORIST metadata, Personal Best, and Connect Wallet aligned across the viewport.
+- Preserve home showcase, video carousel/crossfade, wallet connection, and all match navigation/gameplay behavior.
+
 ## 2026-10-31 — Match approved tactical FPS header reference
 - Implement a dedicated full-width tactical header with an orange left-chevron motif, a single-line white/orange BLOK BUDDIES wordmark, and inline FPS | 5V5 | POLICE VS TERRORIST information.
 - Align Personal Best with a trophy icon, the outlined Connect Wallet button, and functional Settings and Fullscreen shortcuts on the far right.
