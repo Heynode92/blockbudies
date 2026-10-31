@@ -37,8 +37,8 @@
 </div>
 <div id="sbd"></div><div class="dbt"><button id="dgo">PLAY AGAIN<kbd>ENTER</kbd></button><button id="dmn">MAIN MENU</button></div></div>
 </div></div>
-<div id="lb"><div id="lbs" class="lbp on">
- <header class="home-global-header" aria-label="Blok Buddies main menu header">
+<div id="lb">
+ <header id="gameLobbyHeader" class="home-global-header" aria-label="Blok Buddies main menu header">
   <span class="home-header-chevron" aria-hidden="true"></span>
   <div class="home-global-brand">
     <div class="home-wordmark" aria-label="Blok Buddies"><span class="home-brand-blok">BLOK</span><span class="home-brand-buddies">BUDDIES</span></div>
@@ -56,6 +56,8 @@
     <button id="homeWalletConnect" type="button" aria-label="Connect wallet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M6 6V4a2 2 0 0 1 2-2h10v4M15 11h6v5h-6a2.5 2.5 0 0 1 0-5Z"/><path d="M16 13.5h.01"/></svg><span id="homeWalletLabel">CONNECT WALLET</span></button>
   </div>
 </header>
+<div id="lbs" class="lbp on" data-shared-header>
+
  <div class="lbl">
   <section class="home-demo" aria-label="Official gameplay previews">
    <header class="home-demo-header"><span class="home-demo-live"><i></i> GAMEPLAY SHOWCASE</span><span id="homeDemoCounter">01 / 02</span></header>
@@ -100,7 +102,7 @@
   </div>
 </section>
 
-<section id="lbrooms" class="lbp" aria-label="Local room lobby">
+<section id="lbrooms" class="lbp" data-shared-header aria-label="Local room lobby">
   <header class="room-top">
     <button id="roomBack" type="button" class="room-back">‹ BACK</button>
     <div class="room-headings">
@@ -146,7 +148,7 @@
   </div>
 </section>
 
-<section id="lbroomlive" class="lbp" aria-label="Active local room lobby">
+<section id="lbroomlive" class="lbp" data-shared-header aria-label="Active local room lobby">
  <header class="rml-top"><div class="rml-brand">BLOCK<br><b>BUDDIES</b></div><div class="rml-heading"><h2>ROOM LOBBY</h2><p>PREPARE YOUR TEAM · LOCAL MATCH (VS AI)</p></div><span class="rml-local">LOCAL · VS AI <small id="rmlBotSummary"></small></span></header>
  <div class="rml-layout">
   <aside class="rml-hero" aria-label="Your equipped 3D soldier and weapon">
