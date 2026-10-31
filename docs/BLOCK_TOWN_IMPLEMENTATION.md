@@ -1,0 +1,44 @@
+# BLOCK BUDDIES — BLOCK TOWN (Bomb Mission Outdoor Map)
+
+**Implementation date:** 2026-10-31 WIB
+**Map identifier:** \`block-town\`
+**Existing map preserved:** \`lockdown\` (unchanged indoor maze)
+**Source of truth:** the owner-provided top-down outdoor Town blueprint and subsequent explicit instruction **Police Spawn di A**.
+**Scope:** new Bomb map only; do not change Team Deathmatch, weapon balance, Bomb timers, scoring or M0–M6 BOT policy.
+
+## Design and scale
+
+The map uses the exact **160×160 world-unit** Bomb arena footprint (\`BOMB_RULES.cellSize * BOMB_RULES.cells = 10 * 16\`; \`A=80\`, X/Z horizontal and Y vertical). It is a **single-level outdoor town** with varied asymmetrical residential/shop building blocks, paved market courtyard A, delivery courtyard B, central town junction, bent A lane, offset B lane and multiple connectors. It is **not** the previous symmetrical box-grid mockup and is **not** claimed to reproduce all photographic architectural details of the reference image.
+
+| Anchor | Source-owned x,z | Gameplay |
+|---|---|---|
+| **Police Spawn (A-side)** | positions near **(-61,-54)** to **(-70,-63)** | A-side defending courtyard, **not** across the map from Site A |
+| **Terrorist Spawn (south-west)** | positions near **(-38,64)** to **(-47,75)** | attack via offset west lane, mid and east approach |
+| Site A | **(-44,-39)** | market courtyard; existing 5-second plant action |
+| Site B | **(49,-37)** | delivery courtyard; existing 7-second defuse action |
+
+Spawn points are predeclared, individually validated against physical colliders and occupied in a non-repeating local round selection. All 25 opposing spawn-pair segments are intentionally obstructed by registered solids; the team's start areas are not face-to-face with direct shots.
+
+## Architecture and visuals
+
+- \`src/game/12-block-town.js\`: map registry, strict ID whitelist, map-local material palette, all structures, collision-level cover/barriers, spawns, site definitions, preview camera and outdoor Three.js generator. Data-driven config avoids scattering map magic coordinates and palette values across gameplay, lobby and HUD modules.
+- **Reuse canonical engine primitives:** \`mk()\`, \`wl()\`, \`dk()\`, \`flushDeco()\`, \`shade()\`, \`lite()\`, \`cBox()\`, \`cBar()\`. Visual-only details use original batched decoration system; hard blocking architecture uses \`wl()/OB\`, so bullets, player collision and BOT A* agree. Buildings are closed outdoor silhouettes, not falsely enterable.
+- \`src/game/11-bomb-map.js\`: retain Lockdown \`makeBombMap()\` and previous indoor data unmodified. \`selectGameMap()\` chooses the active cached geometry/collision snapshots for **Town**, **Lockdown** or **TDM**, resets \`GB\`, and restores correct active bomb site coordinates and fog/sky; other maps stay hidden.
+- \`src/game/83-room-lobby.js\`: Room Master Create and Settings choose a strictly whitelisted \`mapId\` persisted in existing browser-local room records. Old room records lacking \`mapId\` default to Lockdown. Unknown map IDs fall back safely. TDM remains single-map Block District.
+- \`src/game/84-live-map-preview.js\`, \`99-render-loop.js\`: select the real 3D preview and outdoor map camera when a room changes. \`index.html\` and \`src/styles/04-lobby.css\` provide correctly styled Create Room and Room Master map selectors.
+- \`src/game/70-kills-and-damage-hud.js\`: use the chosen room map during canonical \`begin()\` before \`startMatch()\`; default direct-launch Bomb remains Lockdown.
+- \`tools/source-manifest.json\` and regenerated \`assets/game.js\` remain the only direct-open build pipeline; **no local npm, WSL, Docker, backend or runner installation for players**.
+
+## Safety and validation gates
+
+**Existing Windows regression:** [CI #247](https://github.com/Heynode92/blockbudies/actions/runs/41186755439) **375/375 Node tests PASS**, generated bundle parity PASS, syntax PASS. The original suite was updated to load the canonical new map module in VM test fixtures instead of weakening Lockdown assertions. Added two new map-specific tests: outdoor 160×160 scale, Police-A spawn placement, valid A/B sites, all five spawn slots per faction, every Police/Terrorist spawn sightline blocked, canonical A* route availability and multi-map collider/snapshot isolation; plus Room Master map switching, persistence, Cancel/Save and invalid map ID fallback.
+
+**Windows browser QA:** \`.github/workflows/bot-ai-m7-browser.yml\` now runs a map-aware matrix: Lockdown **50 Bomb finishes/team** (retained existing release-level automation) and Block Town **10 Bomb finishes/team** for new map integration, with 12-second live software-WebGL startup smoke per mode/faction. Browser QA uses temporary CI-only copies and does not inject test APIs into the player's shipped bundle. Results are accelerated **functional** evidence only; software WebGL does not certify real-time FPS on owner hardware.
+
+**Acceptance rules before marking Block Town browser-verified:** both Town Chromium jobs must pass; no runtime exception; all 10+10 canonical Bomb rounds must complete; zero invalid spawn / direct-spawn LOS / path-to-sites errors; Lockdown jobs must continue to pass, and \`assets/game.js\` must remain byte-for-byte parity with manifest. All other M7 Final Release performance and quantitative acceptance requirements remain separately open.
+
+**Status:** IMPLEMENTED and **NODE REGRESSION VERIFIED**. Browser validation must be recorded from its actual completed run, not assumed. Layout is a first playable outdoor iteration, not a claim of competitive map balance or finalized dressing.
+
+## Maintainer constraints
+
+Do not modify \`BOMB_RULES\`, \`BOMB_AI\`, canonical weapon tables or M0–M6 tactical logic to force map success. If BOTs cannot reach a route, fix actual physical paths and registered obstacles. Do not add fake collisionless doorways or invisible solid furniture. Do not make changes to Lockdown geometry/spawns during Town work. Keep all map identifiers whitelisted, room names DOM-safe, and map-specific data in the map module. Every change to gameplay-related sources requires an updated \`assets/game.js\` via the existing build parity contract.
