@@ -348,3 +348,57 @@ test('Block Town rendering avoids coplanar pavement, repeated plain-box facades 
  c.selectGameMap(false);
  assert.equal(grid.visible,true,'TDM GridHelper restored after leaving Bomb Mode');
 });
+
+test('Block Town owns a four-sided solid boundary and skyline while TDM and Lockdown remain isolated',()=>{
+ const c=makeContext(),oldCity=c.OB.slice(),cfg=c.BLOCK_TOWN_DEF.perimeter,half=c.BLOCK_TOWN_DEF.halfSize,
+       offset=half+cfg.thickness/2+.02,span=half*2+cfg.thickness*2;
+ c.selectedBombMapId='block-town';c.selectGameMap(true);
+ assert.equal(c.A,half);
+ const expected=[[0,-offset,span,cfg.thickness],[0,offset,span,cfg.thickness],
+   [-offset,0,cfg.thickness,span],[offset,0,cfg.thickness,span]];
+ for(const w of expected){
+   const hit=c.OB.find(o=>Math.abs(o.x-w[0])<.001&&Math.abs(o.z-w[1])<.001&&
+      Math.abs(o.hw-w[2]/2)<.001&&Math.abs(o.hd-w[3]/2)<.001&&o.h===cfg.height);
+   assert.ok(hit,'physical perimeter wall is registered for collision and bullet sweeps: '+w);
+   const matching=c.S.children.find(m=>m.isMesh&&m.userData.box&&
+     Math.abs(m.position.x-w[0])<.001&&Math.abs(m.position.z-w[1])<.001&&
+     Math.abs(m.userData.box.w-w[2])<.001&&Math.abs(m.userData.box.d-w[3])<.001);
+   assert.ok(matching,'each physical perimeter has an actual visible 3D wall');
+   assert.equal(matching.visible,true);
+ }
+ const skyline=c.BLOCK_TOWN_WORLD.filter(m=>m.isMesh&&m.userData.box&&
+   (Math.abs(m.position.x)>half||Math.abs(m.position.z)>half)&&
+   m.userData.box.h>=cfg.facadeMinHeight);
+ assert.ok(skyline.length>=20,'boundary is backed by outdoor urban skyline silhouettes');
+ assert.ok(c.BLOCK_TOWN_DEF.spawns.police.concat(c.BLOCK_TOWN_DEF.spawns.terrorist)
+   .every(p=>!c.inObs(p[0],p[1],.9)), 'boundary does not obstruct any spawn');
+ c.selectedBombMapId='lockdown';c.selectGameMap(true);
+ assert.ok(c.BLOCK_TOWN_WORLD.every(m=>m.visible===false),'Town enclosure disappears in Lockdown');
+ c.selectGameMap(false);
+ assert.deepEqual(c.OB,oldCity,'TDM original arena collision is restored exactly');
+});
+test('Block Town spawn orientation faces interior objective rather than empty outer boundary',()=>{
+ const c=makeContext(),def=c.BLOCK_TOWN_DEF,site=c.BOMB_MAP_REGISTRY['block-town'].sites[0];
+ c.selectedGameMode=1;c.selectedBombMapId='block-town';c.selectGameMap(true);
+ for(const tm of [0,1]){
+   const goal=tm?def.spawnLook.terrorist:[site.x,site.z],
+     group=tm?def.spawns.terrorist:def.spawns.police;
+   for(const pt of group){
+     const yaw=c.bombMapSpawnYaw(tm,pt[0],pt[1]);
+     assert.ok(Number.isFinite(yaw));
+     const dx=goal[0]-pt[0],dz=goal[1]-pt[1],length=Math.hypot(dx,dz);
+     const dot=(Math.sin(yaw)*dx+Math.cos(yaw)*dz)/length;
+     assert.ok(dot>.999,'player and BOT initial yaw aims into tactical route, not toward map edge');
+   }
+ }
+ c.selectedBombMapId='lockdown';
+ assert.equal(c.bombMapSpawnYaw(0,-15,65),Math.PI,'Lockdown police orientation unchanged');
+ assert.equal(c.bombMapSpawnYaw(1,15,-65),0,'Lockdown Terrorist orientation unchanged');
+ c.selectedGameMode=0;
+ assert.equal(c.bombMapSpawnYaw(0,-10,38),Math.PI,'TDM police orientation unchanged');
+ assert.equal(c.bombMapSpawnYaw(1,10,-38),0,'TDM Terrorist orientation unchanged');
+ const src=readFileSync(resolve(root,'src/game/85-lobby-and-match.js'),'utf8');
+ assert.match(src,/pl\.face=bombMapSpawnYaw\(tm,pl\.x,pl\.z\)/,'human spawn uses map yaw');
+ assert.match(src,/pl\.face=bombMapSpawnYaw\(pl\.tm,pl\.x,pl\.z\)/,'respawn uses map yaw');
+ assert.match(src,/b\.g\.rotation\.y=bombMapSpawnYaw\(b\.tm,b\.x,b\.z\)/,'BOT spawn uses map yaw');
+});
