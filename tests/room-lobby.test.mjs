@@ -455,3 +455,33 @@ test('Block Town and Lockdown selection is persisted, reversible and validated i
  assert.equal(call(context,'bombMapId("../fake")'),'lockdown');
  assert.equal(call(context,'roomNormalize({id:"123456789",name:"Safe",mode:1,mapId:"invalid"}).mapId'),'lockdown');
 });
+
+test('Block Labs Deathmatch is selectable, persisted and validated in Create Room and Room Settings',()=>{
+ const {context,doc,data}=setup();call(context,'roomLobbyOpen()');
+ const select=doc.getElementById('roomMap');
+ assert.deepEqual(select.children.map(x=>x.value),['block-district','block-labs']);
+ assert.equal(select.disabled,false);
+ select.value='block-labs';select.events.change.call(select);
+ assert.equal(doc.getElementById('roomMapName').textContent,'BLOCK LABS');
+ assert.equal(call(context,'selectedTdmMapId'),'block-labs');
+ call(context,'roomCreateLocal()');
+ assert.equal(call(context,'roomCurrent.mapId'),'block-labs');
+ assert.equal(JSON.parse(data.get('bbfps_local_rooms_v1'))[0].mapId,'block-labs');
+ assert.equal(doc.getElementById('rmlMapName').textContent,'BLOCK LABS');
+ doc.getElementById('rmlSettings').click();
+ const modal=doc.getElementById('roomModalMap');
+ assert.equal(modal.value,'block-labs');
+ modal.value='block-district';modal.events.change.call(modal);
+ assert.equal(call(context,'roomCurrent.mapId'),'block-labs','settings remain unsaved');
+ doc.getElementById('roomModalCancel').click();
+ assert.equal(call(context,'roomCurrent.mapId'),'block-labs','Cancel never persists map switch');
+ doc.getElementById('rmlSettings').click();
+ const next=doc.getElementById('roomModalMap');
+ next.value='block-district';next.events.change.call(next);
+ doc.getElementById('roomModalSave').click();
+ assert.equal(call(context,'roomCurrent.mapId'),'block-district');
+ assert.equal(doc.getElementById('rmlMapName').textContent,'BLOCK DISTRICT');
+ assert.equal(call(context,'roomNormalize({id:"123456789",name:"Old",mode:0}).mapId'),'block-district');
+ assert.equal(call(context,'roomNormalize({id:"123456789",name:"Unsafe",mode:0,mapId:"../evil"}).mapId'),'block-district');
+ assert.equal(call(context,'roomNormalize({id:"123456789",name:"Labs",mode:0,mapId:"block-labs"}).mapId'),'block-labs');
+});
