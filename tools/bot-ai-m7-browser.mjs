@@ -40,7 +40,7 @@ const html=htmlSource
 fs.writeFileSync(ciHtml,html);
 const url=pathToFileURL(ciHtml).href;
 
-const results={schema:'BLOCK_BUDDIES_M7_CI_BROWSER_V1',team:name,mapId,target,
+const results={schema:'POINT_BLOCK_M7_CI_BROWSER_V1',team:name,mapId,target,
   source:'Original production IIFE with CI-only injected bridge; local matching Three.js 0.128.0',
   limitations:['The CI test bridge is NOT part of assets/game.js or normal player runtime',
     'Passive human seat is replaced with a canonical production BOT for 5v5 in QA only',
@@ -61,12 +61,12 @@ async function createPage(){
  page.on('console',msg=>{if(msg.type()==='error')jsErrors.push('CONSOLE: '+msg.text());});
  await page.goto(url+'?bbBotQa=1',{waitUntil:'load',timeout:90000});
  try{
-   await page.waitForFunction(()=>typeof window.__BlockBuddiesM7CI==='object' &&
-     typeof window.BlockBuddiesQA==='object',null,{timeout:25000});
+   await page.waitForFunction(()=>typeof window.__PointBlockM7CI==='object' &&
+     typeof window.PointBlockQA==='object',null,{timeout:25000});
  }catch(err){
    const diagnostics=await page.evaluate(()=>({
-     ready:document.readyState,three:typeof THREE,qa:typeof BlockBuddiesQA,
-     bridge:typeof window.__BlockBuddiesM7CI,scripts:[...document.scripts].map(x=>x.src)
+     ready:document.readyState,three:typeof THREE,qa:typeof PointBlockQA,
+     bridge:typeof window.__PointBlockM7CI,scripts:[...document.scripts].map(x=>x.src)
    })).catch(e=>({inspectionError:String(e)}));
    try{await page.screenshot({path:path.join(out,'m7-'+name+'-startup-failure.png')});}catch(_){}
    throw Error('CI browser startup failed: '+JSON.stringify({error:String(err),diagnostics,jsErrors}));
@@ -74,7 +74,7 @@ async function createPage(){
  return {page,context,jsErrors};
 }
 async function start(page,mode){
- const init=await page.evaluate(({mode,team,mapId})=>window.__BlockBuddiesM7CI.start(mode,team,mapId),{mode,team,mapId});
+ const init=await page.evaluate(({mode,team,mapId})=>window.__PointBlockM7CI.start(mode,team,mapId),{mode,team,mapId});
  if(init.bots!==10||init.teams[0]!==5||init.teams[1]!==5)
    throw Error('Real 5v5 BOT roster was not created: '+JSON.stringify(init));
  return init;
@@ -86,7 +86,7 @@ try{
    const init=await start(page,mode);
    await page.waitForTimeout(Number(process.env.M7_REALTIME_MS||12000));
    results.realTime.push({mode:mode?'bomb':'tdm',init,
-     ...(await page.evaluate(()=>window.__BlockBuddiesM7CI.summary())),jsErrors});
+     ...(await page.evaluate(()=>window.__PointBlockM7CI.summary())),jsErrors});
    await context.close();
  }
  if(mapId==='block-labs'){
@@ -94,14 +94,14 @@ try{
    // No Bomb match is run or mislabelled as Lab Deathmatch.
    const {page,context,jsErrors}=await createPage();
    const init=await start(page,0);
-   await page.evaluate(()=>window.__BlockBuddiesM7CI.pauseForStepping());
+   await page.evaluate(()=>window.__PointBlockM7CI.pauseForStepping());
    const beginAt=Date.now();let ticks=0,done=false;
    for(;ticks<2*60*60+180;ticks+=180){
-     const state=await page.evaluate(()=>window.__BlockBuddiesM7CI.step(180));
+     const state=await page.evaluate(()=>window.__PointBlockM7CI.step(180));
      if(state.over){done=true;break;}
      if(Date.now()-beginAt>25*60*1000)throw Error('Block Labs TDM browser smoke exceeded CI safety limit');
    }
-   const final=await page.evaluate(()=>window.__BlockBuddiesM7CI.summary());
+   const final=await page.evaluate(()=>window.__PointBlockM7CI.summary());
    results.simulation={label:'ACCELERATED_PRODUCTION_BROWSER_TDM_NOT_REALTIME',
      gameplay:'TEAM_DEATHMATCH',simulatedTicks:ticks+180,dtSeconds:1/60,
      wallSeconds:(Date.now()-beginAt)/1000,init,...final,jsErrors};
@@ -111,12 +111,12 @@ try{
  }else{
  const {page,context,jsErrors}=await createPage();
  const init=await start(page,1);
- await page.evaluate(()=>window.__BlockBuddiesM7CI.pauseForStepping());
+ await page.evaluate(()=>window.__PointBlockM7CI.pauseForStepping());
  const started=Date.now();
  let ticks=0,matches=1,prev=0,stagnant=0,reported=0;
  const maxTicks=target*120*60*3;
  while(ticks<maxTicks){
-   const progress=await page.evaluate(()=>window.__BlockBuddiesM7CI.step(180));
+   const progress=await page.evaluate(()=>window.__PointBlockM7CI.step(180));
    ticks+=180;
    if(progress.completed>=reported+10){
      reported=progress.completed;
@@ -128,11 +128,11 @@ try{
    if(stagnant>700)throw Error('No completed Bomb rounds for 35 simulated minutes');
    if(Date.now()-started>55*60*1000)throw Error('M7 browser simulation exceeded wall-time safety cap');
    if(progress.over){
-     await page.evaluate(team=>window.__BlockBuddiesM7CI.restart(team),team);
+     await page.evaluate(team=>window.__PointBlockM7CI.restart(team),team);
      matches++;
    }
  }
- const bombFinal=await page.evaluate(()=>window.__BlockBuddiesM7CI.summary());
+ const bombFinal=await page.evaluate(()=>window.__PointBlockM7CI.summary());
  results.simulation={label:'ACCELERATED_PRODUCTION_BROWSER_SIMULATION_NOT_REALTIME',
    requestedRounds:target,matches,simulationTicks:ticks,dtSeconds:1/60,
    wallSeconds:(Date.now()-started)/1000,init,...bombFinal,jsErrors};
