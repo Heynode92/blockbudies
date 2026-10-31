@@ -69,6 +69,62 @@ if(botQaEnabled){
         mapChecks={routes:routes.length,clearSpawnSightlinePairs:clearPairs,
           perimeterWalls:shells.length,playerSpawnFacing:pl.face,sites:BOMB_SITES.map(function(q){return q.id;})};
       }
+      if(mode===1&&activeMap==="hospital"){
+        // All checks apply to canonical runtime objects, not a second test map.
+        var d=HOSPITAL_DEF,parties=[d.spawns.police,d.spawns.terrorist],
+            sites=BOMB_SITES,validRoutes=0,sightlineLeaks=0;
+        if(A!==80||!HOSPITAL_WORLD||d.wings.length!==14||d.furniture.length!==20)
+          throw Error('HOSPITAL runtime footprint, physical wards or medical props missing');
+        if(sites.length!==2||sites[0].x!==67||sites[0].z!==-43||
+           sites[1].x!==-67||sites[1].z!==10)
+          throw Error('HOSPITAL Bomb sites differ from latest owner blueprint');
+        if(!LT.some(function(o){return o.hw===80&&o.hd===80&&o.y0>10;}))
+          throw Error('HOSPITAL has no physical indoor ceiling');
+        d.wings.forEach(function(w){
+          if(!OB.some(function(o){return o.x===w[0]&&o.z===w[1]&&
+             o.hw===w[2]/2&&o.hd===w[3]/2;}))
+            throw Error('HOSPITAL corridor architectural block not solid '+w);
+        });
+        d.furniture.forEach(function(p){
+          if(!OB.some(function(o){return o.x===p[1]&&o.z===p[2]&&
+            o.hw===p[3]/2&&o.hd===p[4]/2&&o.h===p[5];}))
+            throw Error('HOSPITAL medical cover missing physical collider '+p[0]);
+        });
+        sites.forEach(function(site){
+          if(inObs(site.x,site.z,3.1))
+            throw Error('HOSPITAL has an obstructed Bomb plant radius '+site.id);
+        });
+        parties.forEach(function(group,side){
+          group.forEach(function(p){
+            if(inObs(p[0],p[1],.85))throw Error('HOSPITAL spawn intersects a wall '+p);
+            var aim=side?d.spawnLook.terrorist:d.spawnLook.police,
+                yaw=hospitalSpawnYaw(side,p[0],p[1]),
+                dx=aim[0]-p[0],dz=aim[1]-p[1];
+            if((Math.sin(yaw)*dx+Math.cos(yaw)*dz)/Math.hypot(dx,dz)<.99)
+              throw Error('HOSPITAL spawn faces outer wall '+p);
+            sites.forEach(function(site){
+              var route=gPath(p[0],p[1],site.x,site.z);
+              if(!route||!route.length)
+                throw Error('HOSPITAL A* cannot reach Bomb site '+site.id+' from '+p);
+              validRoutes++;
+            });
+          });
+        });
+        parties[0].forEach(function(p){parties[1].forEach(function(q){
+          var n=Math.ceil(Math.hypot(p[0]-q[0],p[1]-q[1])/.5),blocked=false;
+          for(var k=1;k<n;k++){
+            var t=k/n;
+            if(inObs(p[0]+(q[0]-p[0])*t,p[1]+(q[1]-p[1])*t,.02)){blocked=true;break;}
+          }
+          if(!blocked)sightlineLeaks++;
+        });});
+        if(sightlineLeaks)throw Error('HOSPITAL opposing spawns have exposed direct LOS '+sightlineLeaks);
+        if(Math.abs(pl.face-hospitalSpawnYaw(team,pl.x,pl.z))>.001)
+          throw Error('HOSPITAL first-person camera not facing inward');
+        mapChecks={genuineHospital:true,wingBlocks:14,medicalPropSolids:20,
+          routes:validRoutes,spawnSightlineLeaks:sightlineLeaks,physicalCeiling:true,
+          sites:sites.map(function(q){return q.id;})};
+      }
       if(mode===0&&activeMap==="block-labs"){
         var d=BLOCK_LABS_DEF;
         if(A!==60||!BLOCK_LABS_WORLD||d.blocks.length!==6||d.reactors.length!==6)
