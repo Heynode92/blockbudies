@@ -3,6 +3,7 @@
     "src/game/00-bootstrap.js",
     "src/game/10-world.js",
     "src/game/11-bomb-map.js",
+    "src/game/12-block-town.js",
     "src/game/20-sky-and-physics.js",
     "src/game/30-characters.js",
     "src/game/39-defense.js",
