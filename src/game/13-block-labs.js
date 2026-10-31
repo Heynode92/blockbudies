@@ -5,7 +5,7 @@
 var TDM_MAP_REGISTRY=Object.freeze({
  "block-district":Object.freeze({id:"block-district",name:"BLOCK DISTRICT",caption:"Outdoor Urban Combat"}),
  "block-labs":Object.freeze({id:"block-labs",name:"BLOCK LABS",caption:"Indoor Research Facility",
-   preview:Object.freeze({x:-38,y:21,z:30,lookX:0,lookY:2,lookZ:0,fov:72})})
+   preview:Object.freeze({x:-40,y:5.2,z:14,lookX:-40,lookY:2.1,lookZ:-20,fov:72})})
 });
 var selectedTdmMapId="block-district",BLOCK_LABS_WORLD=null,BLOCK_LABS_OB=[],BLOCK_LABS_BR=[],BLOCK_LABS_LT=[];
 function tdmMapId(value){return Object.prototype.hasOwnProperty.call(TDM_MAP_REGISTRY,value)?value:"block-district";}
