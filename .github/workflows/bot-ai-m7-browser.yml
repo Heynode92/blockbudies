@@ -1,0 +1,70 @@
+# M7 automated browser QA: NO player-side tools, server, Linux or manual 50-round playtest.
+# Kept separate from fast existing Windows M0–M7 Node regression workflow.
+name: BOT AI M7 browser functional QA
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/bot-ai-m7-browser.mjs'
+      - '.github/workflows/bot-ai-m7-browser.yml'
+      - 'src/game/**'
+      - 'assets/game.js'
+      - 'index.html'
+  workflow_dispatch:
+    inputs:
+      rounds:
+        description: 'Genuine production Bomb finishes per team (accelerated simulation, not realtime FPS)'
+        type: choice
+        options: ['3', '10', '50']
+        default: '50'
+
+permissions:
+  contents: read
+
+jobs:
+  browser-qa:
+    name: Windows Chromium M7 ${{ matrix.team }}
+    runs-on: windows-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        team: [police, terrorist]
+    env:
+      M7_TEAM: ${{ matrix.team }}
+      M7_BOMB_ROUNDS: ${{ inputs.rounds || '50' }}
+      M7_REALTIME_MS: '12000'
+    steps:
+      - name: Preserve source line endings
+        shell: pwsh
+        run: git config --global core.autocrlf false
+      - name: Checkout canonical browser bundle
+        uses: actions/checkout@v4
+      - name: Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify source of truth and script syntax
+        shell: pwsh
+        run: |
+          node tools/build.mjs --check
+          node --check tools/bot-ai-m7-browser.mjs
+          node --check assets/game.js
+      - name: Install exact browser automation and matching Three.js r128 dependencies
+        shell: pwsh
+        run: npm install --no-save --no-package-lock --ignore-scripts --no-audit --no-fund playwright@1.56.1 three@0.128.0
+      - name: Install Chromium browser binaries
+        shell: pwsh
+        run: npx playwright install chromium
+      - name: Run real-time WebGL plus accelerated canonical Bomb round checks
+        shell: pwsh
+        run: node tools/bot-ai-m7-browser.mjs
+      - name: Upload machine-readable PASS/FAIL and timing evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m7-windows-${{ matrix.team }}
+          path: artifacts/m7-browser/*.json
+          if-no-files-found: warn
+          retention-days: 14
