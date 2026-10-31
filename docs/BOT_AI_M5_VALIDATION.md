@@ -1,6 +1,6 @@
 # BLOCK BUDDIES — M5 Bomb Mission Tactical Intelligence Validation
 
-> **Status:** IMPLEMENTED / AUTOMATED VERIFIED; OWNER WINDOWS GAMEPLAY PLAYTEST PENDING
+> **Status:** VERIFIED (CORE EXIT GATE: WINDOWS CI + OWNER-REPORTED 7/7 PLAYTEST PASS); QUANTITATIVE BOMB/FPS KPIs OPEN
 > **Date:** 2026-10-31 WIB
 > **Approved scope:** Bomb Mission-specific tactical decisions for Police and Terrorist BOTs; preserve authoritative Bomb physics, timers, result accounting and all non-Bomb gameplay
 > **CI evidence:** [Windows GitHub Actions run #149](https://github.com/Heynode92/blockbudies/actions/runs/41175963944) — **346/346 Node tests PASS**, zero failures, standalone bundle parity, JavaScript syntax, deterministic 10-BOT replay and synthetic CPU-sampling workflow green
@@ -36,8 +36,14 @@
 - [x] All legacy M0–M4 tests remain active. Fixture module order updated to include M5; no regression test disabled or removed to force success.
 - [x] Direct-open `assets/game.js` rebuilt and matched to `tools/source-manifest.json` on Windows.
 - [x] [Windows CI #149](https://github.com/Heynode92/blockbudies/actions/runs/41175963944) **346/346 PASS**, 0 failures, verified syntax, deterministic BOT replay and synthetic CPU samples.
-- [ ] **Owner real browser manual M5 playtest** in Bomb Mission; not yet reported.
+- [x] **Owner-reported 7/7 Windows M5 gameplay PASS (2026-10-31 WIB):** planting on A/B; justified alternative site without oscillation; dropped bomb recovery; separated post-plant defense; Police retake/critical-fuse defuse; original plant/defuse/fuse/scoring/round outcome preserved; no permanent stuck, wall clipping, freeze, crash or perceptible severe lag. Self-reported qualitative, not independently instrumented.
 - [ ] **Quantified live Bomb outcomes:** per-site plant success, carrier survival, retake/defuse completion distributions, late-fuse decision statistics, collision/stuck duration, human-perceived strategy and browser FPS/p95. None measured by Node tests.
+
+## M5 owner acceptance — 2026-10-31 WIB
+
+The owner explicitly submitted **“M5 playtest PASS bro”** with **7/7 checks passed**, confirming carrier reaches A/B and plants, can select a justified alternative without repeated switching, retrieves a dropped device, uses separated post-plant defenders, Police retakes and defuses when fuse is low, original planted/defuse/fuse/scoring/round winner remain intact, and no visible clipping/permanent stuck/freeze/crash/heavy lag occurred. This is owner-reported qualitative gameplay evidence only: there is no raw per-map match log, recorded FPS, hit%, success percentage or browser frame-time trace.
+
+**Decision:** M5 **VERIFIED for its core feature milestone**; real numerical/browser KPI collection remains **OPEN** for M7. This acceptance does not imply M6 source had already been implemented.
 
 ## Playtest scenarios for M5
 
@@ -49,4 +55,4 @@ In Windows, run `git pull origin main` and open `index.html` (no Node/backend/lo
 4. **Police retake:** Police converge on the actually planted device; a support BOT does not obstruct the defuser, including when fuse is low or Terrorists have been eliminated.
 5. **Round integrity:** plant 5s, defuse 7s and normal fuse/scoring/round result unchanged; no freeze, wall clipping or severe frame-time regression.
 
-An aggregate owner report such as **“M5 playtest PASS”** after truly checking these situations may close the **M5 core feature milestone**. It cannot be cited as quantitative FPS, accuracy or actual per-site outcome measurements. **M6 NOT STARTED.**
+The owner subsequently reported **all seven M5 scenarios PASS**. The M5 core exit gate is **VERIFIED** from that qualitative owner acceptance plus [Windows run #154](https://github.com/Heynode92/blockbudies/actions/runs/41176157308) (346/346 PASS on final M5 code/docs). The owner separately authorized M6 work. Actual per-site outcomes, measured FPS, genuine hit percentage, objective success rates, and map/session metadata remain unmeasured.
