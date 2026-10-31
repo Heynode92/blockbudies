@@ -2,11 +2,11 @@
 // Capture a center-cropped 2D frame at up to 30 FPS while SELECT MODE is open, on desktop and touch.
 var mapPreviewCanvas=document.getElementById("mapPreviewCanvas"),
     mapPreviewCtx=mapPreviewCanvas.getContext("2d",{alpha:false}),
-    mapPreviewSceneBomb=false,mapPreviewLastFrame=-1e9,mapPreviewFrameMs=1000/30;
+    mapPreviewSceneBomb=false,mapPreviewMapId="lockdown",mapPreviewLastFrame=-1e9,mapPreviewFrameMs=1000/30;
 function modePreviewSelect(i){
  if(!lob||run)return;
  var bomb=i===1;
- if(mapPreviewSceneBomb!==bomb){selectGameMap(bomb);mapPreviewSceneBomb=bomb;}
+ if(mapPreviewSceneBomb!==bomb||bomb&&mapPreviewMapId!==selectedBombMapId){selectGameMap(bomb);mapPreviewSceneBomb=bomb;mapPreviewMapId=selectedBombMapId;}
  mapPreviewLastFrame=-1e9;
  mapPreviewCtx.clearRect(0,0,mapPreviewCanvas.width,mapPreviewCanvas.height);
 }
