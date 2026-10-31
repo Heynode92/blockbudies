@@ -16,7 +16,7 @@ function env(enabled=false){
 test('M7: QA is off by default; no exported API, no frame samples and no network',()=>{
  const c=env();
  assert.equal(c.botQaEnabled,false);
- assert.equal(c.window.BlockBuddiesQA,undefined);
+ assert.equal(c.window.PointBlockQA,undefined);
  c.botQaFrame(16.67,8,true);c.botQaCpu(1.1,9);
  c.botQaMove(true,0,4,.05);c.botQaPath(null);
  c.botQaBomb(1,0,'planted');
@@ -28,9 +28,9 @@ test('M7: QA is off by default; no exported API, no frame samples and no network
 test('M7: only exact opt-in enables in-memory QA interface',()=>{
  const c=env(true);
  assert.equal(c.botQaEnabled,true);
- assert.equal(typeof c.window.BlockBuddiesQA.report,'function');
- assert.equal(typeof c.window.BlockBuddiesQA.download,'function');
- assert.equal(c.window.BlockBuddiesQA.download(),false,
+ assert.equal(typeof c.window.PointBlockQA.report,'function');
+ assert.equal(typeof c.window.PointBlockQA.download,'function');
+ assert.equal(c.window.PointBlockQA.download(),false,
    'without browser DOM, no fake download is reported');
 });
 test('M7: actual frame timestamps keep un-clamped wall intervals and reject pauses',()=>{
@@ -120,7 +120,7 @@ test('M7: bounded rolling samples and explicit reset prevent unbounded session g
  for(let i=0;i<2420;i++){c.botQaFrame(16,2,true);c.botQaCpu(1,9);}
  assert.equal(c.botQaReport().frameTimeMs.count,2400);
  assert.equal(c.botQaReport().botUpdateCpuMs.count,2400);
- c.window.BlockBuddiesQA.reset();
+ c.window.PointBlockQA.reset();
  assert.equal(c.botQaReport().frameTimeMs.count,0);
  assert.equal(c.botQaReport().projectileCount,0);
 });
