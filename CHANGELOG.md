@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-10-31 WIB — Block Town outdoor Bomb Mission map (first playable implementation)
+
+- Introduced **Block Town** (`block-town`) as the second Bomb Mission arena, preserving **Lockdown** and **Block District**. It retains the canonical **160×160** Bomb map footprint, physics, timing, weapon balance, BOT AI and 5v5 rounds. Outdoor asymmetrical town geometry includes low-poly multistory shop facades, street paving, courtyards, trees, barricades, crates, A/B planting signs and registered collision geometry.
+- **Police spawn relocated to the A-site district**, independently from the existing Lockdown spawn rule. Terrorists deploy in the south-west with bent approach lanes and no direct spawn-to-spawn line of sight. Active bomb sites, scene visibility, collision `OB/BR/LT`, radar and A* grid switch by a whitelisted map ID; existing Lockdown objects are cached and restored unchanged.
+- Room Master can select **Lockdown** or **Block Town** in **Create Room** or **Room Settings**, see the actual preview, Save/Cancel map changes, reopen saved local rooms and start the correct map. Legacy room records without `mapId` default to Lockdown; forged IDs revert to the same safe default.
+- Source separation: `src/game/12-block-town.js` owns Town geometry, shared-material palette, sites and spawn configuration; `src/game/11-bomb-map.js` remains the authoritative Bomb rules/Lockdown path, with map switching. Updated map-select/UI previews, `tools/source-manifest.json`, and regenerated production `assets/game.js`.
+- Extended Node fixtures without disabling existing regression tests. [Windows regression #247](https://github.com/Heynode92/blockbudies/actions/runs/41186755439) **375/375 PASS**, bundle parity and JS syntax PASS. Added genuine map collision/sightline/A* and map-room persistence tests. Map-aware Windows Chromium QA tests both Lockdown and Block Town per team and uploads results; **Block Town browser QA status must be confirmed separately** before declaring browser VERIFIED. See [Block Town Implementation](docs/BLOCK_TOWN_IMPLEMENTATION.md).
+- **No new dependencies, runner installation, WSL, Docker, server, weapon damage edits, M0–M6 AI rebalance or alterations to old map geometry.** M7 Final Performance & Quality Acceptance remains a distinct open gate.
+
 ## 2026-10-31 WIB — M7 automated browser functional CI #7 VERIFIED; final release remains open
 
 - [Windows Chromium M7 QA #7](https://github.com/Heynode92/blockbudies/actions/runs/41183834642) **SUCCESS for both Police and Terrorist**; each automatically completed **50 canonical 5v5 BOT-only Bomb finishes**, **100 total**, zero browser JavaScript errors. Police-slot: Police 20/Terrorist 30 wins; planted-at-finish 35 (A 12/B 23). Terrorist-slot: Police 22/Terrorist 28 wins; planted-at-finish 31 (A 9/B 22).
