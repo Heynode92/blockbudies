@@ -29,6 +29,12 @@ function modePreviewDraw(now){
       createCtx=createCanvas.getContext("2d",{alpha:false});
   createCtx.drawImage(src,(sw-ww)/2,(sh-hh)/2,ww,hh,0,0,createCanvas.width,createCanvas.height);
   roomMapCardFrame(createCanvas);
+  // Warm one inactive map thumbnail per preview frame using the SAME Three.js
+  // renderer; selected live map pixels and the normal canvas are restored.
+  if(typeof roomMapCapturePendingPreview==="function"&&
+     typeof R.clear==="function"&&typeof R.render==="function"){
+   roomMapCapturePendingPreview();
+  }
  }
  if(inLive){
   var c=document.getElementById("rmlMapPreview"),ctx=c.getContext("2d",{alpha:false});
