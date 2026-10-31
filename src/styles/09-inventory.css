@@ -1,4 +1,4 @@
-/* BLOCK BUDDIES ARMORY. Game-world atmosphere, not a dashboard overlay. */
+/* POINT BLOCK ARMORY. Game-world atmosphere, not a dashboard overlay. */
 #lb:has(#lbiv.on){background:linear-gradient(90deg,rgba(4,7,15,.54),rgba(4,7,15,.36) 50%,rgba(4,7,15,.72))}
 body.lobby:has(#lbiv.on) #gl{filter:brightness(.83) saturate(1.1)}
 #lbiv.on{
