@@ -17,7 +17,7 @@ Edit weapon data in one place: `src/game/weapon/<NN>-<name>.js`. Each file owns 
 _Numbers in parentheses are the 1-based filenames, NOT weapon IDs. Actual weapon IDs are 0–18, starting with Handgun at 0. Don't renumber IDs: inventory save data and bots depend on them._
 
 ## Shared modules
-- `00-registry.js` initializes arrays, the frozen class labels, and `DAMAGE_FALLOFF.referenceUnits` (currently 20 BLOCK BUDDIES world units per modifier interval).
+- `00-registry.js` initializes arrays, the frozen class labels, and `DAMAGE_FALLOFF.referenceUnits` (currently 20 POINT BLOCK world units per modifier interval).
 - Each numbered weapon module registers one immutable rating profile, `WEAPON_RANGE_MODIFIERS[id]`, and `WEAPON_MODEL_BUILDERS[id]`.
 - `20-ballistics.js` derives runtime weapon damage, cooldown, speed, pellet damage, bullet lifetime and falloff from registered profiles.
 - `30-viewmodels.js` owns generic Three.js gun dispatch, player hands and reload/ADS animation, plus shared weapon world state. No per-weapon mesh definitions remain there.
@@ -27,7 +27,7 @@ _Numbers in parentheses are the 1-based filenames, NOT weapon IDs. Actual weapon
 
 `damageAtDistance = baseDamage * Math.pow(rangeModifier, distance / DAMAGE_FALLOFF.referenceUnits)`
 
-CS:GO/CS2 uses 500 CS units per modifier interval. BLOCK BUDDIES has a much smaller arena and uses 20 of its own world units. All weapon range ratings remain hard maximum projectile travel distances and are not changed by this patch.
+CS:GO/CS2 uses 500 CS units per modifier interval. POINT BLOCK has a much smaller arena and uses 20 of its own world units. All weapon range ratings remain hard maximum projectile travel distances and are not changed by this patch.
 
 | Class / weapon | Modifier per 20 units |
 | --- | ---: |
