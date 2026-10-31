@@ -1,4 +1,4 @@
-# BLOCK BUDDIES — M2 3D Aim & Shooting Intelligence Validation
+# POINT BLOCK — M2 3D Aim & Shooting Intelligence Validation
 
 > **Status:** VERIFIED (CORE EXIT GATE: 306/306 AUTOMATED + OWNER-REPORTED 7/7 MANUAL PASS); QUANTITATIVE KPIs OPEN
 > **Scope:** M2 only — genuine yaw/pitch aim intent, bounded response, live-target movement lead, weapon-class dispersion; NO M3 locomotion/cover changes
