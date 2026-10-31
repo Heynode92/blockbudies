@@ -1,4 +1,4 @@
-# BLOCK BUDDIES — Tactical Footstep Audio
+# POINT BLOCK — Tactical Footstep Audio
 
 ## Implementation
 
