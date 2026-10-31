@@ -1,4 +1,4 @@
-# BLOCK BUDDIES — M7 Final BOT AI Quality Assurance & Performance
+# POINT BLOCK — M7 Final BOT AI Quality Assurance & Performance
 
 > **Status:** IN PROGRESS — instrumentation and Windows synthetic CI VERIFIED; LIVE BROWSER/MATCH QUANTITATIVE GATES OPEN; NOT RELEASED
 > **Date:** 2026-10-31 WIB
@@ -29,13 +29,13 @@ file:///C:/Games/blockbudies/index.html?bbBotQa=1
 
 The example is not a required file path. Use the actual path to your own `index.html`.
 
-1. Open Developer Tools (**F12**) and select **Console**. Ensure the informational message `BLOCK BUDDIES local M7 QA enabled` appears. Avoid running scripts from strangers.
-2. Play **one mode/map/team configuration per run** so frame and BOT CPU timing are not mixed between scenarios. At the start of a run, execute `BlockBuddiesQA.reset()` in Console.
-3. At the end, execute `BlockBuddiesQA.report()` to inspect metrics, then `BlockBuddiesQA.download()` to save **block-buddies-m7-qa.json** to your machine. Rename it with the mode, map, team, duration and date so repeat exports are not overwritten.
+1. Open Developer Tools (**F12**) and select **Console**. Ensure the informational message `POINT BLOCK local M7 QA enabled` appears. Avoid running scripts from strangers.
+2. Play **one mode/map/team configuration per run** so frame and BOT CPU timing are not mixed between scenarios. At the start of a run, execute `PointBlockQA.reset()` in Console.
+3. At the end, execute `PointBlockQA.report()` to inspect metrics, then `PointBlockQA.download()` to save **point-block-m7-qa.json** to your machine. Rename it with the mode, map, team, duration and date so repeat exports are not overwritten.
 4. Repeat for TDM Police, TDM Terrorist and Bomb Police/Terrorist, and the available maps, keeping match configuration consistent. For a release-level claim, gather enough encounters/rounds to satisfy the Master Plan sampling protocol, including failures—not just a clean short smoke test.
 5. Submit the actual JSON files for comparison and release decision. No remote transmission happens unless **you** explicitly share files.
 
-**Console API:** `BlockBuddiesQA.report()`, `BlockBuddiesQA.download()`, and `BlockBuddiesQA.reset()` (only defined in explicitly instrumented local tab).
+**Console API:** `PointBlockQA.report()`, `PointBlockQA.download()`, and `PointBlockQA.reset()` (only defined in explicitly instrumented local tab).
 
 ### Data semantics and limits
 
@@ -68,7 +68,7 @@ To compute FPS, the export offers `approximateFpsMedian` from the **median frame
 
 ## First owner-provided real-browser capture — 2026-10-31 WIB (PROVISIONAL)
 
-**Origin:** Owner submitted `block-buddies-m7-qa (1).json` exported from an explicitly enabled `file://` Firefox tab on Windows, together with a DevTools screenshot demonstrating `BLOCK BUDDIES local M7 QA enabled` and successful `BlockBuddiesQA.reset()` (returns `undefined` by design). **The raw user file is not committed;** the verified aggregate figures below are the only stored evidence. No independent live gameplay was run by CI. Capture mixes both TDM and Bomb within **one reset/sample window**, without duration, exact map, team configuration, GPU, driver or resolution metadata. Interpret as an initial owner-supplied instrument sample, **not a controlled benchmark**.
+**Origin:** Owner submitted `block-buddies-m7-qa (1).json` exported from an explicitly enabled `file://` Firefox tab on Windows, together with a DevTools screenshot demonstrating `POINT BLOCK local M7 QA enabled` and successful `PointBlockQA.reset()` (returns `undefined` by design). **The raw user file is not committed;** the verified aggregate figures below are the only stored evidence. No independent live gameplay was run by CI. Capture mixes both TDM and Bomb within **one reset/sample window**, without duration, exact map, team configuration, GPU, driver or resolution metadata. Interpret as an initial owner-supplied instrument sample, **not a controlled benchmark**.
 
 | Metric | Observed owner JSON | Interpretation / limitation |
 |---|---:|---|
@@ -89,11 +89,11 @@ To compute FPS, the export offers `approximateFpsMedian` from the **median frame
 
 **Browser warnings:** Firefox displayed Tracking Prevention storage-access warnings for externally loaded `cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js`. The QA module still initialized and exported data, so this log is not evidence of a fatal Three.js load error; **it does identify an existing external CDN dependency** that merits a separate offline/supply-chain audit before claiming zero-network operation. The separate Firefox DevTools self-XSS warning is a browser security message, not an application exception.
 
-**Acceptance decision:** Owner's first genuine browser data **RECEIVED, PARSED AND RECORDED**, but **M7 quantitative performance and final release gates remain OPEN**. Next capture should use `BlockBuddiesQA.reset()` immediately before **one** mode/map/team run; save and label distinct JSON exports for TDM Police, TDM Terrorist, Bomb Police/Terrorist and repeat maps; record environment and run lengths; include enough engagements and genuine Bomb plants/defuses. Specifically investigate the **7.0ms rAF vs 8.7ms JS timing discrepancy** before relying on derived FPS, and examine shotgun long-range engagement only with confirmed reproducible results. Do not replace M0 historical evidence with this new unpaired capture.
+**Acceptance decision:** Owner's first genuine browser data **RECEIVED, PARSED AND RECORDED**, but **M7 quantitative performance and final release gates remain OPEN**. Next capture should use `PointBlockQA.reset()` immediately before **one** mode/map/team run; save and label distinct JSON exports for TDM Police, TDM Terrorist, Bomb Police/Terrorist and repeat maps; record environment and run lengths; include enough engagements and genuine Bomb plants/defuses. Specifically investigate the **7.0ms rAF vs 8.7ms JS timing discrepancy** before relying on derived FPS, and examine shotgun long-range engagement only with confirmed reproducible results. Do not replace M0 historical evidence with this new unpaired capture.
 
 ## Second owner browser capture — 2,264 projectiles / 5 Bomb rounds (2026-10-31 WIB, PROVISIONAL)
 
-**Evidence:** owner-uploaded `block-buddies-m7-qa(1).json`, schema `BLOCK_BUDDIES_M7_QA_V1`, `recordedStartUnixMs=1793429787609` (13:56:27 WIB). The raw JSON stays outside the repository. This is a **follow-up export**, not verified to be an independent controlled run. It **again mixes TDM and Bomb in one reset window**. Exact map, chosen player faction, browser session duration, BOT composition, resolution and matched M0 performance baseline are not present.
+**Evidence:** owner-uploaded `block-buddies-m7-qa (1).json`, schema `POINT_BLOCK_M7_QA_V1`, `recordedStartUnixMs=1793429787609` (13:56:27 WIB). The raw JSON stays outside the repository. This is a **follow-up export**, not verified to be an independent controlled run. It **again mixes TDM and Bomb in one reset window**. Exact map, chosen player faction, browser session duration, BOT composition, resolution and matched M0 performance baseline are not present.
 
 | Metric | Recalculated from second owner JSON | Interpretation |
 |---|---:|---|
@@ -125,7 +125,7 @@ The resulting per-team JSON artifacts contain browser error counts, rendered fra
 ### Automated browser CI bootstrap evidence (2026-10-31 WIB)
 
 - **First Windows browser run #1**: test harness timed out trying to access game functions from the global window. This was a **test harness error**: the canonical browser game is intentionally wrapped inside a private IIFE. The source bundle was not changed.
-- **Run #2**: diagnostics confirmed `THREE` and `BlockBuddiesQA` initialized, while `begin/update/BOMB_RULES` were deliberately IIFE-private. Replaced direct global access with the temporary CI-generated IIFE bridge, preserving shipped game bundle.
+- **Run #2**: diagnostics confirmed `THREE` and `PointBlockQA` initialized, while `begin/update/BOMB_RULES` were deliberately IIFE-private. Replaced direct global access with the temporary CI-generated IIFE bridge, preserving shipped game bundle.
 - **Run #3**: a real browser and 5v5 QA roster started. Software-WebGL 12-second smoke returned only 59 TDM and 30 Bomb frames on the Windows CI VM; their p95 intervals (199.9 ms and 400 ms) are **not a Windows laptop FPS performance acceptance**. The test harness then falsely expected `en.length===10` after BOT deaths, which is incorrect because dead BOTs leave the active list. Fixed to detect the actual `bombMatch` object transition for round reset.
 - **Later runs**: optimized the accelerated functional portion to skip software rendering only after the independent real-time browser smoke completed, and added progress output per 10 genuine finished Bomb rounds. The latest job outcome must be verified from GitHub Actions before declaring automated QA PASS. A green CI functional result does not waive final M7 performance and representative sample constraints.
 
