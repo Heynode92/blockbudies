@@ -66,6 +66,7 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
     if(t){dx=t.x-e.x;dz=t.z-e.z;d=Math.hypot(dx,dz)||1;}
     botSmartReload(e,t);intent=botSmartIntent(e,t);e.smartRetreat=intent.retreat;
     botMoveIntent(e,t,intent);
+    botSquadIntent(e,t,intent);
     combat=!!t&&e.lok&&e.navT<=0&&!(intent.retreat&&intent.goal)&&
       !(e.m3Mode==='cover'&&intent.goal)&&!intent.hold;
     sp*=intent.retreat?BOT_TACTICS.retreatSpeed:combat?BOT_TACTICS.fightSpeed:BOT_TACTICS.approachSpeed;
@@ -88,6 +89,7 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
       var sx=e.x-o.x,sz=e.z-o.z,sq=Math.hypot(sx,sz),space=isBombMode()?BOMB_AI.teammateSpacing:1.8;
       if(sq<space&&sq>.01){mvx+=sx/sq*.75;mvz+=sz/sq*.75;}
     }});
+    var squadLane=botSquadLane(e,mvx,mvz);mvx=squadLane[0];mvz=squadLane[1];
     ml=Math.hypot(mvx,mvz);if(ml>1){mvx/=ml;mvz/=ml;}if(cdn)mvx=mvz=0;
     var wantedMovement=!!(mvx||mvz),holdMovement=cdn||(isBombMode()&&e.bAction)||intent.hold;
     var recovery=botMoveRecovery(e,mvx,mvz,sp,dt,holdMovement);
