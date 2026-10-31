@@ -8,6 +8,7 @@ if(botQaEnabled){
       selM=mode;
       begin(team);
       if(!window.__BlockBuddiesM7CI.substitute())throw Error('Expected canonical 9-BOT roster');
+      window.__m7RoundRef=bombMatch;
       BlockBuddiesQA.reset();
       return {map:isBombMode()?'LOCKDOWN':'BLOCK DISTRICT',bots:en.length,
         teams:[en.filter(e=>e.tm===0).length,en.filter(e=>e.tm===1).length],
@@ -35,17 +36,22 @@ if(botQaEnabled){
       for(var i=0;i<steps;i++){
         if(mt.over)break;
         update(1/60);
-        if(en.length===9&&!mt.over&&bombMatch&&!bombMatch.done){
-          if(!window.__BlockBuddiesM7CI.substitute())throw Error('Cannot restore 5v5 QA roster');
+        // Dead BOTs leave en[] naturally; do not mistake casualty count
+        // for a new round. Only restore the QA player-slot replacement
+        // when canonical bombNextRound creates a NEW bombMatch object.
+        if(bombMatch&&bombMatch!==window.__m7RoundRef&&!mt.over){
+          window.__m7RoundRef=bombMatch;
+          if(!window.__BlockBuddiesM7CI.substitute())
+            throw Error('Cannot restore 5v5 QA roster after canonical round reset');
         }
-        if(en.length!==10&&!mt.over)throw Error('Unexpected 5v5 BOT roster '+en.length);
       }
       var r=BlockBuddiesQA.report();
       return {over:mt.over,round:bombMatch&&bombMatch.round,
         completed:r.bombRounds.completed,planted:r.bombRounds.plantedAtFinish};
     },
     restart:function(team){begin(team);run=false;
-      if(!window.__BlockBuddiesM7CI.substitute())throw Error('5v5 QA restore failed on new match');},
+      if(!window.__BlockBuddiesM7CI.substitute())throw Error('5v5 QA restore failed on new match');
+      window.__m7RoundRef=bombMatch;},
     summary:function(){
       return {qa:BlockBuddiesQA.report(),rendering:R.info.render.calls,
         active:run,over:mt.over,bots:en.length,webgl:!!R.getContext(),
