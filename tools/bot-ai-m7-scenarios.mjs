@@ -35,7 +35,7 @@ export function runBotM7Matrix(){
   results.push({seed,mode:'tdm',visibility:'open',critical:true,
    shotsDispatched:r.shotsDispatched,retreatEverBots:r.retreatEverBots});
  }
- return {kind:'BLOCK_BUDDIES_M7_SYNTHETIC_FAIRNESS_MATRIX',environment:'node-vm',
+ return {kind:'POINT_BLOCK_M7_SYNTHETIC_FAIRNESS_MATRIX',environment:'node-vm',
   fixture:'10-bot synthetic no human, no projectile collisions, no browser rendering',
   seeds,scenarioCount:results.length,
   passed:results.length,
