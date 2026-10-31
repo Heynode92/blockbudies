@@ -31,15 +31,31 @@ async function pageFor(mode){
  const page=await context.newPage();
  const jsErrors=[];
  page.on('pageerror',err=>jsErrors.push(String(err.message||err)));
+ page.on('console',msg=>{if(msg.type()==='error')jsErrors.push('CONSOLE: '+msg.text());});
+ page.on('requestfailed',req=>{
+   if(req.url().includes('three.min.js')||req.url().includes('assets/game.js'))
+     jsErrors.push('REQUEST FAILED: '+req.url()+' '+(req.failure()?.errorText||''));
+ });
  page.on('crash',()=>jsErrors.push('BROWSER_PAGE_CRASH'));
  // Resolve the exact Three.js r128 dependency locally without changing the player-facing HTML.
  await page.route('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js',
    route=>route.fulfill({path:three,contentType:'application/javascript'}));
  await page.route(/^https:\/\/fonts\.(googleapis|gstatic)\.com\//,route=>route.abort());
  await page.goto(url+'?bbBotQa=1',{waitUntil:'load',timeout:90000});
- await page.waitForFunction(()=>typeof BlockBuddiesQA==='object'&&
-   typeof begin==='function'&&typeof update==='function'&&typeof BOMB_RULES==='object',
-   {timeout:30000});
+ try{
+   await page.waitForFunction(()=>typeof BlockBuddiesQA==='object'&&
+     typeof begin==='function'&&typeof update==='function'&&typeof BOMB_RULES==='object',
+     null,{timeout:15000});
+ }catch(err){
+   const diagnostics=await page.evaluate(()=>({
+     href:location.href,ready:document.readyState,three:typeof THREE,
+     qa:typeof BlockBuddiesQA,begin:typeof begin,update:typeof update,
+     bombRules:typeof BOMB_RULES,canvases:document.querySelectorAll('canvas').length,
+     scripts:[...document.scripts].map(x=>({src:x.src,loaded:x.readyState}))
+   })).catch(e=>({inspectionError:String(e)}));
+   try{await page.screenshot({path:path.join(out,'m7-'+name+'-startup-failure.png')});}catch(_){}
+   throw Error('Browser startup failed: '+JSON.stringify({error:String(err),diagnostics,jsErrors}));
+ }
  const init=await page.evaluate(({mode,team})=>{
    roomMatchConfig={mode,kills:100,minutes:1,rounds:12,roundMinutes:1};
    selM=mode;
