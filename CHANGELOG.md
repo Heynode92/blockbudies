@@ -1,3 +1,10 @@
+## 2026-11-01 — Room Master Settings UI parity with Create Room
+- Rebuilt the **Room Settings** dialog inside the Room Master lobby to match the existing full-width tactical FPS Create Room design: live 3D map recon and registered map cards on the left, name/mode/round or kill/time options plus 5v5 and Room Master information on the right, with pinned Cancel / Save Changes actions.
+- Removed the obsolete 720px modal styling from `src/styles/04-lobby.css` to eliminate cascade conflicts. Added a dedicated `src/styles/15-room-master-settings.css` loaded after the Room Browser stylesheet, with a responsive 1480px desktop width and smaller-screen layout.
+- Reused the canonical map registries, 3D canvas, real renderer and shared cached map thumbnails. Existing `roomModalDraft`, `roomModalChooseMode()`, `roomModalChooseMap()`, `roomModalSave()` and validation remain the source of truth. Preview captures stay pre-match and are skipped when the modal is closed.
+- Added Close action with the same Cancel semantics. Save Changes continues to update the **existing room ID**; Cancel / Close / Escape revert uncommitted changes and return the original map preview.
+- Updated Room Master UI regression tests and retained storage, spawn/team decisions, BOT combat, map physics, match rules, and hidden-in-game header behavior. Updated the direct-open `assets/game.js` bundle together with its modular source.
+
 ## 2026-10-31 — Map preview parity for Block Labs, Block Town and Hospital
 - **Root cause:** the Create Room map-card renderer only copied frames into the selected map's card, leaving the other registry-backed map cards blank. Block Labs and Hospital also intentionally use interior corridor camera presets because their playable arenas have opaque ceilings.
 - Keep the currently selected map animated at the existing 30 FPS. For each inactive map in the active game mode, take one authentic 3D thumbnail from the same `R` renderer and `S` scene using its registered preview camera; cache and reuse this bitmap when cards are recreated. No placeholder art, new WebGL context, or imaginary map asset.
