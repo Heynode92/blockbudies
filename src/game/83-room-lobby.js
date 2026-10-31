@@ -173,6 +173,40 @@ function roomFillMapSelect(select,mode,mapId){
  select.value=mode===1?bombMapId(mapId):tdmMapId(mapId);
  select.disabled=options.length<2;
 }
+// Create Room map cards use ONLY the canonical TDM/Bomb map registries.
+// A card's canvas receives the current actual Three.js preview; never simulate a map.
+var roomMapActiveCardCanvas=null;
+function roomPaintMapCards(){
+ var root=document.getElementById("roomMapCards");
+ if(!root)return;
+ var options=roomDraftMode===1?bombMapOptions(1):tdmMapOptions();
+ var activeId=roomDraftMode===1?bombMapId(roomDraftMapId):tdmMapId(roomDraftMapId);
+ root.replaceChildren();
+ roomMapActiveCardCanvas=null;
+ options.forEach(function(map){
+  var selected=map.id===activeId,button=document.createElement("button");
+  button.type="button";
+  button.className="room-map-card"+(selected?" is-selected":"");
+  button.setAttribute("aria-pressed",String(selected));
+  button.setAttribute("aria-label","Choose "+map.name);
+  var canvas=document.createElement("canvas");
+  canvas.width=240;canvas.height=130;canvas.className="room-map-card-preview";
+  canvas.setAttribute("aria-hidden","true");
+  var title=document.createElement("strong");title.textContent=map.name;
+  var desc=document.createElement("small");desc.textContent=map.caption;
+  button.appendChild(canvas);button.appendChild(title);button.appendChild(desc);
+  button.addEventListener("click",function(){roomChooseMap(map.id);});
+  root.appendChild(button);
+  if(selected)roomMapActiveCardCanvas=canvas;
+ });
+}
+// Copy only already-rendered 2D pixels. No extra WebGL context or scene cloning.
+function roomMapCardFrame(preview){
+ if(!roomMapActiveCardCanvas)return;
+ var context=roomMapActiveCardCanvas.getContext("2d",{alpha:false});
+ if(context)context.drawImage(preview,0,0,preview.width,preview.height,
+  0,0,roomMapActiveCardCanvas.width,roomMapActiveCardCanvas.height);
+}
 function roomText(id,value){document.getElementById(id).textContent=String(value);}
 function roomModeSelect(mode){
  roomDraftMode=mode===1?1:0;
@@ -185,6 +219,7 @@ function roomModeSelect(mode){
  roomDraftMapId=roomDraftMode===1?bombMapId(roomDraftMapId):tdmMapId(roomDraftMapId);
  var map=roomMapsForMode(roomDraftMode,roomDraftMapId),mapSelect=document.getElementById("roomMap");
  roomFillMapSelect(mapSelect,roomDraftMode,roomDraftMapId);
+ roomPaintMapCards();
  roomText("roomMapName",map?map.name:"UNAVAILABLE");
  roomText("roomMapCaption",map?map.caption:"");
  selM=roomDraftMode;selectedBombMapId=bombMapId(roomDraftMapId);selectedTdmMapId=tdmMapId(roomDraftMapId);
