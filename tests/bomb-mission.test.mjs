@@ -28,6 +28,7 @@ function makeContext(){
   }
   const fakeCanvas={width:0,height:0,getContext(){return {fillRect(){},fillText(){},fillStyle:'',font:'',textAlign:''};}};
   const S=new T.Group();S.fog=null;S.background=null;
+  S.add({type:"GridHelper",visible:true}); // TDM GridHelper is LineSegments, not Mesh.
   const C={position:new T.Vector3(),lookAt(x,y,z){this.at={x,y,z};}};
   const ctx={
     Math,Object,Array,Uint8Array,Date,console,T,S,C,VS:new T.Group(),OB:[],BR:[],LT:[],GB:null,
@@ -321,4 +322,22 @@ test('Block Town outdoor 160x160 has separated A-side Police spawns and accessib
  assert.equal(c.BOMB_SITES[0].x,-44);
  assert.ok(c.BOMB_WORLD.every(o=>o.visible===false));
  assert.equal(c.OB.length,c.BLOCK_TOWN_OB.length,'restores only Block Town collision snapshot');
+});
+
+test('Block Town rendering avoids coplanar pavement, repeated plain-box facades and TDM grid leakage',()=>{
+ const c=makeContext(),grid=c.S.children.find(o=>o.type==='GridHelper');
+ assert.ok(grid&&grid.visible,'original TDM street grid starts visible');
+ c.selectedBombMapId='block-town';c.selectGameMap(true);
+ assert.equal(grid.visible,false,'old TDM GridHelper cannot bleed through Town street surface');
+ const paving=c.BLOCK_TOWN_DEF.paving;
+ for(let i=0;i<paving.length;i++)for(let j=i+1;j<paving.length;j++){
+  const a=paving[i],b=paving[j];
+  assert.ok(!(Math.abs(a[0]-b[0])<(a[2]+b[2])/2-.001&&Math.abs(a[1]-b[1])<(a[3]+b[3])/2-.001),
+   'Town street paving cannot share coplanar coverage: '+i+','+j);
+ }
+ assert.ok(c.visualDetails.length>300,'architectural window, shopfront, roof and urban prop detailing exists');
+ assert.ok(c.OB.length>=c.BLOCK_TOWN_DEF.buildings.length+c.BLOCK_TOWN_DEF.cover.length,
+  'every solid urban structure is physical gameplay collision');
+ c.selectGameMap(false);
+ assert.equal(grid.visible,true,'TDM GridHelper restored after leaving Bomb Mode');
 });
