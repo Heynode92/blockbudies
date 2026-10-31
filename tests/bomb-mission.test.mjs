@@ -5,6 +5,7 @@ import {runInNewContext} from 'node:vm';
 import {resolve} from 'node:path';
 const root = resolve(import.meta.dirname, '..');
 const mapSource=readFileSync(resolve(root,'src/game/11-bomb-map.js'),'utf8');
+const townSource=readFileSync(resolve(root,'src/game/12-block-town.js'),'utf8');
 const missionSource=readFileSync(resolve(root,'src/game/86-bomb-mission.js'),'utf8');
 const tacticsSource=readFileSync(resolve(root,'src/game/87-bomb-tactics.js'),'utf8');
 const perceptionSource=readFileSync(resolve(root,'src/game/88-bot-perception.js'),'utf8');
@@ -18,7 +19,7 @@ function fakeThree(){
   class Material{constructor(props){Object.assign(this,props);}}
   class Geometry{constructor(){}}
   class Color{constructor(color){this.value=color;}}
-  return {Group,Mesh,Sprite,Vector3:Position,Color,Fog:class{},MeshBasicMaterial:Material,MeshLambertMaterial:Material,SpriteMaterial:Material,BoxGeometry:Geometry,CylinderGeometry:Geometry,SphereGeometry:Geometry,CircleGeometry:Geometry,RingGeometry:Geometry,CanvasTexture:class{}};
+  return {Group,Mesh,Sprite,Vector3:Position,Color,Fog:class{},MeshBasicMaterial:Material,MeshLambertMaterial:Material,SpriteMaterial:Material,BoxGeometry:Geometry,CylinderGeometry:Geometry,SphereGeometry:Geometry,IcosahedronGeometry:Geometry,CircleGeometry:Geometry,RingGeometry:Geometry,CanvasTexture:class{}};
 }
 function makeContext(){
   const T=fakeThree();
@@ -38,6 +39,7 @@ function makeContext(){
     visualDetails:[],
     mk(w,h,d,col,x,y,z){const m=new T.Mesh();m.position.set(x,y,z);m.userData.box={w,h,d,col};S.add(m);return m;},
     wl(x,z,w,d,h,col){ctx.OB.push({x,z,hw:w/2,hd:d/2,h,c:col});return ctx.mk(w,h,d,col,x,h/2,z);},
+    shade(c,f){return c;},lite(c,f){return c;},
     dk(w,h,d,col,x,y,z){ctx.visualDetails.push({w,h,d,col,x,y,z});},
     flushDeco(){const m=new T.Mesh();m.userData.decorationBatch=true;S.add(m);},
     cBox(q){ctx.wl(q[0],q[1],q[2],q[3],2.4,0x687586);},
@@ -45,7 +47,7 @@ function makeContext(){
     inObs(x,z,m){return ctx.OB.some(o=>Math.abs(x-o.x)<o.hw+(m||0)&&Math.abs(z-o.z)<o.hd+(m||0));},
     reset(){},startMatch(){},endMatch(){ctx.mt.over=true;}
   };
-  runInNewContext(mapSource+'\n'+missionSource+'\n'+perceptionSource+'\n'+intelligenceSource+'\n'+tacticsSource+'\n'+cameraSource,ctx);
+  runInNewContext(mapSource+'\n'+townSource+'\n'+missionSource+'\n'+perceptionSource+'\n'+intelligenceSource+'\n'+tacticsSource+'\n'+cameraSource,ctx);
   ctx.selectedGameMode=1;
   return ctx;
 }
