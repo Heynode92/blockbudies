@@ -81,7 +81,11 @@ function townSpawnPt(team){
 // Spawn orientation uses the player's canonical yaw convention:
  // ground forward vector = (sin(yaw), cos(yaw)).
 function bombMapSpawnYaw(team,x,z){
- if(!isBombMode()||bombMapId(selectedBombMapId)!=="block-town")return team?0:Math.PI;
+ if(!isBombMode()){
+   if(tdmMapId(selectedTdmMapId)==="block-labs")return labsSpawnYaw(team,x,z);
+   return team?0:Math.PI;
+ }
+ if(bombMapId(selectedBombMapId)!=="block-town")return team?0:Math.PI;
  var def=BLOCK_TOWN_DEF.spawnLook,site=BOMB_MAP_REGISTRY["block-town"].sites.find(function(p){return p.id===def.policeSite;}),
      goal=team?def.terrorist:[site.x,site.z];
  return Math.atan2(goal[0]-x,goal[1]-z);
