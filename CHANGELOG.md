@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-31 WIB — M7 Windows browser QA harness bootstrap fixes (no gameplay changes)
+
+- Diagnosed GitHub Actions M7 browser jobs that originally timed out because the browser game intentionally keeps `begin/update/BOMB_RULES` inside its IIFE. Added a **CI-generated temporary index/game bundle** plus isolated `tools/bot-ai-m7-browser-bridge.js` to reach the canonical game loop without exposing test APIs in shipped player assets.
+- Fixed QA-only roster assertions to allow BOT deaths and restore a replacement BOT **only when a new Bomb round is created**, not when an active actor dies. WebGL smoke is recorded separately and does not impose a fabricated 100-frame minimum on software GPU CI runners.
+- Accelerated browser functional simulation now suppresses costly WebGL rendering **after** live wall-time sampling; physics, weapons, pathfinding, plant/defuse/fuse/round scoring still run via canonical production `update(1/60)`. CI produces progress markers each 10 completed rounds and artifacts on failure.
+- Earlier bootstrap failures are **test harness failures, not proven player runtime defects**. Final Windows CI and M7 acceptance remain pending recorded evidence; no weapon/UI/Bomb source or built production game bundle was changed.
+
 ## 2026-10-31 WIB — M7 automated Windows Chromium browser QA introduced
 
 - Added CI-only `tools/bot-ai-m7-browser.mjs` and `.github/workflows/bot-ai-m7-browser.yml`, running on Windows Chromium with exact pinned `playwright@1.56.1` and matching `three@0.128.0` for browser test dependency resolution. No player installs, WSL, Docker, backend, local runner or source bundle changes.
