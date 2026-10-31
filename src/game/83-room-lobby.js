@@ -400,6 +400,8 @@ function roomLobbyOpen(){
   roomDraftMode=0;roomDraftMapId="block-district";roomEditState(null);
  }
  roomSetMessage("");
+ var notice=document.getElementById("roomQuickNotice");
+ if(notice)notice.hidden=true;
  lobP("lbrooms");
  if(typeof inventoryBrowserPreviewOpen==="function")inventoryBrowserPreviewOpen();
 }
@@ -426,6 +428,31 @@ document.addEventListener("keydown",function(event){
   if(typeof event.preventDefault==="function")event.preventDefault();
   roomBrowserCreateClose();
  }
+});
+// Room Browser shortcuts reuse the canonical Inventory and Shop pages.
+// A shortcut visit returns to Room Browser, while the original Main Menu Back stays unchanged.
+var roomQuickFromBrowser=false,roomQuickNoticeTimer=null;
+function roomQuickOpen(action){
+ if(!lob||run||!document.getElementById("lbrooms").classList.contains("on"))return;
+ if(action!=="inventory"&&action!=="shop")return;
+ roomQuickFromBrowser=true;
+ if(action==="inventory")inventoryOpen();else shopOpen();
+}
+function roomQuickBack(){
+ if(roomQuickFromBrowser){
+  roomQuickFromBrowser=false;
+  roomLobbyOpen();
+ }else lobP("lbs");
+}
+document.getElementById("roomQuickInventory").addEventListener("click",function(){roomQuickOpen("inventory");});
+document.getElementById("roomQuickShop").addEventListener("click",function(){roomQuickOpen("shop");});
+document.getElementById("roomQuickSettings").addEventListener("click",function(){
+ if(!lob||run||!document.getElementById("lbrooms").classList.contains("on"))return;
+ // Settings is not implemented in the Main Menu either. Avoid a false settings screen.
+ var notice=document.getElementById("roomQuickNotice");
+ notice.hidden=false;
+ clearTimeout(roomQuickNoticeTimer);
+ roomQuickNoticeTimer=setTimeout(function(){notice.hidden=true;},3200);
 });
 document.getElementById("roomBack").addEventListener("click",function(){if(roomCurrent)roomLiveOpen(roomCurrent);else lobP("lbs");});
 document.getElementById("roomRefresh").addEventListener("click",function(){roomLoad();roomRender();roomSetMessage("Local room list refreshed.");});
