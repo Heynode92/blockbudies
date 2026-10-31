@@ -3568,7 +3568,7 @@ function newBot(tm,i){var b=terro(tm);b.tm=tm;b.idx=i;b.name=BN[tm][i];b.ph=Math
   var cv=document.createElement("canvas");cv.width=256;cv.height=64;var cx=cv.getContext("2d"),nt=b.name.toUpperCase();cx.font='700 40px Rajdhani,"Trebuchet MS",sans-serif';cx.textAlign="center";cx.textBaseline="middle";cx.lineWidth=7;cx.strokeStyle="rgba(0,0,0,.85)";cx.strokeText(nt,128,34);cx.fillStyle=tm?"#ff8a65":"#74c0fc";cx.fillText(nt,128,34);
   var sp=new T.Sprite(new T.SpriteMaterial({map:new T.CanvasTexture(cv),depthTest:false,transparent:true,fog:false}));sp.scale.set(3,.75,1);sp.position.set(0,2.75,0);sp.renderOrder=1000;sp.visible=tm===pl.tm;b.g.add(sp);b.nm=sp;return b;}
 // placeBot(b): (re)spawns bot b at a spawn point with full HP and short invulnerability.
-function placeBot(b){var s=spawnPt(b.tm);b.stepTrail=0;b.stepIndex=0;b.x=s[0];b.z=s[1];b.y=0;defenseSpawn(b);if(b.hm)b.hm.visible=true;b.inv=2;b.cd=1+Math.random();b.dead=false;b.tg=null;b.bn=0;b.wx=b.x;b.wz=b.z;b.stk=0;b.lastSeen=null;b.coverGoal=null;b.coverExpires=0;b.coverHoldUntil=0;b.smartRetreat=false;if(typeof botMoveReset==='function')botMoveReset(b);if(typeof botSquadReset==='function')botSquadReset(b);b.siteChoice=undefined;b.g.rotation.y=b.tm?0:Math.PI;botInitialLoadout(b);en.push(b);}
+function placeBot(b){var s=spawnPt(b.tm);b.stepTrail=0;b.stepIndex=0;b.x=s[0];b.z=s[1];b.y=0;defenseSpawn(b);if(b.hm)b.hm.visible=true;b.inv=2;b.cd=1+Math.random();b.dead=false;b.tg=null;b.bn=0;b.wx=b.x;b.wz=b.z;b.stk=0;b.lastSeen=null;b.coverGoal=null;b.coverExpires=0;b.coverHoldUntil=0;b.smartRetreat=false;if(typeof botMoveReset==='function')botMoveReset(b);if(typeof botSquadReset==='function')botSquadReset(b);if(typeof bombM5Reset==='function')bombM5Reset(b);b.siteChoice=undefined;b.g.rotation.y=b.tm?0:Math.PI;botInitialLoadout(b);en.push(b);}
 // startMatch(tm): sets up scores, timer (60 s) and the countdown, spawns the player and 4+5 bots, resets weapons to the chosen primary.
 function startMatch(tm){inventoryForNewMatch();starsReset();SPH=[[],[]];var s=spawnPt(tm);pl.tm=tm;pl.x=s[0];pl.z=s[1];pl.face=tm?0:Math.PI;pl.inv=2;ts=[0,0];rq=[];mt={t:roomMatchSeconds(),cd:5,over:false};pl.prim=favPrim;pl.w=favPrim;pl.mag=WP[favPrim].mag;pl.res=WP[favPrim].res;scopeOn=false;ROS=[];pl.st={name:"You",tm:tm,k:0,d:0};ROS.push(pl.st);
   S.remove(pm.g);pm=mkPm(tm);pm.g.visible=false;[armR,armL].forEach(function(ar){ar.children[0].material.color.setHex(tm?0x4b5320:0x1c4a8a);ar.children[1].material.color.setHex(tm?0x23272b:0x142a52);});
@@ -3811,6 +3811,143 @@ bombTouch.addEventListener('pointerdown',function(e){e.stopPropagation();e.preve
 ['pointerup','pointercancel','lostpointercapture'].forEach(function(ev){bombTouch.addEventListener(ev,function(){bombHold=false;});});
 addEventListener('blur',function(){bombHold=false;});
 document.getElementById('bombNext').addEventListener('click',function(){bombSpectatorNext(1);});
+// M5 Bomb Mission tactical intelligence. Decisions only: never alter Bomb rules,
+// plant/defuse progress, fuse/scoring, weapon damage, or hidden opponent coordinates.
+var BOMB_M5=Object.freeze({
+ siteThreatRadius:14,siteSwitchCooldown:9,maxSiteSwitches:1,
+ lateFuseMargin:2.5,postPlantHoldSeconds:3.2,
+ postPlantRadii:[5.5,7.5,6.5,8],
+ supportRadius:1.7,safeGoalSpacing:1.8,
+ navCheckMax:1
+});
+function bombM5Reset(e){
+ if(!e)return;
+ e.m5Round=0;e.m5Switches=0;e.m5SwitchAt=0;
+ e.m5Goal=null;e.m5GoalUntil=0;e.m5GoalStage='';
+}
+function bombM5Round(e){
+ if(!bombMatch||!e)return;
+ if(e.m5Round!==bombMatch.round){
+  bombM5Reset(e);e.m5Round=bombMatch.round;
+ }
+}
+// M1 provenance only: audible hints aren't a verified guard at a particular site.
+function bombM5Contact(e){
+ if(!e||e.dead||typeof botIntelKnown!=='function')return null;
+ var seen=botIntelKnown(e);
+ return seen&&(seen.source==='sight'||seen.source==='radio')&&
+    seen.until>tt&&seen.team===e.tm&&
+    Number.isFinite(seen.x)&&Number.isFinite(seen.z)?seen:null;
+}
+function bombM5ChooseSite(e){
+ if(!e||e.dead||e.tm!==1||!bombMatch||bombMatch.done||
+    bombMatch.state!=='idle'||bombMatch.carrier!==e||
+    bombMatch.dropped||e.bAction)return;
+ bombM5Round(e);
+ if(e.siteChoice===undefined||e.m5Switches>=BOMB_M5.maxSiteSwitches||
+    tt<(e.m5SwitchAt||0)||BOMB_SITES.length<2)return;
+ var contact=bombM5Contact(e);
+ if(!contact)return;
+ var origin=BOMB_SITES[e.siteChoice],risk=Math.hypot(contact.x-origin.x,contact.z-origin.z);
+ if(risk>BOMB_M5.siteThreatRadius)return;
+ var selected=e.siteChoice,best=Infinity;
+ for(var i=0;i<BOMB_SITES.length;i++){
+  if(i===e.siteChoice)continue;
+  var site=BOMB_SITES[i],threatDist=Math.hypot(contact.x-site.x,contact.z-site.z);
+  if(threatDist<=BOMB_M5.siteThreatRadius*1.35)continue;
+  if(typeof botMoveReachable!=='function'||!botMoveReachable(e,site.x,site.z))continue;
+  var dist=Math.hypot(e.x-site.x,e.z-site.z);
+  if(dist<best){best=dist;selected=i;}
+ }
+ if(selected!==e.siteChoice){
+  e.siteChoice=selected;e.m5Switches++;
+  e.m5SwitchAt=tt+BOMB_M5.siteSwitchCooldown;
+ }
+}
+function bombM5CriticalFuse(){
+ return !!(bombMatch&&!bombMatch.done&&bombMatch.state==='planted'&&
+  Number.isFinite(bombMatch.fuseLeft)&&
+  bombMatch.fuseLeft<=BOMB_RULES.defuseSeconds+BOMB_M5.lateFuseMargin);
+}
+function bombM5SelectDefuser(team,current){
+ if(!bombM5CriticalFuse()||!team.length)return null;
+ if(current&&!current.dead&&team.indexOf(current)>=0&&current.bAction&&
+    current.bAction.type==='defuse')return current;
+ var b=bombMatch,p=b.device.position,best=null,score=Infinity;
+ team.forEach(function(e){
+  if(!e||e.dead||e===pl)return;
+  var d=Math.hypot(e.x-p.x,e.z-p.z);
+  // A closer living bot can start the original 7-second interaction sooner;
+  // never fabricate time reductions, extra speed, or guaranteed success.
+  if(d<score){score=d;best=e;}
+ });
+ return best;
+}
+function bombM5Recoverer(){
+ if(!bombMatch||bombMatch.state!=='idle'||!bombMatch.dropped)return null;
+ var p=bombMatch.dropped,best=null,score=Infinity;
+ bombLiving(1).forEach(function(e){
+  if(e===pl||e.dead)return;
+  var dist=Math.hypot(e.x-p.x,e.z-p.z);
+  var penalty=e.hp!==undefined&&e.hp<35?2:0;
+  var v=dist+penalty;
+  if(v<score){score=v;best=e;}
+ });
+ return best;
+}
+function bombM5SafePosition(e,x,z){
+ if(typeof botMoveReachable!=='function'||!Number.isFinite(x)||!Number.isFinite(z)||
+    Math.abs(x)>=A-2||Math.abs(z)>=A-2||inObs(x,z,.85))return null;
+ // Defuser and carrier must retain the objective's canonical direct destination.
+ var teammates=bombLiving(e.tm);
+ for(var j=0;j<teammates.length;j++){
+  var ally=teammates[j];
+  if(ally===e||ally.dead||!ally.m5Goal||ally.m5GoalUntil<=tt)continue;
+  if(Math.hypot(x-ally.m5Goal[0],z-ally.m5Goal[1])<BOMB_M5.safeGoalSpacing)return null;
+ }
+ return botMoveReachable(e,x,z)?[x,z]:null;
+}
+function bombM5PostPlantGoal(e,stage){
+ if(!e||e.tm!==1||!bombMatch||bombMatch.done||
+    bombMatch.state!=='planted'||(stage!=='hold'&&stage!=='intercept')||
+    bombLiving(1).length<2||!bombMatch.device)return null;
+ bombM5Round(e);
+ if(e.m5Goal&&e.m5GoalStage===stage&&e.m5GoalUntil>tt)return e.m5Goal;
+ var p=bombMatch.device.position,idx=e.idx||0,contact=bombM5Contact(e);
+ // Defenders face different angles, weighting a REAL observed attacker lane.
+ // Never read live enemy coordinates or chase expired sound.
+ var a=(idx*2+Math.floor(bombMatch.round||1))*(Math.PI/4);
+ if(contact&&Math.hypot(contact.x-p.x,contact.z-p.z)<24){
+  a=Math.atan2(contact.z-p.z,contact.x-p.x)+(idx%2?.35:-.35);
+ }
+ var radius=BOMB_M5.postPlantRadii[idx%BOMB_M5.postPlantRadii.length];
+ for(var k=0;k<2;k++){
+  var theta=a+(k?Math.PI/3:0),x=p.x+Math.cos(theta)*radius,z=p.z+Math.sin(theta)*radius;
+  var goal=bombM5SafePosition(e,x,z);
+  if(goal){
+   e.m5Goal=goal;e.m5GoalUntil=tt+BOMB_M5.postPlantHoldSeconds;
+   e.m5GoalStage=stage;return goal;
+  }
+ }
+ e.m5Goal=null;e.m5GoalUntil=0;return null;
+}
+function bombM5RetakeSupportGoal(e,stage){
+ if(!e||e.tm!==0||stage!=='retake-support'||!bombMatch||
+    bombMatch.done||bombMatch.state!=='planted'||!bombMatch.device)return null;
+ bombM5Round(e);
+ if(e.m5Goal&&e.m5GoalStage===stage&&e.m5GoalUntil>tt)return e.m5Goal;
+ var p=bombMatch.device.position,i=e.idx||0,angle=(i*2+1)*Math.PI/4;
+ for(var k=0;k<2;k++){
+  var a=angle+k*Math.PI/2;
+  var goal=bombM5SafePosition(e,p.x+Math.cos(a)*BOMB_M5.supportRadius,
+                              p.z+Math.sin(a)*BOMB_M5.supportRadius);
+  if(goal){
+   e.m5Goal=goal;e.m5GoalUntil=tt+Math.min(2,BOMB_M5.postPlantHoldSeconds);
+   e.m5GoalStage=stage;return goal;
+  }
+ }
+ return null;
+}
 // Bomb Mission tactical director. Every position and behavior is local to Bomb Mode.
 var BOMB_AI=Object.freeze({
   engagementRange:26,urgentThreatRange:6,coverRadius:11,roamRadius:23,
@@ -3860,7 +3997,7 @@ function bombPickDefuser(){
   if(!bombMatch||bombMatch.done||bombMatch.state!=='planted')return null;
   var b=bombMatch,team=bombLiving(0),current=b.defuser;
   // A sole surviving officer clears a nearby Terrorist before risking the 7s defuse.
-  if(team.length===1&&team[0]!==pl&&bombSoloPoliceThreat(team[0])){
+  if(team.length===1&&team[0]!==pl&&bombSoloPoliceThreat(team[0])&&!bombM5CriticalFuse()){ 
     b.defuser=null;return null;
   }
   // A human who is merely standing near the bomb must not block bot defuse attempts.
@@ -3868,6 +4005,8 @@ function bombPickDefuser(){
   if(humansDefusing){b.defuser=pl;return pl;}
   var botOptions=team.filter(function(e){return e!==pl;});
   if(botOptions.length)team=botOptions;
+  var urgent=bombM5SelectDefuser(team,current);
+  if(urgent){b.defuser=urgent;return urgent;}
   if(bombUncontestedRetake()&&botOptions.length){
     // In an uncontested retake, use whichever officer can defuse soonest.
     // A bot already defusing must finish; otherwise reassign if a closer officer arrives.
@@ -3894,6 +4033,7 @@ function bombPickDefuser(){
 // One designated recoverer retrieves a dropped device while others screen it.
 function bombSmartRecoverer(){
  if(!bombMatch||!bombMatch.dropped)return null;
+ var selected=bombM5Recoverer();if(selected)return selected;
  var p=bombMatch.dropped,best=null,d=Infinity;
  bombLiving(1).forEach(function(e){if(e===pl)return;
   var n=Math.hypot(e.x-p.x,e.z-p.z);if(n<d){d=n;best=e;}
@@ -3929,6 +4069,7 @@ function bombSafeGoal(x,z,e){
 }
 function bombStrategicSite(e){
   if(e.siteChoice===undefined){var round=bombMatch?bombMatch.round:1;e.siteChoice=(e.idx+round+(e.tm?1:0))%BOMB_SITES.length;}
+  bombM5ChooseSite(e);
   return BOMB_SITES[e.siteChoice];
 }
 function bombTacticalGoal(e){
@@ -3939,12 +4080,18 @@ function bombTacticalGoal(e){
     site=BOMB_SITES[b.site];
     if(stage==='retake-defuse')return bombSafeGoal(b.device.position.x,b.device.position.z,e);
     if(stage==='retake-support'){
+      var reinforcement=bombM5RetakeSupportGoal(e,stage);
+      if(reinforcement)return reinforcement;
       // Do not camp the other bomb site. Keep a replacement officer at defuse range.
       angle=(idx*2+Math.floor(tt/BOMB_AI.retakeSweepStep))*Math.PI/4;
       return bombSafeGoal(b.device.position.x+Math.cos(angle)*BOMB_AI.clearSiteSupportRadius,
         b.device.position.z+Math.sin(angle)*BOMB_AI.clearSiteSupportRadius,e);
     }
     if(stage==='retake-assault'){
+      // The last seconds are for clearing/covering the real device, not hunting
+      // a stale attacker position on the far side of the map.
+      if(bombM5CriticalFuse())return bombSafeGoal(b.device.position.x+Math.cos(angle)*3.7,
+                                                 b.device.position.z+Math.sin(angle)*3.7,e);
       // When alone against a nearby defender, clear the threat before defusing.
       foe=bombSoloPoliceThreat(e);
       if(foe)return bombSafeGoal(foe.x,foe.z,e);
@@ -3962,9 +4109,15 @@ function bombTacticalGoal(e){
         b.device.position.z+Math.sin(angle)*radius,e);
     }
     if(stage==='intercept'){
+      var interceptGoal=bombM5PostPlantGoal(e,stage);
       foe=bombNearestThreat(1,site.x,site.z,BOMB_AI.roamRadius,e);
+      if(interceptGoal&&!foe)return interceptGoal;
       if(foe)return bombSafeGoal(foe.x,foe.z,e);
       radius=8+idx%3*2;
+    }
+    if(stage==='hold'){
+      var guarded=bombM5PostPlantGoal(e,stage);
+      if(guarded)return guarded;
     }
     if(stage==='hunt'){
       foe=bombNearestOpponent(e);
