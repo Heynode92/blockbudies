@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-31 WIB — Block Town V3 browser functional QA verified
+
+- [Windows Chromium M7 #54](https://github.com/Heynode92/blockbudies/actions/runs/41191396368): **Block Town Police SUCCESS 10/10 Bomb rounds** (Police 7/Terrorist 3 wins; planted at finish A 1/B 2), **Block Town Terrorist SUCCESS 10/10** (Police 8/Terrorist 2; planted at finish A 2/B 0). **0 browser JavaScript exceptions** in both jobs. This uses the new owner blueprint and solid delivery-van/kiosk map geometry.
+- Physical browser assertions covered actual A/B site positions, all ten spawn slots, no spawn-to-spawn LOS, 20 spawn-to-site A* paths and the four solid arena perimeter walls. The browser simulation is accelerated gameplay functional QA, not a GPU benchmark or competitive map-balance certification.
+- [Windows regression #308](https://github.com/Heynode92/blockbudies/actions/runs/41191513833): **382/382 Node tests PASS**, source bundle parity PASS. The unrelated Block Labs matrix jobs in M7 #54 failed, so **do not claim that the overall M7 workflow is green**. No rules, weapons, BOT tuning or other map runtime modifications.
+
 ## 2026-10-31 WIB — BLOCK TOWN V3: rebuild map from latest owner blueprint
 
 - **Replaced** Block Town V1/V2 streets/sites with the newest owner-supplied irregular city block layout, retaining the existing **160×160 Bomb Mission** arena and four visible, solid perimeter walls. White blueprint masses are implemented as **15 real collidable town-building blocks**, including an upper-left L compound, offset cross-streets and varied storefronts/rooftops.
