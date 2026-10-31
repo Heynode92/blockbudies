@@ -1,4 +1,4 @@
-# BLOCK BUDDIES — M6 TDM Aggression & Weapon-Class Intelligence Validation
+# POINT BLOCK — M6 TDM Aggression & Weapon-Class Intelligence Validation
 
 > **Status:** VERIFIED (CORE EXIT GATE: 361/361 WINDOWS CI + OWNER-REPORTED 7/7 MANUAL PASS); QUANTITATIVE TDM/FPS KPIs OPEN
 > **Date:** 2026-10-31 WIB
