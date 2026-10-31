@@ -49,7 +49,7 @@ function previewFixture(){
  }}};
  const overlay={hidden:false};
  const nodes={
-  mapPreviewCanvas:modeCanvas,roomMapPreview:canvas,roomCreateOverlay:overlay,
+  mapPreviewCanvas:modeCanvas,roomMapPreview:canvas,roomCreateOverlay:overlay,roomSettingsModal:{hidden:true},
   lbm:{classList:{contains(){return false;}}},
   lbrooms:{classList:{contains(){return true;}}},
   lbroomlive:{classList:{contains(){return false;}}}
