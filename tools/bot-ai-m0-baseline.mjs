@@ -99,6 +99,7 @@ export function runBotM0Baseline({
   vm.runInContext(active.split(legacyMarker)[0],c,{filename:activePath,timeout:5000});
   if(mode==='bomb')vm.runInContext('bombBotGoal=bombTacticalGoal',c);
   const initial=c.en.map(e=>[e.x,e.z]);
+  const retreatEver=new Set();
   for(let frame=0;frame<frames;frame++){
     c.tt=frame*dt;
     if(onTick){
@@ -108,6 +109,7 @@ export function runBotM0Baseline({
     }else{
       vm.runInContext('botsUpd('+dt+')',c,{timeout:5000});
     }
+    c.en.forEach((e,i)=>{if(e.smartRetreat)retreatEver.add(i);});
   }
   const teamShots=[0,1].map(team=>shots.filter(s=>s.team===team).length);
   const teamDistance=[0,1].map(team=>round(c.en.reduce((sum,e,i)=>
@@ -121,6 +123,7 @@ export function runBotM0Baseline({
     distanceByTeam:teamDistance,
     finalPositions:c.en.map(e=>[round(e.x),round(e.z)]),
     retreatBots:c.en.filter(e=>e.smartRetreat).length,
+    retreatEverBots:retreatEver.size,
     ...metrics,
     // No real hit%, reaction latency, Bomb objective completion, browser FPS or
     // native collision KPIs can be inferred from this isolated fixture.
