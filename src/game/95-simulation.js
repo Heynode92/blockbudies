@@ -48,7 +48,9 @@ function update(dt){
     if(!pl.dead&&c.land&&Math.hypot(c.x-pl.x,c.z-pl.z)<1.2&&!(c.ci===3&&pl.hp>=100)){S.remove(c.m);cr.splice(i,1);pick(c.ci);}}
   updChutes(dt);
   // enemies
+  var qaBotStart=botQaEnabled?performance.now():0;
   botsUpd(dt);
+  if(botQaEnabled)botQaCpu(performance.now()-qaBotStart,en.length);
   updDead(dt);bloodPoolUpdate(dt);
   // bullets
   for(i=bl.length-1;i>=0;i--){var b2=bl[i],p=b2.m.position,hit=false,ho=null,hn=null,ddt=dt+(b2.ad||0),ns=Math.max(1,Math.ceil(Math.hypot(b2.vx,b2.vz,b2.vy||0)*ddt/.2)),sd=ddt/ns;b2.ad=0;
