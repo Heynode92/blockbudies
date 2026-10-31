@@ -105,3 +105,72 @@ test('switching maps and modes drives the actual canonical game world',()=>{
  assert.deepEqual(calls.world,[false,true,true]);
  assert.equal(context.mapPreviewMapId,'block-town');
 });
+
+
+function thumbnailFixture(){
+ const source=read('src/game/83-room-lobby.js'),start=source.indexOf('// Create Room map cards use ONLY'),
+  end=source.indexOf('function roomText(',start);
+ assert.ok(start>=0&&end>start,'canonical map-card functions must be available');
+ const calls={map:[],render:0,clear:0,pixels:0};
+ const canvas=()=>({width:240,height:130,getContext(){return {drawImage(){calls.pixels++;}}}});
+ const labs={id:'block-labs',name:'BLOCK LABS',preview:{x:-40,y:5.2,z:14,lookX:-40,lookY:2,lookZ:-20,fov:72}};
+ const town={id:'block-town',name:'BLOCK TOWN',preview:{x:12,y:47,z:35,lookX:0,lookY:0,lookZ:-12,fov:74}};
+ const hospital={id:'hospital',name:'HOSPITAL',preview:{x:-67,y:5.2,z:-28,lookX:-67,lookY:2,lookZ:-5,fov:73}};
+ const entries=[labs,town,hospital].map(map=>({
+  children:[canvas()],
+  getAttribute(name){return name==='aria-label'?'Choose '+map.name:null;}
+ }));
+ const cardRoot={children:entries};
+ const overlay={hidden:false};
+ const document={
+  hidden:false,createElement(tag){assert.equal(tag,'canvas');return canvas();},
+  getElementById(id){
+   if(id==='roomMapCards')return cardRoot;
+   if(id==='roomCreateOverlay')return overlay;
+   if(id==='lbrooms')return {classList:{contains:s=>s==='on'}};
+   throw new Error('unexpected element '+id);
+  }
+ };
+ const context={
+  document,console:{warn(){}},run:false,lob:true,roomDraftMode:0,roomDraftMapId:'block-district',
+  selectedTdmMapId:'block-district',selectedBombMapId:'lockdown',mapPreviewSceneBomb:false,
+  tdmMapOptions(){return [{id:'block-district',name:'BLOCK DISTRICT'},labs];},
+  bombMapOptions(){return [{id:'lockdown',name:'LOCKDOWN'},town,hospital];},
+  tdmMapId:id=>id,bombMapId:id=>id,
+  R:{domElement:{width:1920,height:1080},clear(){calls.clear++;},render(){calls.render++;}},
+  S:{},C:{near:.1,far:430},
+  T:{PerspectiveCamera:class {constructor(fov){this.fov=fov;this.position={set(){}};}lookAt(){} }},
+  selectGameMap(bomb){calls.map.push({id:bomb?context.selectedBombMapId:context.selectedTdmMapId,bomb});}
+ };
+ vm.createContext(context);vm.runInContext(source.slice(start,end),context);
+ return {context,overlay,document,calls,entries};
+}
+
+test('all inactive map cards receive authentic 3D captures and selected map is restored',()=>{
+ const {context,calls}=thumbnailFixture();
+ context.roomMapCapturePendingPreview();
+ assert.equal(calls.render,2,'one temporary screenshot + final world restore');
+ assert.equal(calls.clear,2);
+ assert.equal(calls.map[0].id,'block-labs');
+ assert.equal(calls.map[1].id,'block-district','main scene must be restored');
+ assert.equal(context.selectedTdmMapId,'block-district');
+ assert.ok(context.roomMapThumbnailCache['block-labs'],'map thumbnail should be cached');
+ assert.ok(calls.pixels>=2,'capture and card paint both happened');
+ context.roomMapCapturePendingPreview();
+ assert.equal(calls.render,2,'cached map must not be rendered again');
+});
+
+test('Block Town and Hospital thumbnails use their registered camera without changing Bomb selection',()=>{
+ const {context,calls,overlay}=thumbnailFixture();
+ context.roomDraftMode=1;context.roomDraftMapId='lockdown';
+ context.selectedBombMapId='lockdown';context.mapPreviewSceneBomb=true;
+ context.roomMapCapturePendingPreview();context.roomMapCapturePendingPreview();
+ assert.deepEqual(calls.map.map(x=>x.id),['block-town','lockdown','hospital','lockdown']);
+ assert.equal(calls.render,4);
+ assert.equal(context.selectedBombMapId,'lockdown');
+ assert.ok(context.roomMapThumbnailCache['block-town']);
+ assert.ok(context.roomMapThumbnailCache.hospital);
+ overlay.hidden=true;
+ context.roomMapCapturePendingPreview();
+ assert.equal(calls.render,4,'no hidden popup GPU work');
+});
