@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap">
-<title>Blok Buddies FPS</title>
+<title>Point Block FPS</title>
 <link rel="stylesheet" href="./src/styles/01-foundation.css">
 <link rel="stylesheet" href="./src/styles/02-hud-and-kills.css">
 <link rel="stylesheet" href="./src/styles/03-controls-and-death.css">
@@ -38,10 +38,10 @@
 <div id="sbd"></div><div class="dbt"><button id="dgo">PLAY AGAIN<kbd>ENTER</kbd></button><button id="dmn">MAIN MENU</button></div></div>
 </div></div>
 <div id="lb">
- <header id="gameLobbyHeader" class="home-global-header" aria-label="Blok Buddies main menu header">
+ <header id="gameLobbyHeader" class="home-global-header" aria-label="Point Block main menu header">
   <span class="home-header-chevron" aria-hidden="true"></span>
   <div class="home-global-brand">
-    <div class="home-wordmark" aria-label="Blok Buddies"><span class="home-brand-blok">BLOK</span><span class="home-brand-buddies">BUDDIES</span></div>
+    <div class="home-wordmark" aria-label="Point Block"><span class="home-brand-point">POINT</span><span class="home-brand-block">BLOCK</span></div>
     <div class="home-meta" aria-label="FPS, 5 versus 5 Police versus Terrorist"><span>FPS</span><i aria-hidden="true"></i><span>5V5</span><i aria-hidden="true"></i><span>POLICE VS TERRORIST</span></div>
   </div>
   <div class="home-top-actions" aria-label="PBT and wallet controls">
@@ -62,9 +62,9 @@
   <section class="home-demo" aria-label="Official gameplay previews">
    <header class="home-demo-header"><span class="home-demo-live"><i></i> GAMEPLAY SHOWCASE</span><span id="homeDemoCounter">01 / 02</span></header>
    <div class="home-demo-screen">
-    <video id="homeDemoVideo" class="home-demo-vid is-current" src="./src/assets/video/deatch_match_demo.mp4" width="1920" height="1080" autoplay muted loop playsinline preload="metadata" tabindex="-1" aria-label="Block Buddies gameplay preview">Gameplay video cannot play in this browser.</video><video id="homeDemoNextVideo" class="home-demo-vid" muted playsinline preload="metadata" tabindex="-1" aria-hidden="true"></video>
+    <video id="homeDemoVideo" class="home-demo-vid is-current" src="./src/assets/video/deatch_match_demo.mp4" width="1920" height="1080" autoplay muted loop playsinline preload="metadata" tabindex="-1" aria-label="Point Block gameplay preview">Gameplay video cannot play in this browser.</video><video id="homeDemoNextVideo" class="home-demo-vid" muted playsinline preload="metadata" tabindex="-1" aria-hidden="true"></video>
     <div id="homeDemoEmpty" class="home-demo-empty" hidden>VIDEO PREVIEW UNAVAILABLE</div>
-    <div class="home-demo-overlay" aria-hidden="true"><span id="homeDemoStatus">GAMEPLAY FOOTAGE</span><b>BLOCK BUDDIES</b></div>
+    <div class="home-demo-overlay" aria-hidden="true"><span id="homeDemoStatus">GAMEPLAY FOOTAGE</span><b>POINT BLOCK</b></div>
    </div>
    <div class="home-demo-info"><div class="home-demo-title"><strong id="homeDemoLabel">DEATHMATCH</strong><small id="homeDemoDetail">5V5 · ALL-OUT COMBAT</small></div>
     <span class="home-demo-auto">GAMEPLAY PREVIEW</span></div>
@@ -94,7 +94,7 @@
 </section><section id="lbshop" class="lbp" aria-label="Weapon shop">
   <div class="shop-shell">
     <header class="shop-head">
-      <div class="shop-heading"><span>BLOCK BUDDIES ARMORY</span><h2>WEAPON SHOP</h2><p>Browse and unlock weapons for your next match.</p></div>
+      <div class="shop-heading"><span>POINT BLOCK ARMORY</span><h2>WEAPON SHOP</h2><p>Browse and unlock weapons for your next match.</p></div>
       <button type="button" class="bk" id="shopBack">‹ BACK</button>
     </header>
     <div class="shop-workspace"><aside id="shopSelected" class="shop-selected" aria-label="Selected weapon details"></aside><div class="shop-catalog"><div id="shopGrid" class="shop-grid" aria-live="polite"></div></div></div>
@@ -107,7 +107,7 @@
     <button id="roomBack" type="button" class="room-back">‹ BACK</button>
     <div class="room-headings">
       <h2>ROOM LOBBY</h2>
-      <p>BLOCK BUDDIES ARMORY <span>·</span> CREATE OR SELECT A LOCAL MATCH</p>
+      <p>POINT BLOCK ARMORY <span>·</span> CREATE OR SELECT A LOCAL MATCH</p>
     </div>
     <span class="room-local-flag">LOCAL · VS AI</span>
   </header>
@@ -230,14 +230,14 @@
   <canvas id="roomStartMap" width="1280" height="720" aria-label="Actual 3D match map"></canvas>
   <div class="room-transition-shade"></div>
   <div class="room-transition-center">
-    <span class="room-transition-kicker">BLOCK BUDDIES · MATCH DEPLOYMENT</span>
+    <span class="room-transition-kicker">POINT BLOCK · MATCH DEPLOYMENT</span>
     <h2 id="roomStartPhase">CAPTURING 3D MAP</h2>
     <div class="room-transition-progress"><span>LOADING MATCH</span><strong id="roomStartPercent">0%</strong></div>
     <div class="room-transition-track"><i id="roomStartBar"></i></div>
     <small>PREPARING YOUR BATTLEFIELD</small>
   </div>
 </div>
-<div id="ov"><div id="card"><h1>Blok Buddies FPS</h1><div id="ovt"></div><button id="go">Start</button></div></div>
+<div id="ov"><div id="card"><h1>Point Block FPS</h1><div id="ovt"></div><button id="go">Start</button></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="./assets/game.js"></script>
 </body>
