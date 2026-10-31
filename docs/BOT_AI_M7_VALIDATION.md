@@ -90,6 +90,27 @@ To compute FPS, the export offers `approximateFpsMedian` from the **median frame
 
 **Acceptance decision:** Owner's first genuine browser data **RECEIVED, PARSED AND RECORDED**, but **M7 quantitative performance and final release gates remain OPEN**. Next capture should use `BlockBuddiesQA.reset()` immediately before **one** mode/map/team run; save and label distinct JSON exports for TDM Police, TDM Terrorist, Bomb Police/Terrorist and repeat maps; record environment and run lengths; include enough engagements and genuine Bomb plants/defuses. Specifically investigate the **7.0ms rAF vs 8.7ms JS timing discrepancy** before relying on derived FPS, and examine shotgun long-range engagement only with confirmed reproducible results. Do not replace M0 historical evidence with this new unpaired capture.
 
+## Second owner browser capture — 2,264 projectiles / 5 Bomb rounds (2026-10-31 WIB, PROVISIONAL)
+
+**Evidence:** owner-uploaded `block-buddies-m7-qa(1).json`, schema `BLOCK_BUDDIES_M7_QA_V1`, `recordedStartUnixMs=1793429787609` (13:56:27 WIB). The raw JSON stays outside the repository. This is a **follow-up export**, not verified to be an independent controlled run. It **again mixes TDM and Bomb in one reset window**. Exact map, chosen player faction, browser session duration, BOT composition, resolution and matched M0 performance baseline are not present.
+
+| Metric | Recalculated from second owner JSON | Interpretation |
+|---|---:|---|
+| Browser rAF frame interval (rolling 2,400) | median **7.0 ms**, p95 **13.9 ms**, max **55.5 ms** | Derived **142.9 median approximate FPS remains provisional** |
+| Per-frame JS work (rolling 2,400) | median **7.6 ms**, p95 **9.0 ms**, max **46.9 ms** | **Timing consistency issue persists:** JS-work median exceeds rAF-interval median; verify timestamp semantics and callback alignment before final FPS certification |
+| BOT update CPU (rolling 2,400) | median **0.2 ms**, p95 **0.5 ms**, max **1.6 ms** | Measures `botsUpd()` only, not full engine/GPU work |
+| Sight → first dispatched shot | **283** events; median **332.1 ms**, p95 **602.4 ms**, max **1,405.7 ms** | Includes firing permission/turn/cooldown; not raw human reaction; tail needs explanation |
+| BOT projectile collisions | **369 / 2,264 = 16.30%** | Per-projectile/pellet character impacts, not trigger-pull/headshot/damage success |
+| TDM projectile collisions | **233 / 1,757 = 13.26%** | Mixed teams/weapons/ranges; not per-faction performance |
+| Bomb projectile collisions | **136 / 507 = 26.82%** | Only five completed Bomb rounds; not a Bomb success benchmark |
+| Movement low displacement | **125.78 / 1,917.32 BOT-seconds = 6.56%** | Obstruction proxy only; does not establish stuck or clipping |
+| A* requests | **2,848 attempts / 0 failures** | Recorded active path requests, not full-map traversal proof |
+| Bomb rounds at finish | **5 completed: Police 3 / Terrorists 2; planted-at-finish 2; A 1 / B 1 / no-site 3** | Plant-at-finish is not the same as all plant attempts or defuse completions |
+
+**Weapon-range concern persists:** TDM shotgun **84 pellets / 1 character hit** at 30+ world units; Bomb shotgun **42 / 0** in the same band. Total shotgun long-range **126 pellets / 1 hit (0.79%)**. This is insufficient to authorize arbitrary damage or spread changes; movement and fire-permission range should be profiled in controlled conditions. Reported `observations=512`, `lostUnfiredSightings=173`; no-shot contact reconciliation and per-mode/team breakdown remain absent.
+
+**M7 disposition:** **LIVE DATA REVIEWED / PROVISIONAL; FINAL M7 VERIFIED = NO.** CI #199 already passed 373/373 Node tests and 15/15 synthetic scenarios, but this second mixed-mode export does **not** satisfy the agreed real-browser release gates in the Master Plan: per-map/mode/faction runs, representative range-band samples (proposed ≥200 engagements per band/mode), Bomb outcomes (proposed ≥50 completed rounds per team configuration), paired M0-equivalent frame measurements, timing anomaly review, headshot/damage and map/navigation stability. These targets are proposed sampling coverage, not user obligations to repeat immediately. No automatic release sign-off, gameplay rebalancing, or mechanism modification is implied.
+
 ## Audit verdict
 
 **M6 core VERIFIED by owner 7/7 manual PASS and prior Windows CI. M7 instrumentation and automated synthetic suite implemented; M7 FINAL QA/RELEASE REMAINS OPEN.** No real browser or match session was executed by GitHub Actions; thus no recorded FPS, real BOT hit-rate improvement, measured true reaction percentile, navigation stuck improvement, measured Bomb-win percentages or proven 10%/15% performance overhead thresholds may be claimed. The original M0 fixed-seed arena changed significantly across M1–M6, so comparing a 2026-10-30 M0 synthetic dispatch count directly with a 2026-10-31 M7 result would **not** prove a causal real-game gain.
