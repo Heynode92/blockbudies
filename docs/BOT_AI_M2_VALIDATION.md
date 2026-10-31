@@ -1,6 +1,6 @@
 # BLOCK BUDDIES — M2 3D Aim & Shooting Intelligence Validation
 
-> **Status:** IMPLEMENTED / AUTOMATED VERIFIED; MANUAL WINDOWS PLAYTEST PENDING
+> **Status:** VERIFIED (CORE EXIT GATE: 306/306 AUTOMATED + OWNER-REPORTED 7/7 MANUAL PASS); QUANTITATIVE KPIs OPEN
 > **Scope:** M2 only — genuine yaw/pitch aim intent, bounded response, live-target movement lead, weapon-class dispersion; NO M3 locomotion/cover changes
 > **Date:** 2026-10-31 WIB
 > **CI evidence:** [Windows Actions run #93](https://github.com/Heynode92/blockbudies/actions/runs/41173731387) — **306 tests PASS / zero failed**, canonical standalone bundle parity, JS syntax and synthetic replay + CPU baseline checks green.
@@ -28,8 +28,14 @@
 - [x] Aim denial consumes no ammunition; successful shots retain canonical ammo/cooldown.
 - [x] All legacy BOT defense/weapon/Bomb objective regressions remain enabled; separate old fixture mocks were updated only where they need an authorized aim solution.
 - [x] Canonical offline bundle check + JavaScript syntax + **306/306** full Node tests + CPU baseline success in [Windows CI run #93](https://github.com/Heynode92/blockbudies/actions/runs/41173731387).
-- [ ] **Manual Windows gameplay M2 acceptance:** actual aiming elevation, moving-target reaction, BOT visual turns, both team combat and Bomb objective behavior. The owner has not yet reported a new M2 playtest.
+- [x] **Owner-reported M2 manual gameplay acceptance, 7/7 PASS (2026-10-31 WIB):** higher/lower targets, finite shooting reaction, moving-target tracking, no wall penetration, both team combat, plant/defuse/round completion, and no freeze/crash/severe perceived lag. Qualitative owner report, not instrumented browser telemetry.
 - [ ] **Real match metrics:** actual hit%, reaction time median/p95, headshot ratio, per-weapon/range/elevation samples, stuck/path, FPS/p95, Bomb objective outcomes. These remain unmeasured.
+
+## M2 owner manual acceptance record — 2026-10-31 WIB
+
+The owner explicitly submitted **“M2 playtest PASS bro”** and confirmed **all 7 checks passed**: (1) elevation tracking and shooting, (2) no instant first-shot reaction, (3) reasonably imperfect moving-target pursuit, (4) no through-wall shooting, (5) normal Police/Terrorist combat, (6) Bomb plant/defuse/round resolution and (7) no freeze/crash/perceptible severe performance regression. This is a **self-reported qualitative gameplay smoke test**, not independently observed performance telemetry. Map names, game/browser version, session durations and per-team samples are not provided. The existing quantitative KPI checkboxes stay OPEN.
+
+**Decision:** M2 core exit gate **VERIFIED**, supported by [Windows Actions run #98](https://github.com/Heynode92/blockbudies/actions/runs/41173880185) (306/306 pass) plus owner manual 7/7 PASS. User approved subsequent M3 development. **M3 remains a distinct milestone requiring its own automated CI and later gameplay acceptance.**
 
 ## Synthetic M2 behavior observation (not real-match accuracy)
 
