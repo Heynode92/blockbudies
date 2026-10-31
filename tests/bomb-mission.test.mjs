@@ -497,4 +497,19 @@ test('Block Town V3 obeys owner blueprint anchors and offers connected, broken-s
  for(const q of d.cover)
    assert.ok(c.OB.some(o=>o.x===q[0]&&o.z===q[1]&&o.hw===q[2]/2&&o.hd===q[3]/2),
      'decorative town furniture has genuine projectile/nav collision: '+q);
+ assert.deepEqual(d.landmarks.map(o=>o.kind),['delivery-van','street-kiosk']);
+ for(const item of d.landmarks){
+   assert.ok(c.OB.some(o=>o.x===item.x&&o.z===item.z&&o.hw===item.w/2&&
+      o.hd===item.d/2&&o.h===item.h),
+      'real town landmark must have exact collision volume: '+item.kind);
+   for(const point of d.spawns.police.concat(d.spawns.terrorist))
+     assert.ok(Math.abs(point[0]-item.x)>item.w/2+.85||
+       Math.abs(point[1]-item.z)>item.d/2+.85,
+       'collidable landmark cannot overlap spawn '+item.kind);
+ }
+ // Walking lanes around each landmark must remain navigable in production A*.
+ for(const point of d.spawns.police.concat(d.spawns.terrorist))
+   for(const site of c.BOMB_SITES)
+     assert.ok(c.gPath(point[0],point[1],site.x,site.z).length>0,
+       'landmarks may not obstruct either actual Bomb Site');
 });
