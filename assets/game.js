@@ -3506,7 +3506,10 @@ function botTdmPatrol(e){
  e.tdmRouteAt=tt+BOT_TDM.thinkSeconds;
  e.tdmRouteIndex=(e.tdmRouteIndex||0)+1;
  var goal=botTdmPatrolGoal(e);
- if(!goal){e.tdmRouteGoal=null;return;}
+ if(!goal){
+  // A dead-end patrol must not keep chasing an expired M1 contact.
+  e.tdmRouteGoal=null;e.wx=e.x;e.wz=e.z;return;
+ }
  e.tdmRouteGoal=goal;e.wx=goal[0];e.wz=goal[1];
 }
 // Five-star BOT decision layer: uses existing A* navigation, LOS, HP,
