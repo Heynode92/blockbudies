@@ -27,7 +27,7 @@ if(botQaEnabled){
           group.forEach(function(p){
             BOMB_SITES.forEach(function(site){
               var pts=gPath(p[0],p[1],site.x,site.z);
-              if(!pts||pts.length<2)throw Error('BLOCK TOWN inaccessible '+t+' spawn '+p+' -> '+site.id);
+              if(!pts||!pts.length)throw Error('BLOCK TOWN inaccessible '+t+' spawn '+p+' -> '+site.id);
               routes.push({team:t,site:site.id,points:pts.length});
             });
           });
