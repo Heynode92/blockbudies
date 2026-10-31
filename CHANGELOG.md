@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-31 WIB — M7 follow-up browser QA reviewed (final gate remains open)
+
+- Analyzed a second owner-provided opt-in browser JSON (mixed TDM + Bomb). Confirmed **2,264 BOT-fired projectiles / 369 character hits = 16.30%**: TDM **233/1,757 (13.26%)**, Bomb **136/507 (26.82%)**. Shotgun at 30+ units **126 pellets / 1 character hit** across modes; no gameplay tuning approved or performed.
+- Rolling 2,400-sample rAF frame interval **median 7.0 ms / p95 13.9 ms**; per-frame JavaScript work **median 7.6 ms / p95 9.0 ms**; BOT CPU **median 0.2 ms / p95 0.5 ms**; sight→shot across 283 contacts **median 332.1 ms / p95 602.4 ms**. The persistent rAF/JS timing inconsistency means **142.9 derived approximate median FPS remains provisional**.
+- Movement low displacement **125.78/1,917.32 BOT-seconds (6.56%)**, A* **0/2,848 failures**, Bomb **5 completed rounds (Police 3/Terrorists 2; planted at finish 2)**. A* success does not prove map clearance, and Bomb sample does not prove plant/defuse reliability.
+- **Decision: second data capture REVIEWED; M7 remains IN PROGRESS / NOT RELEASED**. The export still combines modes and lacks comparable M0 baseline, per-map/team metadata and sufficient objective/range-band coverage against the existing Master Plan. No BOT damage, weapon, movement, source runtime, UI, or QA code changed. See [M7 Validation](docs/BOT_AI_M7_VALIDATION.md).
+
 ## 2026-10-31 WIB — M7 first owner browser QA capture (provisional, no gameplay changes)
 
 - Reviewed the first owner-uploaded local Firefox `BlockBuddiesQA` JSON and Console screenshot. The QA collector initialized successfully; `BlockBuddiesQA.reset()` returned the expected `undefined`. Browser Tracking Prevention storage warnings referencing the existing external Three.js CDN were **not proven fatal**; the separate DevTools paste warning is a browser security safeguard.
