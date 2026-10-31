@@ -10,7 +10,7 @@ var BOT_SQUAD=Object.freeze({
 function botSquadReset(e){
  e.squadRole=null;e.squadGoal=null;e.squadUntil=0;
  e.squadRetryAt=0;e.squadReportAt=-1;
- e.squadEntryWaitUntil=0;e.squadEntrySeenAt=-1;
+ e.squadEntryWaitUntil=0;e.squadEntryCooldownUntil=0;
 }
 function botSquadRoster(team){
  // This roster reveals only friendly public positions and survival, no enemy identity.
@@ -82,18 +82,17 @@ function botSquadIntent(e,target,intent){
  if(e.squadRole==='entry'){
   // Wait only once for a new authentic contact, and NEVER wait indefinitely.
   var dist=Math.hypot(report.x-e.x,report.z-e.z);
-  if(e.squadEntrySeenAt!==report.seenAt){
-   e.squadEntrySeenAt=report.seenAt;
-   e.squadEntryWaitUntil=allies.length>=3&&
-      dist>BOT_SQUAD.entryNearMin&&dist<BOT_SQUAD.entryNearMax?
-      Math.min(tt+BOT_SQUAD.entryWaitMax,report.until):0;
+  if(tt>=(e.squadEntryCooldownUntil||0)&&allies.length>=3&&
+     dist>BOT_SQUAD.entryNearMin&&dist<BOT_SQUAD.entryNearMax){
+   e.squadEntryCooldownUntil=tt+4;
+   e.squadEntryWaitUntil=Math.min(tt+BOT_SQUAD.entryWaitMax,report.until);
   }
   if(tt<e.squadEntryWaitUntil)intent.hold=true;
   return;
  }
  if(e.squadGoal&&e.squadUntil>tt&&
     Math.hypot(e.x-e.squadGoal[0],e.z-e.squadGoal[1])>BOT_SQUAD.goalReach&&
-    e.squadReportAt===report.seenAt){
+    Math.hypot(report.x-e.squadAnchorX,report.z-e.squadAnchorZ)<4){
   intent.goal=e.squadGoal;return;
  }
  if(tt<(e.squadRetryAt||0))return;
@@ -102,6 +101,7 @@ function botSquadIntent(e,target,intent){
  var goal=botSquadFlankPoint(e,e.squadRole,report);
  if(!goal)return; // Fallback to ordinary M1/M3 navigation, never freeze.
  e.squadGoal=goal;e.squadReportAt=report.seenAt;
+ e.squadAnchorX=report.x;e.squadAnchorZ=report.z;
  e.squadUntil=Math.min(report.until,tt+BOT_SQUAD.goalSeconds);
  intent.goal=goal;
 }
