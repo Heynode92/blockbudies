@@ -1,3 +1,10 @@
+## 2026-10-31 — Map preview parity for Block Labs, Block Town and Hospital
+- **Root cause:** the Create Room map-card renderer only copied frames into the selected map's card, leaving the other registry-backed map cards blank. Block Labs and Hospital also intentionally use interior corridor camera presets because their playable arenas have opaque ceilings.
+- Keep the currently selected map animated at the existing 30 FPS. For each inactive map in the active game mode, take one authentic 3D thumbnail from the same `R` renderer and `S` scene using its registered preview camera; cache and reuse this bitmap when cards are recreated. No placeholder art, new WebGL context, or imaginary map asset.
+- During a thumbnail capture, temporarily select that canonical map using the existing `selectGameMap()` entry point, then restore both selected-map IDs, the previous gameplay scene, and the original camera render in a `finally` block before returning to the main loop. Captures occur only in Create Room while the game is not running, one map per 30 FPS preview tick.
+- Update the map selection UI to show cached thumbnails of inactive choices immediately when available. No changes to map geometry, collision, spawn points, physics, bots, lobby background, wallet, or in-game HUD.
+- Add tests ensuring Block Labs, Block Town, and Hospital thumbnails are captured from registered camera presets, cached once, skipped while the popup is hidden, and that the pre-match map selection is restored after each capture.
+
 ## 2026-10-31 — Fix Create Room dialog width regression
 - **Root cause:** an obsolete Create Room CSS block near the end of `src/styles/14-room-browser.css` still declared `width:min(660px,100%)` and overrode the newer cinematic `1220px` layout by cascade order. This caused the two-column map/settings UI to be squeezed into a narrow center box.
 - Removed the superseded 660px styling block instead of stacking another override. Consolidated its necessary modal positioning, backdrop, hidden-state and close-button styling into the single authoritative responsive popup definition.
