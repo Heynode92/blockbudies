@@ -1,15 +1,15 @@
 /* BLOCK BUDDIES — Home header (DeFi × tactical FPS)
- * Source of truth: only the home header. No other screens are styled here.
+ * Source of truth: shared header for menu, room browser and Room Master lobby.
  * Sized for desktop 1920x1080, with tablet/mobile wrapping.
  * Header color tokens intentionally match the existing lobby palette.
  */
-#lbs.on {
-  padding-top:clamp(112px,13.5vh,138px);
-}
-#lbs .home-global-header {
+#lb { --bb-shared-header-height:86px; }
+#lbs.on { padding-top:clamp(112px,13.5vh,138px); }
+#gameLobbyHeader[hidden] { display:none !important; }
+#gameLobbyHeader {
   position:absolute;top:0;left:0;right:0;z-index:8;
   display:flex;align-items:center;justify-content:space-between;
-  box-sizing:border-box;height:86px;
+  box-sizing:border-box;height:var(--bb-shared-header-height);
   padding:0 clamp(28px,3.8vw,74px);
   gap:clamp(18px,2vw,38px);
   border-top:2px solid #ff932d;
@@ -18,24 +18,24 @@
   box-shadow:0 10px 30px rgba(0,0,0,.33);
   overflow:visible;text-align:left;
 }
-#lbs .home-global-header::after {
+#gameLobbyHeader::after {
   content:"";position:absolute;bottom:-1px;left:5%;width:min(24vw,375px);height:2px;
   pointer-events:none;background:linear-gradient(90deg,#ff922c,transparent);
 }
-#lbs .home-header-chevron {
+#gameLobbyHeader .home-header-chevron {
   position:absolute;left:0;top:27px;
   width:33px;height:34px;
   background:linear-gradient(135deg,#ffae4e,#f27416);
   clip-path:polygon(0 68%,68% 0,100% 0,32% 100%,0 100%);
   pointer-events:none;
 }
-#lbs .home-global-brand {
+#gameLobbyHeader .home-global-brand {
   display:flex;align-items:center;gap:clamp(15px,1.7vw,29px);
   flex:1 1 auto;min-width:0;padding-left:clamp(12px,1.1vw,21px);
   overflow:visible;
 }
 /* Critical: no .lt selectors, italic, transforms, masked gradients or tight line boxes. */
-#lbs .home-wordmark {
+#gameLobbyHeader .home-wordmark {
   display:flex;flex:0 0 auto;align-items:center;
   gap:.19em;margin:0;padding:8px 2px 10px;
   overflow:visible;white-space:nowrap;
@@ -45,15 +45,15 @@
   line-height:1.35;letter-spacing:.012em;
   transform:none;filter:none;
 }
-#lbs .home-wordmark span {
+#gameLobbyHeader .home-wordmark span {
   display:block;flex:none;
   padding:2px 1px 4px;line-height:1.35;
   overflow:visible;-webkit-text-fill-color:currentColor;
   text-shadow:0 2px 0 rgba(0,0,0,.88),0 5px 14px rgba(0,0,0,.38);
 }
-#lbs .home-brand-blok { color:#f1f5fb; }
-#lbs .home-brand-buddies { color:#ff9435; }
-#lbs .home-global-brand .home-meta {
+#gameLobbyHeader .home-brand-blok { color:#f1f5fb; }
+#gameLobbyHeader .home-brand-buddies { color:#ff9435; }
+#gameLobbyHeader .home-global-brand .home-meta {
   display:flex;align-items:center;flex:0 1 auto;min-width:0;
   gap:clamp(8px,.7vw,13px);margin:0;
   padding-left:clamp(12px,1.2vw,23px);
@@ -62,19 +62,19 @@
   font:800 clamp(11px,.74vw,14px)/1.3 Rajdhani,"Trebuchet MS",sans-serif;
   letter-spacing:.085em;
 }
-#lbs .home-global-brand .home-meta span:first-child { color:#ffa34b; }
-#lbs .home-global-brand .home-meta i {
+#gameLobbyHeader .home-global-brand .home-meta span:first-child { color:#ffa34b; }
+#gameLobbyHeader .home-global-brand .home-meta i {
   display:block;flex:none;width:1px;height:14px;
   background:rgba(140,167,196,.5);transform:none;
 }
-#lbs .home-global-header .home-top-actions {
+#gameLobbyHeader .home-top-actions {
   position:static;inset:auto;z-index:auto;
   display:flex;align-items:center;justify-content:flex-end;
   flex:0 0 auto;gap:12px;
   width:auto;max-width:none;min-width:0;margin:0;padding:0;
 }
-#lbs .home-pbt-wrap { position:relative;flex:0 0 auto; }
-#lbs .home-pbt {
+#gameLobbyHeader .home-pbt-wrap { position:relative;flex:0 0 auto; }
+#gameLobbyHeader .home-pbt {
   display:flex;align-items:center;gap:9px;
   box-sizing:border-box;height:43px;min-width:165px;
   padding:4px 6px 4px 10px;
@@ -82,7 +82,7 @@
   background:rgba(15,32,51,.85);
   box-shadow:inset 0 1px 0 rgba(215,235,255,.04);
 }
-#lbs .home-pbt-coin {
+#gameLobbyHeader .home-pbt-coin {
   display:grid;place-items:center;flex:0 0 auto;
   width:25px;height:25px;box-sizing:border-box;
   border-radius:50%;border:1px solid #ffd17f;
@@ -90,18 +90,18 @@
   box-shadow:0 0 0 2px rgba(244,161,53,.1);
   font:900 14px/1 Impact,sans-serif;
 }
-#lbs .home-pbt-amount {
+#gameLobbyHeader .home-pbt-amount {
   display:flex;flex-direction:column;align-items:flex-start;justify-content:center;
   gap:2px;min-width:57px;
 }
-#lbs .home-pbt-amount small {
+#gameLobbyHeader .home-pbt-amount small {
   color:#a9bad0;font:800 10px/1 Rajdhani,sans-serif;letter-spacing:.13em;
 }
-#lbs .home-pbt-amount strong {
+#gameLobbyHeader .home-pbt-amount strong {
   color:#f3f6fa;font:900 17px/1 Rajdhani,sans-serif;
   font-variant-numeric:tabular-nums;letter-spacing:.03em;
 }
-#lbs .home-pbt-add {
+#gameLobbyHeader .home-pbt-add {
   display:grid;place-items:center;flex:0 0 auto;
   margin:0 0 0 auto;padding:0;width:27px;height:27px;
   border:1px solid #f1a65c;border-radius:4px;
@@ -110,11 +110,11 @@
   font:900 21px/1 Rajdhani,sans-serif;
   transition:background .14s,filter .14s;
 }
-#lbs .home-pbt-add:hover,
-#lbs .home-pbt-add:focus-visible {
+#gameLobbyHeader .home-pbt-add:hover,
+#gameLobbyHeader .home-pbt-add:focus-visible {
   filter:brightness(1.14);outline:2px solid #ffbf78;outline-offset:2px;
 }
-#lbs .home-pbt-notice {
+#gameLobbyHeader .home-pbt-notice {
   position:absolute;z-index:20;right:0;top:calc(100% + 8px);
   box-sizing:border-box;max-width:min(290px,80vw);
   padding:9px 11px;border:1px solid #b97632;border-radius:4px;
@@ -122,8 +122,8 @@
   white-space:nowrap;box-shadow:0 10px 26px rgba(0,0,0,.42);
   font:800 11px Rajdhani,sans-serif;letter-spacing:.1em;
 }
-#lbs .home-pbt-notice[hidden] { display:none!important; }
-#lbs .home-global-header #homeWalletConnect {
+#gameLobbyHeader .home-pbt-notice[hidden] { display:none!important; }
+#gameLobbyHeader #homeWalletConnect {
   display:flex;flex:0 0 auto;align-items:center;justify-content:center;
   box-sizing:border-box;gap:9px;
   width:174px;height:43px;min-width:0;max-width:none;
@@ -135,72 +135,112 @@
   font:900 12px/1.2 Rajdhani,sans-serif;letter-spacing:.09em;
   transition:background .14s,color .14s,border-color .14s;
 }
-#lbs .home-global-header #homeWalletConnect svg {
+#gameLobbyHeader #homeWalletConnect svg {
   width:19px;height:19px;flex:0 0 auto;
 }
-#lbs .home-global-header #homeWalletLabel {
+#gameLobbyHeader #homeWalletLabel {
   display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;
 }
-#lbs .home-global-header #homeWalletConnect:hover,
-#lbs .home-global-header #homeWalletConnect:focus-visible {
+#gameLobbyHeader #homeWalletConnect:hover,
+#gameLobbyHeader #homeWalletConnect:focus-visible {
   background:rgba(227,104,23,.15);color:#fff;border-color:#ffac60;
   outline:2px solid #ffae64;outline-offset:2px;
 }
-#lbs .home-global-header #homeWalletConnect.connected {
+#gameLobbyHeader #homeWalletConnect.connected {
   border-color:#44b58d;background:rgba(9,44,37,.83);color:#a2ecc8;
 }
 /* Avoid accidental collisions on laptop widths. */
 @media (max-width:1280px) and (min-width:901px) {
-  #lbs .home-global-header { padding:0 3vw;gap:12px; }
-  #lbs .home-global-brand { gap:11px;padding-left:18px; }
-  #lbs .home-wordmark { font-size:clamp(27px,2.5vw,34px); }
-  #lbs .home-global-brand .home-meta {
+  #gameLobbyHeader { padding:0 3vw;gap:12px; }
+  #gameLobbyHeader .home-global-brand { gap:11px;padding-left:18px; }
+  #gameLobbyHeader .home-wordmark { font-size:clamp(27px,2.5vw,34px); }
+  #gameLobbyHeader .home-global-brand .home-meta {
     gap:7px;padding-left:10px;font-size:10px;letter-spacing:.04em;
   }
-  #lbs .home-pbt { min-width:146px;gap:7px; }
-  #lbs .home-global-header #homeWalletConnect { width:150px;padding:0 8px; }
+  #gameLobbyHeader .home-pbt { min-width:146px;gap:7px; }
+  #gameLobbyHeader #homeWalletConnect { width:150px;padding:0 8px; }
 }
 @media (max-width:900px) {
+  #lb { --bb-shared-header-height:125px; }
   #lbs.on { padding-top:139px; }
-  #lbs .home-global-header {
+  #gameLobbyHeader {
     height:125px;padding:8px 4vw;gap:0;
     flex-wrap:wrap;align-content:center;
   }
-  #lbs .home-header-chevron { top:16px;width:29px;height:33px; }
-  #lbs .home-global-brand {
+  #gameLobbyHeader .home-header-chevron { top:16px;width:29px;height:33px; }
+  #gameLobbyHeader .home-global-brand {
     flex:1 1 100%;width:100%;gap:12px;padding-left:19px;
   }
-  #lbs .home-wordmark { font-size:30px;padding:4px 2px; }
-  #lbs .home-global-brand .home-meta {
+  #gameLobbyHeader .home-wordmark { font-size:30px;padding:4px 2px; }
+  #gameLobbyHeader .home-global-brand .home-meta {
     gap:7px;padding-left:10px;font-size:10px;letter-spacing:.04em;
   }
-  #lbs .home-global-header .home-top-actions {
+  #gameLobbyHeader .home-top-actions {
     margin:1px 0 0 auto;gap:9px;
   }
-  #lbs .home-pbt,#lbs .home-global-header #homeWalletConnect { height:36px; }
-  #lbs .home-pbt { min-width:133px;padding:3px 4px 3px 7px;gap:6px; }
-  #lbs .home-pbt-coin { width:22px;height:22px;font-size:12px; }
-  #lbs .home-pbt-amount { min-width:42px; }
-  #lbs .home-pbt-amount strong { font-size:15px; }
-  #lbs .home-pbt-add { width:24px;height:24px;font-size:18px; }
-  #lbs .home-global-header #homeWalletConnect {
+  #gameLobbyHeader .home-pbt,#gameLobbyHeader #homeWalletConnect { height:36px; }
+  #gameLobbyHeader .home-pbt { min-width:133px;padding:3px 4px 3px 7px;gap:6px; }
+  #gameLobbyHeader .home-pbt-coin { width:22px;height:22px;font-size:12px; }
+  #gameLobbyHeader .home-pbt-amount { min-width:42px; }
+  #gameLobbyHeader .home-pbt-amount strong { font-size:15px; }
+  #gameLobbyHeader .home-pbt-add { width:24px;height:24px;font-size:18px; }
+  #gameLobbyHeader #homeWalletConnect {
     width:148px;padding:0 8px;font-size:10px;
   }
-  #lbs .home-global-header #homeWalletConnect svg { width:17px;height:17px; }
+  #gameLobbyHeader #homeWalletConnect svg { width:17px;height:17px; }
 }
 @media (max-width:600px) {
+  #lb { --bb-shared-header-height:134px; }
   #lbs.on { padding-top:145px; }
-  #lbs .home-global-header { height:134px;padding:7px 4vw; }
-  #lbs .home-global-brand { flex-wrap:wrap;gap:0 11px;padding-left:14px; }
-  #lbs .home-wordmark { font-size:clamp(26px,6vw,31px); }
-  #lbs .home-global-brand .home-meta {
+  #gameLobbyHeader { height:134px;padding:7px 4vw; }
+  #gameLobbyHeader .home-global-brand { flex-wrap:wrap;gap:0 11px;padding-left:14px; }
+  #gameLobbyHeader .home-wordmark { font-size:clamp(26px,6vw,31px); }
+  #gameLobbyHeader .home-global-brand .home-meta {
     width:100%;border:0;padding:0 0 0 1px;
     font-size:10px;letter-spacing:.02em;
   }
 }
 @media (max-width:390px) {
-  #lbs .home-global-brand { padding-left:9px; }
-  #lbs .home-global-brand .home-meta { font-size:9px;gap:6px; }
-  #lbs .home-global-header #homeWalletConnect { width:127px;font-size:9px; }
-  #lbs .home-pbt { min-width:125px; }
+  #gameLobbyHeader .home-global-brand { padding-left:9px; }
+  #gameLobbyHeader .home-global-brand .home-meta { font-size:9px;gap:6px; }
+  #gameLobbyHeader #homeWalletConnect { width:127px;font-size:9px; }
+  #gameLobbyHeader .home-pbt { min-width:125px; }
+}
+
+/* Single shared pre-match header: browser and room-master content stays BELOW it.
+   This changes only the room panels' upper spacing, never match/HUD styles. */
+#lbrooms.on,
+#lbroomlive.on {
+  padding-top:calc(var(--bb-shared-header-height) + clamp(8px,1.3vh,15px));
+}
+#lbrooms .room-top {
+  min-height:62px;flex:none;gap:clamp(12px,1.2vw,22px);
+}
+#lbrooms .room-headings h2 {
+  font-size:clamp(32px,3vw,51px);line-height:1.04;
+}
+#lbrooms .room-headings p {
+  font-size:clamp(10px,.73vw,12px);margin-top:5px;
+  letter-spacing:.2em;
+}
+#lbroomlive .rml-top {
+  min-height:63px;padding-bottom:9px;gap:clamp(11px,1.5vw,24px);
+}
+#lbroomlive .rml-heading h2 {
+  font-size:clamp(32px,3vw,51px);line-height:1.04;
+}
+#lbroomlive .rml-brand { font-size:clamp(20px,1.7vw,30px); }
+@media(max-width:1050px) {
+  #lbrooms.on, #lbroomlive.on { overflow-y:auto; }
+}
+@media(max-width:650px) {
+  #lbrooms.on, #lbroomlive.on {
+    padding-top:calc(var(--bb-shared-header-height) + 10px);
+  }
+  #lbrooms .room-top { min-height:60px;gap:8px; }
+  #lbrooms .room-headings h2 { font-size:33px; }
+  #lbrooms .room-headings p { font-size:9px;letter-spacing:.06em; }
+  #lbroomlive .rml-top { min-height:62px;gap:7px; }
+  #lbroomlive .rml-heading h2 { font-size:32px; }
+  #lbroomlive .rml-brand { font-size:18px; }
 }
