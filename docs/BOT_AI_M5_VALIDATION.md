@@ -1,4 +1,4 @@
-# BLOCK BUDDIES — M5 Bomb Mission Tactical Intelligence Validation
+# POINT BLOCK — M5 Bomb Mission Tactical Intelligence Validation
 
 > **Status:** VERIFIED (CORE EXIT GATE: WINDOWS CI + OWNER-REPORTED 7/7 PLAYTEST PASS); QUANTITATIVE BOMB/FPS KPIs OPEN
 > **Date:** 2026-10-31 WIB
