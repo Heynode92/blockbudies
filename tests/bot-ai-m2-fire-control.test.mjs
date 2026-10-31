@@ -52,6 +52,18 @@ test('M2: yaw cannot instantly snap 180 degrees and retargeting adds a fresh rea
  assert.equal(world.botAimUpdate(bot,other,.016),false);
  assert.ok(bot.aimReadyAt>=.8);
 });
+test('M2: reacquisition begins from current patrol heading, never from stale yaw',()=>{
+ const {world,bot,target}=scene();
+ bot.aimYaw=2.7;bot.g.rotation.y=-.7;
+ world.botAimUpdate(bot,target,.016);
+ assert.ok(bot.aimYaw<-.6,'turn begins at body facing instead of previous target');
+ assert.ok(Math.abs(bot.aimYaw+.7)<=world.BOT_AIM.turnYaw*.016+.00001);
+ world.visible=false;world.botAimUpdate(bot,target,.1);
+ bot.g.rotation.y=1.4;world.visible=true;world.tt=.6;
+ world.botAimUpdate(bot,target,.016);
+ assert.ok(bot.aimYaw>1.3,'new sight after patrol begins from live model orientation');
+ assert.equal(bot.aimCanFire,false);
+});
 test('M2: losing LOS immediately clears pending shot and forbids using hidden coordinates',()=>{
  const {world,bot,target}=scene();
  world.botAimUpdate(bot,target,.2);world.tt=.6;
