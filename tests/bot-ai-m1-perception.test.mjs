@@ -7,6 +7,7 @@ const root=new URL('../',import.meta.url);
 const read=p=>readFileSync(new URL(p,root),'utf8');
 const perception=read('src/game/88-bot-perception.js');
 const bomb=read('src/game/87-bomb-tactics.js');
+const intelligence=read('src/game/86-bomb-intelligence.js');
 function scene(){
  const police={tm:0,idx:0,dead:false,x:0,z:0,hp:100};
  const ally={tm:0,idx:1,dead:false,x:-3,z:0,hp:100};
@@ -21,6 +22,7 @@ function scene(){
  };
  vm.createContext(world);
  vm.runInContext(perception,world,{filename:'88-bot-perception.js'});
+ vm.runInContext(intelligence,world,{filename:'86-bomb-intelligence.js'});
  vm.runInContext(bomb,world,{filename:'87-bomb-tactics.js'});
  return{world,police,ally,terrorist};
 }
