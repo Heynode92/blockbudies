@@ -60,6 +60,7 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
     // Post-plant guards do not pursue opponents far from the device.
     if(t&&isBombMode()&&bombMatch&&bombMatch.state==='planted'&&e.tm===1&&
        bombTacticalStage(e)==='hold'&&Math.hypot(t.x-bombMatch.device.position.x,t.z-bombMatch.device.position.z)>BOMB_AI.roamRadius)t=null;
+    botAimUpdate(e,t,dt);
     e.lt=(e.lt||0)-dt;if(t&&e.lt<=0){e.lt=.15;e.lok=los(e.x,e.z,t.x,t.z);}
     if(t){dx=t.x-e.x;dz=t.z-e.z;d=Math.hypot(dx,dz)||1;}
     botSmartReload(e,t);intent=botSmartIntent(e,t);e.smartRetreat=intent.retreat;
@@ -84,7 +85,7 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
       if(sq<space&&sq>.01){mvx+=sx/sq*.75;mvz+=sz/sq*.75;}
     }});
     ml=Math.hypot(mvx,mvz);if(ml>1){mvx/=ml;mvz/=ml;}if(cdn)mvx=mvz=0;
-    f=(t&&e.lok)?Math.atan2(dx,dz):(mvx||mvz)?Math.atan2(mvx,mvz):e.g.rotation.y;
+    f=(t&&e.lok)?e.aimYaw:(mvx||mvz)?Math.atan2(mvx,mvz):e.g.rotation.y;
     e.x+=mvx*sp*dt;e.z+=mvz*sp*dt;resolve(e,.55);
     if(isBombMode()&&!e.bAction&&(mvx||mvz)){
       // If a narrow corner blocks movement, try sliding instead of oscillating into it.
