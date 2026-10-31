@@ -65,6 +65,31 @@ To compute FPS, the export offers `approximateFpsMedian` from the **median frame
 - [ ] Long-run Windows browser stability, two-map switching, FPS regressions at 5v5, human headset qualitative review and performance acceptance thresholds.
 - [ ] **M7 FINAL RELEASE VERIFIED**. **NOT checked until above gates have evidence.**
 
+## First owner-provided real-browser capture — 2026-10-31 WIB (PROVISIONAL)
+
+**Origin:** Owner submitted `block-buddies-m7-qa (1).json` exported from an explicitly enabled `file://` Firefox tab on Windows, together with a DevTools screenshot demonstrating `BLOCK BUDDIES local M7 QA enabled` and successful `BlockBuddiesQA.reset()` (returns `undefined` by design). **The raw user file is not committed;** the verified aggregate figures below are the only stored evidence. No independent live gameplay was run by CI. Capture mixes both TDM and Bomb within **one reset/sample window**, without duration, exact map, team configuration, GPU, driver or resolution metadata. Interpret as an initial owner-supplied instrument sample, **not a controlled benchmark**.
+
+| Metric | Observed owner JSON | Interpretation / limitation |
+|---|---:|---|
+| rAF interval (last 2,400 samples) | median **7.0 ms**, p95 **14.0 ms**, max **27.8 ms** | Derived displayed FPS median approx **142.9**; **PROVISIONAL**, mixed modes, no matched M0 baseline |
+| Per-frame JavaScript work (2,400 samples) | median **8.7 ms**, p95 **10.8 ms**, max **21.1 ms** | **Measurement consistency flag:** 8.7 ms median work exceeds 7.0 ms median rAF interval; investigate callback timestamps, frame sampling alignment, FPS estimation and browser DevTools effects before accepting performance KPI |
+| BOT update CPU (2,400 samples) | median **0.6 ms**, p95 **1.1 ms**, max **2.8 ms** | Actual browser timing for BOT update only, not all rendering/GPU work |
+| Sight→first shot in game clock (120 samples) | median **332.3 ms**, p95 **457.0 ms**, max **851.7 ms** | Includes M2 turn/cooldown/fire permission; **not** raw cognitive reaction latency or a before/after improvement |
+| Projectile→character impacts, all modes | **154 / 1,075 = 14.33%** | Real projectile/pellet collision ratio, **not** trigger accuracy, actual HP damage, headshot rate or full-weapon benchmark |
+| TDM projectile→impact | **126 / 819 = 15.38%** | Mixed class/ranges; incomplete per-faction/session metadata |
+| Bomb projectile→impact | **28 / 256 = 10.94%** | Insufficient round diversity |
+| M3 movement obstruction proxy | **41.56 / 748.8 sec = 5.55%** | Low displacement during requested movement, aggregated BOT-seconds; **does not demonstrate permanent stuck** |
+| A* attempted / failed | **1,006 / 0 failed** | Only BOT navigation path requests counted by instrument; not all path or cover candidate checks |
+| Bomb finishes | **2 rounds**, Police **2**, Terrorists **0**, planted-at-finish **0**, no site **2** | Too few rounds and **no plant**; cannot validate M5 outcomes, bomb win percentages, or plant/defuse success |
+
+**Actionable combat finding:** TDM shotgun fired **114 pellets, 6 character impacts (5.26%)**; **72 pellets** were discharged in 30+ unit engagements with only **one** impact (**1.39%**). Bomb shotgun fired **72 pellets, 2 impacts (2.78%)**. This may indicate that BOT weapon-class *movement* in M6 does not consistently position short-range weapons before permitted long-range firing. **No change to shotgun damage/range/AI has been authorized or applied on the basis of this one sample**; compare controlled weapon/range scenarios before tuning. At 0–10 units only 10 projectiles of any kind were counted (8 impacts), too small for a near-range performance claim.
+
+**Session completeness:** first-visual observations **208**, lost-unfired sightings **66**; cannot calculate a valid probability of reaction or engagement completion without reconciling in-progress/overlapping contacts. The 2,400-sample arrays are rolling windows and may cover only the tail of the longer session. Per-mode frame/FPS results cannot be separated from this combined export.
+
+**Browser warnings:** Firefox displayed Tracking Prevention storage-access warnings for externally loaded `cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js`. The QA module still initialized and exported data, so this log is not evidence of a fatal Three.js load error; **it does identify an existing external CDN dependency** that merits a separate offline/supply-chain audit before claiming zero-network operation. The separate Firefox DevTools self-XSS warning is a browser security message, not an application exception.
+
+**Acceptance decision:** Owner's first genuine browser data **RECEIVED, PARSED AND RECORDED**, but **M7 quantitative performance and final release gates remain OPEN**. Next capture should use `BlockBuddiesQA.reset()` immediately before **one** mode/map/team run; save and label distinct JSON exports for TDM Police, TDM Terrorist, Bomb Police/Terrorist and repeat maps; record environment and run lengths; include enough engagements and genuine Bomb plants/defuses. Specifically investigate the **7.0ms rAF vs 8.7ms JS timing discrepancy** before relying on derived FPS, and examine shotgun long-range engagement only with confirmed reproducible results. Do not replace M0 historical evidence with this new unpaired capture.
+
 ## Audit verdict
 
 **M6 core VERIFIED by owner 7/7 manual PASS and prior Windows CI. M7 instrumentation and automated synthetic suite implemented; M7 FINAL QA/RELEASE REMAINS OPEN.** No real browser or match session was executed by GitHub Actions; thus no recorded FPS, real BOT hit-rate improvement, measured true reaction percentile, navigation stuck improvement, measured Bomb-win percentages or proven 10%/15% performance overhead thresholds may be claimed. The original M0 fixed-seed arena changed significantly across M1–M6, so comparing a 2026-10-30 M0 synthetic dispatch count directly with a 2026-10-31 M7 result would **not** prove a causal real-game gain.
