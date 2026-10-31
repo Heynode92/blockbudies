@@ -92,7 +92,7 @@
         <div class="room-field"><span>MAP</span><div class="room-map-preview">
           <canvas id="roomMapPreview" width="720" height="320" aria-label="Actual in-game map preview"></canvas>
           <div class="room-map-title"><b id="roomMapName">BLOCK DISTRICT</b><small id="roomMapCaption">Urban Combat Zone</small></div>
-        </div><select id="roomMap" aria-label="Available maps" disabled></select><small class="room-help">Only existing playable maps are selectable for each mode.</small></div>
+        </div><select id="roomMap" aria-label="Available maps"></select><small class="room-help">Choose Lockdown or Block Town for Bomb Mission.</small></div>
         <div class="room-field"><span>GAME MODE</span><div class="room-mode-switch" role="group" aria-label="Game mode"><button id="roomTdm" class="active" type="button" aria-pressed="true">TEAM DEATH MATCH</button><button id="roomBomb" type="button" aria-pressed="false">BOMB MODE</button></div></div>
         <div id="roomTdmSettings" class="room-fields-two">
           <label class="room-field"><span>KILL LIMIT</span><select id="roomKills"><option value="20">20 KILLS</option><option value="30">30 KILLS</option><option value="50" selected>50 KILLS</option><option value="75">75 KILLS</option><option value="100">100 KILLS</option></select></label>
@@ -147,6 +147,7 @@
       <canvas id="roomModalMapPreview" width="720" height="320" aria-label="Actual 3D map preview"></canvas>
       <div class="room-modal-map-caption"><strong id="roomModalMapName"></strong><small id="roomModalMapCaption"></small></div>
      </div>
+     <select id="roomModalMap" aria-label="Selected room map"></select>
     </div>
     <div class="room-modal-field"><span>GAME MODE</span>
      <div class="room-modal-modes" role="group" aria-label="Choose game mode">
