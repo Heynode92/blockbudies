@@ -1,3 +1,8 @@
+## 2026-10-31 — Full-width main menu header
+- Relocate BLOK BUDDIES, FPS / 5V5 / POLICE VS TERRORIST, Personal Best, and Connect Wallet into one dedicated full-width header.
+- Remove the redundant "1 MINUTE · MOST KILLS WINS" description from the home menu.
+- Adjust responsive header spacing without modifying gameplay showcase, existing wallet connection logic, gameplay, or navigation.
+
 ## 2026-10-31 — Main menu HUD alignment correction
 - Move Personal Best and Connect Wallet out of the gameplay showcase column into an independent upper-right account toolbar.
 - Rebalance desktop game menu columns and preserve the native 16:9 showcase framing.
