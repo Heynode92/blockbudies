@@ -88,7 +88,7 @@ test('M7: distance bands separate 0-10, 10-20, 20-30 and 30+',()=>{
  const c=env(true),t={x:0,z:0},b={x:0,z:0,aimTarget:t};
  const w={stats:{kind:'rifle'}};
  for(const dist of [4,14,24,44]){t.x=dist;c.botQaShot(b,w,'e',{});}
- assert.deepEqual(c.botQaReport().byWeaponRange.map(x=>x.rangeBand),
+ assert.deepEqual(Array.from(c.botQaReport().byWeaponRange,x=>x.rangeBand),
    ['0-10','10-20','20-30','30+']);
 });
 test('M7: actual stalled movement seconds and failed A-star are distinct',()=>{
