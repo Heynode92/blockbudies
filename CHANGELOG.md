@@ -1,3 +1,12 @@
+## 2026-10-31 — Expanded Room Browser and tactical quick-access footer
+- Expanded **Available Rooms** to occupy the main right column of the pre-match Room Lobby, retaining saved-room list, refresh, row actions, empty state, and true offline-room status.
+- Replaced only the Room Browser's offline Public Chat card with a compact FPS-style **INVENTORY / SHOP / SETTINGS** bottom navigation strip. Public Chat in Room Master remains unchanged.
+- Connected Inventory and Shop shortcuts to the existing real inventory/shop screens. Their Back buttons now return to the Room Browser when opened through these shortcuts; Main Menu navigation remains unchanged.
+- Settings currently shares the Main Menu's not-yet-implemented status: the button displays a clear temporary notice rather than faking an operational settings screen.
+- Preserved the left-side interactive 3D equipped Police operator, Block District map background, Create Room modal and its complete gameplay controls; live matches still hide the shared lobby header.
+- Consolidated unused Room Browser chat styling and added responsive navigation rules; updated regression coverage for shortcut layout, navigation, and return behavior.
+- No changes to local room storage, authoritative match rules, BOT combat, on-chain state or wallet connections.
+
 ## 2026-10-31 — PointBlock FPS Room Browser UI and real 3D operator
 - Rebuilt **pre-match Room Browser only** to match the requested FPS mockup: left interactive Police operator holding the equipped primary, Create Room and Back underneath; right Available Rooms above the Public Chat panel.
 - Reused the existing Inventory/Master Three.js soldier, gun meshes, idle animation, drag-rotation renderer and shared canvas without creating a fake 2D character or duplicating WebGL resources.
