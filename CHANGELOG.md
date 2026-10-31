@@ -1,3 +1,10 @@
+## 2026-10-31 — Fix Create Room dialog width regression
+- **Root cause:** an obsolete Create Room CSS block near the end of `src/styles/14-room-browser.css` still declared `width:min(660px,100%)` and overrode the newer cinematic `1220px` layout by cascade order. This caused the two-column map/settings UI to be squeezed into a narrow center box.
+- Removed the superseded 660px styling block instead of stacking another override. Consolidated its necessary modal positioning, backdrop, hidden-state and close-button styling into the single authoritative responsive popup definition.
+- The desktop dialog now expands to `width:min(1480px,100%)` of its available overlay, with proper box sizing, centering and tablet/mobile fallbacks. The map side, room settings side, existing 30 FPS live Three.js map preview and bottom Create Room actions are unchanged.
+- Added an automated regression assertion to prevent the 660px declaration or obsolete 710px dialog-height constraint from returning.
+- No changes to match modes, map registry, Room Master flow, game canvas, BOT AI, gameplay or wallet state.
+
 ## 2026-10-31 — Cinematic Create Room UI and animated registry map selection
 - Redesigned the **Create Room overlay only** into a responsive two-column FPS configuration: left live **Map Recon** display, registered map choices, and map dropdown; right room name, existing TDM/Bomb mode switches, kill/time or round/time settings, player information, and local Room Master identity. The original Create Room/Room Master controls remain in a persistent bottom footer.
 - Populated selectable map cards from the existing authoritative `tdmMapOptions()` / `bombMapOptions(1)` registries. Actual available maps: Block District and Block Labs (TDM); Lockdown, Block Town, and Hospital (Bomb). No imaginary Dockyard/Sandtown levels or unsupported maps were introduced.
