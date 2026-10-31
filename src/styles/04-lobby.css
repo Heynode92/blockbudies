@@ -573,175 +573,179 @@ body.lobby #gl{filter:brightness(.55) saturate(.8)}
  #lbs #homeWalletConnect{min-width:114px;font-size:10px}
 }
 
-/* HOME MENU HEADER — consolidated tactical identity (2026-10-31).
-   No header settings/fullscreen duplicates. Layout and controls scoped to #lbs. */
+/* HOME HEADER V6 — DeFi x tactical FPS; standalone wordmark, no legacy .lt inheritance. */
 #lbs.on{
   padding:clamp(118px,15vh,142px) clamp(28px,6.7vw,125px) clamp(14px,3vh,34px);
   grid-template-columns:minmax(0,700px) minmax(280px,400px);
 }
 #lbs .home-global-header{
-  position:absolute;top:0;left:0;right:0;z-index:8;
-  box-sizing:border-box;height:104px;
-  padding:0 clamp(29px,3.6vw,70px);
-  display:flex;align-items:center;justify-content:space-between;
-  gap:clamp(20px,2vw,40px);text-align:left;overflow:visible;
-  background:linear-gradient(102deg,rgba(4,13,26,.985),rgba(9,21,38,.96) 58%,rgba(3,12,25,.985));
-  border-top:2px solid #ea7922;border-bottom:1px solid rgba(239,116,30,.65);
-  box-shadow:0 12px 36px rgba(0,0,0,.45);
+  position:absolute;inset:0 0 auto;z-index:8;
+  box-sizing:border-box;height:100px;min-width:0;
+  padding:0 clamp(28px,3.5vw,68px);
+  display:flex;align-items:center;justify-content:space-between;gap:22px;
+  overflow:visible;text-align:left;
+  background:linear-gradient(108deg,rgba(5,15,30,.985),rgba(10,25,45,.975) 50%,rgba(5,15,29,.985));
+  border-top:2px solid #fb8b28;
+  border-bottom:1px solid rgba(255,153,55,.5);
+  box-shadow:0 12px 32px rgba(0,0,0,.48),inset 0 -1px 0 rgba(110,147,180,.15);
 }
 #lbs .home-global-header::after{
-  content:"";position:absolute;bottom:-1px;left:4%;height:2px;
-  width:min(28vw,450px);pointer-events:none;
-  background:linear-gradient(90deg,transparent,#ff8b29 20%,rgba(255,135,40,.2) 85%,transparent);
+  content:"";position:absolute;bottom:-2px;left:5%;height:2px;width:32%;
+  background:linear-gradient(90deg,rgba(255,147,47,.95),rgba(255,147,47,0));
+  pointer-events:none;
 }
 #lbs .home-header-chevron{
-  position:absolute;left:0;top:28px;width:45px;height:48px;
-  background:linear-gradient(135deg,#ffa03c,#e85b0c);
-  clip-path:polygon(0 66%,66% 0,100% 0,34% 100%,0 100%);
-  pointer-events:none;
+  position:absolute;left:0;top:30px;width:37px;height:40px;pointer-events:none;
+  background:linear-gradient(140deg,#ffaf4c,#f17416);
+  clip-path:polygon(0 70%,68% 0,100% 0,31% 100%,0 100%);
 }
 #lbs .home-global-brand{
   display:flex;align-items:center;gap:clamp(15px,1.7vw,29px);
-  flex:1 1 auto;min-width:0;
-  padding-left:clamp(25px,2vw,36px);overflow:visible;
+  flex:1 1 auto;min-width:0;padding-left:clamp(18px,1.9vw,37px);
+  overflow:visible;
 }
-/* Explicitly undo old skew/line-box styling that clipped the lower wordmark. */
-#lbs .home-global-brand .lt{
-  display:flex;flex:none;align-items:center;gap:.22em;
-  margin:0;padding:7px 5px 10px;
-  overflow:visible;white-space:nowrap;transform:none;
-  font:italic 900 clamp(33px,2.45vw,47px)/1.22 Impact,"Arial Black",sans-serif;
-  letter-spacing:.005em;background:none;background-clip:border-box;
-  -webkit-background-clip:border-box;
-  -webkit-text-fill-color:#fff;color:#fff;
-  filter:none;text-shadow:none;
+/* Do not reuse .lt: its Impact italic gradient and sizing previously clipped letters. */
+#lbs .home-wordmark{
+  display:flex;align-items:center;flex:0 0 auto;
+  gap:clamp(6px,.5vw,10px);margin:0;
+  padding:10px 8px 13px 2px;box-sizing:content-box;
+  overflow:visible;white-space:nowrap;
+  font-family:Impact,"Arial Black",sans-serif;font-size:clamp(33px,2.65vw,50px);
+  font-style:normal;font-weight:900;line-height:1.22;
+  letter-spacing:.018em;transform:none;
 }
-#lbs .home-global-brand .lt>span{
-  display:inline-block;overflow:visible;
-  padding:2px 3px 5px;line-height:1.19;
-  filter:drop-shadow(0 3px 0 rgba(0,0,0,.8));
+#lbs .home-wordmark span{
+  display:inline-block;flex:none;overflow:visible;line-height:1.22;
+  padding:0 2px 3px 1px;
+  text-shadow:0 3px 0 #030814,0 6px 15px rgba(0,0,0,.6);
 }
-#lbs .home-global-brand .home-brand-blok{
-  background:linear-gradient(180deg,#fff 18%,#d6dfef 100%);
-  background-clip:text;-webkit-background-clip:text;
-  color:#fff;-webkit-text-fill-color:transparent;
-}
-#lbs .home-global-brand .home-brand-buddies{
-  background:linear-gradient(180deg,#ffb658 12%,#f07816 95%);
-  background-clip:text;-webkit-background-clip:text;
-  color:#ff932e;-webkit-text-fill-color:transparent;
-}
+#lbs .home-wordmark .home-brand-blok{color:#f0f4fb}
+#lbs .home-wordmark .home-brand-buddies{color:#ff9535}
 #lbs .home-global-brand .home-meta{
-  display:flex;align-items:center;gap:clamp(8px,.7vw,13px);
-  flex:0 1 auto;min-width:0;white-space:nowrap;flex-wrap:nowrap;
-  padding-left:clamp(12px,1.3vw,24px);margin:0;
-  border-left:1px solid rgba(143,167,193,.4);
-  color:#e8eff9;font:800 clamp(11px,.8vw,14px)/1.35 Rajdhani,sans-serif;
-  letter-spacing:.09em;
+  display:flex;align-items:center;flex:0 1 auto;min-width:0;
+  gap:clamp(9px,.7vw,13px);margin:0;
+  border-left:1px solid rgba(142,167,197,.45);padding-left:clamp(13px,1.25vw,23px);
+  white-space:nowrap;color:#e1eaf7;
+  font:800 clamp(11px,.8vw,14px)/1.3 Rajdhani,sans-serif;letter-spacing:.08em;
 }
-#lbs .home-global-brand .home-meta span:first-child{color:#ff9b35}
+#lbs .home-global-brand .home-meta span:first-child{color:#ff9e45}
 #lbs .home-global-brand .home-meta i{
-  flex:none;width:1px;height:14px;background:#77889e;transform:none;
+  display:block;flex:none;width:1px;height:14px;background:#7288a0;transform:none;
 }
 #lbs .home-global-header .home-top-actions{
-  position:static;top:auto;left:auto;right:auto;
+  position:static;inset:auto;z-index:auto;
   display:flex;align-items:center;justify-content:flex-end;
-  flex:0 0 auto;gap:clamp(15px,1.5vw,28px);
-  width:auto;max-width:none;min-width:0;z-index:auto;
-  margin:0;padding:0;
+  flex:0 0 auto;gap:clamp(12px,1.4vw,24px);
+  width:auto;max-width:none;margin:0;padding:0;
 }
-#lbs .home-global-header .lbest{
-  display:flex;align-items:center;gap:11px;
-  min-height:48px;min-width:142px;flex:none;
-  box-sizing:border-box;margin:0;padding:0 20px 0 0;
-  border:0;border-right:1px solid #394c63;background:none;
-  color:#eaf1fc;white-space:nowrap;
+#lbs .home-pbt-wrap{position:relative;flex:none}
+#lbs .home-pbt{
+  display:flex;align-items:center;gap:12px;
+  box-sizing:border-box;height:52px;padding:5px 7px 5px 12px;
+  background:linear-gradient(110deg,rgba(20,43,60,.96),rgba(9,23,39,.98));
+  border:1px solid #385773;border-radius:7px;
+  box-shadow:inset 0 1px 0 rgba(180,214,246,.06),0 6px 16px rgba(0,0,0,.17);
 }
-#lbs .home-global-header .lbest svg{
-  width:28px;height:28px;flex:none;color:#ff942c;
+#lbs .home-pbt-coin{
+  display:grid;place-items:center;flex:none;
+  width:32px;height:32px;border-radius:50%;
+  color:#161e2a;font:900 18px/1 Impact,sans-serif;
+  background:linear-gradient(140deg,#ffd277,#fa9a29);
+  border:2px solid rgba(255,226,143,.6);
+  box-shadow:0 0 0 3px rgba(248,156,47,.09);
 }
-#lbs .home-global-header .home-best-value{
-  display:flex;flex-direction:column;align-items:flex-start;gap:2px;
+#lbs .home-pbt-amount{display:flex;flex-direction:column;gap:2px;min-width:67px;align-items:flex-start}
+#lbs .home-pbt-amount small{font:900 11px/1 Rajdhani,sans-serif;letter-spacing:.14em;color:#98b3d0}
+#lbs .home-pbt-amount strong{font:900 22px/1 Rajdhani,sans-serif;letter-spacing:.03em;color:#f4f7fb;font-variant-numeric:tabular-nums}
+#lbs .home-pbt-add{
+  display:grid;place-items:center;flex:none;
+  width:34px;height:34px;margin-left:3px;padding:0;
+  border:1px solid #ffad63;border-radius:6px;
+  background:linear-gradient(145deg,#ff9e35,#e66412);
+  color:#fff;font:900 25px/1 Rajdhani,sans-serif;cursor:pointer;
+  box-shadow:0 3px 10px rgba(227,105,19,.25);
 }
-#lbs .home-global-header .home-best-value span{
-  font:800 11px/1.15 Rajdhani,sans-serif;letter-spacing:.13em;color:#cbd8e9;
+#lbs .home-pbt-add:hover,#lbs .home-pbt-add:focus-visible{
+  filter:brightness(1.13);outline:2px solid #ffba77;outline-offset:2px;
 }
-#lbs .home-global-header .home-best-value b{
-  font:900 24px/1.05 Impact,"Arial Black",sans-serif;color:#fff;
+#lbs .home-pbt-notice{
+  position:absolute;top:calc(100% + 9px);right:0;z-index:20;
+  white-space:nowrap;border:1px solid #ff9e44;border-radius:5px;
+  padding:10px 14px;background:#0b1c2e;color:#ffe0b5;
+  box-shadow:0 10px 25px rgba(0,0,0,.45);
+  font:800 12px Rajdhani,sans-serif;letter-spacing:.12em;
 }
+#lbs .home-pbt-notice[hidden]{display:none!important}
 #lbs .home-global-header #homeWalletConnect{
   display:inline-flex;align-items:center;justify-content:center;gap:10px;
-  height:48px;min-width:184px;max-width:225px;flex:none;
-  padding:0 15px;box-sizing:border-box;
-  border:1px solid #e87723;border-radius:5px;clip-path:none;
-  background:linear-gradient(110deg,rgba(17,34,54,.94),rgba(7,19,36,.95));
-  color:#ffa044;font:900 13px/1.2 Rajdhani,sans-serif;letter-spacing:.07em;
-  text-align:center;white-space:nowrap;cursor:pointer;
-  box-shadow:inset 0 0 0 1px rgba(244,127,32,.12);
+  flex:0 0 auto;height:52px;min-width:188px;max-width:224px;
+  box-sizing:border-box;padding:0 16px;
+  border:1px solid #f18a30;border-radius:7px;clip-path:none;
+  background:linear-gradient(110deg,rgba(15,32,52,.93),rgba(7,19,35,.96));
+  color:#ffad5d;text-align:center;white-space:nowrap;
+  font:900 13px/1.2 Rajdhani,sans-serif;letter-spacing:.085em;
+  box-shadow:inset 0 1px 0 rgba(255,169,75,.07);
 }
-#lbs .home-global-header #homeWalletConnect svg{width:21px;height:21px;flex:none}
-#lbs .home-global-header #homeWalletLabel{
-  display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;
-}
+#lbs .home-global-header #homeWalletConnect svg{width:22px;height:22px;flex:none}
+#lbs .home-global-header #homeWalletLabel{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis}
 #lbs .home-global-header #homeWalletConnect:hover,
 #lbs .home-global-header #homeWalletConnect:focus-visible{
-  background:linear-gradient(110deg,#293d51,#172b43);color:#fff;
-  border-color:#ffa348;outline:2px solid #f9933a;outline-offset:2px;
+  background:rgba(240,118,34,.16);border-color:#ffb065;color:#fff;
+  outline:2px solid #ffb065;outline-offset:2px;
 }
 #lbs .home-global-header #homeWalletConnect.connected{
-  border-color:#51c49b;background:rgba(12,42,39,.92);color:#a4f0ce;
+  color:#9cefc9;border-color:#47b991;background:rgba(8,45,40,.9);
 }
 #lbs .lbl,#lbs .home-demo{width:100%;max-width:700px}
-/* Tablet: brand and metadata reflow while account actions remain right-aligned. */
-@media (max-width:1430px) and (min-width:821px){
-  #lbs .home-global-header{gap:12px;padding:0 3vw}
-  #lbs .home-global-brand{gap:13px;padding-left:28px}
-  #lbs .home-global-brand .lt{font-size:clamp(29px,2.7vw,41px)}
-  #lbs .home-global-brand .home-meta{padding-left:11px;gap:7px;font-size:11px;letter-spacing:.04em}
-  #lbs .home-global-header .home-top-actions{gap:12px}
-  #lbs .home-global-header .lbest{min-width:120px;padding-right:11px}
-  #lbs .home-global-header #homeWalletConnect{min-width:150px;max-width:177px}
+@media(max-width:1530px) and (min-width:821px){
+  #lbs .home-global-header{gap:11px;padding:0 3vw}
+  #lbs .home-global-brand{gap:13px;padding-left:26px}
+  #lbs .home-wordmark{font-size:clamp(31px,2.8vw,43px)}
+  #lbs .home-global-brand .home-meta{padding-left:12px;gap:8px;font-size:11px;letter-spacing:.04em}
+  #lbs .home-global-header .home-top-actions{gap:10px}
+  #lbs .home-global-header #homeWalletConnect{min-width:155px;padding:0 10px}
+  #lbs .home-pbt{gap:8px;padding-left:9px}
 }
-@media (max-width:1080px) and (min-width:821px){
-  #lbs .home-global-header{height:128px;flex-wrap:wrap;align-content:center;row-gap:0;padding:6px 4vw}
-  #lbs .home-header-chevron{top:17px}
-  #lbs .home-global-brand{width:100%;flex:1 1 100%;gap:17px;justify-content:flex-start}
-  #lbs .home-global-brand .lt{font-size:34px}
-  #lbs .home-global-brand .home-meta{font-size:12px}
+@media(max-width:1120px) and (min-width:821px){
+  #lbs .home-global-header{height:125px;flex-wrap:wrap;align-content:center;row-gap:0;padding:7px 4vw}
+  #lbs .home-header-chevron{top:20px}
+  #lbs .home-global-brand{flex:1 1 100%;width:100%;gap:18px}
+  #lbs .home-wordmark{font-size:35px}
   #lbs .home-global-header .home-top-actions{margin-left:auto}
-  #lbs .home-global-header .lbest{min-height:34px}
-  #lbs .home-global-header #homeWalletConnect{height:36px}
-  #lbs.on{grid-template-columns:minmax(0,1.45fr) minmax(260px,.9fr);gap:26px;padding:144px 4vw 20px}
+  #lbs .home-pbt,#lbs .home-global-header #homeWalletConnect{height:39px}
+  #lbs .home-pbt-coin{width:24px;height:24px;font-size:15px}
+  #lbs .home-pbt-amount strong{font-size:16px}
+  #lbs .home-pbt-add{width:27px;height:27px;font-size:19px}
+  #lbs.on{padding:140px 4vw 22px;grid-template-columns:minmax(0,1.45fr) minmax(260px,.9fr);gap:25px}
 }
-@media (max-width:820px){
+@media(max-width:820px){
   #lbs.on{
-    display:flex;flex-direction:column;justify-content:flex-start;gap:16px;
-    overflow-y:auto;padding:153px 5vw 28px;
+    display:flex;flex-direction:column;justify-content:flex-start;
+    gap:16px;overflow-y:auto;padding:151px 5vw 28px;
   }
-  #lbs .home-global-header{
-    height:138px;padding:7px 5vw;gap:4px;flex-wrap:wrap;align-content:center;
-  }
-  #lbs .home-header-chevron{top:17px;width:32px;height:39px}
-  #lbs .home-global-brand{
-    width:100%;flex:1 1 100%;flex-wrap:wrap;
-    gap:0 11px;padding-left:24px;
-  }
-  #lbs .home-global-brand .lt{font-size:clamp(29px,6vw,41px);padding:4px 3px}
-  #lbs .home-global-brand .home-meta{padding-left:0;border:0;font-size:11px}
-  #lbs .home-global-header .home-top-actions{width:100%;justify-content:flex-end;gap:10px}
-  #lbs .home-global-header .lbest{min-width:0;min-height:36px;gap:6px;padding-right:9px}
-  #lbs .home-global-header .lbest svg{width:22px;height:22px}
-  #lbs .home-global-header .home-best-value span{font-size:9px}
-  #lbs .home-global-header .home-best-value b{font-size:19px}
-  #lbs .home-global-header #homeWalletConnect{min-width:132px;max-width:190px;height:38px;font-size:11px;padding:0 9px}
+  #lbs .home-global-header{height:135px;flex-wrap:wrap;align-content:center;row-gap:4px;padding:7px 5vw}
+  #lbs .home-header-chevron{top:19px;width:30px;height:36px}
+  #lbs .home-global-brand{width:100%;flex:1 1 100%;flex-wrap:wrap;gap:4px 12px;padding-left:18px}
+  #lbs .home-wordmark{font-size:clamp(27px,6.2vw,41px);padding:2px}
+  #lbs .home-global-brand .home-meta{border:0;padding-left:0;font-size:11px;letter-spacing:.04em}
+  #lbs .home-global-header .home-top-actions{width:100%;justify-content:flex-end;gap:9px}
+  #lbs .home-pbt,#lbs .home-global-header #homeWalletConnect{height:37px}
+  #lbs .home-pbt{gap:7px;padding:3px 5px 3px 7px}
+  #lbs .home-pbt-coin{width:22px;height:22px;font-size:13px}
+  #lbs .home-pbt-amount{min-width:46px}
+  #lbs .home-pbt-amount strong{font-size:15px}
+  #lbs .home-pbt-add{width:25px;height:25px;font-size:19px}
+  #lbs .home-global-header #homeWalletConnect{min-width:125px;padding:0 7px;font-size:10px;gap:6px}
   #lbs .home-global-header #homeWalletConnect svg{width:18px;height:18px}
-  #lbs .lbl,#lbs .home-demo,#lbs .lbr{max-width:610px;margin-left:auto;margin-right:auto}
+  #lbs .lbl,#lbs .home-demo,#lbs .lbr{width:100%;max-width:610px;margin-left:auto;margin-right:auto}
 }
-@media (max-width:430px){
-  #lbs .home-global-header{height:143px}
-  #lbs .home-global-brand{padding-left:15px}
-  #lbs .home-global-brand .lt{font-size:clamp(26px,7vw,33px)}
-  #lbs .home-global-brand .home-meta{font-size:9px;letter-spacing:.04em;gap:6px}
-  #lbs .home-global-header .lbest svg{display:none}
-  #lbs .home-global-header #homeWalletConnect{min-width:121px;font-size:10px}
+@media(max-width:430px){
+  #lbs .home-global-header{height:145px}
+  #lbs .home-global-brand{padding-left:14px}
+  #lbs .home-wordmark{font-size:clamp(25px,6.5vw,30px)}
+  #lbs .home-global-brand .home-meta{font-size:9px;gap:6px}
+  #lbs .home-global-header #homeWalletConnect{min-width:110px;max-width:133px;font-size:9px}
+  #lbs .home-pbt-coin{display:none}
+  #lbs .home-pbt{gap:6px}
+  #lbs .home-pbt-amount{min-width:43px}
 }
