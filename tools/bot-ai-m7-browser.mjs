@@ -11,6 +11,7 @@ const out=path.join(root,'artifacts','m7-browser');
 fs.mkdirSync(out,{recursive:true});
 const team=process.env.M7_TEAM==='terrorist'?1:0;
 const name=team?'terrorist':'police';
+const mapId=process.env.M7_MAP==='block-town'?'block-town':'lockdown';
 const target=Number(process.env.M7_BOMB_ROUNDS||50);
 if(!Number.isInteger(target)||target<1||target>150)
   throw Error('M7_BOMB_ROUNDS must be an integer 1..150');
@@ -39,7 +40,7 @@ const html=htmlSource
 fs.writeFileSync(ciHtml,html);
 const url=pathToFileURL(ciHtml).href;
 
-const results={schema:'BLOCK_BUDDIES_M7_CI_BROWSER_V1',team:name,target,
+const results={schema:'BLOCK_BUDDIES_M7_CI_BROWSER_V1',team:name,mapId,target,
   source:'Original production IIFE with CI-only injected bridge; local matching Three.js 0.128.0',
   limitations:['The CI test bridge is NOT part of assets/game.js or normal player runtime',
     'Passive human seat is replaced with a canonical production BOT for 5v5 in QA only',
@@ -73,7 +74,7 @@ async function createPage(){
  return {page,context,jsErrors};
 }
 async function start(page,mode){
- const init=await page.evaluate(({mode,team})=>window.__BlockBuddiesM7CI.start(mode,team),{mode,team});
+ const init=await page.evaluate(({mode,team,mapId})=>window.__BlockBuddiesM7CI.start(mode,team,mapId),{mode,team,mapId});
  if(init.bots!==10||init.teams[0]!==5||init.teams[1]!==5)
    throw Error('Real 5v5 BOT roster was not created: '+JSON.stringify(init));
  return init;
@@ -99,7 +100,7 @@ try{
    ticks+=180;
    if(progress.completed>=reported+10){
      reported=progress.completed;
-     console.log('M7 '+name+' automated production Bomb finishes: '+reported+'/'+target);
+     console.log('M7 '+name+' '+mapId+' automated production Bomb finishes: '+reported+'/'+target);
    }
    if(progress.completed>=target)break;
    if(progress.completed===prev)stagnant++;else stagnant=0;
@@ -145,8 +146,8 @@ try{
 }catch(err){
  results.errors.push(String(err.stack||err));results.result='FAIL';process.exitCode=1;
 }finally{
- fs.writeFileSync(path.join(out,'m7-'+name+'.json'),JSON.stringify(results,null,2)+'\n');
- console.log(JSON.stringify({result:results.result,team:name,
+ fs.writeFileSync(path.join(out,'m7-'+mapId+'-'+name+'.json'),JSON.stringify(results,null,2)+'\n');
+ console.log(JSON.stringify({result:results.result,team:name,mapId,
    realtime:results.realTime.map(s=>({mode:s.mode,frames:s.qa.frameTimeMs.count,
      cpu:s.qa.botUpdateCpuMs.count,frameP95:s.qa.frameTimeMs.p95,errors:s.jsErrors})),
    bombRounds:results.simulation?.qa?.bombRounds,
