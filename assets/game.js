@@ -665,11 +665,10 @@ function makeBlockTown(){
    wall(x,z,w,dep,h,body);
    detail(w+.08,.12,dep+.08,shade(body,.70),x,.085,z);
    if(kind===0){ // stacked shop-delivery crates, 2.4 m solid footprint
-     for(var a=1;a<4;a++){
+     for(var a=1;a<4;a++)
        detail(w+.09,.095,dep+.13,shade(body,a%2?.84:.67),x,a*h/4,z);
-       detail(.15,h,.15,c.metal,x-w/2+.12,h/2,z+dep/2-.1);
-       detail(.15,h,.15,c.metal,x+w/2-.12,h/2,z+dep/2-.1);
-     }
+     detail(.15,h,.15,c.metal,x-w/2+.12,h/2,z+dep/2-.1);
+     detail(.15,h,.15,c.metal,x+w/2-.12,h/2,z+dep/2-.1);
      detail(w+.12,.16,dep+.1,c.wood,x,h+.05,z);
    }else if(kind===1){ // knee-high civic concrete planter
      detail(w+.12,.18,dep+.12,c.frame,x,h-.04,z);
