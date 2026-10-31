@@ -6,7 +6,30 @@
 **Source of truth:** the owner-provided top-down outdoor Town blueprint and subsequent explicit instruction **Police Spawn di A**.
 **Scope:** new Bomb map only; do not change Team Deathmatch, weapon balance, Bomb timers, scoring or M0–M6 BOT policy.
 
-## Design and scale
+## BLOCK TOWN V3 — latest authoritative owner's blueprint (2026-10-31 WIB)
+
+**THIS V3 IS THE CURRENT MAP SOURCE OF TRUTH. The V1/V2 location descriptions retained below are historical and superseded.** The user-supplied second top-down blueprint replaces the first layout, while retaining the same existing **160 × 160** Bomb Mission playable bounds, original Three.js material helpers, and all standard Bomb rules.
+
+| Anchor | New X/Z coordinates | Blueprint color/location |
+|---|---|---|
+| **Police spawn** | **(-72,-55) to (-72,-31)** (5 discrete slots) | **Purple**, upper-left/west street |
+| **Terrorist spawn** | **(45,70), (50,74), (45,75), (61,70), (59,75)** | **Red**, lower-right/south-east |
+| **A Site** | **(55,-58)** | Upper-right/north-east commercial courtyard |
+| **B Site** | **(-16,8)** | Central-lower service junction |
+
+**Layout:** white solids are actual impassable 3D town buildings and walls, NOT open buildings: 15 asymmetric block masses including the west-north L-shaped compound (constructed from two adjoining solids), irregular blocks at mid and south, narrow offset lanes, and cross-streets. Gray in blueprint remains walkable road; the outer scene retains the four collision-registered perimeter walls and skyline. Landmark palettes and rooflines use the existing source-owned `BLOCK_TOWN_DEF.palette` and builder's six facade variants, rather than an ad hoc white-box visual pass.
+
+**Anti-long-range face-to-face:** site-specific hard cover islands are registered via `wl()/OB`, including **15 street covers**, **6 segmented brick/metal walls**, a **physically solid A-area delivery van**, and a **physically solid B-side service kiosk**. Additional tree trunks and one small fountain/pedestal are also registered solids. Both landmark shapes are in `BLOCK_TOWN_DEF.landmarks`; the runtime does not create fake visual-only ground obstacles. This gives players cover for peeking, rotating and clearing corners and provides actual LOS/nav collision for BOT AI. Paving rectangles are configured to be disjoint and drawn at separate vertical elevations from the base floor and paint to avoid z-fighting; four perimeter walls remain in place.
+
+**Spawn viewing direction:** `BLOCK_TOWN_DEF.spawnLook` now provides inward tactical waypoint coordinates (Police towards west-north exit, Terrorist towards the northbound approach). The global `bombMapSpawnYaw()` remains canonical and returns exactly the previous facing for all other maps. There is no direct Police/Terrorist spawn-to-spawn visible path in the V3 geometric LOS model. The BOT A* route model must reach both Bomb Sites from all ten spawn slots.
+
+**Historical correspondence:** Purple and red correspond to Police and Terrorist respectively, consistent with the player's earlier team-color assignments. White map shapes represent large solid buildings, *not* individual rooms with doorways. Street props and facades are deliberately secondary to the owner-drawn road/block shapes. The old Police-by-Site-A design and old A/B world coordinates are no longer active.
+
+**Release gates:** `tests/bomb-mission.test.mjs` asserts the new site/spawn anchors, site radius clearance, every spawn pair occlusion, every spawn-to-site A* route, solid physical cover including the van/kiosk, zero overlapping paving regions, four perimeter walls, cached map isolation, and unchanged Lockdown and TDM. The CI browser bridge also checks updated map site coordinates, spawn regions, four boundary collision bodies, and actual BOT behavior. **No automatic functional or performance success may be claimed until the latest Windows CI actually completes**. Automated checks do not establish subjective visual appearance or complete competitive balance; no user manual playtest is required for the CI functional checks.
+
+---
+
+## Historical V1 design and scale (superseded by V3)
 
 The map uses the exact **160×160 world-unit** Bomb arena footprint (\`BOMB_RULES.cellSize * BOMB_RULES.cells = 10 * 16\`; \`A=80\`, X/Z horizontal and Y vertical). It is a **single-level outdoor town** with varied asymmetrical residential/shop building blocks, paved market courtyard A, delivery courtyard B, central town junction, bent A lane, offset B lane and multiple connectors. It is **not** the previous symmetrical box-grid mockup and is **not** claimed to reproduce all photographic architectural details of the reference image.
 
