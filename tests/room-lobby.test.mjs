@@ -424,3 +424,32 @@ test('Popup dropdown cannot bypass ROOM_LIMITS or persist an invalid forged opti
  assert.equal(JSON.parse(data.get('bbfps_local_rooms_v1'))[0].kills,30);
  assert.equal(view.page,'lbroomlive');
 });
+
+test('Block Town and Lockdown selection is persisted, reversible and validated in both Room Master flows',()=>{
+ const {context,doc,data}=setup();
+ call(context,'roomLobbyOpen()');call(context,'roomModeSelect(1)');
+ const choose=doc.getElementById('roomMap');
+ assert.deepEqual(choose.children.map(o=>o.value),['lockdown','block-town']);
+ choose.value='block-town';choose.events.change.call(choose);
+ assert.equal(doc.getElementById('roomMapName').textContent,'BLOCK TOWN');
+ assert.equal(call(context,'roomDraftMapId'),'block-town');
+ call(context,'roomCreateLocal()');
+ assert.equal(call(context,'roomCurrent.mapId'),'block-town');
+ assert.equal(JSON.parse(data.get('bbfps_local_rooms_v1'))[0].mapId,'block-town');
+ assert.equal(doc.getElementById('rmlMapName').textContent,'BLOCK TOWN');
+ doc.getElementById('rmlSettings').click();
+ const modal=doc.getElementById('roomModalMap');
+ assert.equal(modal.value,'block-town');
+ modal.value='lockdown';modal.events.change.call(modal);
+ assert.equal(call(context,'roomCurrent.mapId'),'block-town','modal changes remain draft');
+ doc.getElementById('roomModalCancel').click();
+ assert.equal(call(context,'roomCurrent.mapId'),'block-town','Cancel restores original selection');
+ doc.getElementById('rmlSettings').click();
+ const modal2=doc.getElementById('roomModalMap');
+ modal2.value='lockdown';modal2.events.change.call(modal2);
+ doc.getElementById('roomModalSave').click();
+ assert.equal(call(context,'roomCurrent.mapId'),'lockdown');
+ assert.equal(doc.getElementById('rmlMapName').textContent,'LOCKDOWN');
+ assert.equal(call(context,'bombMapId("../fake")'),'lockdown');
+ assert.equal(call(context,'roomNormalize({id:"123456789",name:"Safe",mode:1,mapId:"invalid"}).mapId'),'lockdown');
+});
