@@ -11,6 +11,7 @@ function botAimDelta(a,b){
  return Math.atan2(Math.sin(b-a),Math.cos(b-a));
 }
 function botAimClear(e){
+ if(typeof botQaEnabled!=='undefined'&&botQaEnabled)botQaSightLost(e);
  e.aimTarget=null;e.aimReadyAt=0;e.aimCanFire=false;
  e.aimSample=null;e.aimShotPitch=null;e.aimShots=0;
 }
@@ -20,6 +21,7 @@ function botAimUpdate(e,target,dt){
  }
  var current=e.aimTarget===target;
  if(!current){
+  if(typeof botQaEnabled!=='undefined'&&botQaEnabled)botQaObserve(e,target);
   e.aimTarget=target;
   e.aimReadyAt=tt+BOT_AIM.reactionMin+
     Math.random()*(BOT_AIM.reactionMax-BOT_AIM.reactionMin);
