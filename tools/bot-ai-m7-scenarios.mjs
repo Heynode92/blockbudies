@@ -1,6 +1,8 @@
 // M7 reproducible synthetic fairness and stability matrix.
 // Executes production AI in a fixed-seed synthetic arena, NOT a real match.
 // No claims about real hit percentages, FPS, Bomb wins or browser navigation.
+import {fileURLToPath} from 'node:url';
+import {resolve} from 'node:path';
 import {runBotM0Baseline} from './bot-ai-m0-baseline.mjs';
 
 export function runBotM7Matrix(){
@@ -41,7 +43,6 @@ export function runBotM7Matrix(){
    'no actual production map collision','no measured real reaction times'],
   results};
 }
-if(process.argv[1]&&new URL(import.meta.url).pathname.toLowerCase().endsWith(
-   String(process.argv[1]).replaceAll('\\','/').toLowerCase().split('/').pop())){
+if(process.argv[1]&&fileURLToPath(import.meta.url)===resolve(process.argv[1])){
  console.log(JSON.stringify(runBotM7Matrix(),null,2));
 }
