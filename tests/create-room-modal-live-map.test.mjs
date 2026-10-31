@@ -10,6 +10,17 @@ const read=p=>readFileSync(resolve(root,p),'utf8').replace(/\r\n/g,'\n');
 const html=read('index.html'),css=read('src/styles/14-room-browser.css'),
       preview=read('src/game/84-live-map-preview.js');
 
+test('Create Room uses only one authoritative wide dialog rule; obsolete narrow override stays removed',()=>{
+ // Previously a trailing 660px block overrode the cinematic grid on desktop.
+ assert.match(css,/#lbrooms \.room-create-dialog \{\s*position:relative;[\s\S]*?width:min\(1480px,100%\)/);
+ assert.doesNotMatch(css,/width:min\(660px,100%\)/);
+ assert.doesNotMatch(css,/height:min\(710px,calc\(100vh - 140px\)\)/);
+ assert.match(css,/#lbrooms \.room-create-overlay \{\s*position:absolute;z-index:11;[\s\S]*?inset:var\(--bb-shared-header-height,86px\) 0 0/);
+ assert.match(css,/#lbrooms \.room-create-overlay\[hidden\] \{display:none!important;\}/);
+ assert.match(css,/@media\(max-width:860px\) \{[\s\S]*?#lbrooms \.room-create-dialog \{width:100%;height:100%;max-height:100%;\}/);
+ assert.equal((css.match(/#lbrooms \.room-create-dialog \{\s*position:relative;/g)||[]).length,1);
+});
+
 test('create-room popup is map-left/settings-right with existing real controls and pinned submit',()=>{
  const start=html.indexOf('<div id="roomCreateOverlay"'),end=html.indexOf('<section id="lbroomlive"',start);
  assert.ok(start>=0&&end>start);
