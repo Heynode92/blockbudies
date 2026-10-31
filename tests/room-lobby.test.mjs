@@ -14,6 +14,7 @@ class FakeElement{
   this.value='';this.textContent='';this.hidden=false;this.style={};this.children=[];this.attributes={};this.events={};this.width=1280;this.height=720;this.disabled=false;
   this.classes=new Set();
   this.classList={add:name=>this.classes.add(name),remove:name=>this.classes.delete(name),
+   contains:name=>this.classes.has(name),
    toggle:(name,yes)=>{if(yes)this.classes.add(name);else this.classes.delete(name);}};
  }
  getContext(){return {drawImage(){}};}
@@ -70,6 +71,31 @@ function setup(){
  return {context,doc,data,view,advance};
 }
 function call(c,expression){return vm.runInContext(expression,c);}
+
+test('Room Browser shortcuts use canonical Inventory / Shop and return to room browser',()=>{
+ const {context,doc,view,advance}=setup();
+ call(context,'roomLobbyOpen()');
+ doc.getElementById('lbrooms').classList.add('on');
+ context.inventoryOpen=()=>{view.shortcut='inventory';view.page='lbiv';};
+ context.shopOpen=()=>{view.shortcut='shop';view.page='lbshop';};
+ doc.getElementById('roomQuickInventory').click();
+ assert.equal(view.shortcut,'inventory');
+ assert.equal(call(context,'roomQuickFromBrowser'),true);
+ call(context,'roomQuickBack()');
+ assert.equal(view.page,'lbrooms','Inventory Back must return to Room Browser');
+ assert.equal(call(context,'roomQuickFromBrowser'),false);
+ doc.getElementById('roomQuickShop').click();
+ assert.equal(view.shortcut,'shop');
+ call(context,'roomQuickBack()');
+ assert.equal(view.page,'lbrooms','Shop Back must return to Room Browser');
+ doc.getElementById('roomQuickSettings').click();
+ assert.equal(doc.getElementById('roomQuickNotice').hidden,false,'Settings placeholder is visible rather than a dead action');
+ advance(3300);
+ assert.equal(doc.getElementById('roomQuickNotice').hidden,true);
+ view.page='lbiv';
+ call(context,'roomQuickBack()');
+ assert.equal(view.page,'lbs','Original Main Menu Back route remains intact');
+});
 
 test('START routes to a real Room Lobby while retaining existing game screens',()=>{
  const html=read('index.html'),lobby=read('src/game/85-lobby-and-match.js');
