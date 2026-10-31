@@ -493,8 +493,8 @@ var BOMB_MAP_REGISTRY=Object.freeze({
     sites:Object.freeze([{id:"A",x:55,z:-58,col:0xffa94d},{id:"B",x:-16,z:8,col:0x4dabf7}]),
     preview:Object.freeze({x:12,y:47,z:35,lookX:0,lookY:0,lookZ:-12,fov:74})}),
   hospital:Object.freeze({id:"hospital",name:"HOSPITAL",caption:"Indoor Medical Center",
-    sites:Object.freeze([{id:"A",x:67,z:-43,col:0xffa94d},{id:"B",x:-67,z:10,col:0x4dabf7}]),
-    preview:Object.freeze({x:-67,y:5.2,z:-25,lookX:-61,lookY:2,lookZ:8,fov:73})})
+    sites:Object.freeze([{id:"A",x:67,z:-43,col:0xffa94d},{id:"B",x:-67,z:3,col:0x4dabf7}]),
+    preview:Object.freeze({x:-67,y:5.2,z:-28,lookX:-67,lookY:2,lookZ:-5,fov:73})})
 });
 var selectedBombMapId="lockdown",BLOCK_TOWN_WORLD=null,BLOCK_TOWN_OB=[],BLOCK_TOWN_BR=[],BLOCK_TOWN_LT=[];
 function bombMapId(value){return Object.prototype.hasOwnProperty.call(BOMB_MAP_REGISTRY,value)?value:"lockdown";}
@@ -1142,6 +1142,46 @@ function makeBlockLabs(){
 // Independent of Lockdown and Block Town. Data owns all geometry, materials and spawn slots.
 // White rectangles are sealed SOLID wings; gray areas are playable medical corridors.
 var HOSPITAL_WORLD=null,HOSPITAL_OB=[],HOSPITAL_BR=[],HOSPITAL_LT=[];
+// The photographed 632x627 owner blueprint, NOT inferred random hospital rooms.
+var HOSPITAL_BLUEPRINT=Object.freeze({
+ width:632,height:627,
+ // Ordered perimeter of the GREY walkable footprint, including every indentation.
+ // The polygon is captured from the unannotated original image; the arrow-marked
+ // image confirms these passages must remain traversable.
+ outlinePx:Object.freeze([
+  [16,14],[16,268],[215,268],[215,328],[317,328],[317,359],
+  [196,359],[196,296],[14,296],[14,536],[84,536],[84,625],
+  [269,625],[269,566],[317,566],[317,625],[621,625],[621,568],
+  [569,568],[569,459],[381,459],[381,416],[572,416],[572,328],
+  [618,328],[618,97],[458,97],[458,14],[216,14],[216,105],
+  [80,105],[80,14]
+ ]),
+ // Rectangular decompositions of WHITE room islands; three final boxes
+ // join into the irregular L-shaped room in the lower-left hospital wing.
+ // x,y,w,h,department; no illustrated grey corridor is turned into a room.
+ roomsPx:Object.freeze([
+  [79,169,138,36,0],[280,75,103,90,1],[457,161,97,104,2],
+  [280,228,103,37,3],[381,327,131,51,3],[381,520,125,42,5],
+  [77,360,55,130,4],[196,422,121,98,4],
+  [196,519,28,17,4],[127,535,97,45,4]
+ ])
+});
+function hospitalPxPoint(x,y){
+ var size=BOMB_RULES.cells*BOMB_RULES.cellSize;
+ return [(x/HOSPITAL_BLUEPRINT.width-.5)*size,
+         (y/HOSPITAL_BLUEPRINT.height-.5)*size];
+}
+function hospitalPxRoom(b){
+ var center=hospitalPxPoint(b[0]+b[2]/2,b[1]+b[3]/2),
+     size=BOMB_RULES.cells*BOMB_RULES.cellSize;
+ return [center[0],center[1],b[2]*size/HOSPITAL_BLUEPRINT.width,
+         b[3]*size/HOSPITAL_BLUEPRINT.height,b[4]];
+}
+function hospitalPxCover(q){
+ var pt=hospitalPxPoint(q[1],q[2]);
+ return [q[0],pt[0],pt[1],q[3],q[4],q[5],q[6]];
+}
+
 var HOSPITAL_DEF=Object.freeze({
  halfSize:BOMB_RULES.cells*BOMB_RULES.cellSize/2,
  ceilingHeight:11.5,wallHeight:10.8,
@@ -1157,39 +1197,37 @@ var HOSPITAL_DEF=Object.freeze({
   terrorist:[[67,69],[72,67],[67,75],[73,74],[61,70]]
  }),
  spawnLook:Object.freeze({police:[-65,-36],terrorist:[65,40]}),
- // x,z,w,d,department index: white architectural masses from reference blueprint.
- // These are NOT unlocked wards or fake doorways; active traversal stays in gray corridors.
- wings:Object.freeze([
-  [-42,-58,34,26,0],[-8,-49,25,22,1],[59,-71,39,13,2],
-  [-42,-32,34,9,0],[-8,-17,25,9,1],[43,-27,24,25,2],
-  [28,9,33,13,3],[41,35,46,10,4],[-12,8,26,8,3],
-  [-50,28,13,32,4],[-15,46,30,20,4],[28,57,24,10,5],
-  [-3,73,13,12,5],[-67,69,23,17,5]
- ]),
+ // Walls follow actual WHITE islands extracted from the owner blueprint.
+ // 10 rectangular pieces represent eight isolated islands, including the L shape.
+ blueprint:HOSPITAL_BLUEPRINT,
+ outlinePx:HOSPITAL_BLUEPRINT.outlinePx,
+ wings:Object.freeze(HOSPITAL_BLUEPRINT.roomsPx.map(hospitalPxRoom)),
  // Actual non-penetrable clinical props. Every [kind,x,z,w,d,h,zone] is one
  // grounded real wl()/OB collider with small raised, non-colliding decorations.
+ // Furniture starts from locations confirmed INSIDE the GREY corridor mask.
+ // x/y in blueprint pixels, actual collider width/depth in game units.
  furniture:Object.freeze([
-  ["triage-desk",-67,-43,3,2.3,1.5,0],
-  ["stretcher",-68,-18,3,2,1.25,0],
-  ["medical-cabinet",-39,-10,2.4,2,2.5,1],
-  ["waiting-bench",-31,11,3.8,1.6,1.15,1],
-  ["nurse-station",4,8,3,3,2,3],
-  ["imaging-machine",-56,48,4,2.6,3.2,4],
-  ["linen-storage",-34,34,2.5,1.9,2.6,4],
-  ["stretcher",-38,60,3,1.7,1.25,4],
-  ["medicine-trolley",15,24,2.6,2,1.65,3],
-  ["isolation-cabinet",3,-30,2.5,2,2.6,1],
-  ["imaging-console",13,-4,3,2.5,2,3],
-  ["security-desk",60,-13,3.5,2.5,2,2],
-  ["hospital-bed",65,-30,3,2,1.35,2],
-  ["medical-monitor",74,-50,2.2,2,2.4,2],
-  ["scrub-cabinet",51,-54,2.3,2,2.4,2],
-  ["waiting-bench",52,18,3,1.8,1.15,3],
-  ["service-rack",60,50,3,2.5,2.6,5],
-  ["linen-storage",42,65,3.3,2.2,2.6,5],
-  ["stretcher",10,50,3.2,2,1.25,5],
-  ["wheelchair",-65,41,2,2,1.5,4]
- ]),
+  ["triage-desk",102,127,3,2.3,1.5,0],
+  ["nurse-station",220,147,3,3,2,0],
+  ["medicine-trolley",266,196,2,1.8,1.65,1],
+  ["waiting-bench",410,125,3,1.6,1.15,1],
+  ["hospital-bed",583,205,3,2,1.35,2],
+  ["medical-cabinet",422,287,3,2.1,2.5,2],
+  ["stretcher",330,197,2.5,2,1.25,1],
+  ["medicine-trolley",260,288,2.5,2,1.65,3],
+  ["nurse-station",136,319,3,2.3,2,4],
+  ["wheelchair",47,390,2,2,1.5,4],
+  ["linen-storage",159,405,2,2,2.6,4],
+  ["stretcher",150,514,2.5,2,1.25,4],
+  ["medicine-trolley",348,393,2.5,2,1.65,3],
+  ["waiting-bench",530,399,2.5,2,1.15,3],
+  ["imaging-machine",356,474,3,2.2,3.2,4],
+  ["service-rack",540,553,2.5,2,2.6,5],
+  ["triage-desk",450,592,2.5,2,1.5,5],
+  ["isolation-cabinet",53,231,2,2,2.6,0],
+  ["medical-monitor",407,186,2.5,2,2.4,2],
+  ["security-desk",550,291,2.5,2,2,2]
+ ].map(hospitalPxCover)),
  // Departments are callouts and palettes only. Plant sites are owned by BOMB_MAP_REGISTRY.
  departments:Object.freeze([
   {name:"EMERGENCY",color:0x5ca99a},
@@ -1204,8 +1242,8 @@ var HOSPITAL_DEF=Object.freeze({
   [-70,-39,0,14,0],[-44,-3,14,0,1],[7,-34,0,14,1],
   [61,-40,0,11,2],[49,22,0,13,3],[-64,29,0,14,4],[55,64,0,11,5]
  ]),
- // Actual map-facing scene preview is under the ceiling and within west corridor.
- preview:Object.freeze({x:-67,y:5.2,z:-25,lookX:-61,lookY:2,lookZ:8,fov:73})
+ // This is the west Emergency corridor from the blueprint, not a white room.
+ preview:Object.freeze({x:-67,y:5.2,z:-28,lookX:-67,lookY:2,lookZ:-5,fov:73})
 });
 function hospitalSpawnPt(team){
  var slots=team?HOSPITAL_DEF.spawns.terrorist:HOSPITAL_DEF.spawns.police,
@@ -1229,18 +1267,28 @@ function makeHospital(){
  function wall(x,z,w,dep,h,col){wl(x,z,w,dep,h,col);}
  // Flat, continuous vinyl flooring. All other floor marks sit above its top y=0.
  var floor=mk(2*half,.28,2*half,p.floor,0,-.14,0);floor.castShadow=false;
- // Four solid high perimeter walls (same project wl()/OB collision as other maps).
- var edge=half+.58,span=2*half+1.5;
- [[0,-edge,span,1.2],[0,edge,span,1.2],[-edge,0,1.2,span],[edge,0,1.2,span]]
- .forEach(function(q){
-   wall(q[0],q[1],q[2],q[3],d.wallHeight,p.base);
-   detail(q[2]+.12,.22,q[3]+.12,p.trim,q[0],d.wallHeight-.18,q[1]);
+ // Physical walls follow ALL steps of the exact grey footprint outline,
+ // including the deep notches in the left, bottom and right edges. No universal
+ // rectangular perimeter that would incorrectly make WHITE regions playable.
+ d.outlinePx.forEach(function(a,i){
+   var b=d.outlinePx[(i+1)%d.outlinePx.length],
+       p0=hospitalPxPoint(a[0],a[1]),p1=hospitalPxPoint(b[0],b[1]),
+       dx=Math.abs(p1[0]-p0[0]),dz=Math.abs(p1[1]-p0[1]),
+       horizontal=dx>=dz,
+       x=(p0[0]+p1[0])/2,z=(p0[1]+p1[1])/2,
+       w=horizontal?dx+.8:1.1,dep=horizontal?1.1:dz+.8;
+   wall(x,z,w,dep,d.wallHeight,p.base);
+   detail(w+.1,.22,dep+.1,p.trim,x,d.wallHeight-.18,z);
+   // Different medical corridor sections get contrasting wall protection rails.
+   if(i%3===0)detail(w+.13,.18,dep+.13,p.teal,x,1.28,z);
  });
- // Each blueprint white wing is a single sealed, true 3D obstruction.
+ // All WHITE room shapes are physical sealed clinical wings; the irregular L
+ // remains a contiguous collision mass made from three touching rectangles.
+ // Gray corridors never gain an imaginary wall from the old map arrangement.
  // Clinical facade details sit proud of the real wall, never suggesting a walkable doorway.
  d.wings.forEach(function(b,i){
    var x=b[0],z=b[1],w=b[2],dep=b[3],zone=d.departments[b[4]],
-       height=7.7+(i%3)*.4,col=i%5===0?0xcbdce1:p.wall;
+       height=d.wallHeight,col=i%5===0?0xcbdce1:p.wall;
    wall(x,z,w,dep,height,col);
    BR.push({x:x,z:z,hw:w/2,hd:dep/2});
    detail(w+.26,.23,dep+.26,p.white,x,height-.16,z);
