@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-31 WIB — Block Town visual v2: remove flickering grid and vary architecture
+
+- **Fixed original city grid showing through the outdoor Bomb map:** `GridHelper` is a Three.js line object, not a normal scene mesh, so map isolation now explicitly toggles `type==="GridHelper"` when switching Bomb/TDM. This keeps the original TDM GridHelper intact.
+- **Removed the two coplanar A-side paving slabs** and moved all disjoint terrain overlays into `BLOCK_TOWN_DEF.paving`; foundation, paving, street paint and bomb-site decals have distinct draw-height tiers to prevent z-fighting. This directly targets the reported flickering/checkerboard streets.
+- Reworked the repeated uniform box facades into six outdoor-town styles using existing Three.js Lambert materials and batched `dk()/flushDeco()`: shopfronts, warehouses, rooftop parapets, pitched-roof residences, shutters, awnings, signs, recessed non-coplanar windows, cornices and downpipes.
+- Replaced anonymous crate/barrier visuals at existing collision sites with urban planters, dumpsters, pallets and stone traffic obstacles, keeping grounded `wl()` hitboxes. All spawns, Bomb Sites, main building footprints, A*/LOS navigation, 160×160 footprint, old maps and Bomb timings remain unchanged.
+- Added regression checks for disjoint paving, GridHelper toggling, batched town architectural details and solid urban cover. [Windows Node regression #256](https://github.com/Heynode92/blockbudies/actions/runs/41187629635) **376/376 PASS**, direct-open bundle parity and JS syntax PASS. Map-aware Chromium #25 pending completion; actual visual hardware playtest needed to independently confirm the flicker is gone.
+
 ## 2026-10-31 WIB — Block Town outdoor Bomb Mission map (first playable implementation)
 
 - Introduced **Block Town** (`block-town`) as the second Bomb Mission arena, preserving **Lockdown** and **Block District**. It retains the canonical **160×160** Bomb map footprint, physics, timing, weapon balance, BOT AI and 5v5 rounds. Outdoor asymmetrical town geometry includes low-poly multistory shop facades, street paving, courtyards, trees, barricades, crates, A/B planting signs and registered collision geometry.
