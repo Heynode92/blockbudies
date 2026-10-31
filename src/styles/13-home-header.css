@@ -1,4 +1,4 @@
-/* BLOCK BUDDIES — Home header (DeFi × tactical FPS)
+/* POINT BLOCK — Home header (DeFi × tactical FPS)
  * Source of truth: shared header for menu, room browser and Room Master lobby.
  * Sized for desktop 1920x1080, with tablet/mobile wrapping.
  * Header color tokens intentionally match the existing lobby palette.
@@ -51,8 +51,8 @@
   overflow:visible;-webkit-text-fill-color:currentColor;
   text-shadow:0 2px 0 rgba(0,0,0,.88),0 5px 14px rgba(0,0,0,.38);
 }
-#gameLobbyHeader .home-brand-blok { color:#f1f5fb; }
-#gameLobbyHeader .home-brand-buddies { color:#ff9435; }
+#gameLobbyHeader .home-brand-point { color:#f1f5fb; }
+#gameLobbyHeader .home-brand-block { color:#ff9435; }
 #gameLobbyHeader .home-global-brand .home-meta {
   display:flex;align-items:center;flex:0 1 auto;min-width:0;
   gap:clamp(8px,.7vw,13px);margin:0;
