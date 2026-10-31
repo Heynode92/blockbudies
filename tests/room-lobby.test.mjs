@@ -424,10 +424,10 @@ test('popup follows real map and source layout, not a new map or hardcoded timer
  assert.match(html,/id="roomSettingsModal"/);
  assert.match(html,/aria-modal="true"/);
  assert.match(html,/id="roomModalMapPreview"/);
- assert.doesNotMatch(html,/id="roomModalClose"|room-modal-help|Only existing playable maps are available for each mode\./);
+ assert.match(html,/id="roomModalClose"/);
  assert.doesNotMatch(read('src/styles/04-lobby.css'),/\.room-modal-x\{|\.room-modal-help\{/);
- assert.match(read('src/styles/04-lobby.css'),/\.room-modal-map\{[^}]*margin-top:10px/);
- assert.doesNotMatch(src,/getElementById\("roomModalClose"\)/);
+ assert.match(read('src/styles/15-room-master-settings.css'),/width:min\(1480px,100%\)/);
+ assert.match(src,/getElementById\("roomModalClose"\)/);
  assert.match(preview,/modalCtx.drawImage\(src/);
  assert.match(src,/ROOM_LIMITS\[key\]/);
  assert.match(src,/function roomShowSettings\(\)/);
@@ -435,10 +435,37 @@ test('popup follows real map and source layout, not a new map or hardcoded timer
  assert.match(src,/roomModalSelect\(key,this\.value\)/);
  assert.match(html,/id="roomModalMinutes"[^>]*><\/select>/);
  assert.doesNotMatch(html,/roomModalKillsPlus|roomModalRoundsMinus|roomModalRoundMinutesPlus/);
- assert.match(read('src/styles/04-lobby.css'),/#lbroomlive \.room-modal-group\[hidden\]\{display:none!important\}/);
+ assert.match(read('src/styles/15-room-master-settings.css'),/#lbroomlive \.room-modal-group\[hidden\] \{display:none!important\}/);
  assert.doesNotMatch(src,/function roomShowSettings\(\)\{if\(!roomCurrent\)return;roomEditState\(roomCurrent\);lobP\("lbrooms"\);\}/);
 });
 
+test('Room Settings uses Create Room two-column styling and authentic registry map cards',()=>{
+ const html=read('index.html'),css=read('src/styles/15-room-master-settings.css');
+ const begin=html.indexOf('id="roomSettingsModal"'),end=html.indexOf('id="roomPrestart"',begin);
+ const modal=html.slice(begin,end);
+ assert.ok(begin>=0&&end>begin);
+ assert.ok(modal.indexOf('class="room-modal-map-side"')<modal.indexOf('class="room-modal-config-side"'));
+ assert.match(modal,/id="roomModalMapCards"/);
+ assert.match(css,/grid-template-columns:minmax\(0,1\.04fr\) minmax\(0,1fr\)/);
+ assert.match(css,/width:min\(1480px,100%\)/);
+ assert.doesNotMatch(read('src/styles/04-lobby.css'),/width:min\(720px,96vw\)/);
+ const {context,doc,data}=setup();call(context,'roomLobbyOpen()');call(context,'roomCreateLocal()');
+ const before=JSON.parse(data.get('bbfps_local_rooms_v1'))[0];
+ doc.getElementById('rmlSettings').click();
+ const cards=doc.getElementById('roomModalMapCards');
+ assert.deepEqual(cards.children.map(x=>x.children[1].textContent),['BLOCK DISTRICT','BLOCK LABS']);
+ cards.children[1].click();
+ assert.equal(call(context,'roomModalDraft.mapId'),'block-labs');
+ assert.equal(call(context,'roomCurrent.mapId'),before.mapId,'room must remain unsaved');
+ doc.getElementById('roomModalBomb').click();
+ assert.deepEqual(cards.children.map(x=>x.children[1].textContent),['LOCKDOWN','BLOCK TOWN','HOSPITAL']);
+ cards.children[2].click();
+ assert.equal(call(context,'roomModalDraft.mapId'),'hospital');
+ doc.getElementById('roomModalClose').click();
+ assert.equal(doc.getElementById('roomSettingsModal').hidden,true);
+ assert.equal(call(context,'roomCurrent.mapId'),before.mapId);
+ assert.equal(JSON.parse(data.get('bbfps_local_rooms_v1'))[0].mode,before.mode);
+});
 test('Popup shows only selected mode settings and uses native dropdowns',()=>{
  const {context,doc,view}=setup();call(context,'roomLobbyOpen()');call(context,'roomCreateLocal()');
  doc.getElementById('rmlSettings').click();
