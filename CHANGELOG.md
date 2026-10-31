@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-31 WIB — Block Town perimeter and spawn QA evidence (browser verified)
+
+- [Windows M7 Chromium map QA #33](https://github.com/Heynode92/blockbudies/actions/runs/41188457444): **Block Town Police and Terrorist job SUCCESS**, each **10/10 completed canonical Bomb rounds** with zero JS exceptions. Includes CI assertions for all four **visible, collision-registered physical perimeter walls**, all 10 inward-facing spawn slots, Player first-spawn yaw, A* site accessibility and blocked opposing-spawn sightlines.
+- [Windows regression #270](https://github.com/Heynode92/blockbudies/actions/runs/41188457572): **378/378 Node tests PASS** plus source bundle parity and syntax checks. Follow-up regression #272 after documentation changes also **SUCCESS**.
+- The same browser workflow's two 50-round Lockdown jobs were still running when this evidence was recorded; do not represent overall matrix #33 as completed. Visual appearance on the player's GPU and M7 final performance certification remain separate matters.
+
 ## 2026-10-31 WIB — Block Town: restore solid outdoor perimeter and correct map-specific spawn direction
 
 - Audited original Deathmatch source: `src/game/00-bootstrap.js` creates four 3D perimeter walls, but the Bomb map switch hides the entire original Deathmatch scene. Block Town had no corresponding outer walls. The A-side Police spawn also used legacy `Math.PI` orientation, which aimed the player toward an empty map edge.
