@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node tools/build.mjs && node --test tests/*.test.mjs",
+    "test": "node tools/build.mjs && node --test",
     "test:integration": "node --test tests/vite-integration.test.mjs",
     "check:dist": "node tools/check-dist.mjs",
     "verify": "npm run test && npm run build && npm run check:dist"
