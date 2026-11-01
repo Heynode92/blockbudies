@@ -6,6 +6,7 @@ var onlineActive=false,onlineTraining=false,onlineCurrentId=null,onlineMatchId=n
 var onlineWorld=null,onlineGame=null,onlineActors=new Map(),onlineSeq=0,onlineSendAt=0,onlineMeId=null;
 var onlineLobbyTimer=0,onlineRoomOpening=false,onlineRoomTimer=0,onlineRouteToken=0;
 var onlineTeamNotice=null,onlineInputId=0,onlineVisualLoaded=false;
+var onlineReconnectTimer=0,onlineReconnectStarted=0,onlineReconnecting=false;
 function onlineWarn(error) {
  var code=typeof error==='string'?error:error&&error.code||'BACKEND_UNAVAILABLE';
  roomSetMessage(code);if(typeof roomLiveLog==='function'&&roomCurrent)roomLiveLog(code);
@@ -193,7 +194,8 @@ function onlineResetLive(){
  onlineWorld=null;onlineGame=null;
  for(const item of onlineActors.values()){if(item.model?.g)S.remove(item.model.g)}
  onlineActors.clear();onlineMeId=null;onlineSeq=0;onlineSendAt=0;onlineVisualLoaded=false;
- onlineApi?.closeLive();clearInterval(onlineRoomTimer);
+ onlineApi?.closeLive();clearInterval(onlineRoomTimer);clearTimeout(onlineReconnectTimer);
+ onlineReconnecting=false;onlineReconnectStarted=0;
 }
 async function onlineAttachMatch(room){
  if(!onlineAuth()||onlineActive)return;
@@ -266,9 +268,26 @@ function onlineReceiveFrame(frame){
  if(frame.type==='training_result'){onlineTrainingProgress(frame.progress);if(frame.progress?.status==='COMPLETED')onlineTrainingCompleted();}
 }
 function onlineSocketStatus(info){
- if(info.code===1000||!onlineActive)return;
- // Never switch back to local simulation after loss of authority.
- run=false;onlineActive=false;roomStartAbort();onlineWarn('REALTIME_DISCONNECTED_'+info.code);
+ if(info.code===1000||!onlineActive||onlineReconnecting)return;
+ // Server retains the player for 60 seconds. Never fall back to client hit simulation.
+ onlineReconnecting=true;onlineReconnectStarted=Date.now();run=false;
+ onlineWarn('RECONNECTING TO MATCH SERVER');
+ onlineReconnectTimer=setTimeout(onlineRetry,1000);
+}
+async function onlineRetry(){
+ if(!onlineReconnecting||!onlineActive)return;
+ if(Date.now()-onlineReconnectStarted>55000){
+  onlineResetLive();matchExitToLobby('list');onlineWarn('RECONNECT_WINDOW_EXPIRED');return;
+ }
+ try{
+  var kind=onlineTraining?'training':'room';
+  await onlineApi.openLive(kind,onlineTraining?null:onlineCurrentId,onlineReceiveFrame,onlineSocketStatus);
+  onlineReconnecting=false;clearTimeout(onlineReconnectTimer);
+  run=true;mt.over=false;onlineApplyWorld();
+ }catch(error){
+  if(!onlineReconnecting)return;
+  onlineReconnectTimer=setTimeout(onlineRetry,2500);
+ }
 }
 function onlineTrainingProgress(progress){
  if(!progress)return;
@@ -350,8 +369,15 @@ function onlineApplyWorld(){
  // Spectator snapshots remain recipient-bound; hidden enemies are never created.
  if(self){
   pl.tm=self.team;pl.x=self.x;pl.y=self.y;pl.z=self.z;
-  pl.dead=!self.alive;pl.hp=self.hp??pl.hp;pl.armor=self.vest??pl.armor;
-  if(typeof self.helmet==='boolean')pl.helm=self.helmet;
+  pl.dead=!self.alive;
+  var privateState=world.privateState;
+  pl.hp=privateState?.hp??self.hp??pl.hp;
+  pl.vest=privateState?.vest??self.vest??pl.vest;
+  if(typeof privateState?.helmet==='boolean')pl.helm=privateState.helmet;
+  else if(typeof self.helmet==='boolean')pl.helm=self.helmet;
+  if(Number.isInteger(privateState?.ammo?.magazine))pl.mag=privateState.ammo.magazine;
+  if(Number.isInteger(privateState?.ammo?.reserve))pl.res=privateState.ammo.reserve;
+  if(pl.st&&privateState){pl.st.k=privateState.kills;pl.st.d=privateState.deaths;}
   if(self.weaponId>=0&&self.weaponId<WP.length)pl.w=self.weaponId;
   if(self.alive)pl.face=self.yaw;
  }
@@ -376,14 +402,30 @@ function onlineApplyWorld(){
   }
   var bot=current.model;
   bot.x=actor.x;bot.y=actor.y;bot.z=actor.z;
-  bot.dead=!actor.alive;bot.weapon=actor.weaponId;bot.primary=actor.weaponId;
+  bot.dead=!actor.alive;
+  if(!current.target){bot.g.position.set(actor.x,actor.y,actor.z)}
+  current.target={x:actor.x,y:actor.y,z:actor.z,yaw:actor.yaw};bot.weapon=actor.weaponId;bot.primary=actor.weaponId;
   bot.g.rotation.y=actor.yaw;
-  bot.g.position.set(actor.x,actor.y,actor.z);
   bot.g.visible=!!actor.alive;
   if(bot.nm)bot.nm.visible=actor.team===pl.tm&&actor.alive;
  });
  for(const [id,current] of onlineActors){
   if(!visible.has(id))current.model.g.visible=false; // NEVER retain hidden enemy silhouettes.
+ }
+ if(Array.isArray(game.scoreboard)){
+  game.scoreboard.forEach(function(row){
+   if(!row||!Number.isSafeInteger(row.kills)||!Number.isSafeInteger(row.deaths))return;
+   var entry=row.id===selfId?pl.st:onlineActors.get(row.id)?.model?.st;
+   if(entry){entry.k=row.kills;entry.d=row.deaths;}
+  });
+ }
+ if(bombMatch&&world.bomb&&game.bombState){
+  bombMatch.state=game.bombState;
+  bombMatch.dropped=world.bomb.visibility==='TERRORISTS_ONLY'?world.bomb.position:null;
+  if(world.bomb.visibility==='PUBLIC_PLANTED'&&world.bomb.position&&bombMatch.device){
+   bombMatch.device.position.set(world.bomb.position.x,0,world.bomb.position.z);
+   bombMatch.device.visible=true;
+  }else if(bombMatch.device)bombMatch.device.visible=false;
  }
  if(typeof tmUpd==='function')tmUpd();
 }
@@ -413,6 +455,13 @@ function onlineVisualUpdate(dt){
   }});
  }
  onlineApplyWorld();
+ // Interpolate visual meshes between 10 Hz server snapshots. Never feed client
+ // interpolation back into physics, collision, damage or any reward calculation.
+ onlineActors.forEach(function(actor){
+  if(!actor.model?.g||!actor.target||!actor.model.g.visible)return;
+  var p=actor.model.g.position,t=actor.target,alpha=Math.min(1,dt*13);
+  p.x+=(t.x-p.x)*alpha;p.y+=(t.y-p.y)*alpha;p.z+=(t.z-p.z)*alpha;
+ });
  if(typeof hud==='function')hud();
  if(typeof hdUpd==='function')hdUpd(dt);
 }

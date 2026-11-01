@@ -1,3 +1,9 @@
+## 2026-11-02 — F4/F5: private server HUD, visual interpolation and reconnect
+- Use backend recipient-scoped private ammo/HP/vest/helmet and server-issued kill/death scoreboard instead of stale browser counters.
+- Render authoritative Bomb state/location without inventing hidden bomb positions; interpolate remote meshes between snapshots for smoother Three.js animation.
+- Reconnect authenticated room/training WebSockets within the server's 60-second grace; never resume a local simulator after socket failure.
+- Local Vite development defaults to BE 127.0.0.1:3001; production requires explicit VITE_POINTBLOCK_API_URL.
+
 ## 2026-11-02 — F6: backend-priced vPBT weapon shop
 - Replace UNLOCK FREE with authenticated backend price catalog and atomic vPBT settlement. No local weapon grants are accepted.
 - Use UUID idempotency keys on purchases, refresh authoritative inventory and profile after settlement, and show server errors.

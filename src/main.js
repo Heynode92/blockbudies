@@ -8,7 +8,7 @@ import deathmatchVideo from './assets/video/deatch_match_demo.mp4?url';
 import bombVideo from './assets/video/bomb_mission_demo.mp4?url';
 import menuMusic from './assets/audio/Pointblock_bgm.mp3?url';
 
-const online = createPointBlockClient({ baseUrl: import.meta.env.VITE_POINTBLOCK_API_URL });
+const online = createPointBlockClient({ baseUrl: import.meta.env.VITE_POINTBLOCK_API_URL || (import.meta.env.DEV ? 'http://127.0.0.1:3001' : undefined) });
 
 // The original gameplay is initialized once with the pinned r128 npm engine.
 // Future ESM extraction must keep this entry point and its state boundaries.
