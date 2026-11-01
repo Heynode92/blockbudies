@@ -1,0 +1,32 @@
+name: PointBlock Online Frontend Build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'tools/source-manifest.json'
+      - 'tools/vite-game-plugin.mjs'
+      - 'package.json'
+      - 'vite.config.mjs'
+      - 'index.html'
+      - '.github/workflows/online-frontend-build.yml'
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  production-build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned dependencies
+        run: npm install --no-audit --no-fund
+      - name: Compile production frontend
+        run: npm run build
+      - name: Inspect distributable
+        run: npm run check:dist

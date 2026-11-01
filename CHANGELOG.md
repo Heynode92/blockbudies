@@ -1,3 +1,7 @@
+## 2026-11-02 — F7: integration contract and independent Windows build
+- Document exact signed-in game transport, recipient-scoped snapshots, trusted shop and training routes plus BE mainnet configuration.
+- Add independent Windows production-build workflow to validate Vite output despite offline-era tests that assert removed local room/free-shop semantics; retain older CI failures openly for contract migration.
+
 ## 2026-11-02 — F4/F5: private server HUD, visual interpolation and reconnect
 - Use backend recipient-scoped private ammo/HP/vest/helmet and server-issued kill/death scoreboard instead of stale browser counters.
 - Render authoritative Bomb state/location without inventing hidden bomb positions; interpolate remote meshes between snapshots for smoother Three.js animation.
