@@ -1,8 +1,9 @@
 // =====================================================================================
-// POINT BLOCK FPS - modular source, bundled browser IIFE (Three.js r128)
+// POINT BLOCK FPS - ordered feature sources, Vite npm Three.js r128 runtime
 // =====================================================================================
-// READ THIS FIRST (notes for humans and for future AI edits). Everything below is ONE IIFE.
-// Do not invent APIs: browser runtime uses Three.js r128 + native APIs; ordered sources are bundled with tools/build.mjs.
+// READ THIS FIRST: feature files still share lexical state and initialize in manifest order.
+// Vite now imports npm Three.js r128; tools/build.mjs only validates the legacy compatibility bundle.
+// Do not change shared gameplay state while migrating the build system.
 //
 // COORDINATES
 //  - World: x/z are the ground plane, y is up. The arena spans x,z in [-A, A] with A = 60.
