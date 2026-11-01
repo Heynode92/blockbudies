@@ -1,8 +1,8 @@
 // Home menu showcase: local gameplay videos, separate from the Three.js map render.
 // Only the HOME panel owns playback; inventory, room lobby and matches stay unaffected.
 var HOME_DEMOS=Object.freeze({
- deathmatch:Object.freeze({src:"./src/assets/video/deatch_match_demo.mp4",label:"DEATHMATCH",detail:"5V5 · ALL-OUT COMBAT",number:"01"}),
- bomb:Object.freeze({src:"./src/assets/video/bomb_mission_demo.mp4",label:"BOMB MISSION",detail:"TACTICAL · PLANT & DEFUSE",number:"02"})
+ deathmatch:Object.freeze({src:GAME_ASSET_URLS.deathmatch,label:"DEATHMATCH",detail:"5V5 · ALL-OUT COMBAT",number:"01"}),
+ bomb:Object.freeze({src:GAME_ASSET_URLS.bomb,label:"BOMB MISSION",detail:"TACTICAL · PLANT & DEFUSE",number:"02"})
 });
 var homeDemoKey="deathmatch",homeDemoHasError=false;
 var homeDemoVideo=document.getElementById("homeDemoVideo"),
