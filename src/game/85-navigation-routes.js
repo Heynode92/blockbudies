@@ -64,7 +64,10 @@ function appRouteRestore(){
   }else{
    roomQuickFromBrowser=false;lobP("lbs");
   }
- }finally{appRouteBooting=false;}
+ }finally{
+  appRouteBooting=false;
+  document.documentElement.classList.remove("pb-route-restoring");
+ }
  var active=document.querySelector("#lb>.lbp.on");
  if(active)appRouteUpdate(active.id,true);
 }
