@@ -43,7 +43,7 @@ export function pointBlockGamePlugin(root) {
       for (const path of manifest.parts) watch.add(resolve(root, path));
       watch.add(manifestFile);
       for (const path of watch) this.addWatchFile(path);
-      return `export function mountPointBlock(THREE, GAME_ASSET_URLS) {\n${sources(manifest.parts).join('')}\n}\n`;
+      return `export function mountPointBlock(THREE, GAME_ASSET_URLS, MENU_BGM) {\n${sources(manifest.parts).join('')}\n}\n`;
     },
     handleHotUpdate(ctx) {
       if (!watch.has(resolve(ctx.file))) return;
