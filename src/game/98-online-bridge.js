@@ -584,7 +584,12 @@ if(onlineApi)onlineApi.setOnChange(function(state){
  homeWalletRender();
  var wasLogout=onlineWasAuthenticated&&!state.authenticated;
  onlineWasAuthenticated=state.authenticated;
- if(wasLogout){onlineResetLive();roomList=[];roomCurrent=null;onlineRoomRender()}
+ if(wasLogout){
+  var hadLiveGame=onlineActive;
+  onlineResetLive();
+  if(hadLiveGame&&(run||!lob))matchExitToLobby('list');
+  roomList=[];roomCurrent=null;onlineRoomRender();
+ }
 });
 function onlineAction(id,fn) {
  var el=document.getElementById(id);if(!el)return;

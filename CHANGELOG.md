@@ -1,3 +1,7 @@
+## 2026-11-02 — F1/F4 authenticated session teardown
+- On wallet account/chain switch or SIWE logout, immediately leave the online gameplay presentation, close the WebSocket and return to lobby.
+- Never allow the browser to silently fall back into offline physics/BOT simulation with run=true after server authority has been revoked.
+
 ## 2026-11-02 — F5 server-filtered actor visibility and public scoreboard
 - Remove actor entities immediately when the recipient-scoped snapshot no longer includes them, preventing stale hidden enemies from remaining in the local radar/Three.js actor pool.
 - Render the full public server-issued 5v5 kill/death scoreboard independently of line-of-sight filtered actor positions, preserving the local YOU record reference.
