@@ -82,6 +82,9 @@
     "src/styles/09-inventory.css",
     "src/styles/10-shop.css",
     "src/styles/11-tactical-optics.css",
-    "src/styles/12-inventory-armory.css"
+    "src/styles/12-inventory-armory.css",
+    "src/styles/13-home-header.css",
+    "src/styles/14-room-browser.css",
+    "src/styles/15-room-master-settings.css"
   ]
 }
