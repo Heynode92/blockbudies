@@ -9,6 +9,7 @@ var onlineTeamNotice=null,onlineInputId=0,onlineVisualLoaded=false;
 var onlineReconnectTimer=0,onlineReconnectStarted=0,onlineReconnecting=false;
 var onlineAimInitialized=false,onlineTrainingProgressValue=null,onlinePrevAlive=true;
 var onlineSelfTarget=null,onlineLastWinner=undefined,onlineMuzzleTime=0;
+var onlineScoreboard=new Map();
 function onlineWarn(error) {
  var code=typeof error==='string'?error:error&&error.code||'BACKEND_UNAVAILABLE';
  roomSetMessage(code);if(typeof roomLiveLog==='function'&&roomCurrent)roomLiveLog(code);
@@ -198,7 +199,7 @@ function onlineResetLive(){
  for(const item of onlineActors.values()){if(item.model?.g)S.remove(item.model.g)}
  onlineActors.clear();onlineMeId=null;onlineSeq=0;onlineSendAt=0;onlineVisualLoaded=false;
  onlineAimInitialized=false;onlineTrainingProgressValue=null;onlinePrevAlive=true;
- onlineSelfTarget=null;onlineLastWinner=undefined;onlineMuzzleTime=0;
+ onlineSelfTarget=null;onlineLastWinner=undefined;onlineMuzzleTime=0;onlineScoreboard.clear();
  onlineApi?.closeLive();clearInterval(onlineRoomTimer);clearTimeout(onlineReconnectTimer);
  onlineReconnecting=false;onlineReconnectStarted=0;
 }
@@ -377,7 +378,7 @@ function onlineApplyWorld(){
  if(world.matchId!==onlineMatchId&&onlineMatchId&&!onlineTraining)return;
  if(!onlineVisualLoaded){
   en.forEach(function(b){if(b?.g)S.remove(b.g)});en.length=0;
-  ROS=pl.st?[pl.st]:[];onlineActors.clear();onlineVisualLoaded=true;
+  ROS=pl.st?[pl.st]:[];onlineActors.clear();onlineScoreboard.clear();onlineVisualLoaded=true;
  }
  var selfId=onlineUserId();
  var self=world.actors.find(a=>a.id===selfId);
@@ -417,10 +418,9 @@ function onlineApplyWorld(){
    model.id=actor.id;model.bot=!!actor.bot;
    model.name=actor.bot?model.name:roomCurrent?.members?.find(m=>m.playerId===actor.id)?.username||'PLAYER';
    if(!actor.bot)onlineLabelActor(model,model.name);
-   model.st={name:model.name,tm:actor.team,k:0,d:0};
+   model.st=onlineScoreboard.get(actor.id)||{name:model.name,tm:actor.team,k:0,d:0};
    placeBot(model);
    onlineActors.set(actor.id,{model,label:model.name,tm:actor.team});
-   ROS.push(model.st);
    current=onlineActors.get(actor.id);
   }
   var bot=current.model;
@@ -432,15 +432,31 @@ function onlineApplyWorld(){
   bot.g.visible=!!actor.alive;
   if(bot.nm)bot.nm.visible=actor.team===pl.tm&&actor.alive;
  });
+ // Server redacts hidden enemies. Drop the old visual AND its last known coordinates
+ // from the local actor pool; the browser must not keep a phantom radar target.
  for(const [id,current] of onlineActors){
-  if(!visible.has(id))current.model.g.visible=false; // NEVER retain hidden enemy silhouettes.
+  if(!visible.has(id)){
+   if(current.model?.g)S.remove(current.model.g);
+   var index=en.indexOf(current.model);
+   if(index>=0)en.splice(index,1);
+   onlineActors.delete(id);
+  }
  }
  if(Array.isArray(game.scoreboard)){
+  var entries=[];
   game.scoreboard.forEach(function(row){
-   if(!row||!Number.isSafeInteger(row.kills)||!Number.isSafeInteger(row.deaths))return;
-   var entry=row.id===selfId?pl.st:onlineActors.get(row.id)?.model?.st;
-   if(entry){entry.k=row.kills;entry.d=row.deaths;}
+   if(!row||typeof row.id!=='string'||!Number.isSafeInteger(row.kills)||!Number.isSafeInteger(row.deaths))return;
+   var entry=row.id===selfId?pl.st:onlineScoreboard.get(row.id);
+   if(!entry){
+    var human=roomCurrent?.members?.find(function(m){return m.playerId===row.id});
+    entry={name:human?.username||'BOT',tm:row.team,k:0,d:0};
+   }
+   entry.tm=row.team;entry.k=row.kills;entry.d=row.deaths;
+   onlineScoreboard.set(row.id,entry);entries.push(entry);
+   var model=onlineActors.get(row.id)?.model;
+   if(model)model.st=entry;
   });
+  ROS=entries;
  }
  if(bombMatch&&world.bomb&&game.bombState){
   bombMatch.state=game.bombState;

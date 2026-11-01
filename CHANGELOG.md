@@ -1,3 +1,8 @@
+## 2026-11-02 — F5 server-filtered actor visibility and public scoreboard
+- Remove actor entities immediately when the recipient-scoped snapshot no longer includes them, preventing stale hidden enemies from remaining in the local radar/Three.js actor pool.
+- Render the full public server-issued 5v5 kill/death scoreboard independently of line-of-sight filtered actor positions, preserving the local YOU record reference.
+- Backend retains authority for actor detection, score, kills and all match rewards.
+
 ## 2026-11-02 — F5 server-owned abandon and local VFX separation
 - Route ESC confirmation through authenticated server match abandon before returning to lobby; remove path that could bypass server abandonment classification.
 - Keep original muzzle flash/recoil as cosmetic client feedback only, without modifying authoritative ammo, projectile or damage.
