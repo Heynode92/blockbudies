@@ -1,3 +1,11 @@
+## 2026-11-01 — Background-tab match progression (Alt+Tab)
+- Split simulation progression from WebGL rendering in `src/game/99-render-loop.js`. Visible rendering stays on `requestAnimationFrame` with the previous maximum 50ms physics delta; gameplay mechanics and shaders are unchanged.
+- Added a dedicated Vite-bundled Worker heartbeat for hidden tabs and a main-thread interval fallback when workers fail. Hidden pulses advance BOT/combat/projectile/bomb simulation in bounded 50ms steps; no offscreen WebGL rendering.
+- On browser visibility restoration (and long scheduler stalls), reconcile missed real elapsed time: up to 30 fixed simulation steps per callback, then apply any remaining gap to match timer and Bomb Mission freeze, fuse, timeout and between-round clocks without unbounded CPU usage.
+- Preserve focus safety: the existing blur handler releases mouse and keyboard input, so the unattended player cannot keep shooting or running with stale controls.
+- New independent Node tests cover frame-time cap, hidden progression, background suspension, inactive lobby and worker lifecycle. Added Vite integration assertions.
+- Limitation: browser throttling or OS tab suspension can prevent continuous detailed BOT simulation; long suspended periods keep round timers accurate on return, but skipped combat cannot be reconstructed exactly. Fully authoritative online always-running simulation requires a server.
+
 ## 2026-11-01 — Hidden autoplay BGM across menus, smooth fade into gameplay
 - Added `src/audio/menu-bgm.js`, a single hidden looping HTMLAudioElement playing `src/assets/audio/Pointblock_bgm.mp3` from Vite's compiled asset URL. No visible player, controls, or UI changes.
 - Start BGM softly (0.32 peak volume, 800ms fade-in) on initial Home access and preserve continuous playback through Room List, Create Room, Room Master Lobby, Inventory, and Shop.
