@@ -1,0 +1,25 @@
+{
+  "name": "pointblock-fps",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "PointBlock FPS — Vite-based modular frontend with the original Three.js r128 gameplay",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node tools/build.mjs --check && node --test tests/*.test.mjs",
+    "test:integration": "node --test tests/vite-integration.test.mjs",
+    "check:dist": "node tools/check-dist.mjs",
+    "verify": "npm run test && npm run build && npm run check:dist"
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "dependencies": {
+    "three": "0.128.0"
+  },
+  "devDependencies": {
+    "vite": "8.3.5"
+  }
+}
