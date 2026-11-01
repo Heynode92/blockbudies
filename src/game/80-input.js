@@ -24,7 +24,7 @@ addEventListener("pointermove",function(e){
 });
 R.domElement.addEventListener("pointerdown",function(e){if(e.pointerType==="mouse"){if((typeof wsOn!=="undefined"&&wsOn)||
   (typeof escEl!=="undefined"&&escEl.style.display==="flex")){e.preventDefault();return;}lookStartDrag(e);if(e.button===2){mouse.right=true;e.preventDefault();if(run&&!pl.dead&&WP[pl.w].snp&&mt.cd<=0&&!mt.over&&!(pl.bolt>0))scopeOn=!scopeOn;}else if(e.button===0)mouse.down=true;if(run&&!pl.dead&&!document.pointerLockElement&&R.domElement.requestPointerLock){try{R.domElement.requestPointerLock();}catch(x){}}}});
-addEventListener("pointerup",function(e){if(e.pointerType==="mouse"){mouse.down=!!(e.buttons&1);mouse.right=!!(e.buttons&2);if(!mouse.down)lookStopDrag();}});addEventListener("blur",function(){mouse.right=false;mouse.down=false;keys={};lookStopDrag();});
+addEventListener("pointerup",function(e){if(e.pointerType==="mouse"){mouse.down=!!(e.buttons&1);mouse.right=!!(e.buttons&2);if(!mouse.down)lookStopDrag();}});addEventListener("blur",function(){mouse.right=false;mouse.down=false;fireHeld=false;jumpHeld=false;keys={};ST.l.x=ST.l.y=ST.r.x=ST.r.y=0;ST.l.on=ST.r.on=false;lookStopDrag();});
 document.addEventListener("pointerlockchange",lookLockChanged);
 R.domElement.addEventListener("contextmenu",function(e){e.preventDefault();});
 // stick(): wires up a touch joystick element and stores its x/y in state st.
