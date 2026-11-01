@@ -1,3 +1,8 @@
+## 2026-11-02 — F6: inventory and loadout owned by backend
+- Remove browser localStorage weapon unlock and equipment authority. Load only the verified PlayerWeapon list and server-selected main weapon.
+- Persist main weapon changes by authenticated PUT /v1/me/loadout and apply changes only after server confirmation; fixed weapon slots remain fixed.
+- Frontend Three.js previews and inventory UI remain intact; unregistered/offline users cannot claim ownership.
+
 ## 2026-11-02 — FE online UI and session safety follow-up
 - Replace original random BOT display instances with authenticated server actors, remove them on teardown, and avoid stale silhouettes.
 - Provide backend-gated callsign overlay, control legacy direct mode START, and remove undeclared offline API access.

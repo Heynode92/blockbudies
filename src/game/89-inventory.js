@@ -38,6 +38,7 @@ function inventoryWeaponDescription(id){
  return INVENTORY_DESCRIPTIONS[WP[id].stats.kind]||"Ready for your loadout.";
 }
 var inventoryTab="main",inventoryPick={},inventoryScroll={},inventoryState={equipped:{},unlockedMain:[]};
+var inventoryServerOwned=new Set(),inventoryServerLoaded=false;
 // Inventory filters are visual-only. Shop ownership and equipped weapons remain authoritative.
 var inventoryClass="all";
 var INVENTORY_CLASSES=[["all","ALL"],["rifle","ASSAULT"],["smg","SMG"],["sniper","SNIPER"],["shotgun","SHOTGUN"],["rocket","LAUNCHER"]];
@@ -61,51 +62,60 @@ function inventoryOwned(cat){
  if(!c)return ids;
  if(INVENTORY_GEAR[cat])return INVENTORY_GEAR[cat].map(function(gear){return gear.id;});
  if(cat==="main"){
-   // Only the issued K2 is owned on a fresh profile. Old inventory settings
-   // never implied that other rifles were purchased or unlocked.
-   return inventoryCatalogMain().filter(function(id){
-     return id===WEAPON_STARTER_ID||inventoryState.unlockedMain.indexOf(id)>=0;
-   });
+   return inventoryCatalogMain().filter(function(id){return inventoryServerOwned.has(id);});
  }
  WP.forEach(function(w,id){if(c.kinds.indexOf(w.stats.kind)>=0)ids.push(id);});
  return ids;
 }
-function inventorySave(){
- try{localStorage.setItem(INVENTORY_STORAGE,JSON.stringify(inventoryState));}catch(err){}
-}
-function inventoryClaimPrimary(id){
- if(id===WEAPON_STARTER_ID||inventoryCatalogMain().indexOf(id)<0||inventoryOwned("main").indexOf(id)>=0)return false;
- inventoryState.unlockedMain.push(id);
- inventorySave();refreshWeaponSelection();
- return true;
-}
+// No localStore ownership, including historic free unlock saves.
+function inventorySave(){return false;}
+function inventoryClaimPrimary(){return false;}
 function inventoryEquipped(cat){
  var ids=inventoryOwned(cat),id=inventoryState.equipped[cat];
  return ids.indexOf(id)>=0?id:(ids.length?ids[0]:null);
 }
 function inventoryLoad(){
- var saved=null;try{saved=JSON.parse(localStorage.getItem(INVENTORY_STORAGE));}catch(err){}
- inventoryState.unlockedMain=Array.isArray(saved&&saved.unlockedMain)?
-   saved.unlockedMain.filter(function(id){return Number.isInteger(id)&&id!==WEAPON_STARTER_ID&&inventoryCatalogMain().indexOf(id)>=0;}):[];
- inventoryState.unlockedMain=inventoryState.unlockedMain.filter(function(id,i,list){return list.indexOf(id)===i;});
- INVENTORY_TABS.forEach(function(c){
-   var ids=inventoryOwned(c.key),wish=saved&&saved.equipped&&saved.equipped[c.key];
-   // Migrate older inventory saves that treated Dual Kriss as an owned item.
-   if(c.key==="main"&&wish===7)wish=6;
-   inventoryState.equipped[c.key]=ids.indexOf(wish)>=0?wish:(ids.length?ids[0]:null);
- });
- var primary=inventoryEquipped("main");if(primary!==null)favPrim=primary;
+ inventoryState.unlockedMain=[];
+ inventoryState.equipped={main:9,secondary:0,mele:4,explosive:5,helm:"standard_helmet"};
+ inventoryServerOwned.clear();inventoryServerLoaded=false;
+ favPrim=9;refreshWeaponSelection();
+}
+async function onlineLoadInventory(){
+ if(typeof PB_ONLINE==="undefined"||!PB_ONLINE.state().registered){
+  inventoryServerOwned.clear();inventoryServerLoaded=false;return false;
+ }
+ var results=await Promise.all([PB_ONLINE.inventory(),PB_ONLINE.loadout()]);
+ var items=results[0],loadout=results[1];
+ if(!Array.isArray(items?.owned)||!Number.isInteger(loadout?.equipped?.main))
+  throw Error("INVALID_BACKEND_INVENTORY");
+ var list=items.owned.map(function(item){return item.weaponId;});
+ if(list.some(function(id){return !Number.isInteger(id)||id<0||id>=WP.length;}))
+  throw Error("INVALID_BACKEND_WEAPON_IDS");
+ var owned=new Set(list),main=loadout.equipped.main;
+ if(!owned.has(main))throw Error("LOADOUT_NOT_OWNED");
+ inventoryServerOwned=owned;
+ inventoryState.equipped={main:main,secondary:0,mele:4,explosive:5,helm:"standard_helmet"};
+ favPrim=main;inventoryServerLoaded=true;
  refreshWeaponSelection();
+ if(document.getElementById("lbiv").classList.contains("on"))inventoryRender();
+ return true;
 }
 function inventoryForNewMatch(){
  var id=inventoryEquipped("main");if(id!==null)favPrim=id;
 }
 function inventoryEquip(cat,id){
- if(inventoryOwned(cat).indexOf(id)<0)return false;
- inventoryState.equipped[cat]=id;
- if(cat==="main")favPrim=id;
- inventorySave();
- inventoryRender();return true;
+ if(!inventoryOwned(cat).includes(id))return false;
+ if(cat!=="main"||!inventoryServerLoaded||typeof PB_ONLINE==="undefined"||
+    !PB_ONLINE.state().registered)return false;
+ if(inventoryState.equipped.main===id)return true;
+ PB_ONLINE.saveLoadout(id).then(function(value){
+  if(value?.equipped?.main!==id)throw Error("INVALID_SERVER_LOADOUT");
+  inventoryState.equipped.main=id;favPrim=id;refreshWeaponSelection();inventoryRender();
+ }).catch(function(error){
+  if(typeof toast==="function")toast(error.code||error.message||"LOADOUT NOT SAVED");
+  inventoryRender();
+ });
+ return true;
 }
 // Pose specifications apply to a weapon TYPE, not duplicated weapon IDs.
 // Positions are in the character's body space; IK handles the hands and elbows.
@@ -432,6 +442,8 @@ function inventoryRender(){
  inventoryShowModel(selected);
 }
 function inventoryOpen(){
+ if(typeof PB_ONLINE!=="undefined"&&PB_ONLINE.state().registered)
+  void onlineLoadInventory().catch(function(error){if(typeof toast==="function")toast(error.code||"INVENTORY UNAVAILABLE");});
  inventoryTab="main";inventoryClass="all";
  inventoryAngle=.14;lobP("lbiv");
  inventoryPreviewMount("ivpreview");inventoryPreviewSetSide(0);inventoryBuildThumbnails();inventoryRender();inventoryStartPreview();
