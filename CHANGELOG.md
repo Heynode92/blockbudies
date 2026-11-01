@@ -1,3 +1,8 @@
+## 2026-11-02 — F6: backend-priced vPBT weapon shop
+- Replace UNLOCK FREE with authenticated backend price catalog and atomic vPBT settlement. No local weapon grants are accepted.
+- Use UUID idempotency keys on purchases, refresh authoritative inventory and profile after settlement, and show server errors.
+- PBT onchain payment remains deliberately unavailable pending contract configuration. Preserve existing real weapon previews.
+
 ## 2026-11-02 — F6: inventory and loadout owned by backend
 - Remove browser localStorage weapon unlock and equipment authority. Load only the verified PlayerWeapon list and server-selected main weapon.
 - Persist main weapon changes by authenticated PUT /v1/me/loadout and apply changes only after server confirmation; fixed weapon slots remain fixed.

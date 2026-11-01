@@ -1,9 +1,9 @@
-// Shop unlocks the existing non-starter primaries without inventing a coin economy.
-// New players only own K2. Shop unlock is free until a priced economy is specified.
+// Server-priced vPBT store; browser never invents currency, ownership or free unlocks.
 var shopFilter="ALL",shopAnim=true,shopFlashId=-1,shopAcc={},shopSelectedId=null;
+var shopServerItems=new Map(),shopServerReady=false,shopOrderPending=new Map();
 var SHOP_ACCENTS=["#ff922b","#4dc3ff","#ff5c6c","#b388ff","#70e1a5","#ffd43b","#f783ac","#74c0fc"];
 function shopCatalog(){
-  return inventoryCatalogMain().filter(function(id){return id!==WEAPON_STARTER_ID;});
+  return Array.from(shopServerItems.keys()).sort(function(a,b){return a-b;});
 }
 function shopEl(tag,cls,text){
   var e=document.createElement(tag);
@@ -43,6 +43,13 @@ function shopRender(){
   var grid=document.getElementById("shopGrid"),ids=shopCatalog(),owned=inventoryOwned("main"),
       roles=[],max={d:1,s:1,m:1},flash=shopFlashId,shown=0,scrollPosition=grid.scrollTop;
   shopFlashId=-1;
+  if(!shopServerReady){
+   grid.replaceChildren();
+   grid.appendChild(shopEl("p","shop-server-status",typeof PB_ONLINE!=="undefined"&&PB_ONLINE.state().authenticated?
+     "SHOP UNAVAILABLE — VERIFY BACKEND CONNECTION":"CONNECT WALLET TO ACCESS STORE"));
+   var side=document.getElementById("shopSelected");if(side)side.replaceChildren();
+   return;
+  }
   // Bar lengths are relative to the strongest weapon in the shop, so no assumptions about stat scales.
   ids.forEach(function(id){
     var w=WP[id],r=shopRole(id);
@@ -86,11 +93,11 @@ function shopRender(){
     var ammo=shopEl("div","shop-ammo","AMMO ");
     ammo.appendChild(shopEl("b","",w.mag+" / "+w.res));
     details.appendChild(ammo);
-    var action=shopEl("button","shop-action"+(isOwned?" shop-action-owned":""),isOwned?"\u2713 OWNED":"UNLOCK FREE");
+    var product=shopServerItems.get(id);
+    var action=shopEl("button","shop-action"+(isOwned?" shop-action-owned":""),isOwned?"✓ OWNED":
+      product?shopPrice(product.priceVpbt)+" vPBT":"UNAVAILABLE");
     action.type="button";action.disabled=isOwned;
-    action.onclick=function(e){e.stopPropagation();
-      if(inventoryClaimPrimary(id)){shopAnim=false;shopFlashId=id;shopRender();toast("UNLOCKED: "+w.n);}
-    };
+    action.onclick=function(e){e.stopPropagation();void shopPurchase(id);};
     tile.appendChild(media);tile.appendChild(details);tile.appendChild(action);
     grid.appendChild(tile);shown++;
   });
@@ -123,13 +130,56 @@ function shopRenderSelection(ids,owned,max){
  host.appendChild(stats);
  var ammo=shopEl("div","shop-sel-ammo","AMMO ");
  ammo.appendChild(shopEl("b","",w.mag+" / "+w.res));host.appendChild(ammo);
- var action=shopEl("button","shop-action shop-sel-action"+(isOwned?" shop-action-owned":""),isOwned?"✓ OWNED":"UNLOCK FREE");
+ var product=shopServerItems.get(id);
+ var action=shopEl("button","shop-action shop-sel-action"+(isOwned?" shop-action-owned":""),isOwned?"✓ OWNED":
+   product?shopPrice(product.priceVpbt)+" vPBT":"UNAVAILABLE");
  action.type="button";action.disabled=isOwned;
- action.onclick=function(){if(inventoryClaimPrimary(id)){shopAnim=false;shopFlashId=id;shopRender();toast("UNLOCKED: "+w.n);}};
+ action.onclick=function(){void shopPurchase(id);};
  host.appendChild(action);
 }
+function shopPrice(value){
+ return Number.isSafeInteger(value)&&value>=0?new Intl.NumberFormat("en-US").format(value):"—";
+}
+async function shopPurchase(id){
+ if(!shopServerReady||!shopServerItems.has(id)||typeof PB_ONLINE==="undefined"||
+    !PB_ONLINE.state().registered||inventoryServerOwned.has(id))return;
+ var key=shopOrderPending.get(id)||crypto.randomUUID();
+ shopOrderPending.set(id,key);
+ var controls=Array.from(document.querySelectorAll(".shop-action"));
+ controls.forEach(function(btn){btn.disabled=true;});
+ try{
+  var result=await PB_ONLINE.buyWeapon(id,key);
+  if(result?.status!=="SETTLED")throw Error("INVALID_SHOP_SETTLEMENT");
+  shopOrderPending.delete(id);
+  await onlineLoadInventory();await PB_ONLINE.refreshProfile();
+  shopFlashId=id;shopRender();toast("PURCHASE CONFIRMED — "+WP[id].n);
+ }catch(error){toast(error.code||error.message||"PURCHASE NOT COMPLETED");shopRender();}
+ finally{controls.forEach(function(btn){btn.disabled=false;});}
+}
+async function shopRefresh(){
+ shopServerReady=false;shopRender();
+ if(typeof PB_ONLINE==="undefined"||!PB_ONLINE.state().registered)return;
+ try{
+  var results=await Promise.all([PB_ONLINE.shop(),onlineLoadInventory()]);
+  var catalog=results[0];
+  if(!Array.isArray(catalog?.purchasable)||catalog.pbtCheckoutEnabled!==false)
+   throw Error("INVALID_BACKEND_SHOP_POLICY");
+  var next=new Map();
+  catalog.purchasable.forEach(function(item){
+   if(!Number.isInteger(item.weaponId)||item.weaponId<0||item.weaponId>=WP.length||
+      !Number.isSafeInteger(item.priceVpbt)||item.priceVpbt<0||item.currency!=="vPBT")
+    throw Error("INVALID_BACKEND_SHOP_ITEM");
+   next.set(item.weaponId,item);
+  });
+  shopServerItems=next;shopServerReady=true;shopRender();
+ }catch(error){shopServerReady=false;shopServerItems.clear();shopRender();
+  toast(error.code||error.message||"SHOP UNAVAILABLE");
+ }
+}
 function shopOpen(){
-  lobP("lbshop");shopAnim=true;inventoryBuildThumbnails();document.getElementById("shopGrid").scrollTop=0;shopRender();
+ lobP("lbshop");shopAnim=true;inventoryBuildThumbnails();
+ document.getElementById("shopGrid").scrollTop=0;shopRender();
+ void shopRefresh();
 }
 document.getElementById("lshop").addEventListener("click",shopOpen);
 document.getElementById("shopBack").addEventListener("click",roomQuickBack);
