@@ -5,9 +5,8 @@ import { resolve } from 'node:path';
 // making npm/Vite the only runtime build path. Convert to true per-feature ESM
 // later, with isolated state and parity tests, rather than risking gameplay.
 const RUNTIME_ID = 'virtual:pointblock-game';
-const STYLES_ID = 'virtual:pointblock-styles';
+// CSS loads via explicit HTML <link> tags before JS, avoiding unstyled SVG flashes.
 const VIRTUAL_RUNTIME_ID = '\0' + RUNTIME_ID;
-const VIRTUAL_STYLES_ID = '\0' + STYLES_ID;
 
 export function pointBlockGamePlugin(root) {
   const manifestFile = resolve(root, 'tools/source-manifest.json');
@@ -35,27 +34,21 @@ export function pointBlockGamePlugin(root) {
     enforce: 'pre',
     resolveId(id) {
       if (id === RUNTIME_ID) return VIRTUAL_RUNTIME_ID;
-      if (id === STYLES_ID) return VIRTUAL_STYLES_ID;
       return null;
     },
     load(id) {
-      if (id !== VIRTUAL_RUNTIME_ID && id !== VIRTUAL_STYLES_ID) return null;
+      if (id !== VIRTUAL_RUNTIME_ID) return null;
       const manifest = readManifest();
       watch.clear();
-      for (const path of [...manifest.parts, ...manifest.styles]) watch.add(resolve(root, path));
+      for (const path of manifest.parts) watch.add(resolve(root, path));
       watch.add(manifestFile);
       for (const path of watch) this.addWatchFile(path);
-      if (id === VIRTUAL_STYLES_ID) {
-        return manifest.styles.map(path => `import ${JSON.stringify('/' + path)};`).join('\n') + '\n';
-      }
       return `export function mountPointBlock(THREE, GAME_ASSET_URLS) {\n${sources(manifest.parts).join('')}\n}\n`;
     },
     handleHotUpdate(ctx) {
       if (!watch.has(resolve(ctx.file))) return;
-      for (const id of [VIRTUAL_RUNTIME_ID, VIRTUAL_STYLES_ID]) {
-        const mod = ctx.server.moduleGraph.getModuleById(id);
-        if (mod) ctx.server.moduleGraph.invalidateModule(mod);
-      }
+      const mod = ctx.server.moduleGraph.getModuleById(VIRTUAL_RUNTIME_ID);
+      if (mod) ctx.server.moduleGraph.invalidateModule(mod);
       // Canvas, WebGL state and registered listeners require a clean reload.
       ctx.server.ws.send({ type: 'full-reload' });
       return [];
