@@ -1,3 +1,10 @@
+## 2026-11-02 — FE authoritative safety and Bomb UI integration
+- Fix false-unauthenticated listener recursion; restore backend Room Browser rows; prevent Room Master starting if server-side settings save fails.
+- Keep local view yaw stable while rendering server player coordinates; server still owns hit/damage and validation.
+- Render Terrorist-only bomb carrier, private plant/defuse progress and server round scores from trusted snapshots; remove local action inference in online mode.
+- Fail closed on unresolved sub-10 training timeout and intercept obsolete local team START/replay buttons.
+- Include scoped online CSS link in Vite HTML cascade.
+
 ## 2026-11-02 — F7: integration contract and independent Windows build
 - Document exact signed-in game transport, recipient-scoped snapshots, trusted shop and training routes plus BE mainnet configuration.
 - Add independent Windows production-build workflow to validate Vite output despite offline-era tests that assert removed local room/free-shop semantics; retain older CI failures openly for contract migration.

@@ -190,7 +190,7 @@ function bombHudUpdate(){
   if(!show)return;
   var b=bombMatch,roundLabel=BOMB_TEXT.round+' '+b.round+' / '+roomRoundLimit();
   bombInfo.textContent=roundLabel+(b.state==='planted'?'  |  '+BOMB_TEXT.planted+' '+BOMB_SITES[b.site].id:'');
-  var action=!pl.dead?bombActionFor(pl):null;
+  var action=!pl.dead&&!onlineActive?bombActionFor(pl):null;
   var label='',progress=0;
   if(pl.dead){
     var target=bombSpectatorTarget(),enemyTarget=target&&target.tm!==pl.tm;

@@ -7,6 +7,7 @@ var onlineWorld=null,onlineGame=null,onlineActors=new Map(),onlineSeq=0,onlineSe
 var onlineLobbyTimer=0,onlineRoomOpening=false,onlineRoomTimer=0,onlineRouteToken=0;
 var onlineTeamNotice=null,onlineInputId=0,onlineVisualLoaded=false;
 var onlineReconnectTimer=0,onlineReconnectStarted=0,onlineReconnecting=false;
+var onlineAimInitialized=false,onlineTrainingProgressValue=null,onlinePrevAlive=true;
 function onlineWarn(error) {
  var code=typeof error==='string'?error:error&&error.code||'BACKEND_UNAVAILABLE';
  roomSetMessage(code);if(typeof roomLiveLog==='function'&&roomCurrent)roomLiveLog(code);
@@ -69,6 +70,7 @@ function onlineRoomRender(){
   var button=cell('button','JOIN');button.type='button';
   button.disabled=r.status!=='OPEN';
   button.addEventListener('click',()=>{void onlineSelectRoom(r.id)});
+  list.appendChild(row);
  });
 }
 async function onlineRefreshRooms(){
@@ -143,7 +145,7 @@ async function onlineCreateRoom(){
  }catch(error){onlineWarn(error)}
 }
 async function onlineSaveRoom(inModal){
- if(!onlineAuth()||!onlineIsMaster()){onlineWarn('ROOM_MASTER_REQUIRED');return}
+ if(!onlineAuth()||!onlineIsMaster()){onlineWarn('ROOM_MASTER_REQUIRED');return false}
  try{
   var draft=inModal&&roomModalDraft?
     {...roomModalDraft,name:document.getElementById('roomModalName').value.trim().slice(0,32)}:roomFormData();
@@ -151,8 +153,8 @@ async function onlineSaveRoom(inModal){
   var updated=await onlineApi.updateRoom(roomCurrent.id,onlineRoomUpdateBody(draft));
   var room=onlineAdoptRoom(updated);
   if(inModal)roomModalHide(false);
-  onlineLiveRoomDecorate(room);roomLiveLog('SERVER SETTINGS SAVED');
- }catch(error){onlineWarn(error);if(inModal)roomText('roomModalError',error.code||error.message||'SAVE FAILED')}
+  onlineLiveRoomDecorate(room);roomLiveLog('SERVER SETTINGS SAVED');return true;
+ }catch(error){onlineWarn(error);if(inModal)roomText('roomModalError',error.code||error.message||'SAVE FAILED');return false;}
 }
 async function onlineSwitchTeam(team){
  if(!onlineAuth()||!roomCurrent||team===roomSide)return;
@@ -194,6 +196,7 @@ function onlineResetLive(){
  onlineWorld=null;onlineGame=null;
  for(const item of onlineActors.values()){if(item.model?.g)S.remove(item.model.g)}
  onlineActors.clear();onlineMeId=null;onlineSeq=0;onlineSendAt=0;onlineVisualLoaded=false;
+ onlineAimInitialized=false;onlineTrainingProgressValue=null;onlinePrevAlive=true;
  onlineApi?.closeLive();clearInterval(onlineRoomTimer);clearTimeout(onlineReconnectTimer);
  onlineReconnecting=false;onlineReconnectStarted=0;
 }
@@ -210,7 +213,7 @@ async function onlineMasterStart(){
  if(!onlineAuth()||!onlineIsMaster()||onlineActive){onlineWarn('ROOM_MASTER_REQUIRED');return}
  document.getElementById('rmlStart').disabled=true;
  try{
-  await onlineSaveRoom(false);
+  if(!await onlineSaveRoom(false))return;
   var started=await onlineApi.startRoom(roomCurrent.id);
   onlineMatchId=started.matchId;
   await onlineAttachMatch(roomCurrent);
@@ -265,7 +268,14 @@ function onlineReceiveFrame(frame){
   matchExitToLobby('list');
   return;
  }
- if(frame.type==='training_result'){onlineTrainingProgress(frame.progress);if(frame.progress?.status==='COMPLETED')onlineTrainingCompleted();}
+ if(frame.type==='training_result'){
+  onlineTrainingProgress(frame.progress);
+  if(frame.progress?.status==='COMPLETED'){void onlineTrainingCompleted();return;}
+  if(frame.progress?.status==='TIMEOUT_POLICY_PENDING'){
+   onlineResetLive();run=false;lob=true;lb.style.display='flex';document.body.classList.add('lobby');
+   lobP('lbs');onlineWarn('TRAINING_TIME_EXPIRED_NOT_ELIGIBLE');
+  }
+ }
 }
 function onlineSocketStatus(info){
  if(info.code===1000||!onlineActive||onlineReconnecting)return;
@@ -291,6 +301,7 @@ async function onlineRetry(){
 }
 function onlineTrainingProgress(progress){
  if(!progress)return;
+ onlineTrainingProgressValue=progress;
  var text='TRAINING '+progress.combinedKills+' / '+progress.targetKills;
  var element=document.getElementById('rsp');
  if(element&&onlineTraining)element.textContent=text;
@@ -379,7 +390,10 @@ function onlineApplyWorld(){
   if(Number.isInteger(privateState?.ammo?.reserve))pl.res=privateState.ammo.reserve;
   if(pl.st&&privateState){pl.st.k=privateState.kills;pl.st.d=privateState.deaths;}
   if(self.weaponId>=0&&self.weaponId<WP.length)pl.w=self.weaponId;
-  if(self.alive)pl.face=self.yaw;
+  if(self.alive&&(!onlineAimInitialized||!onlinePrevAlive)){
+   pl.face=self.yaw;onlineAimInitialized=true;
+  }
+  onlinePrevAlive=self.alive;
  }
  if(Array.isArray(game.teamKills)){ts[0]=game.teamKills[0];ts[1]=game.teamKills[1]}
  mt.t=Number.isFinite(game.remaining)?Math.max(0,game.remaining):mt.t;
@@ -421,7 +435,20 @@ function onlineApplyWorld(){
  }
  if(bombMatch&&world.bomb&&game.bombState){
   bombMatch.state=game.bombState;
-  bombMatch.dropped=world.bomb.visibility==='TERRORISTS_ONLY'?world.bomb.position:null;
+  bombMatch.roundWins=Array.isArray(game.rounds)?game.rounds:bombMatch.roundWins;
+  if(Array.isArray(game.rounds))bombMatch.round=1+game.rounds[0]+game.rounds[1];
+  bombMatch.dropped=world.bomb.visibility==='TERRORISTS_ONLY'&&pl.tm===1?world.bomb.position:null;
+  bombMatch.carrier=pl.tm===1&&world.bomb.carrierId===selfId?pl:
+   pl.tm===1?onlineActors.get(world.bomb.carrierId)?.model||null:null;
+  var action=world.privateState?.bombAction;
+  pl.bAction=action&&['plant','defuse'].includes(action.kind)&&
+   Number.isFinite(action.progress)&&Number.isFinite(action.required)&&action.required>0?
+   {type:action.kind,t:Math.min(action.progress,action.required),site:bombMatch.site}:null;
+  if(world.bomb.visibility==='PUBLIC_PLANTED'&&world.bomb.position&&BOMB_SITES.length){
+   var nearest=BOMB_SITES.map(function(q,index){return{index:index,d:Math.hypot(q.x-world.bomb.position.x,q.z-world.bomb.position.z)};})
+     .sort(function(x,y){return x.d-y.d})[0];
+   if(nearest)bombMatch.site=nearest.index;
+  }
   if(world.bomb.visibility==='PUBLIC_PLANTED'&&world.bomb.position&&bombMatch.device){
    bombMatch.device.position.set(world.bomb.position.x,0,world.bomb.position.z);
    bombMatch.device.visible=true;
@@ -464,6 +491,8 @@ function onlineVisualUpdate(dt){
  });
  if(typeof hud==='function')hud();
  if(typeof hdUpd==='function')hdUpd(dt);
+ if(onlineTraining&&onlineTrainingProgressValue)onlineTrainingProgress(onlineTrainingProgressValue);
+ if(isBombMode()&&bombMatch&&typeof bombHudUpdate==='function')bombHudUpdate();
 }
 var oldOnlineRoomRender=roomRender,oldOnlineRoomLobbyOpen=roomLobbyOpen;
 roomRender=onlineRoomRender;
@@ -474,9 +503,12 @@ roomLobbyOpen=function(){
  oldOnlineRoomLobbyOpen();
  if(onlineApi?.state().registered)void onlineRefreshRooms();
 };
+var onlineWasAuthenticated=onlineApi?.state().authenticated===true;
 if(onlineApi)onlineApi.setOnChange(function(state){
  homeWalletRender();
- if(!state.authenticated){onlineResetLive();roomList=[];roomCurrent=null;onlineRoomRender()}
+ var wasLogout=onlineWasAuthenticated&&!state.authenticated;
+ onlineWasAuthenticated=state.authenticated;
+ if(wasLogout){onlineResetLive();roomList=[];roomCurrent=null;onlineRoomRender()}
 });
 function onlineAction(id,fn) {
  var el=document.getElementById(id);if(!el)return;
@@ -486,6 +518,9 @@ function onlineAction(id,fn) {
 }
 onlineAction('lbst',onlineStartGate);
 onlineAction('mdm',onlineStartGate);
+onlineAction('tsP',onlineStartGate);
+onlineAction('tsT',onlineStartGate);
+onlineAction('dgo',()=>{onlineResetLive();matchExitToLobby('list')});
 onlineAction('roomCreate',onlineCreateRoom);
 onlineAction('roomRefresh',onlineRefreshRooms);
 onlineAction('roomSave',()=>onlineSaveRoom(false));
