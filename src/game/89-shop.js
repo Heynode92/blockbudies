@@ -151,8 +151,13 @@ async function shopPurchase(id){
   var result=await PB_ONLINE.buyWeapon(id,key);
   if(result?.status!=="SETTLED")throw Error("INVALID_SHOP_SETTLEMENT");
   shopOrderPending.delete(id);
-  await onlineLoadInventory();await PB_ONLINE.refreshProfile();
-  shopFlashId=id;shopRender();toast("PURCHASE CONFIRMED — "+WP[id].n);
+  try{
+   await onlineLoadInventory();await PB_ONLINE.refreshProfile();
+   shopFlashId=id;shopRender();toast("PURCHASE CONFIRMED — "+WP[id].n);
+  }catch(refreshError){
+   toast("PURCHASE SETTLED — INVENTORY SYNC PENDING");
+   void shopRefresh();
+  }
  }catch(error){toast(error.code||error.message||"PURCHASE NOT COMPLETED");shopRender();}
  finally{controls.forEach(function(btn){btn.disabled=false;});}
 }

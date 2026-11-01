@@ -1,3 +1,9 @@
+## 2026-11-02 — F5/F6: player snapshot presentation and verified result UX
+- Do not transmit gameplay input while the authoritative server marks the actor dead; this avoids the server rejecting dead-player frames and terminating the spectator socket.
+- Smooth own camera position toward authorized server snapshots without using client predictions as damage/position authority. Render proper username labels instead of placeholder BOT labels on human avatars.
+- Display server-derived match scores, winner and actual settled EXP/vPBT from the authenticated reward API; never use the original local XP/highscore report.
+- Distinguish financially settled vPBT orders from a subsequent inventory refresh failure, preventing misleading purchase-failed messages.
+
 ## 2026-11-02 — FE authoritative safety and Bomb UI integration
 - Fix false-unauthenticated listener recursion; restore backend Room Browser rows; prevent Room Master starting if server-side settings save fails.
 - Keep local view yaw stable while rendering server player coordinates; server still owns hit/damage and validation.

@@ -8,6 +8,7 @@ var onlineLobbyTimer=0,onlineRoomOpening=false,onlineRoomTimer=0,onlineRouteToke
 var onlineTeamNotice=null,onlineInputId=0,onlineVisualLoaded=false;
 var onlineReconnectTimer=0,onlineReconnectStarted=0,onlineReconnecting=false;
 var onlineAimInitialized=false,onlineTrainingProgressValue=null,onlinePrevAlive=true;
+var onlineSelfTarget=null,onlineLastWinner=null;
 function onlineWarn(error) {
  var code=typeof error==='string'?error:error&&error.code||'BACKEND_UNAVAILABLE';
  roomSetMessage(code);if(typeof roomLiveLog==='function'&&roomCurrent)roomLiveLog(code);
@@ -197,6 +198,7 @@ function onlineResetLive(){
  for(const item of onlineActors.values()){if(item.model?.g)S.remove(item.model.g)}
  onlineActors.clear();onlineMeId=null;onlineSeq=0;onlineSendAt=0;onlineVisualLoaded=false;
  onlineAimInitialized=false;onlineTrainingProgressValue=null;onlinePrevAlive=true;
+ onlineSelfTarget=null;onlineLastWinner=null;
  onlineApi?.closeLive();clearInterval(onlineRoomTimer);clearTimeout(onlineReconnectTimer);
  onlineReconnecting=false;onlineReconnectStarted=0;
 }
@@ -257,15 +259,17 @@ function onlineReceiveFrame(frame){
  }
  if(frame.type==='match_event'){
   var event=frame.event;
+  if(event?.kind==='MATCH_END')onlineLastWinner=event.winner;
   if(event?.kind==='KILL'&&onlineActive){var actor=onlineActors.get(event.actorId)?.label||'PLAYER';
    var victim=onlineActors.get(event.victimId)?.label||'PLAYER';
    roomLiveLog(actor+' ELIMINATED '+victim);}
   return;
  }
  if(frame.type==='match_completed'){
-  mt.over=true;onlineGame=frame.game;onlineResetLive();
-  if(typeof toast==='function')toast('MATCH COMPLETED — SERVER VERIFIED');
+  var result=frame.game,matchId=frame.matchId,winner=onlineLastWinner;
+  mt.over=true;onlineGame=result;onlineResetLive();
   matchExitToLobby('list');
+  onlineShowMatchReport(result,matchId,winner);
   return;
  }
  if(frame.type==='training_result'){
@@ -379,7 +383,11 @@ function onlineApplyWorld(){
  var self=world.actors.find(a=>a.id===selfId);
  // Spectator snapshots remain recipient-bound; hidden enemies are never created.
  if(self){
-  pl.tm=self.team;pl.x=self.x;pl.y=self.y;pl.z=self.z;
+  pl.tm=self.team;
+  if(!onlineSelfTarget||Math.hypot(self.x-pl.x,self.z-pl.z)>12||!onlinePrevAlive&&self.alive){
+   pl.x=self.x;pl.y=self.y;pl.z=self.z;
+  }
+  onlineSelfTarget={x:self.x,y:self.y,z:self.z};
   pl.dead=!self.alive;
   var privateState=world.privateState;
   pl.hp=privateState?.hp??self.hp??pl.hp;
@@ -408,6 +416,7 @@ function onlineApplyWorld(){
    var model=newBot(actor.team,index);
    model.id=actor.id;model.bot=!!actor.bot;
    model.name=actor.bot?model.name:roomCurrent?.members?.find(m=>m.playerId===actor.id)?.username||'PLAYER';
+   if(!actor.bot)onlineLabelActor(model,model.name);
    model.st={name:model.name,tm:actor.team,k:0,d:0};
    placeBot(model);
    onlineActors.set(actor.id,{model,label:model.name,tm:actor.team});
@@ -456,6 +465,44 @@ function onlineApplyWorld(){
  }
  if(typeof tmUpd==='function')tmUpd();
 }
+// Real player display names only; the original BOT badge is never shown on a human.
+function onlineLabelActor(model,name){
+ if(!model?.nm||typeof name!=='string')return;
+ var label=name.slice(0,12).toUpperCase(),canvas=document.createElement('canvas');
+ canvas.width=256;canvas.height=64;
+ var ctx=canvas.getContext('2d');if(!ctx)return;
+ ctx.font='700 40px Rajdhani,"Trebuchet MS",sans-serif';
+ ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineWidth=7;
+ ctx.strokeStyle='rgba(0,0,0,.85)';ctx.strokeText(label,128,34);
+ ctx.fillStyle=model.tm===1?'#ff8a65':'#74c0fc';ctx.fillText(label,128,34);
+ var old=model.nm.material.map;model.nm.material.map=new T.CanvasTexture(canvas);
+ model.nm.material.needsUpdate=true;
+ if(old&&typeof old.dispose==='function')old.dispose();
+}
+function onlineShowMatchReport(game,matchId,winner){
+ if(!game)return;
+ var old=document.getElementById('pointblockMatchReport');if(old)old.remove();
+ var overlay=document.createElement('div');overlay.id='pointblockMatchReport';overlay.className='point-online-dialog';
+ var panel=document.createElement('section');panel.className='point-online-dialog-panel';
+ var heading=document.createElement('h2');heading.textContent='SERVER-VERIFIED MATCH RESULT';
+ var own=roomSide===1?1:0,score=game.teamKills||[0,0];
+ if(Array.isArray(game.rounds)&&roomCurrent?.mode===1)score=game.rounds;
+ var summary=document.createElement('p');
+ summary.textContent='POLICE '+score[0]+' — '+score[1]+' TERRORISTS';
+ var verdict=document.createElement('p');
+ verdict.textContent=winner===null?'DRAW':winner===own?'VICTORY':winner===1-own?'DEFEAT':'MATCH COMPLETE';
+ var reward=document.createElement('p');reward.textContent='Reward verification pending';
+ var button=document.createElement('button');button.type='button';button.textContent='BACK TO LOBBY';
+ button.onclick=function(){overlay.remove();roomLobbyOpen()};
+ panel.append(heading,summary,verdict,reward,button);overlay.append(panel);document.body.append(overlay);
+ if(matchId&&onlineApi?.state().authenticated){
+  onlineApi.award(matchId).then(function(value){
+   function halfUnits(input){var n=BigInt(input);return (n/2n).toString()+(n%2n?'.5':'');}
+   reward.textContent='EXP +'+halfUnits(value.awardedExpHalf)+
+    ' · vPBT +'+halfUnits(value.awardedVpbtHalf);
+  }).catch(function(error){reward.textContent='Reward pending server verification ('+(error.code||'NOT_AVAILABLE')+')'});
+ }
+}
 function onlineVisualUpdate(dt){
  if(!onlineActive||!run||lob)return;
  tt+=dt;
@@ -471,7 +518,7 @@ function onlineVisualUpdate(dt){
  adsT+=((ads?1:0)-adsT)*Math.min(1,dt*12);
  sprT+=((keys.ShiftLeft||keys.ShiftRight?1:0)-sprT)*Math.min(1,dt*9);
  pl.face-=ST.r.x*2.4*dt;pl.pitch=Math.max(-1.2,Math.min(1.2,pl.pitch-ST.r.y*1.6*dt));
- if(performance.now()-onlineSendAt>=50&&onlineApi?.live){
+ if(!pl.dead&&performance.now()-onlineSendAt>=50&&onlineApi?.live){
   onlineSendAt=performance.now();
   onlineApi.live.send({type:'input',frame:{
    seq:++onlineSeq,moveX:x,moveZ:z,yaw:pl.face,pitch:pl.pitch,
@@ -482,6 +529,12 @@ function onlineVisualUpdate(dt){
   }});
  }
  onlineApplyWorld();
+ if(onlineSelfTarget){
+  var followRate=Math.min(1,dt*17);
+  pl.x+=(onlineSelfTarget.x-pl.x)*followRate;
+  pl.y+=(onlineSelfTarget.y-pl.y)*followRate;
+  pl.z+=(onlineSelfTarget.z-pl.z)*followRate;
+ }
  // Interpolate visual meshes between 10 Hz server snapshots. Never feed client
  // interpolation back into physics, collision, damage or any reward calculation.
  onlineActors.forEach(function(actor){
