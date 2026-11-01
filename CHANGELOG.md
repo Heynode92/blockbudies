@@ -1,3 +1,10 @@
+## 2026-11-01 — PointBlock Vite + npm Three.js migration foundation
+- Migrated the primary runtime entry to `src/main.js` (Vite 8.3.5) and pinned `three@0.128.0` from npm to retain original renderer, lighting, shadows, physics, BOT AI and gameplay behavior without an unverified Three.js engine upgrade.
+- Added a Vite virtual source plugin to load all existing 69 gameplay feature fragments from `tools/source-manifest.json` in their existing lexical order; CSS is now managed by the same manifest including all 15 stylesheets. Source changes trigger a clean browser reload rather than hot replacing active Three.js scene or input listeners.
+- Removed the Three.js CDN and direct `assets/game.js` script from `index.html`; the legacy bundle remains checked in only for old test parity and is not loaded by the new runtime. Vite imports the two original gameplay videos as tracked assets; PBT icon remains an HTML-managed asset.
+- Added Windows one-click `START-POINTBLOCK.cmd`, Node/npm scripts, Vite production build, smoke checks and CI. Browser gameplay must now run through localhost/Vite rather than opening `index.html` with `file://`. Route names and gameplay remain unchanged.
+- Explicit boundary: the original 69 files still share state inside one Vite-generated ESM function; this is a **build-system migration**, not a completed shared-state-to-ESM rewrite. Full interactive 3D parity is subject to browser smoke testing.
+
 ## 2026-11-01 — Room-first match exit, ESC confirmation and client routes
 - Keep the final battle report, but change its return action to BACK TO ROOM: reset combat state and restore the same existing Room Master lobby instead of sending the player Home. PLAY AGAIN remains available from the report.
 - Back to Lobby from the ESC menu now asks ARE YOU SURE? with YES / NO. NO stays in the game menu; YES abandons the live match, closes the local Room Master room consistently with existing leave semantics, and opens the Room List. Pointer lock and combat input are released.
