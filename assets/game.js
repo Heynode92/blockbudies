@@ -6953,8 +6953,70 @@ function hud(){var w=WP[pl.w],hp=pl.hp;tmUpd();wselUpd();abUpd();var tacticalAds
 // ---- MAIN LOOP ----
 // loop(now): runs update(dt) while a match is on, then positions the camera (normal view, lobby orbit, or death cam),
 // applies recoil/shake/FOV, animates the viewmodel (animHands), and renders: world first, then the viewmodel on top with depth cleared.
+// The browser pauses rAF for hidden tabs. A worker-backed heartbeat continues
+// authoritative local simulation in 50ms slices without rendering WebGL offscreen.
+// When a browser suspends even workers, account for elapsed round-clock time
+// with a bounded catch-up rather than locking the page for thousands of frames.
+function backgroundReconcileMatchTimers(seconds){
+  if(!run||mt.over||!(seconds>0))return;
+  // Controls were released on blur. Keep passive invulnerability and respawn
+  // counters in sync even if the browser throttled the hidden-tab worker.
+  pl.inv=Math.max(0,(pl.inv||0)-seconds);
+  if(pl.dead&&!isBombMode()){pl.rsT-=seconds;if(pl.rsT<=0)respawnPl();}
+  if(!isBombMode()){
+    var pre=Math.min(Math.max(0,mt.cd),seconds);
+    mt.cd-=pre;seconds-=pre;
+    if(seconds>0)mt.t-=seconds;
+    if(mt.cd<=0&&(mt.t<=0||roomReachedKillLimit()))endMatch();
+    else hud();
+    return;
+  }
+  // Bomb Mission has a freeze phase, live round timer and between-round delay.
+  // Reconcile each stage chronologically; do not change plant/defuse times.
+  var watchdog=0;
+  while(seconds>0.000001&&run&&!mt.over&&bombMatch&&watchdog++<64){
+    var b=bombMatch,delta;
+    if(b.done){
+      delta=Math.min(seconds,Math.max(0,b.finishDelay));
+      b.finishDelay-=delta;seconds-=delta;
+      if(b.finishDelay<=0)bombUpdate(0);
+      else break;
+    }else if(mt.cd>0){
+      delta=Math.min(seconds,mt.cd);
+      mt.cd-=delta;seconds-=delta;
+    }else{
+      delta=Math.min(seconds,Math.max(0,mt.t));
+      mt.t-=delta;seconds-=delta;
+      if(mt.t<=0)bombUpdate(0); // Normal fuse or timeout resolution.
+      else break;
+    }
+  }
+  if(run&&!mt.over){hud();bombHudUpdate();}
+}
 var last=performance.now();
-(function loop(now){var qaDeltaMs=now-last,qaFrameStart=botQaEnabled?performance.now():0;var dt=Math.min((now-last)/1000,.05);last=now;if(run)update(pl.dead&&pl.dt<.8?dt*(.3+.7*pl.dt/.8):dt);
+var backgroundGameClock=BACKGROUND_SIM.createSimulationClock({
+  now:function(){return performance.now();},
+  isRunning:function(){return !!run&&!mt.over;},
+  step:function(dt){update(pl.dead&&pl.dt<.8?dt*(.3+.7*pl.dt/.8):dt);},
+  fastForward:backgroundReconcileMatchTimers
+});
+BACKGROUND_SIM.ticker.onPulse(function(){
+  if(document.hidden)backgroundGameClock.tickBackground(performance.now());
+});
+function backgroundOnVisibility(){
+  if(document.hidden){
+    // Preserve real elapsed time on hidden tabs, then let the worker take over.
+    backgroundGameClock.tickBackground(performance.now());
+    BACKGROUND_SIM.ticker.setHidden(true);
+  }else{
+    backgroundGameClock.tickBackground(performance.now());
+    BACKGROUND_SIM.ticker.setHidden(false);
+  }
+}
+document.addEventListener("visibilitychange",backgroundOnVisibility);
+BACKGROUND_SIM.ticker.setHidden(document.hidden);
+addEventListener("pagehide",function(){BACKGROUND_SIM.ticker.dispose();});
+(function loop(now){var qaDeltaMs=now-last,qaFrameStart=botQaEnabled?performance.now():0;var dt=Math.min((now-last)/1000,.05);last=now;if(!document.hidden)backgroundGameClock.tickVisible(now);
   shakeT=Math.max(0,shakeT-dt);var sh=shakeT*.5;cs.s*=Math.max(0,1-dt*6);spr(cs,"k","kv",dt);spr(cs,"y","yv",dt);spr(cs,"r","rv",dt);var ft=70+(ADF[pl.w]-70)*adsT+6*sprT+Math.max(0,cs.k)*45*(1-.5*adsT);if(lob||mt.over){var la=performance.now()/9000;
     if(lob&&mapPreviewSceneBomb){var an=performance.now()/7500,cam=bombMapInfo(selectedBombMapId).preview;if(cam){C.position.set(cam.x+Math.sin(an)*2,cam.y,cam.z+Math.cos(an)*2);C.lookAt(cam.lookX,cam.lookY,cam.lookZ);ft=cam.fov;}else{C.position.set(25+Math.sin(an)*1.6,2.25,5+Math.cos(an)*1.6);C.lookAt(25+Math.sin(an+0.8)*12,2.1,5+Math.cos(an+0.8)*12);ft=72;}}
     else if(lob&&selM===0&&tdmMapId(selectedTdmMapId)==="block-labs"){var cc=tdmMapInfo(selectedTdmMapId).preview;C.position.set(cc.x+Math.sin(la)*.8,cc.y,cc.z+Math.cos(la)*.8);C.lookAt(cc.lookX,cc.lookY,cc.lookZ);ft=cc.fov;}
