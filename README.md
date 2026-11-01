@@ -26,6 +26,12 @@ Vite routes are `/` (home), `/loby`, `/loby/room/`, `/inventory`, and `/shop`. O
 
 The two showcase videos and token icon are bundled locally; the Google Fonts CSS request remains external.
 
+## Background-tab simulation
+
+When switching tabs or Alt+Tab during an active local match, PointBlock uses a Vite-bundled Worker heartbeat to keep BOT AI, movement, bullets and round objectives stepping in the background when permitted by the browser. Visible WebGL rendering remains on `requestAnimationFrame`. Each hidden update uses up to 30 physics steps of 50ms; if the browser throttles or suspends all scripts, match and Bomb round timers reconcile the remaining real elapsed time when the tab resumes. Foreground controls are released on blur.
+
+**Browser limitation:** background Workers can also be throttled or suspended. BOT actions missed during extended suspension are not reconstructible, though the match clock and round timeout will catch up. Fully continuous and authoritative gameplay without a running browser needs a game server; this remains a local client-side game.
+
 ## Menu background music
 
 `src/assets/audio/Pointblock_bgm.mp3` plays automatically when the browser permits unmuted autoplay; otherwise it begins on the first game interaction, without any visible controls. The same looping track continues through Home, Room List, Create Room, Room Master, Inventory, and Shop. It fades out over 1.4 seconds when map loading starts, pauses during combat and Battle Report, and returns on the next lobby visit. Music is handled by `src/audio/menu-bgm.js`, separate from existing battle sound effects.
