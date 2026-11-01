@@ -1,3 +1,8 @@
+## 2026-11-01 — PBT token icon uses PointBlock asset
+- Replaced the hardcoded "P" coin glyph in the shared pre-match PBT header with the existing `src/assets/icon/pb-logo.png` asset, referenced relative to the root `index.html`.
+- Render the image at a fixed 1:1 aspect ratio (25 × 25 px desktop; 22 × 22 px on compact screens) with `object-fit: contain`, removing the legacy circle glyph background so the actual logo remains visible without cropping.
+- Preserved PBT label, placeholder balance, coming-soon action, wallet connection, responsive header layout, and gameplay unchanged.
+
 ## 2026-11-01 — Room Master Settings UI parity with Create Room
 - Rebuilt the **Room Settings** dialog inside the Room Master lobby to match the existing full-width tactical FPS Create Room design: live 3D map recon and registered map cards on the left, name/mode/round or kill/time options plus 5v5 and Room Master information on the right, with pinned Cancel / Save Changes actions.
 - Removed the obsolete 720px modal styling from `src/styles/04-lobby.css` to eliminate cascade conflicts. Added a dedicated `src/styles/15-room-master-settings.css` loaded after the Room Browser stylesheet, with a responsive 1480px desktop width and smaller-screen layout.
