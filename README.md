@@ -26,6 +26,10 @@ Vite routes are `/` (home), `/loby`, `/loby/room/`, `/inventory`, and `/shop`. O
 
 The two showcase videos and token icon are bundled locally; the Google Fonts CSS request remains external.
 
+## Menu background music
+
+`src/assets/audio/Pointblock_bgm.mp3` plays automatically when the browser permits unmuted autoplay; otherwise it begins on the first game interaction, without any visible controls. The same looping track continues through Home, Room List, Create Room, Room Master, Inventory, and Shop. It fades out over 1.4 seconds when map loading starts, pauses during combat and Battle Report, and returns on the next lobby visit. Music is handled by `src/audio/menu-bgm.js`, separate from existing battle sound effects.
+
 ## Modes
 
 **Team Deathmatch** — original 5v5 gameplay, 1 minute, kill-score victory, 5-second respawns. Kept separate from Bomb Mission.
