@@ -3157,7 +3157,7 @@ function mmss(t){t=Math.floor(t);return Math.floor(t/60)+":"+("0"+t%60).slice(-2
 // cnt(): animated count-up of a number in an element (end-of-match results).
 function cnt(el,to,fmt,dur,dl){var t0=performance.now()+dl;el.textContent=fmt(0);(function f(n){var k=Math.max(0,Math.min(1,(n-t0)/dur));el.textContent=fmt(Math.round(to*(1-Math.pow(1-k,3))));if(k<1)requestAnimationFrame(f);})(performance.now());}
 // begin(tm): starts a match as team tm (0 = Police, 1 = Terrorist): hides menus, resets the world, spawns bots, starts the countdown.
-function begin(tm){document.getElementById("tsel").style.display="none";lb.style.display="none";lob=false;document.body.classList.remove("lobby","over","dead");bombCleanup();reset();selectedGameMode=selM;selectedBombMapId=selM===1&&roomMatchConfig?bombMapId(roomMatchConfig.mapId):"lockdown";selectedTdmMapId=selM===0&&roomMatchConfig?tdmMapId(roomMatchConfig.mapId):"block-district";selectGameMap(isBombMode());startMatch(tm);ov.style.display="none";run=true;/* Keep cursor free for pre-round loadout selection. */}
+function begin(tm){MENU_BGM.leaveMenu();document.getElementById("tsel").style.display="none";lb.style.display="none";lob=false;document.body.classList.remove("lobby","over","dead");bombCleanup();reset();selectedGameMode=selM;selectedBombMapId=selM===1&&roomMatchConfig?bombMapId(roomMatchConfig.mapId):"lockdown";selectedTdmMapId=selM===0&&roomMatchConfig?tdmMapId(roomMatchConfig.mapId):"block-district";selectGameMap(isBombMode());startMatch(tm);ov.style.display="none";run=true;/* Keep cursor free for pre-round loadout selection. */}
 document.getElementById("tsP").onclick=function(){begin(0);};document.getElementById("tsT").onclick=function(){begin(1);};document.getElementById("tsX").onclick=function(){document.getElementById("tsel").style.display="none";};
 // endMatch(): ends the match: stops the simulation, releases the mouse, shows the results screen (stars, scores, best score).
 function endMatch(){escHide();mt.over=true;mt.t=0;run=false;if(document.exitPointerLock)document.exitPointerLock();mouse.down=mouse.right=false;fireHeld=false;kn.innerHTML="";document.body.classList.remove("dead","bomb-spectator","loadout-active","loadout-cursor-hidden");document.body.classList.add("over");pl.dui=true;
@@ -4106,13 +4106,14 @@ function roomStartMark(percent,label){
  document.getElementById("roomStartPhase").textContent=label;
 }
 function roomStartAbort(){
- var flow=roomStartFlow;flow.token++;
+ var flow=roomStartFlow,returningFromLoading=flow.active&&flow.phase!=="countdown"&&flow.phase!=="idle";flow.token++;
  if(flow.raf)cancelAnimationFrame(flow.raf);
  if(flow.timer)clearTimeout(flow.timer);
  flow.raf=flow.timer=0;flow.active=false;flow.phase="idle";flow.config=null;flow.mapReady=false;flow.loadoutSeconds=0;
  document.getElementById("roomPrestart").hidden=true;
  var overlay=document.getElementById("roomTransition");
  overlay.classList.remove("on","leaving");overlay.hidden=true;
+ if(returningFromLoading&&lob&&!run)MENU_BGM.enterMenu();
 }
 // Copy a *real* frame of the current 3D WebGL map, no fabricated loading image.
 function roomStartCaptureMap(){
@@ -4134,6 +4135,7 @@ function roomStartCountdown(now,token){
 function roomStartLoading(token){
  var flow=roomStartFlow;if(!flow.active||token!==flow.token)return;
  flow.phase="loading";flow.raf=0;flow.mapReady=false;
+ MENU_BGM.leaveMenu(); // Smooth 1.4s fade while the 3D map loading cover is visible.
  var overlay=document.getElementById("roomTransition");
  overlay.hidden=false;overlay.classList.remove("leaving");
  roomStartMark(0,"CAPTURING 3D MAP");
@@ -4991,6 +4993,7 @@ function lobP(id){
  }
  document.getElementById("lbn").classList.remove("on");
  homeShowcaseSync();
+ if(lob&&!run)MENU_BGM.enterMenu();
  if(typeof appRouteUpdate==="function")appRouteUpdate(id);
 }
 lobBest();
