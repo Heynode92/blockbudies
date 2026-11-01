@@ -73,3 +73,20 @@ test('Menu music uses a bundled MP3 and only runs in menu/room states', () => {
  assert.match(combat,/function begin\(tm\)\{MENU_BGM\.leaveMenu\(\)/);
  assert.doesNotMatch(read('index.html'),/id=".*bgm.*"/i);
 });
+
+test('Hidden-tab worker and fixed-step simulation are injected without changing scene render loop', () => {
+ const source=read('src/game/99-render-loop.js');
+ const plugin=read('tools/vite-game-plugin.mjs');
+ assert.match(entry,/import \{ createBackgroundTicker \} from '\.\/background\/background-ticker\.js'/);
+ assert.match(entry,/import \{ createSimulationClock \} from '\.\/background\/simulation-clock\.js'/);
+ assert.match(entry,/const backgroundTicker = createBackgroundTicker\(\)/);
+ assert.match(plugin,/mountPointBlock\(THREE, GAME_ASSET_URLS, MENU_BGM, BACKGROUND_SIM\)/);
+ assert.match(source,/backgroundGameClock\.tickBackground\(performance\.now\(\)\)/);
+ assert.match(source,/if\(!document\.hidden\)backgroundGameClock\.tickVisible\(now\)/);
+ assert.match(source,/BACKGROUND_SIM\.ticker\.setHidden\(document\.hidden\)/);
+ assert.match(source,/document\.addEventListener\("visibilitychange",backgroundOnVisibility\)/);
+ assert.match(source,/backgroundReconcileMatchTimers\(seconds\)/);
+ assert.match(source,/bombUpdate\(0\)/);
+ assert.match(source,/requestAnimationFrame\(loop\)/);
+ assert.doesNotMatch(source,/if\(run\)update\(pl\.dead/);
+});
