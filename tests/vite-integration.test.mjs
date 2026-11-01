@@ -27,7 +27,7 @@ test('All existing game parts compile in original order; no gameplay files dropp
  const oldBundle = read('assets/game.js');
  const oldSource = '(function(){\n'+manifest.parts.map(read).join('').replace(/\r\n/g,'\n')+'})();\n';
  assert.equal(oldBundle.replace(/\r\n/g,'\n'),oldSource);
- const expected = `export function mountPointBlock(THREE, GAME_ASSET_URLS) {\n${manifest.parts.map(read).join('').replace(/\r\n/g,'\n')}\n}\n`;
+ const expected = `export function mountPointBlock(THREE, GAME_ASSET_URLS, MENU_BGM, BACKGROUND_SIM) {\n${manifest.parts.map(read).join('').replace(/\r\n/g,'\n')}\n}\n`;
  assert.equal(code, expected);
  assert.ok(files.has(resolve(root,'tools/source-manifest.json')));
 });
@@ -62,8 +62,8 @@ test('Menu music uses a bundled MP3 and only runs in menu/room states', () => {
  const plugin=read('tools/vite-game-plugin.mjs');
  assert.match(entry,/import menuMusic from '\.\/assets\/audio\/Pointblock_bgm\.mp3\?url'/);
  assert.match(entry,/const menuBgm = createMenuBgm\(menuMusic\)/);
- assert.match(entry,/mountPointBlock\(THREE, Object\.freeze\(\{ deathmatch: deathmatchVideo, bomb: bombVideo \}\), menuBgm\)/);
- assert.match(plugin,/mountPointBlock\(THREE, GAME_ASSET_URLS, MENU_BGM\)/);
+ assert.match(entry,/mountPointBlock\(THREE, Object\.freeze\(\{ deathmatch: deathmatchVideo, bomb: bombVideo \}\), menuBgm,/);
+ assert.match(plugin,/mountPointBlock\(THREE, GAME_ASSET_URLS, MENU_BGM, BACKGROUND_SIM\)/);
  assert.match(controller,/sound\.loop = true/);
  assert.match(controller,/events\.addEventListener\('pointerdown'/);
  assert.match(controller,/events\.addEventListener\('keydown'/);
