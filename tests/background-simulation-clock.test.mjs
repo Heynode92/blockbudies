@@ -63,3 +63,14 @@ test('Background ticker starts only when hidden, stops when visible, and never t
   assert.deepEqual(sent,['start','stop']);
   ticker.dispose();
 });
+
+test('Out-of-order foreground timestamps do not double-count time after a background pulse', () => {
+  let now=0,seconds=0;
+  const clock=createSimulationClock({now:()=>now,isRunning:()=>true,
+    step:d=>seconds+=d,fastForward:d=>seconds+=d});
+  now=1000;clock.tickBackground();
+  clock.tickVisible(995); // rAF frame timestamp is older than visibility callback.
+  assert.ok(Math.abs(seconds-1)<0.000001);
+  now=1010;clock.tickVisible();
+  assert.ok(Math.abs(seconds-1.01)<0.000001);
+});
