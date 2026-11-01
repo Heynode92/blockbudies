@@ -139,8 +139,20 @@ function escShow(){
  if(typeof lookStopDrag==="function")lookStopDrag();
  if(document.pointerLockElement===R.domElement&&document.exitPointerLock)document.exitPointerLock();
 }
-// escHide(): hides the pause overlay.
-function escHide(){escEl.style.display="none";document.body.classList.remove("game-menu-open");}
+// ESC confirm is a distinct layer: NO returns to Game Menu, YES abandons the match.
+var escConfirmEl=document.getElementById("escConfirm");
+function escConfirmClose(){
+ escConfirmEl.hidden=true;
+ var back=document.getElementById("escB");
+ if(escEl.style.display==="flex")back.focus();
+}
+function escConfirmOpen(){
+ if(escEl.style.display!=="flex")return;
+ escConfirmEl.hidden=false;
+ document.getElementById("escConfirmNo").focus();
+}
+// escHide(): hides both the pause menu and the confirmation layer.
+function escHide(){escConfirmEl.hidden=true;escEl.style.display="none";document.body.classList.remove("game-menu-open");}
 // lockTry(): tries to re-capture the mouse (pointer lock), retrying a few times.
 function lockTry(n){if(touch||!run||mt.over||lob||document.pointerLockElement||escEl.style.display==="flex"||
  (typeof wsOn!=="undefined"&&wsOn))return;try{R.domElement.requestPointerLock();}catch(e){}if(n<4)setTimeout(function(){lockTry(n+1);},400);}
@@ -150,11 +162,20 @@ document.addEventListener("pointerlockchange",function(){
  // Opening the loadout deliberately releases Pointer Lock; that is not an ESC request.
  if(!document.pointerLockElement&&!(typeof wsOn!=="undefined"&&wsOn))escShow();
 });
-addEventListener("keydown",function(e){if(e.code!=="Escape"||!run||mt.over||lob)return;if(escEl.style.display==="flex"){if(performance.now()-escT>300)escResume();}else escShow();});
+addEventListener("keydown",function(e){
+ if(e.code!=="Escape"||!run||mt.over||lob)return;
+ e.preventDefault();
+ if(!escConfirmEl.hidden){escConfirmClose();return;}
+ if(escEl.style.display==="flex"){if(performance.now()-escT>300)escResume();}
+ else escShow();
+});
 document.getElementById("escR").onclick=function(){this.blur();escResume();};
-document.getElementById("escB").onclick=function(){
- this.blur();escHide();
- // Switch to lobby first: pointerlockchange must not reopen GAME MENU mid-transition.
- document.getElementById("dmn").onclick();
- if(document.pointerLockElement&&document.exitPointerLock)document.exitPointerLock();
-};
+document.getElementById("escB").onclick=function(){this.blur();escConfirmOpen();};
+document.getElementById("escConfirmNo").onclick=escConfirmClose;
+document.getElementById("escConfirmYes").onclick=function(){matchExitToLobby("list");};
+escConfirmEl.addEventListener("keydown",function(e){
+ if(e.key!=="Tab")return;
+ var yes=document.getElementById("escConfirmYes"),no=document.getElementById("escConfirmNo");
+ if(e.shiftKey&&document.activeElement===yes){e.preventDefault();no.focus();}
+ else if(!e.shiftKey&&document.activeElement===no){e.preventDefault();yes.focus();}
+});
