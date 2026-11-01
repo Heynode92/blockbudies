@@ -53,3 +53,23 @@ test('Production videos resolve through Vite imports and all routes remain avail
  for (const path of ['/loby','/loby/room/','/inventory','/shop'])
    assert.ok(route.includes('"'+path+'"'), 'Missing route '+path);
 });
+
+test('Menu music uses a bundled MP3 and only runs in menu/room states', () => {
+ const controller=read('src/audio/menu-bgm.js');
+ const lobby=read('src/game/85-lobby-and-match.js');
+ const rooms=read('src/game/83-room-lobby.js');
+ const combat=read('src/game/70-kills-and-damage-hud.js');
+ const plugin=read('tools/vite-game-plugin.mjs');
+ assert.match(entry,/import menuMusic from '\.\/assets\/audio\/Pointblock_bgm\.mp3\?url'/);
+ assert.match(entry,/const menuBgm = createMenuBgm\(menuMusic\)/);
+ assert.match(entry,/mountPointBlock\(THREE, Object\.freeze\(\{ deathmatch: deathmatchVideo, bomb: bombVideo \}\), menuBgm\)/);
+ assert.match(plugin,/mountPointBlock\(THREE, GAME_ASSET_URLS, MENU_BGM\)/);
+ assert.match(controller,/sound\.loop = true/);
+ assert.match(controller,/events\.addEventListener\('pointerdown'/);
+ assert.match(controller,/events\.addEventListener\('keydown'/);
+ assert.match(lobby,/if\(lob&&!run\)MENU_BGM\.enterMenu\(\)/);
+ assert.match(rooms,/MENU_BGM\.leaveMenu\(\); \/\/ Smooth 1\.4s fade/);
+ assert.match(rooms,/if\(returningFromLoading&&lob&&!run\)MENU_BGM\.enterMenu\(\)/);
+ assert.match(combat,/function begin\(tm\)\{MENU_BGM\.leaveMenu\(\)/);
+ assert.doesNotMatch(read('index.html'),/id=".*bgm.*"/i);
+});
