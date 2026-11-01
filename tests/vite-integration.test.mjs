@@ -89,4 +89,6 @@ test('Hidden-tab worker and fixed-step simulation are injected without changing 
  assert.match(source,/bombUpdate\(0\)/);
  assert.match(source,/requestAnimationFrame\(loop\)/);
  assert.doesNotMatch(source,/if\(run\)update\(pl\.dead/);
+ const input=read('src/game/80-input.js');
+ assert.ok(input.includes('fireHeld=false;jumpHeld=false;keys={};ST.l.x=ST.l.y=ST.r.x=ST.r.y=0'));
 });
