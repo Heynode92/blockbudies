@@ -13,7 +13,7 @@ const entry = read('src/main.js');
 test('Vite uses ESM npm Three.js and a single engine bootstrap', () => {
  assert.match(entry, /import \* as THREE from 'three'/);
  assert.match(entry, /mountPointBlock\(THREE,/);
- assert.match(entry, /virtual:pointblock-styles/);
+ assert.doesNotMatch(entry, /virtual:pointblock-styles/);
  assert.match(html, /<script type="module" src="\.\/src\/main\.js"><\/script>/);
  assert.doesNotMatch(html, /cdnjs\.cloudflare\.com\/ajax\/libs\/three\.js/);
  assert.doesNotMatch(html, /<script src="\.\/assets\/game\.js"><\/script>/);
@@ -31,11 +31,17 @@ test('All existing game parts compile in original order; no gameplay files dropp
  assert.equal(code, expected);
  assert.ok(files.has(resolve(root,'tools/source-manifest.json')));
 });
-test('All 15 CSS files are included in Vite in the correct cascade order', () => {
+test('All 15 CSS files block first paint from HTML head in original cascade order', () => {
  assert.equal(manifest.styles.length,15);
- const plugin = pointBlockGamePlugin(root);
- const styles = plugin.load.call({addWatchFile(){}},plugin.resolveId('virtual:pointblock-styles'));
- assert.equal(styles,manifest.styles.map(path => `import ${JSON.stringify('/'+path)};`).join('\n')+'\n');
+ const links=[...html.matchAll(/<link rel="stylesheet" href="\.\/(src\/styles\/[^"]+\.css)">/g)]
+  .map(match=>match[1]);
+ assert.deepEqual(links,manifest.styles);
+ assert.ok(html.indexOf(links[0])<html.indexOf('</head>'));
+ assert.match(html,/html\.pb-route-restoring #lb \{ visibility:hidden; \}/);
+ assert.match(html,/document\.documentElement\.classList\.add\("pb-route-restoring"\)/);
+ const route=read('src/game/85-navigation-routes.js');
+ assert.match(route,/document\.documentElement\.classList\.remove\("pb-route-restoring"\)/);
+ assert.doesNotMatch(entry,/virtual:pointblock-styles/);
 });
 test('Production videos resolve through Vite imports and all routes remain available', () => {
  const home=read('src/game/82-home-showcase.js');
