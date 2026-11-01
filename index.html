@@ -11,6 +11,7 @@
 (function(){
  if(!/^https?:$/.test(location.protocol))return;
  var path=location.pathname,routePaths=["/loby/room/","/loby/room","/loby","/inventory","/shop"];
+ if(routePaths.some(function(route){return path.endsWith(route);}))document.documentElement.classList.add("pb-route-restoring");
  var root=path;
  if(root.endsWith("/index.html"))root=root.slice(0,-11);
  else{
@@ -24,6 +25,26 @@
  document.head.appendChild(base);
 })();
 </script>
+<style>
+/* Hide the temporary Home panel on deep-link reload until the router restores
+   its actual destination; the render-blocking CSS below handles all SVG sizes. */
+html.pb-route-restoring #lb { visibility:hidden; }
+</style>
+<link rel="stylesheet" href="./src/styles/01-foundation.css">
+<link rel="stylesheet" href="./src/styles/02-hud-and-kills.css">
+<link rel="stylesheet" href="./src/styles/03-controls-and-death.css">
+<link rel="stylesheet" href="./src/styles/04-lobby.css">
+<link rel="stylesheet" href="./src/styles/05-match.css">
+<link rel="stylesheet" href="./src/styles/06-weapon-selection.css">
+<link rel="stylesheet" href="./src/styles/07-bomb-mission.css">
+<link rel="stylesheet" href="./src/styles/08-defense.css">
+<link rel="stylesheet" href="./src/styles/09-inventory.css">
+<link rel="stylesheet" href="./src/styles/10-shop.css">
+<link rel="stylesheet" href="./src/styles/11-tactical-optics.css">
+<link rel="stylesheet" href="./src/styles/12-inventory-armory.css">
+<link rel="stylesheet" href="./src/styles/13-home-header.css">
+<link rel="stylesheet" href="./src/styles/14-room-browser.css">
+<link rel="stylesheet" href="./src/styles/15-room-master-settings.css">
 </head>
 <body class="lobby">
 <div id="hud">
