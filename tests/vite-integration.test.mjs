@@ -31,8 +31,8 @@ test('All existing game parts compile in original order; no gameplay files dropp
  assert.equal(code, expected);
  assert.ok(files.has(resolve(root,'tools/source-manifest.json')));
 });
-test('All 15 CSS files block first paint from HTML head in original cascade order', () => {
- assert.equal(manifest.styles.length,15);
+test('All 16 CSS files block first paint from HTML head in original cascade order', () => {
+ assert.equal(manifest.styles.length,16);
  const links=[...html.matchAll(/<link rel="stylesheet" href="\.\/(src\/styles\/[^"]+\.css)">/g)]
   .map(match=>match[1]);
  assert.deepEqual(links,manifest.styles);
@@ -91,4 +91,24 @@ test('Hidden-tab worker and fixed-step simulation are injected without changing 
  assert.doesNotMatch(source,/if\(run\)update\(pl\.dead/);
  const input=read('src/game/80-input.js');
  assert.ok(input.includes('fireHeld=false;jumpHeld=false;keys={};ST.l.x=ST.l.y=ST.r.x=ST.r.y=0'));
+});
+
+test('Hold-TAB K/D scoreboard is built from authoritative in-game statistics', () => {
+ const source=read('src/game/81-match-scoreboard.js');
+ const css=read('src/styles/16-match-scoreboard.css');
+ const finish=read('src/game/70-kills-and-damage-hud.js');
+ const lobby=read('src/game/85-lobby-and-match.js');
+ assert.equal(manifest.parts[manifest.parts.indexOf('src/game/80-input.js')+1],'src/game/81-match-scoreboard.js');
+ assert.equal(manifest.styles.at(-1),'src/styles/16-match-scoreboard.css');
+ for(const id of ['matchScoreboard','matchScoreboardPoliceRows','matchScoreboardTerroristRows','matchScoreboardPoliceKills','matchScoreboardTerroristDeaths'])
+   assert.ok(html.includes('id="'+id+'"'),id);
+ assert.match(css,/#matchScoreboard\[hidden\]\{display:none!important\}/);
+ assert.match(source,/function matchScoreboardTeamData\(team\)/);
+ assert.match(source,/stat===pl\.st/);
+ assert.match(source,/event\.code==="Tab"/);
+ assert.match(source,/addEventListener\("keyup"/);
+ assert.match(source,/addEventListener\("blur",matchScoreboardDismiss\)/);
+ assert.match(finish,/function endMatch\(\)\{matchScoreboardDismiss\(\)/);
+ assert.match(lobby,/function matchExitToLobby\(destination\)\{\s+matchScoreboardDismiss\(\)/);
+ assert.ok(read('assets/game.js').includes(source));
 });
