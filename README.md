@@ -2,7 +2,7 @@
 
 **Project branding:** PointBlock (displayed in-game as **POINT BLOCK**). GitHub repository path remains `Heynode92/blockbudies` until its owner renames it; do not substitute an uncreated repository URL.
 
-Modular source code for the original Three.js r128 browser FPS. **Team Deathmatch and Bomb Mission are playable in a local browser against AI bots.** No multiplayer backend has been added.
+Modular game source, now served and built through Vite with pinned Three.js r128 from npm. **Team Deathmatch and Bomb Mission are playable in a local browser against AI bots.** No multiplayer backend has been added.
 
 ## BOT intelligence upgrade roadmap (planned; not implemented)
 
@@ -10,15 +10,21 @@ A professional, staged modernization plan for **Police and Terrorist BOTs**—ag
 
 **Documentation only as of 2026-10-30.** This roadmap does not mean the new AI is already live, and the current five-star indicator is not a measured skill benchmark.
 
-## Windows: run with Git pull only
+## Windows only: Vite launcher (no Docker or WSL)
+
+This project now runs through **Vite 8.3.5 + npm Three.js 0.128.0**. Node.js 22.12+ (or 20.19+) must be installed. The previous `file://index.html` startup is **no longer supported** for the Vite app.
 
 ```powershell
-git clone https://github.com/Heynode92/blockbudies.git
-cd blockbudies
-Start-Process .\index.html
+cd D:\robinhood\blockbuddies\blockbudies
+git pull origin main
+.\START-POINTBLOCK.cmd
 ```
 
-Next time, use `git pull` and open `index.html` again. You **do not need a runner, Docker, WSL, Node, npm, or manual builds** to play; `assets/game.js` is already committed. The browser still loads the original Three.js r128 CDN and Google font; internet may be needed on first load.
+Double-click `START-POINTBLOCK.cmd` after each pull if preferred. It installs npm dependencies on first use and opens the game at `http://127.0.0.1:5173/`. Keep the launcher window open while playing. No manual build, runner setup, Linux, Docker or WSL. For development use `npm run dev`; for release `npm run build`, then host the `dist/` folder on a static server with SPA fallback for deep URLs.
+
+Vite routes are `/` (home), `/loby`, `/loby/room/`, `/inventory`, and `/shop`. Other screens remain untouched. Browser-local rooms are not a multiplayer service; a fresh deep link to `/loby/room/` without an active in-memory room goes to Room List.
+
+The two showcase videos and token icon are bundled locally; the Google Fonts CSS request remains external.
 
 ## Modes
 
@@ -32,7 +38,10 @@ Next time, use `git pull` and open `index.html` again. You **do not need a runne
 
 | Path | Responsibility |
 |---|---|
-| `index.html` | Original lobby/HUD markup, plus Bomb Mission interaction HUD |
+| `index.html` | Vite HTML entry and original lobby/HUD markup |
+| `src/main.js` | Vite ES module entry: pinned Three.js, asset imports and runtime mounting |
+| `vite.config.mjs` | Vite dev server and production build configuration |
+| `tools/vite-game-plugin.mjs` | Ordered gameplay/CSS source bridge with full-reload on edits |
 | `src/styles/` | Ordered CSS fragments for game, lobby, inventory, Shop and tactical optics |
 | `src/game/39-defense.js` | Centralized 100 HP, vest 50, 20% body damage reduction, uniform headshot rules |
 | `src/game/weapon/` | One file per weapon, shared CS-style falloff configuration, ballistics and Three.js viewmodels |
@@ -42,23 +51,25 @@ Next time, use `git pull` and open `index.html` again. You **do not need a runne
 | `src/game/11-bomb-map.js` | `BOMB_RULES`, `BOMB_TEXT`, indoor maze and map switching |
 | `src/game/86-bomb-mission.js` | Bomb lifecycle, AI objective helpers, action animations, spectator and rounds |
 | `src/game/` | Other original game mechanics, weapons, AI, effects and rendering |
-| `assets/game.js` | **Committed** built browser script; never edit manually |
+| `assets/game.js` | Legacy compatibility/parity artifact (not loaded by Vite); never edit manually |
 | `tools/source-manifest.json` | Explicit file ordering for original IIFE's shared scope |
-| `tools/build.mjs` | Dependency-free maintainer tool for regenerating browser bundle |
+| `tools/build.mjs` | Legacy bundle parity tooling for existing regression tests |
 | `tests/` | Source integration and isolated Bomb Mission logic tests |
 | `tests/fixtures/source-original.html` | Immutable uploaded baseline |
 | `CHANGELOG.md` | Dated log of every update |
 
-## Maintainer-only checks (players do not run these)
+## Maintainer verification (CI and maintainers, not players)
 
 ```powershell
-node tools/build.mjs
-node tools/build.mjs --check
-node --check assets/game.js
-node --test tests/*.test.mjs
+npm install
+npm run test
+npm run build
+npm run check:dist
 ```
 
-The original engine was built in a single shared IIFE. Feature fragments are intentionally concatenated in a stable order, preserving function scope and avoiding an unverified ESM rewrite. All timings and map generation constants for Bomb Mission are centralized in `BOMB_RULES`; its interface strings are grouped in `BOMB_TEXT`. No third-party dependencies have been added.
+GitHub Actions runs these checks on pushes and pull requests. `tools/source-manifest.json` remains the **only ordering source of truth**; the Vite plugin builds the game directly from the original feature fragments, preserving shared state, gameplay timing and Three.js r128 rendering behavior. The checked-in `assets/game.js` is a **non-runtime parity artifact** for regression tests; whenever editing the original `src/game/` fragments, maintainers must also regenerate it using `node tools/build.mjs` until the remaining tests are migrated. Existing code is **not yet independently scoped ES Modules**; converting every shared-state fragment without browser QA would risk regressions. This bridge removes CDN/global Three.js and introduces a modern Vite entry and asset pipeline without changing the game rules.
+
+The runtime uses an ES module compiled by Vite. Vite's full-reload workflow recreates the Three.js canvas after gameplay source edits instead of unsafe hot module replacement of live WebGL singletons.
 
 ## Status of validation
 
