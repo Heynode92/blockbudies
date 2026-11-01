@@ -2,7 +2,9 @@
 
 **Project branding:** PointBlock (displayed in-game as **POINT BLOCK**). GitHub repository path remains `Heynode92/blockbudies` until its owner renames it; do not substitute an uncreated repository URL.
 
-Modular game source, now served and built through Vite with pinned Three.js r128 from npm. **Team Deathmatch and Bomb Mission are playable in a local browser against AI bots.** No multiplayer backend has been added.
+Modular game source, now served and built through Vite with pinned Three.js r128 from npm. **Online integration is being migrated to the separate server-authoritative PointBlock backend.** Vite/Three.js renders the game, while server-authenticated REST/WebSocket connections own wallet identity, 5v5 actors, damage, BOT simulation, Bomb objectives, room state, weapon entitlements and EXP/vPBT. End-to-end production verification is pending; this is not a release claim.
+
+**Authoritative integration contract:** [docs/ONLINE_BACKEND_INTEGRATION.md](docs/ONLINE_BACKEND_INTEGRATION.md). Backend requirements are in its `Plan.md` and `Agent.md`.
 
 ## BOT intelligence upgrade roadmap (planned; not implemented)
 
@@ -22,7 +24,7 @@ git pull origin main
 
 Double-click `START-POINTBLOCK.cmd` after each pull if preferred. It installs npm dependencies on first use and opens the game at `http://127.0.0.1:5173/`. Keep the launcher window open while playing. No manual build, runner setup, Linux, Docker or WSL. For development use `npm run dev`; for release `npm run build`, then host the `dist/` folder on a static server with SPA fallback for deep URLs.
 
-Vite routes are `/` (home), `/loby`, `/loby/room/`, `/inventory`, and `/shop`. Other screens remain untouched. Browser-local rooms are not a multiplayer service; a fresh deep link to `/loby/room/` without an active in-memory room goes to Room List.
+Vite routes are `/` (home), `/loby`, `/loby/room/`, `/inventory`, and `/shop`. Production deployment requires a configured `VITE_POINTBLOCK_API_URL` and an authorized backend `SIWE_ORIGIN`, `CORS_ORIGINS` and Robinhood Chain Mainnet RPC. Local Vite defaults to the local BE port `http://127.0.0.1:3001`; connecting a wallet without BE SIWE does not grant multiplayer or ownership.
 
 The two showcase videos and token icon are bundled locally; the Google Fonts CSS request remains external.
 
@@ -36,7 +38,7 @@ Implementation: `src/game/81-match-scoreboard.js` and `src/styles/16-match-score
 
 When switching tabs or Alt+Tab during an active local match, PointBlock uses a Vite-bundled Worker heartbeat to keep BOT AI, movement, bullets and round objectives stepping in the background when permitted by the browser. Visible WebGL rendering remains on `requestAnimationFrame`. Each hidden update uses up to 30 physics steps of 50ms; if the browser throttles or suspends all scripts, match and Bomb round timers reconcile the remaining real elapsed time when the tab resumes. Foreground controls are released on blur.
 
-**Browser limitation:** background Workers can also be throttled or suspended. BOT actions missed during extended suspension are not reconstructible, though the match clock and round timeout will catch up. Fully continuous and authoritative gameplay without a running browser needs a game server; this remains a local client-side game.
+**Online difference:** legacy Worker/local simulation paths are intentionally disabled whenever the backend match session is authoritative. The server advances live physics/BOTs during background tabs. The old offline background simulation code is retained only as gameplay reference and requires separate cleanup after parity validation.
 
 ## Menu background music
 
@@ -55,7 +57,10 @@ When switching tabs or Alt+Tab during an active local match, PointBlock uses a V
 | Path | Responsibility |
 |---|---|
 | `index.html` | Vite HTML entry and original lobby/HUD markup |
-| `src/main.js` | Vite ES module entry: pinned Three.js, asset imports and runtime mounting |
+| `src/main.js` | Vite entry with authenticated backend dependency injection and original Three.js mounting |
+| `src/network/pointblock-client.js` | Memory-only SIWE, authenticated API requests and single-use ticket WebSocket transport |
+| `src/game/98-online-bridge.js` | Server snapshot projection to Three.js actors, online room/training and visual-only local input |
+| `docs/ONLINE_BACKEND_INTEGRATION.md` | Authoritative REST/WS security and deployment contract |
 | `vite.config.mjs` | Vite dev server and production build configuration |
 | `tools/vite-game-plugin.mjs` | Ordered gameplay/CSS source bridge with full-reload on edits |
 | `src/styles/` | Ordered CSS fragments for game, lobby, inventory, Shop and tactical optics |
@@ -73,6 +78,10 @@ When switching tabs or Alt+Tab during an active local match, PointBlock uses a V
 | `tests/` | Source integration and isolated Bomb Mission logic tests |
 | `tests/fixtures/source-original.html` | Immutable uploaded baseline |
 | `CHANGELOG.md` | Dated log of every update |
+
+## Online migration validation status
+
+The independent `PointBlock Online Frontend Build` Windows workflow checks Vite production compilation and distributables. Older offline-mode tests still assert local room state and free shop unlocks, which have been removed intentionally. Do not label the full legacy test suite green or declare online QA verified. Cross-browser SIWE, real PostgreSQL, multi-human 5v5, five-map parity, BOT M7 and economic tests remain necessary after the implementation milestone.
 
 ## Maintainer verification (CI and maintainers, not players)
 

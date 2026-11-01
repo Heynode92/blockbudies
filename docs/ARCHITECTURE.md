@@ -1,30 +1,66 @@
-# Point Block architecture and development rules
+# PointBlock frontend architecture — server-authoritative migration
 
-## Source of truth
+## Source of truth and ownership
 
-`tests/fixtures/source-original.html` retains the original browser game. Existing Team Deathmatch logic, weapons, GUI strings and visual effects must not change without explicit approval. `index.html` retains the lobby and original Three.js/Google Fonts external dependencies.
+The existing Three.js source fragments in `src/game/*.js`, the ordered
+`tools/source-manifest.json`, original game art, UI and audio remain the
+renderer and gameplay-parity references. The current backend repository
+`Heynode92/pointblock-backend` governs gameplay decisions according to its
+`Plan.md` v1.0.11 and `Agent.md` v1.1.5.
 
-All JavaScript feature fragments are assembled in the explicit order in `tools/source-manifest.json` to produce a single original-style IIFE bundle at `assets/game.js`. This maintains the shared lexical state while logically separating responsibilities. The committed bundle is generated, never hand-edited. Browser-only users just pull and open the file.
+**Only the backend certifies:** authenticated player, room membership/master,
+loadout ownership, player/BOT positions and collision, projectile/hit/HP/armor,
+death/kill/streak, Bomb objective states, match winner, EXP, rank and vPBT.
+The frontend may handle rendering, cosmetic fire effects, HUD projection,
+input collection, interpolation and *visual-only* local prediction. No
+client-computed kill, damage, unlock, purchase, plant or match result becomes
+an authoritative server event.
 
-## Modes
+## Current source layout
 
-Team Deathmatch uses the original map (`BOMB_CITY` mesh and collision snapshots). Bomb Mission's indoor map generator stores its own `BOMB_WORLD`, `BOMB_OB`, `BOMB_BR` and `BOMB_LT` and restores the originals when returning to TDM. The AI pathfinding grid `GB` is invalidated whenever the active map changes. Game mode is set by `selectedGameMode`; the `isBombMode()` guard isolates objective-specific behavior.
+- `src/main.js` injects the online client into the original Vite runtime.
+- `src/network/pointblock-client.js` owns wallet SIWE + per-request bearer
+  authentication, server error parsing and one-use WebSocket ticket exchange.
+  No private keys or session bearers are written to browser storage.
+- `src/game/98-online-bridge.js` maps online room/player events into the
+  existing lobby/Three.js visuals, registers via server-verified training,
+  rejects all local unlocks and projects recipient-scoped snapshots.
+- `src/game/99-render-loop.js` owns the single WebGL renderer. Online mode
+  bypasses `95-simulation.js` and the background worker's local physics.
+- `src/game/89-inventory.js` and `89-shop.js` fetch verified server
+  entitlements, priced vPBT orders and fixed loadouts. PBT onchain checkout
+  is disabled until the contract policy is officially approved.
 
-`src/game/11-bomb-map.js` provides immutable `BOMB_RULES` and `BOMB_TEXT` configuration plus map generation and site markers. `src/game/86-bomb-mission.js` owns the bomb lifecycle, interaction progress, dropped device state, AI objective goals, spectator targeting, round rules and Bomb HUD. Combat uses the original projectile system; `killE()` and `die()` trigger `bombDrop()` and suppress TDM respawn/kill-scoring when Bomb Mission is active. `update()` calls `bombUpdate()` to resolve the round and the render loop follows living teammates after player death.
+The original BOT/physics/Bomb gameplay modules remain in the ordered bundle
+as **visual/parity references**, not as online game authorities. Removing them
+indiscriminately would break animations, map previews, models or CSS. Future
+module pruning must identify dependencies and preserve source-backed visuals.
 
-## Anti-regression
+## Real-time anti-cheat and visibility
 
-For every update, regenerate `assets/game.js`, then run syntax, bundle-sync and logic regression tests. Preserve the original fixture. Record changes in `CHANGELOG.md`, including affected modules, UI strings and validation. Never silently add networking, accounts, tracking or third-party dependencies.
+Only authenticated session- and room-bound actors may submit strict
+`input` intents with a monotonically increasing `seq`. The backend
+authoritatively advances combat. At each live snapshot, the bridge replaces
+client positions/HP/ammo/scoreboard with server state and drops invisible
+enemy actor meshes from the local pool. Bomb carrier identity and the
+dropped device remain hidden from the Police. The server alone awards
+EXP/vPBT when a completed match is verified. Disconnecting does not
+grant any bypass of the server's 60-second AFK grace.
 
-## Security / online readiness
+## Builds, compatibility and open gates
 
-This remains an **offline client-simulated game**. Client-supplied position, health, damage, bomb state and round results are untrusted for real PvP. Before multiplayer, movement, collision, shots, bomb actions, round results and spectator visibility must be handled by a server-authoritative engine; these file boundaries are only a foundation, not anti-cheat.
+Run the Vite Windows launcher; never edit generated `assets/game.js`.
+`PointBlock Online Frontend Build` checks `npm run build` and
+`npm run check:dist`. The original offline-era regression tests still
+expect local rooms and `UNLOCK FREE` shopping; their failure does **not**
+certify the new implementation and should not be hidden or falsely
+recorded as passing. Rewrite those cases to authoritative contract tests
+only when the FE/BE runtime implementation is complete.
 
-## Bomb Mission tactical upgrade (2026-10-28)
+Authoritative gameplay parity, full M0–M7 BOT tactics, server tick/prediction
+and reconnect jitter, real multi-human simulation, live database migration,
+production security, persistent economic reconciliation and distributed
+room fencing require further work and acceptance checks.
 
-- `11-bomb-map.js` owns `BOMB_RULES`, world boundary switching (60 for TDM, 80 for Bomb Mode), `BOMB_SITES`, navigation walls, procedural indoor geometry and its visibility.
-- `87-bomb-tactics.js` owns `BOMB_AI` and per-bot behavioral goals. Police designate one living defuser while other bots cover and pursue threats; Terrorists choose carrier, escort, hunt and defend the planted site. Roles change with objective state.
-- `88-spectator-camera.js` owns `SPECTATOR_CAMERA` and third-person chase camera, with collision testing. It never changes the original first-person gun camera for living players.
-- `90-bot-ai.js` retains the original pathfinding and Deathmatch AI. Bomb Mode uses higher navigation resolution, repathing when goals move, team spacing and wall fallback.
-- `96-hud-and-radar.js` renders actual indoor walls and cover; spectator radar follows living teammate.
-- All gameplay configuration remains in named objects. The generated runtime remains committed and auto-generated from the ordered source manifest.
+See [ONLINE_BACKEND_INTEGRATION.md](ONLINE_BACKEND_INTEGRATION.md) for
+all API routes and environment configuration.

@@ -1,3 +1,8 @@
+## 2026-11-02 — FE/BE implementation documentation synchronization
+- Replace outdated README and architecture claims that the Vite game has no backend or that browser-based physics is still authoritative.
+- Document exact server-authoritative online boundaries and current Vite/Three.js render dependencies; retain original code as non-authoritative visual references.
+- Record build-only Windows evidence versus intentionally incompatible legacy offline tests without claiming production readiness.
+
 ## 2026-11-02 — F1/F4 authenticated session teardown
 - On wallet account/chain switch or SIWE logout, immediately leave the online gameplay presentation, close the WebSocket and return to lobby.
 - Never allow the browser to silently fall back into offline physics/BOT simulation with run=true after server authority has been revoked.
