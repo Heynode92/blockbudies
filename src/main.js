@@ -1,8 +1,12 @@
 import * as THREE from 'three';
+import { createMenuBgm } from './audio/menu-bgm.js';
 import { mountPointBlock } from 'virtual:pointblock-game';
 import deathmatchVideo from './assets/video/deatch_match_demo.mp4?url';
 import bombVideo from './assets/video/bomb_mission_demo.mp4?url';
+import menuMusic from './assets/audio/Pointblock_bgm.mp3?url';
 
 // The original gameplay is initialized once with the pinned r128 npm engine.
 // Future ESM extraction must keep this entry point and its state boundaries.
-mountPointBlock(THREE, Object.freeze({ deathmatch: deathmatchVideo, bomb: bombVideo }));
+const menuBgm = createMenuBgm(menuMusic);
+mountPointBlock(THREE, Object.freeze({ deathmatch: deathmatchVideo, bomb: bombVideo }), menuBgm);
+menuBgm.enterMenu();
