@@ -28,6 +28,7 @@ function lobP(id){
  }
  document.getElementById("lbn").classList.remove("on");
  homeShowcaseSync();
+ if(typeof appRouteUpdate==="function")appRouteUpdate(id);
 }
 lobBest();
 (function(){var n=document.getElementById("lbn"),nt=document.getElementById("lbnt"),tm=0;[].forEach.call(document.querySelectorAll(".mb[data-n]"),function(b){b.onclick=function(){this.blur();nt.textContent=this.getAttribute("data-n");n.classList.remove("on","shk");void n.offsetWidth;n.classList.add("on","shk");clearTimeout(tm);tm=setTimeout(function(){n.classList.remove("on");},2800);};});})();
@@ -74,7 +75,34 @@ document.getElementById("lbst").onclick=function(){this.blur();roomLobbyOpen();}
 document.getElementById("lbb").onclick=function(){lobP("lbs");};
 document.getElementById("mdm").onclick=function(){if(MODES[selM].lock){this.classList.remove("shk");void this.offsetWidth;this.classList.add("shk");return;}document.getElementById("tsel").style.display="flex";};
 [].forEach.call(document.querySelectorAll(".md.lock"),function(c){c.onclick=function(){c.classList.remove("shk");void c.offsetWidth;c.classList.add("shk");};});
-document.getElementById("dmn").onclick=function(){document.getElementById("dv").classList.remove("show");document.body.classList.remove("over","dead","bomb-spectator");bombCleanup();reset();selectedGameMode=0;selectGameMap(false);bombMatch=null;mt={t:60,cd:0,over:true};run=false;lob=true;document.body.classList.add("lobby");lb.style.display="flex";lobP("lbs");};
+// End-of-match results return to the same Room Master lobby; deliberate ESC abandonment closes
+// the current local room and opens the Room List. Neither action returns to Home.
+function matchExitToLobby(destination){
+ escHide();
+ if(document.pointerLockElement&&document.exitPointerLock)document.exitPointerLock();
+ document.getElementById("dv").classList.remove("show");
+ document.getElementById("tsel").style.display="none";
+ document.body.classList.remove("over","dead","bomb-spectator","loadout-active","loadout-cursor-hidden");
+ mouse.down=mouse.right=false;fireHeld=false;jumpHeld=false;keys={};
+ bombCleanup();reset();bombMatch=null;
+ mt={t:60,cd:0,over:true};run=false;lob=true;
+ document.body.classList.add("lobby");lb.style.display="flex";
+ if(destination==="room"&&roomCurrent){
+  var room=roomCurrent;
+  selM=room.mode;
+  selectedTdmMapId=tdmMapId(room.mapId);
+  selectedBombMapId=bombMapId(room.mapId);
+  modePreviewSelect(selM);
+  roomMatchConfig=null;
+  roomLobbyOpen();
+ }else{
+  if(roomCurrent)roomCloseLocal();
+  roomMatchConfig=null;
+  selectedGameMode=0;selectedTdmMapId="block-district";selectGameMap(false);
+  roomLobbyOpen();
+ }
+}
+document.getElementById("dmn").onclick=function(){matchExitToLobby("room");};
 ov.style.display="none";
 reset();
 // Star rating on the results screen.
