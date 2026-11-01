@@ -1,3 +1,10 @@
+## 2026-11-01 — Hold-TAB live match scoreboard (5v5 KILL / DEATH)
+- Added a live, translucent POLICE/TERRORIST 5v5 scoreboard matching the approved mockup; all player K/D numbers come directly from `ROS` and team score from `ts`, with no fabricated scores or ranking.
+- Hold `TAB` during gameplay to show, release for immediate dismiss. Keyboard focus traversal remains available outside gameplay. Close automatically on Escape, blur, tab hidden, match end, and room exit.
+- Sort players per team by descending kills then ascending deaths; highlight local `pl.st` and calculate each team's total K/D. Refresh every 180ms while shown; gameplay, BOTs and simulation continue.
+- Created isolated source `src/game/81-match-scoreboard.js` and responsive CSS `src/styles/16-match-scoreboard.css`, extended Vite manifest (70 ordered JS modules; 16 CSS styles), updated regression tests and compatibility bundle.
+- Existing match rules, maps, movement, weapons, BOT AI, audio, and HUD scoring are untouched.
+
 ## 2026-11-01 — Background-tab match progression (Alt+Tab)
 - Split simulation progression from WebGL rendering in `src/game/99-render-loop.js`. Visible rendering stays on `requestAnimationFrame` with the previous maximum 50ms physics delta; gameplay mechanics and shaders are unchanged.
 - Added a dedicated Vite-bundled Worker heartbeat for hidden tabs and a main-thread interval fallback when workers fail. Hidden pulses advance BOT/combat/projectile/bomb simulation in bounded 50ms steps; no offscreen WebGL rendering.
