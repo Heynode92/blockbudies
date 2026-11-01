@@ -105,7 +105,7 @@ test('Hold-TAB K/D scoreboard is built from authoritative in-game statistics', (
  assert.match(css,/#matchScoreboard\[hidden\]\{display:none!important\}/);
  assert.match(source,/function matchScoreboardTeamData\(team\)/);
  assert.match(source,/stat===pl\.st/);
- assert.match(source,/event\.code==="Tab"/);
+ assert.match(source,/event\.code!=="Tab"/);
  assert.match(source,/addEventListener\("keyup"/);
  assert.match(source,/addEventListener\("blur",matchScoreboardDismiss\)/);
  assert.match(finish,/function endMatch\(\)\{matchScoreboardDismiss\(\)/);
