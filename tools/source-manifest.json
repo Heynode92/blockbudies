@@ -48,6 +48,7 @@
     "src/game/77-loadout-picker.js",
     "src/game/79-camera-look.js",
     "src/game/80-input.js",
+    "src/game/81-match-scoreboard.js",
     "src/game/82-home-showcase.js",
     "src/game/83-room-lobby.js",
     "src/game/84-live-map-preview.js",
@@ -85,6 +86,7 @@
     "src/styles/12-inventory-armory.css",
     "src/styles/13-home-header.css",
     "src/styles/14-room-browser.css",
-    "src/styles/15-room-master-settings.css"
+    "src/styles/15-room-master-settings.css",
+    "src/styles/16-match-scoreboard.css"
   ]
 }
