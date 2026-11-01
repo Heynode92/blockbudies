@@ -26,6 +26,12 @@ Vite routes are `/` (home), `/loby`, `/loby/room/`, `/inventory`, and `/shop`. O
 
 The two showcase videos and token icon are bundled locally; the Google Fonts CSS request remains external.
 
+## Hold-TAB in-match scoreboard
+
+During a live Team Deathmatch or Bomb Mission match, hold `TAB` to show a transparent, two-team scoreboard, and release `TAB` to close it. Both teams display real `ROS` per-player kill/death counts and `ts` team scores; players are sorted by kills then deaths, and `pl.st` is marked YOU. The panel displays team K/D totals and refreshes while held without pausing the game or changing scoring. TAB still provides normal keyboard focus navigation outside a match. ESC, loss of focus, match end and leaving the match dismiss the panel.
+
+Implementation: `src/game/81-match-scoreboard.js` and `src/styles/16-match-scoreboard.css`.
+
 ## Background-tab simulation
 
 When switching tabs or Alt+Tab during an active local match, PointBlock uses a Vite-bundled Worker heartbeat to keep BOT AI, movement, bullets and round objectives stepping in the background when permitted by the browser. Visible WebGL rendering remains on `requestAnimationFrame`. Each hidden update uses up to 30 physics steps of 50ms; if the browser throttles or suspends all scripts, match and Bomb round timers reconcile the remaining real elapsed time when the tab resumes. Foreground controls are released on blur.
