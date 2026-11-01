@@ -28,6 +28,7 @@ function lobP(id){
  }
  document.getElementById("lbn").classList.remove("on");
  homeShowcaseSync();
+ if(lob&&!run)MENU_BGM.enterMenu();
  if(typeof appRouteUpdate==="function")appRouteUpdate(id);
 }
 lobBest();
