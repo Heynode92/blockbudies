@@ -1,3 +1,11 @@
+## 2026-11-01 — Room-first match exit, ESC confirmation and client routes
+- Keep the final battle report, but change its return action to BACK TO ROOM: reset combat state and restore the same existing Room Master lobby instead of sending the player Home. PLAY AGAIN remains available from the report.
+- Back to Lobby from the ESC menu now asks ARE YOU SURE? with YES / NO. NO stays in the game menu; YES abandons the live match, closes the local Room Master room consistently with existing leave semantics, and opens the Room List. Pointer lock and combat input are released.
+- Room List Back still returns to Home. Shared `lobP()` navigation now maps Room List to `/loby`, Room Master lobby to `/loby/room/`, Inventory to `/inventory`, Shop to `/shop`, and Home to `/` when hosted over HTTP(S), preserving the current query string.
+- For Windows direct `file://.../index.html` the same destinations use `#/loby`, `#/loby/room/`, `#/inventory`, and `#/shop` so the local game remains operational. An early `<base>` fixes relative CSS/JS/media paths on direct HTTP route loads; host servers still require SPA rewrite/fallback for deep-link refreshes.
+- Handle browser back/forward for the supported pre-match panels; do not silently exit a live match through history. An in-room deep link without an active local room falls back to Room List. Unspecified screens and gameplay rules remain unchanged.
+- Add focused navigation regression checks and sync `assets/game.js` with the ordered source manifest.
+
 ## 2026-11-01 — PBT token icon uses PointBlock asset
 - Replaced the hardcoded "P" coin glyph in the shared pre-match PBT header with the existing `src/assets/icon/pb-logo.png` asset, referenced relative to the root `index.html`.
 - Render the image at a fixed 1:1 aspect ratio (25 × 25 px desktop; 22 × 22 px on compact screens) with `object-fit: contain`, removing the legacy circle glyph background so the actual logo remains visible without cropping.
