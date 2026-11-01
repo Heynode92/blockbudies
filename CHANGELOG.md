@@ -1,3 +1,11 @@
+## 2026-11-01 — Hidden autoplay BGM across menus, smooth fade into gameplay
+- Added `src/audio/menu-bgm.js`, a single hidden looping HTMLAudioElement playing `src/assets/audio/Pointblock_bgm.mp3` from Vite's compiled asset URL. No visible player, controls, or UI changes.
+- Start BGM softly (0.32 peak volume, 800ms fade-in) on initial Home access and preserve continuous playback through Room List, Create Room, Room Master Lobby, Inventory, and Shop.
+- Start a smooth 1.4-second fade-out at the beginning of real 3D match loading; stop and reset the music after fade completion. The countdown remains musical. Direct match start and rematch remain silent during gameplay.
+- Resume BGM if match initialization/loading aborts or after returning to the Room Master/Room List; guard against late autoplay promises and overlapping transitions.
+- Unmuted browser autoplay is best-effort: when blocked by browser policy, silently retry on the first user pointer or keyboard interaction without prompts or hidden audio tricks.
+- Added fake-audio tests for fade timing, browser autoplay rejection, cancellation, late resolution; Vite integration and production-asset assertions. No changes to map, weapons, BOT AI, gameplay rules, existing SFX or UI.
+
 ## 2026-11-01 — Fix F5 reload skull flash and delayed Vite CSS
 - Root cause: Vite dev injected all 15 stylesheets only after JavaScript entry executed, so initially unstyled HUD and Terrorist skull SVG could be briefly painted during F5 or a deep-link reload.
 - Load all 15 canonical `src/styles/*.css` as render-blocking HTML `<link rel="stylesheet">` entries in source-manifest order. Remove the redundant JavaScript/virtual CSS injection so styles load once with their original cascade.
