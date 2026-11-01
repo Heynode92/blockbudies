@@ -64,3 +64,28 @@ body:not(.lobby):not(.over) #gl{cursor:none}
 .sbr span{flex:1}.sbr b{width:34px;text-align:right}.sbr.me{background:rgba(255,212,59,.22)}
 #dv.tdm .dr{padding:6px 24px 6px 20px}#dv.tdm .dr b{font-size:30px}#dv.tdm .dst{gap:6px}#dv.tdm .dbt{margin-top:2px;gap:6px}
 #dv.tdm #dgo,#dv.tdm #dmn{padding:9px 16px;font-size:22px}
+
+/* Confirm abandonment within the existing ESC menu, with pointer lock released. */
+#esc .esc-confirm[hidden]{display:none!important}
+#esc .esc-confirm{
+ position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;
+ box-sizing:border-box;padding:20px;background:rgba(5,10,20,.86)
+}
+#esc .esc-confirm-card{
+ box-sizing:border-box;width:min(440px,100%);padding:28px 26px;
+ border:1px solid #d08742;border-radius:8px;
+ background:linear-gradient(145deg,#17273a,#091522);
+ box-shadow:0 22px 70px rgba(0,0,0,.72);text-align:center
+}
+#esc .esc-confirm-card h2{
+ margin:0 0 12px;color:#ffaf64;
+ font:900 clamp(24px,5vw,34px)/1.2 Impact,"Arial Black",sans-serif;letter-spacing:.08em
+}
+#esc .esc-confirm-card p{
+ margin:0 0 24px;color:#d8e2ee;
+ font:700 15px/1.5 Rajdhani,sans-serif;letter-spacing:.035em
+}
+#esc .esc-confirm-actions{display:flex;justify-content:center;gap:12px}
+#esc .esc-confirm-actions .tbt{
+ flex:1 1 0;max-width:166px;padding:12px 18px;font-size:21px
+}
