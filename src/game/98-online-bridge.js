@@ -5,7 +5,7 @@ var onlineApi=typeof PB_ONLINE!=='undefined'?PB_ONLINE:null;
 var onlineActive=false,onlineTraining=false,onlineCurrentId=null,onlineMatchId=null;
 var onlineWorld=null,onlineGame=null,onlineActors=new Map(),onlineSeq=0,onlineSendAt=0,onlineMeId=null;
 var onlineLobbyTimer=0,onlineRoomOpening=false,onlineRoomTimer=0,onlineRouteToken=0;
-var onlineTeamNotice=null,onlineInputId=0;
+var onlineTeamNotice=null,onlineInputId=0,onlineVisualLoaded=false;
 function onlineWarn(error) {
  var code=typeof error==='string'?error:error&&error.code||'BACKEND_UNAVAILABLE';
  roomSetMessage(code);if(typeof roomLiveLog==='function'&&roomCurrent)roomLiveLog(code);
@@ -190,7 +190,9 @@ function onlineStartRoomPoll() {
 }
 function onlineResetLive(){
  onlineActive=false;onlineTraining=false;onlineCurrentId=null;onlineMatchId=null;
- onlineWorld=null;onlineGame=null;onlineActors.clear();onlineMeId=null;onlineSeq=0;onlineSendAt=0;
+ onlineWorld=null;onlineGame=null;
+ for(const item of onlineActors.values()){if(item.model?.g)S.remove(item.model.g)}
+ onlineActors.clear();onlineMeId=null;onlineSeq=0;onlineSendAt=0;onlineVisualLoaded=false;
  onlineApi?.closeLive();clearInterval(onlineRoomTimer);
 }
 async function onlineAttachMatch(room){
@@ -198,7 +200,7 @@ async function onlineAttachMatch(room){
  try{
   var current=onlineAdoptRoom(room);
   await onlineApi.openLive('room',current.id,onlineReceiveFrame,onlineSocketStatus);
-  onlineCurrentId=current.id;onlineTraining=false;onlineActive=true;
+  onlineCurrentId=current.id;onlineTraining=false;onlineActive=true;onlineVisualLoaded=false;
   onlineBeginTransition(current);
  }catch(error){onlineResetLive();onlineWarn(error)}
 }
@@ -307,7 +309,12 @@ async function onlineStartTraining(){
  if(!onlineAuth())return;
  try{
   var started=await onlineApi.startTraining();
-  if(started.status==='COMPLETED'){await onlineTrainingCompleted();return}
+  if(started.status==='COMPLETED'){
+   onlineDialog('REGISTER CALLSIGN','Training verified. Choose a unique username.','REGISTER',async name=>{
+    await onlineApi.register(name);await onlineApi.refreshProfile();
+    await onlineLoadInventory();roomLobbyOpen();
+   });return;
+  }
   onlineTraining=true;onlineActive=true;
   await onlineApi.openLive('training',null,onlineReceiveFrame,onlineSocketStatus);
   onlineMeId=onlineWorld?.actors?.find(a=>!a.bot)?.id||null;
@@ -334,6 +341,10 @@ function onlineApplyWorld(){
  var world=onlineWorld,game=onlineGame;
  if(!onlineActive||!world||!game||!run||lob)return;
  if(world.matchId!==onlineMatchId&&onlineMatchId&&!onlineTraining)return;
+ if(!onlineVisualLoaded){
+  en.forEach(function(b){if(b?.g)S.remove(b.g)});en.length=0;
+  ROS=pl.st?[pl.st]:[];onlineActors.clear();onlineVisualLoaded=true;
+ }
  var selfId=onlineUserId();
  var self=world.actors.find(a=>a.id===selfId);
  // Spectator snapshots remain recipient-bound; hidden enemies are never created.
@@ -360,6 +371,7 @@ function onlineApplyWorld(){
    model.st={name:model.name,tm:actor.team,k:0,d:0};
    placeBot(model);
    onlineActors.set(actor.id,{model,label:model.name,tm:actor.team});
+   ROS.push(model.st);
    current=onlineActors.get(actor.id);
   }
   var bot=current.model;
@@ -413,7 +425,7 @@ roomLobbyOpen=function(){
  oldOnlineRoomLobbyOpen();
  if(onlineApi?.state().registered)void onlineRefreshRooms();
 };
-PB_ONLINE?.setOnChange(function(state){
+if(onlineApi)onlineApi.setOnChange(function(state){
  homeWalletRender();
  if(!state.authenticated){onlineResetLive();roomList=[];roomCurrent=null;onlineRoomRender()}
 });
@@ -424,6 +436,7 @@ function onlineAction(id,fn) {
  },true);
 }
 onlineAction('lbst',onlineStartGate);
+onlineAction('mdm',onlineStartGate);
 onlineAction('roomCreate',onlineCreateRoom);
 onlineAction('roomRefresh',onlineRefreshRooms);
 onlineAction('roomSave',()=>onlineSaveRoom(false));

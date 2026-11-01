@@ -1,0 +1,9 @@
+/* Backend-gated registration. */
+.point-online-dialog{position:fixed;z-index:20000;inset:0;display:grid;place-items:center;background:rgba(8,12,20,.88);padding:20px}
+.point-online-dialog-panel{width:min(420px,100%);display:grid;gap:14px;padding:28px;border:1px solid #36485d;border-radius:12px;background:#151e2b;color:#f5f7fb;box-shadow:0 24px 80px #0009;font-family:inherit}
+.point-online-dialog-panel h2{margin:0;font-size:24px}
+.point-online-dialog-panel p{margin:0;color:#bbc6d2;font-size:15px}
+.point-online-dialog-panel input{min-width:0;width:100%;box-sizing:border-box;padding:12px 14px;background:#09131f;border:1px solid #49647d;border-radius:6px;color:#fff;font:inherit}
+.point-online-dialog-panel button{padding:12px;border:0;border-radius:6px;font:inherit;font-weight:700;color:#101318;background:#f6bd43;cursor:pointer}
+.point-online-dialog-panel button:disabled{opacity:.5;cursor:wait}
+.point-online-dialog-panel [role=status]{color:#ff9c8e;overflow-wrap:anywhere}

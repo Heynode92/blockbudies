@@ -124,11 +124,11 @@ export function createPointBlockClient({ baseUrl } = {}) {
     change();
   }
   async function logout() {
-    const token = auth?.token; closeLive(); auth=null;change();
+    const token = auth?.token; closeLive(); auth=null; change();
     if(token && root) {
-      try { await request('/v1/auth/logout',{method:'POST',authRequired:false,body:undefined,
-        // Deliberately send the revoked bearer separately below, not through an unauthenticated call.
-      }); } catch { /* logout always clears the in-memory bearer */ }
+      try { await timeoutFetch(new URL(root.pathname.replace(/\/+$/,'')+'/v1/auth/logout',root.origin),{
+        method:'POST',headers:{Authorization:'Bearer '+token},cache:'no-store',credentials:'omit',
+      }); } catch { /* Failed logout cannot restore discarded client credentials. */ }
     }
   }
   async function refreshProfile() {

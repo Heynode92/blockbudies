@@ -1,3 +1,8 @@
+## 2026-11-02 — FE online UI and session safety follow-up
+- Replace original random BOT display instances with authenticated server actors, remove them on teardown, and avoid stale silhouettes.
+- Provide backend-gated callsign overlay, control legacy direct mode START, and remove undeclared offline API access.
+- Correct SIWE logout to revoke the existing bearer token and add scoped registration styles.
+
 ## 2026-11-02 — F2/F3/F4: server-owned room and rendering bridge
 - Add frontend online adapter for HTTP room master operations, server room codes/members/team swaps and authoritative WebSocket match/training events; local room storage is no longer a multiplayer source of truth.
 - Route START through authenticated onboarding; unregistered wallets must complete server-controlled training and callsign registration. Preserve 3-2-1 and existing 3D map loading transition.
