@@ -4990,6 +4990,7 @@ function lobP(id){
  }
  document.getElementById("lbn").classList.remove("on");
  homeShowcaseSync();
+ if(typeof appRouteUpdate==="function")appRouteUpdate(id);
 }
 lobBest();
 (function(){var n=document.getElementById("lbn"),nt=document.getElementById("lbnt"),tm=0;[].forEach.call(document.querySelectorAll(".mb[data-n]"),function(b){b.onclick=function(){this.blur();nt.textContent=this.getAttribute("data-n");n.classList.remove("on","shk");void n.offsetWidth;n.classList.add("on","shk");clearTimeout(tm);tm=setTimeout(function(){n.classList.remove("on");},2800);};});})();
@@ -5036,7 +5037,34 @@ document.getElementById("lbst").onclick=function(){this.blur();roomLobbyOpen();}
 document.getElementById("lbb").onclick=function(){lobP("lbs");};
 document.getElementById("mdm").onclick=function(){if(MODES[selM].lock){this.classList.remove("shk");void this.offsetWidth;this.classList.add("shk");return;}document.getElementById("tsel").style.display="flex";};
 [].forEach.call(document.querySelectorAll(".md.lock"),function(c){c.onclick=function(){c.classList.remove("shk");void c.offsetWidth;c.classList.add("shk");};});
-document.getElementById("dmn").onclick=function(){document.getElementById("dv").classList.remove("show");document.body.classList.remove("over","dead","bomb-spectator");bombCleanup();reset();selectedGameMode=0;selectGameMap(false);bombMatch=null;mt={t:60,cd:0,over:true};run=false;lob=true;document.body.classList.add("lobby");lb.style.display="flex";lobP("lbs");};
+// End-of-match results return to the same Room Master lobby; deliberate ESC abandonment closes
+// the current local room and opens the Room List. Neither action returns to Home.
+function matchExitToLobby(destination){
+ escHide();
+ if(document.pointerLockElement&&document.exitPointerLock)document.exitPointerLock();
+ document.getElementById("dv").classList.remove("show");
+ document.getElementById("tsel").style.display="none";
+ document.body.classList.remove("over","dead","bomb-spectator","loadout-active","loadout-cursor-hidden");
+ mouse.down=mouse.right=false;fireHeld=false;jumpHeld=false;keys={};
+ bombCleanup();reset();bombMatch=null;
+ mt={t:60,cd:0,over:true};run=false;lob=true;
+ document.body.classList.add("lobby");lb.style.display="flex";
+ if(destination==="room"&&roomCurrent){
+  var room=roomCurrent;
+  selM=room.mode;
+  selectedTdmMapId=tdmMapId(room.mapId);
+  selectedBombMapId=bombMapId(room.mapId);
+  modePreviewSelect(selM);
+  roomMatchConfig=null;
+  roomLobbyOpen();
+ }else{
+  if(roomCurrent)roomCloseLocal();
+  roomMatchConfig=null;
+  selectedGameMode=0;selectedTdmMapId="block-district";selectGameMap(false);
+  roomLobbyOpen();
+ }
+}
+document.getElementById("dmn").onclick=function(){matchExitToLobby("room");};
 ov.style.display="none";
 reset();
 // Star rating on the results screen.
@@ -5080,6 +5108,83 @@ function respawnPl(){bloodPoolRemove(pl.bloodPool);pl.bloodPool=null;pl.stepTrai
 // tmUpd(): updates the top HUD (timer, scores, respawn text, spawn-shield text).
 function tmUpd(){var g=function(i){return document.getElementById(i);},r=g("rsp");g("imm").style.display=(pl.inv>0&&!pl.dead&&!mt.over)?"block":"none";var sp0=g("tp"),sq0=g("tq");if(sp0.textContent!=ts[0]){sp0.textContent=ts[0];sp0.classList.remove("pop");void sp0.offsetWidth;sp0.classList.add("pop");}if(sq0.textContent!=ts[1]){sq0.textContent=ts[1];sq0.classList.remove("pop");void sq0.offsetWidth;sq0.classList.add("pop");}g("tt").textContent=mmss(Math.max(0,Math.ceil(mt.t)));g("tbf").style.width=Math.max(0,Math.min(100,mt.t/(isBombMode()?(bombMatch&&bombMatch.state==="planted"?BOMB_RULES.fuseSeconds:roomRoundSeconds()):roomMatchSeconds())*100))+"%";g("tm").classList.toggle("lo",mt.t<=10&&mt.cd<=0&&!mt.over);g("tmP").classList.toggle("you",pl.tm===0);g("tmT").classList.toggle("you",pl.tm===1);
   r.innerHTML=isBombMode()?(mt.cd>0?Math.ceil(mt.cd):(pl.dead&&!mt.over?"SPECTATING":(bombMatch&&bombMatch.done?"ROUND OVER":""))):mt.cd>0?Math.ceil(mt.cd):(pl.dead&&!mt.over?"RESPAWN IN "+Math.max(1,Math.ceil(pl.rsT))+(pl.kb?"<small>KILLED BY "+pl.kb.toUpperCase()+"</small>":""):"");}
+// Client-side navigation for the existing single-index PointBlock game.
+// HTTP(S) uses pathname routes; file:// uses hash routes because pathname cannot
+// be changed to /loby without navigating away from the local HTML document.
+// No API router or server rewrite is assumed by this module.
+var APP_PANEL_ROUTES=Object.freeze({
+ lbs:"/",lbrooms:"/loby",lbroomlive:"/loby/room/",lbiv:"/inventory",lbshop:"/shop"
+});
+var appRouteBooting=false,appRouteHashWritten=null;
+function appRouteRoot(){
+ if(location.protocol==="file:")return "";
+ var p=location.pathname||"/";
+ if(p.endsWith("/index.html"))return p.slice(0,-11);
+ var tails=["/loby/room/","/loby/room","/loby","/inventory","/shop"];
+ for(var i=0;i<tails.length;i++)if(p.endsWith(tails[i]))return p.slice(0,-tails[i].length);
+ return p.endsWith("/")?p.slice(0,-1):"";
+}
+function appRouteRead(){
+ var path=location.protocol==="file:"?(location.hash.slice(1)||"/"):
+  (location.pathname.slice(appRouteRoot().length)||"/");
+ if(path==="/loby")return "lbrooms";
+ if(path==="/loby/room/"||path==="/loby/room")return "lbroomlive";
+ if(path==="/inventory")return "lbiv";
+ if(path==="/shop")return "lbshop";
+ return "lbs";
+}
+function appRouteUpdate(panel,replace){
+ if(appRouteBooting||!APP_PANEL_ROUTES[panel])return;
+ var path=APP_PANEL_ROUTES[panel];
+ if(location.protocol==="file:"){
+  var hash=path==="/"?"":"#"+path;
+  if(location.hash===hash)return;
+  appRouteHashWritten=hash;
+  if(replace&&history.replaceState){
+   try{history.replaceState(null,"",location.pathname+location.search+hash);return;}catch(err){}
+  }
+  location.hash=hash;
+ }else if(/^https?:$/.test(location.protocol)&&history.pushState){
+  var target=appRouteRoot()+path+location.search;
+  if(location.pathname+location.search===target)return;
+  try{history[replace?"replaceState":"pushState"]({pointblock:true},"",target);}catch(err){}
+ }
+}
+function appRouteRestore(){
+ // Never let browser history silently abort a running match or its result report.
+ if(!lob){
+  appRouteUpdate("lbroomlive",true);
+  return;
+ }
+ var panel=appRouteRead();
+ appRouteBooting=true;
+ try{
+  if(panel==="lbrooms"){
+   if(roomCurrent)roomCloseLocal();
+   roomQuickFromBrowser=false;
+   roomLobbyOpen();
+  }else if(panel==="lbroomlive"){
+   // A fresh document load has no selected in-memory room: fall back to Room List.
+   if(roomCurrent)roomLobbyOpen();
+   else{roomQuickFromBrowser=false;roomLobbyOpen();}
+  }else if(panel==="lbiv"){
+   roomQuickFromBrowser=false;inventoryOpen();
+  }else if(panel==="lbshop"){
+   roomQuickFromBrowser=false;shopOpen();
+  }else{
+   roomQuickFromBrowser=false;lobP("lbs");
+  }
+ }finally{appRouteBooting=false;}
+ var active=document.querySelector("#lb>.lbp.on");
+ if(active)appRouteUpdate(active.id,true);
+}
+addEventListener("popstate",appRouteRestore);
+if(location.protocol==="file:")addEventListener("hashchange",function(){
+ if(appRouteHashWritten===location.hash){appRouteHashWritten=null;return;}
+ appRouteHashWritten=null;appRouteRestore();
+});
+// Defer the first route restoration until every ordered game module has initialized.
+setTimeout(appRouteRestore,0);
 // BOMB MISSION match state (isolated from Team Deathmatch logic).
 var bombMatch=null,bombHold=false,bombSpectatorIndex=0,bombSpectatorView='team';
 var bombInfo=document.getElementById('bombInfo'),bombStatus=document.getElementById('bombStatus'),
@@ -6431,8 +6536,20 @@ function escShow(){
  if(typeof lookStopDrag==="function")lookStopDrag();
  if(document.pointerLockElement===R.domElement&&document.exitPointerLock)document.exitPointerLock();
 }
-// escHide(): hides the pause overlay.
-function escHide(){escEl.style.display="none";document.body.classList.remove("game-menu-open");}
+// ESC confirm is a distinct layer: NO returns to Game Menu, YES abandons the match.
+var escConfirmEl=document.getElementById("escConfirm");
+function escConfirmClose(){
+ escConfirmEl.hidden=true;
+ var back=document.getElementById("escB");
+ if(escEl.style.display==="flex")back.focus();
+}
+function escConfirmOpen(){
+ if(escEl.style.display!=="flex")return;
+ escConfirmEl.hidden=false;
+ document.getElementById("escConfirmNo").focus();
+}
+// escHide(): hides both the pause menu and the confirmation layer.
+function escHide(){escConfirmEl.hidden=true;escEl.style.display="none";document.body.classList.remove("game-menu-open");}
 // lockTry(): tries to re-capture the mouse (pointer lock), retrying a few times.
 function lockTry(n){if(touch||!run||mt.over||lob||document.pointerLockElement||escEl.style.display==="flex"||
  (typeof wsOn!=="undefined"&&wsOn))return;try{R.domElement.requestPointerLock();}catch(e){}if(n<4)setTimeout(function(){lockTry(n+1);},400);}
@@ -6442,14 +6559,23 @@ document.addEventListener("pointerlockchange",function(){
  // Opening the loadout deliberately releases Pointer Lock; that is not an ESC request.
  if(!document.pointerLockElement&&!(typeof wsOn!=="undefined"&&wsOn))escShow();
 });
-addEventListener("keydown",function(e){if(e.code!=="Escape"||!run||mt.over||lob)return;if(escEl.style.display==="flex"){if(performance.now()-escT>300)escResume();}else escShow();});
+addEventListener("keydown",function(e){
+ if(e.code!=="Escape"||!run||mt.over||lob)return;
+ e.preventDefault();
+ if(!escConfirmEl.hidden){escConfirmClose();return;}
+ if(escEl.style.display==="flex"){if(performance.now()-escT>300)escResume();}
+ else escShow();
+});
 document.getElementById("escR").onclick=function(){this.blur();escResume();};
-document.getElementById("escB").onclick=function(){
- this.blur();escHide();
- // Switch to lobby first: pointerlockchange must not reopen GAME MENU mid-transition.
- document.getElementById("dmn").onclick();
- if(document.pointerLockElement&&document.exitPointerLock)document.exitPointerLock();
-};
+document.getElementById("escB").onclick=function(){this.blur();escConfirmOpen();};
+document.getElementById("escConfirmNo").onclick=escConfirmClose;
+document.getElementById("escConfirmYes").onclick=function(){matchExitToLobby("list");};
+escConfirmEl.addEventListener("keydown",function(e){
+ if(e.key!=="Tab")return;
+ var yes=document.getElementById("escConfirmYes"),no=document.getElementById("escConfirmNo");
+ if(e.shiftKey&&document.activeElement===yes){e.preventDefault();no.focus();}
+ else if(!e.shiftKey&&document.activeElement===no){e.preventDefault();yes.focus();}
+});
 // M7 diagnostic instrumentation: local, opt-in, bounded, decision-independent.
 // Enable only via index.html?bbBotQa=1 (including file://); no telemetry by default.
 // No network calls, persistence, user identity, coordinates, gameplay changes or UI.
