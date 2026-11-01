@@ -1,3 +1,8 @@
+## 2026-11-02 — F0/F1: backend client and wallet SIWE login
+- Introduce a dedicated EIP-1193 + SIWE frontend client: backend-authenticated REST, single-use WebSocket tickets, validated socket messages, and memory-only session handling.
+- Wire existing wallet button to actual Robinhood Mainnet (4663) backend challenge/signature/verification; connecting alone is not a login.
+- Inject the API client into Vite's ordered Three.js runtime without modifying the original rendering architecture. Production API origin must be explicitly configured. No simulated backend fallback.
+
 ## 2026-11-01 — Hold-TAB live match scoreboard (5v5 KILL / DEATH)
 - Added a live, translucent POLICE/TERRORIST 5v5 scoreboard matching the approved mockup; all player K/D numbers come directly from `ROS` and team score from `ts`, with no fabricated scores or ranking.
 - Hold `TAB` during gameplay to show, release for immediate dismiss. Keyboard focus traversal remains available outside gameplay. Close automatically on Escape, blur, tab hidden, match end, and room exit.

@@ -91,36 +91,27 @@ function homeShowcaseSync(){
 document.addEventListener("visibilitychange",homeShowcaseSync);
 homeDemoUpdateLabel("deathmatch");
 homeShowcaseSync();
-// Wallet connection is optional UI preparation; it does not authenticate gameplay.
-var homeWalletButton=document.getElementById("homeWalletConnect");
-var homeWalletAccount=null;
-var homeWalletLabel=document.getElementById("homeWalletLabel");
+// Authentication is completed by backend SIWE signature verification, not wallet connect.
+var homeWalletButton=document.getElementById("homeWalletConnect"),
+    homeWalletAccount=null,homeWalletLabel=document.getElementById("homeWalletLabel");
 function homeWalletRender(){
+ var state=typeof PB_ONLINE!=="undefined"?PB_ONLINE.state():{configured:false,authenticated:false,address:null};
+ homeWalletAccount=state.authenticated?state.address:null;
  homeWalletLabel.textContent=homeWalletAccount?
   homeWalletAccount.slice(0,6)+"…"+homeWalletAccount.slice(-4):"CONNECT WALLET";
  homeWalletButton.classList.toggle("connected",!!homeWalletAccount);
- homeWalletButton.setAttribute("aria-label",homeWalletAccount?"Connected wallet "+homeWalletAccount:"Connect wallet");
+ homeWalletButton.setAttribute("aria-label",homeWalletAccount?
+  "Authenticated Robinhood Mainnet wallet "+homeWalletAccount:"Connect wallet and sign in");
 }
 homeWalletButton.addEventListener("click",function(){
- var provider=window.ethereum;
- if(!provider||typeof provider.request!=="function"){
-   homeWalletLabel.textContent="WALLET NOT FOUND";
-   return;
- }
- homeWalletButton.disabled=true;homeWalletLabel.textContent="CONNECTING…";
- provider.request({method:"eth_requestAccounts"}).then(function(accounts){
-   homeWalletAccount=Array.isArray(accounts)&&typeof accounts[0]==="string"&&/^0x[a-fA-F0-9]{40}$/.test(accounts[0])?accounts[0]:null;
-   homeWalletRender();
- }).catch(function(){
-   homeWalletRender();
+ if(typeof PB_ONLINE==="undefined"){homeWalletLabel.textContent="BACKEND REQUIRED";return;}
+ if(PB_ONLINE.state().authenticated){PB_ONLINE.logout().finally(homeWalletRender);return;}
+ homeWalletButton.disabled=true;homeWalletLabel.textContent="SIGN IN…";
+ PB_ONLINE.connectWallet().then(homeWalletRender).catch(function(err){
+  homeWalletLabel.textContent=err&&err.code||"SIGN IN FAILED";
+  setTimeout(homeWalletRender,3500);
  }).finally(function(){homeWalletButton.disabled=false;});
 });
-if(window.ethereum&&typeof window.ethereum.on==="function"){
- window.ethereum.on("accountsChanged",function(accounts){
-   homeWalletAccount=Array.isArray(accounts)&&typeof accounts[0]==="string"&&/^0x[a-fA-F0-9]{40}$/.test(accounts[0])?accounts[0]:null;
-   homeWalletRender();
- });
-}
 homeWalletRender();
 // PBT is a visual placeholder until the token system has an audited contract and trusted balance source.
 var homePbtAdd=document.getElementById("homePbtAdd");
