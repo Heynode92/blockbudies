@@ -2,7 +2,7 @@
 - Split simulation progression from WebGL rendering in `src/game/99-render-loop.js`. Visible rendering stays on `requestAnimationFrame` with the previous maximum 50ms physics delta; gameplay mechanics and shaders are unchanged.
 - Added a dedicated Vite-bundled Worker heartbeat for hidden tabs and a main-thread interval fallback when workers fail. Hidden pulses advance BOT/combat/projectile/bomb simulation in bounded 50ms steps; no offscreen WebGL rendering.
 - On browser visibility restoration (and long scheduler stalls), reconcile missed real elapsed time: up to 30 fixed simulation steps per callback, then apply any remaining gap to match timer and Bomb Mission freeze, fuse, timeout and between-round clocks without unbounded CPU usage.
-- Preserve focus safety: the existing blur handler releases mouse and keyboard input, so the unattended player cannot keep shooting or running with stale controls.
+- Preserve focus safety: expand the blur handler to release keyboard, mouse, touch firing/jumping and virtual joystick input, so an unattended player cannot keep shooting or moving with stale controls. Prevent out-of-order timestamps from simulating the same time twice.
 - New independent Node tests cover frame-time cap, hidden progression, background suspension, inactive lobby and worker lifecycle. Added Vite integration assertions.
 - Limitation: browser throttling or OS tab suspension can prevent continuous detailed BOT simulation; long suspended periods keep round timers accurate on return, but skipped combat cannot be reconstructed exactly. Fully authoritative online always-running simulation requires a server.
 
