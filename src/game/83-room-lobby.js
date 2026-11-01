@@ -426,13 +426,14 @@ function roomStartMark(percent,label){
  document.getElementById("roomStartPhase").textContent=label;
 }
 function roomStartAbort(){
- var flow=roomStartFlow;flow.token++;
+ var flow=roomStartFlow,returningFromLoading=flow.active&&flow.phase!=="countdown"&&flow.phase!=="idle";flow.token++;
  if(flow.raf)cancelAnimationFrame(flow.raf);
  if(flow.timer)clearTimeout(flow.timer);
  flow.raf=flow.timer=0;flow.active=false;flow.phase="idle";flow.config=null;flow.mapReady=false;flow.loadoutSeconds=0;
  document.getElementById("roomPrestart").hidden=true;
  var overlay=document.getElementById("roomTransition");
  overlay.classList.remove("on","leaving");overlay.hidden=true;
+ if(returningFromLoading&&lob&&!run)MENU_BGM.enterMenu();
 }
 // Copy a *real* frame of the current 3D WebGL map, no fabricated loading image.
 function roomStartCaptureMap(){
@@ -454,6 +455,7 @@ function roomStartCountdown(now,token){
 function roomStartLoading(token){
  var flow=roomStartFlow;if(!flow.active||token!==flow.token)return;
  flow.phase="loading";flow.raf=0;flow.mapReady=false;
+ MENU_BGM.leaveMenu(); // Smooth 1.4s fade while the 3D map loading cover is visible.
  var overlay=document.getElementById("roomTransition");
  overlay.hidden=false;overlay.classList.remove("leaving");
  roomStartMark(0,"CAPTURING 3D MAP");
