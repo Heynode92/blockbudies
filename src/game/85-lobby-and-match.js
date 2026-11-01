@@ -79,6 +79,7 @@ document.getElementById("mdm").onclick=function(){if(MODES[selM].lock){this.clas
 // End-of-match results return to the same Room Master lobby; deliberate ESC abandonment closes
 // the current local room and opens the Room List. Neither action returns to Home.
 function matchExitToLobby(destination){
+ matchScoreboardDismiss();
  escHide();
  if(document.pointerLockElement&&document.exitPointerLock)document.exitPointerLock();
  document.getElementById("dv").classList.remove("show");
