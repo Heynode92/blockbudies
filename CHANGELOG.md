@@ -1,3 +1,9 @@
+## 2026-11-02 — F2/F3/F4: server-owned room and rendering bridge
+- Add frontend online adapter for HTTP room master operations, server room codes/members/team swaps and authoritative WebSocket match/training events; local room storage is no longer a multiplayer source of truth.
+- Route START through authenticated onboarding; unregistered wallets must complete server-controlled training and callsign registration. Preserve 3-2-1 and existing 3D map loading transition.
+- Split render loop from browser gameplay simulation for online sessions; server snapshots drive actor positions, death, HUD score and spectator camera. Background worker does not simulate online combat.
+- Existing Three.js viewmodels and lobby layout remain. Validation, interpolation and HUD parity will be expanded in subsequent phases, not represented as finished.
+
 ## 2026-11-02 — F0/F1: backend client and wallet SIWE login
 - Introduce a dedicated EIP-1193 + SIWE frontend client: backend-authenticated REST, single-use WebSocket tickets, validated socket messages, and memory-only session handling.
 - Wire existing wallet button to actual Robinhood Mainnet (4663) backend challenge/signature/verification; connecting alone is not a login.

@@ -69,6 +69,7 @@
     "src/game/94-bot-qa.js",
     "src/game/95-simulation.js",
     "src/game/96-hud-and-radar.js",
+    "src/game/98-online-bridge.js",
     "src/game/99-render-loop.js"
   ],
   "styles": [
