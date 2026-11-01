@@ -8,4 +8,9 @@ Thumbs.db
 .env.*
 !.env.example
 
-# assets/game.js is intentionally tracked for git-pull-only players.
+# Existing assets/game.js remains tracked only for legacy parity tests; Vite serves src/main.js.
+
+# Vite production and development outputs
+dist/
+.vite/
+coverage/
