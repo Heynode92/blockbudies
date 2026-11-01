@@ -3160,7 +3160,7 @@ function cnt(el,to,fmt,dur,dl){var t0=performance.now()+dl;el.textContent=fmt(0)
 function begin(tm){MENU_BGM.leaveMenu();document.getElementById("tsel").style.display="none";lb.style.display="none";lob=false;document.body.classList.remove("lobby","over","dead");bombCleanup();reset();selectedGameMode=selM;selectedBombMapId=selM===1&&roomMatchConfig?bombMapId(roomMatchConfig.mapId):"lockdown";selectedTdmMapId=selM===0&&roomMatchConfig?tdmMapId(roomMatchConfig.mapId):"block-district";selectGameMap(isBombMode());startMatch(tm);ov.style.display="none";run=true;/* Keep cursor free for pre-round loadout selection. */}
 document.getElementById("tsP").onclick=function(){begin(0);};document.getElementById("tsT").onclick=function(){begin(1);};document.getElementById("tsX").onclick=function(){document.getElementById("tsel").style.display="none";};
 // endMatch(): ends the match: stops the simulation, releases the mouse, shows the results screen (stars, scores, best score).
-function endMatch(){escHide();mt.over=true;mt.t=0;run=false;if(document.exitPointerLock)document.exitPointerLock();mouse.down=mouse.right=false;fireHeld=false;kn.innerHTML="";document.body.classList.remove("dead","bomb-spectator","loadout-active","loadout-cursor-hidden");document.body.classList.add("over");pl.dui=true;
+function endMatch(){matchScoreboardDismiss();escHide();mt.over=true;mt.t=0;run=false;if(document.exitPointerLock)document.exitPointerLock();mouse.down=mouse.right=false;fireHeld=false;kn.innerHTML="";document.body.classList.remove("dead","bomb-spectator","loadout-active","loadout-cursor-hidden");document.body.classList.add("over");pl.dui=true;
   var $=function(i){return document.getElementById(i);},me=pl.tm,w=ts[me]>ts[1-me]?1:ts[me]<ts[1-me]?-1:0,st=pl.st,b=0,h2=document.querySelector("#dc h2"),ti=w>0?"VICTORY":w<0?"DEFEAT":"DRAW";
   try{b=+localStorage.getItem(isBombMode()?"bbfps_bomb":"bbfps_tdm")||0;}catch(e){}var nb=st.k>b;if(nb){b=st.k;try{localStorage.setItem(isBombMode()?"bbfps_bomb":"bbfps_tdm",b);}catch(e){}}
   $("dv").classList.add("tdm");document.querySelector(".dhd").textContent=isBombMode()?"BOMB MISSION REPORT":"BATTLE REPORT";h2.setAttribute("data-t",ti);h2.firstChild.textContent=ti;
@@ -3543,6 +3543,91 @@ function stick(el,st){var kn=el.firstChild,id=null;
 stick(document.getElementById("stl"),ST.l);stick(document.getElementById("str"),ST.r);
 // Raycaster/plane helpers for converting screen touches to world positions.
 var ray=new T.Raycaster(),plane=new T.Plane(new T.Vector3(0,1,0),-1),tv=new T.Vector3(),v2=new T.Vector2();
+// Hold TAB to inspect the real 5v5 scoreboard; release to close.
+// This overlay is presentation-only. It never modifies combat stats or game time.
+var matchScoreboard=document.getElementById("matchScoreboard");
+var matchScoreboardHeld=false,matchScoreboardInterval=0;
+function matchScoreboardAllowed(){
+  return !!run&&!lob&&!mt.over&&!document.hidden&&
+    !(roomStartFlow&&roomStartFlow.active)&&
+    !document.body.classList.contains("game-menu-open")&&
+    document.getElementById("dv").classList.contains("show")===false;
+}
+function matchScoreboardTeamData(team){
+  // ROS contains the authoritative per-player K/D objects, including pl.st.
+  var players=ROS.filter(function(s){return s.tm===team;}).slice();
+  players.sort(function(a,b){
+    return b.k-a.k||a.d-b.d||String(a.name).localeCompare(String(b.name));
+  });
+  return {
+    players:players,
+    kills:players.reduce(function(n,s){return n+s.k;},0),
+    deaths:players.reduce(function(n,s){return n+s.d;},0)
+  };
+}
+function matchScoreboardCreateCell(tag,className,value){
+  var element=document.createElement(tag);
+  element.className=className;
+  element.textContent=String(value);
+  return element;
+}
+function matchScoreboardRenderTeam(team){
+  var data=matchScoreboardTeamData(team),
+      prefix=team===0?"Police":"Terrorist",
+      rows=document.getElementById("matchScoreboard"+prefix+"Rows");
+  var fragment=document.createDocumentFragment();
+  data.players.forEach(function(stat,index){
+    var row=document.createElement("div"),name=document.createElement("span");
+    row.className="match-sb-row"+(stat===pl.st?" is-you":"");
+    name.className="match-sb-name";
+    name.appendChild(matchScoreboardCreateCell("span","match-sb-name-text",stat.name));
+    if(stat===pl.st)name.appendChild(matchScoreboardCreateCell("span","match-sb-you","YOU"));
+    row.appendChild(matchScoreboardCreateCell("span","match-sb-rank",index+1));
+    row.appendChild(name);
+    row.appendChild(matchScoreboardCreateCell("strong","match-sb-kills",stat.k));
+    row.appendChild(matchScoreboardCreateCell("strong","match-sb-deaths",stat.d));
+    fragment.appendChild(row);
+  });
+  rows.replaceChildren(fragment);
+  document.getElementById("matchScoreboard"+prefix+"Score").textContent=String(ts[team]);
+  document.getElementById("matchScoreboard"+prefix+"Kills").textContent=String(data.kills);
+  document.getElementById("matchScoreboard"+prefix+"Deaths").textContent=String(data.deaths);
+}
+function matchScoreboardRender(){
+  if(!matchScoreboardHeld)return;
+  if(!matchScoreboardAllowed()){matchScoreboardDismiss();return;}
+  matchScoreboardRenderTeam(0);
+  matchScoreboardRenderTeam(1);
+}
+function matchScoreboardShow(){
+  if(matchScoreboardHeld||!matchScoreboardAllowed())return;
+  matchScoreboardHeld=true;
+  matchScoreboard.hidden=false;
+  matchScoreboard.setAttribute("aria-hidden","false");
+  matchScoreboardRender();
+  // Keep K/D live while held without rebuilding every animation frame.
+  matchScoreboardInterval=setInterval(matchScoreboardRender,180);
+}
+function matchScoreboardDismiss(){
+  matchScoreboardHeld=false;
+  if(matchScoreboardInterval){clearInterval(matchScoreboardInterval);matchScoreboardInterval=0;}
+  matchScoreboard.hidden=true;
+  matchScoreboard.setAttribute("aria-hidden","true");
+}
+addEventListener("keydown",function(event){
+  if(event.code==="Escape"&&matchScoreboardHeld){matchScoreboardDismiss();return;}
+  if(event.code!=="Tab")return;
+  if(matchScoreboardAllowed()){
+    event.preventDefault(); // Tab must not shift focus out of locked FPS controls.
+    matchScoreboardShow();
+  }else if(matchScoreboardHeld)matchScoreboardDismiss();
+});
+addEventListener("keyup",function(event){
+  if(event.code!=="Tab")return;
+  if(matchScoreboardHeld){event.preventDefault();matchScoreboardDismiss();}
+});
+addEventListener("blur",matchScoreboardDismiss);
+document.addEventListener("visibilitychange",function(){if(document.hidden)matchScoreboardDismiss();});
 // Home menu showcase: local gameplay videos, separate from the Three.js map render.
 // Only the HOME panel owns playback; inventory, room lobby and matches stay unaffected.
 var HOME_DEMOS=Object.freeze({
@@ -5044,6 +5129,7 @@ document.getElementById("mdm").onclick=function(){if(MODES[selM].lock){this.clas
 // End-of-match results return to the same Room Master lobby; deliberate ESC abandonment closes
 // the current local room and opens the Room List. Neither action returns to Home.
 function matchExitToLobby(destination){
+ matchScoreboardDismiss();
  escHide();
  if(document.pointerLockElement&&document.exitPointerLock)document.exitPointerLock();
  document.getElementById("dv").classList.remove("show");
