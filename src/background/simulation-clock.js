@@ -12,8 +12,10 @@ export function createSimulationClock({ now, isRunning, step, fastForward, maxBa
   let previous = now();
   const maxStep = 0.05;
   function elapsed(time) {
-    const current = Number.isFinite(time) ? time : now();
-    const delta = Math.max(0, (current - previous) / 1000);
+    // rAF timestamps can lag a recently delivered visibilitychange/Worker tick.
+    // Never move the clock backwards and accidentally simulate elapsed time twice.
+    const current = Math.max(previous, Number.isFinite(time) ? time : now());
+    const delta = (current - previous) / 1000;
     previous = current;
     return Number.isFinite(delta) ? delta : 0;
   }
