@@ -1,3 +1,10 @@
+## 2026-11-01 — Fix F5 reload skull flash and delayed Vite CSS
+- Root cause: Vite dev injected all 15 stylesheets only after JavaScript entry executed, so initially unstyled HUD and Terrorist skull SVG could be briefly painted during F5 or a deep-link reload.
+- Load all 15 canonical `src/styles/*.css` as render-blocking HTML `<link rel="stylesheet">` entries in source-manifest order. Remove the redundant JavaScript/virtual CSS injection so styles load once with their original cascade.
+- Prevent a transient Home screen flash on direct `/loby`, `/loby/room/`, `/inventory`, and `/shop` reloads by hiding the lobby until `appRouteRestore()` has completed; unhide in `finally`.
+- Add regression assertions that the HTML stylesheet order exactly matches the manifest and the deep-link guard is cleared. Synchronize the legacy parity bundle (runtime gameplay remains Vite-only).
+- No changes to BOT AI, weapons, physics, maps, render parameters, persistent inventory, room rules, or UI design. Browser-level F5 verification remains pending.
+
 ## 2026-11-01 — PointBlock Vite + npm Three.js migration foundation
 - Migrated the primary runtime entry to `src/main.js` (Vite 8.3.5) and pinned `three@0.128.0` from npm to retain original renderer, lighting, shadows, physics, BOT AI and gameplay behavior without an unverified Three.js engine upgrade.
 - Added a Vite virtual source plugin to load all existing 69 gameplay feature fragments from `tools/source-manifest.json` in their existing lexical order; CSS is now managed by the same manifest including all 15 stylesheets. Source changes trigger a clean browser reload rather than hot replacing active Three.js scene or input listeners.
