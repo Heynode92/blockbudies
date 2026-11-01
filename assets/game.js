@@ -1,9 +1,10 @@
 (function(){
 // =====================================================================================
-// POINT BLOCK FPS - modular source, bundled browser IIFE (Three.js r128)
+// POINT BLOCK FPS - ordered feature sources, Vite npm Three.js r128 runtime
 // =====================================================================================
-// READ THIS FIRST (notes for humans and for future AI edits). Everything below is ONE IIFE.
-// Do not invent APIs: browser runtime uses Three.js r128 + native APIs; ordered sources are bundled with tools/build.mjs.
+// READ THIS FIRST: feature files still share lexical state and initialize in manifest order.
+// Vite now imports npm Three.js r128; tools/build.mjs only validates the legacy compatibility bundle.
+// Do not change shared gameplay state while migrating the build system.
 //
 // COORDINATES
 //  - World: x/z are the ground plane, y is up. The arena spans x,z in [-A, A] with A = 60.
@@ -3545,8 +3546,8 @@ var ray=new T.Raycaster(),plane=new T.Plane(new T.Vector3(0,1,0),-1),tv=new T.Ve
 // Home menu showcase: local gameplay videos, separate from the Three.js map render.
 // Only the HOME panel owns playback; inventory, room lobby and matches stay unaffected.
 var HOME_DEMOS=Object.freeze({
- deathmatch:Object.freeze({src:"./src/assets/video/deatch_match_demo.mp4",label:"DEATHMATCH",detail:"5V5 · ALL-OUT COMBAT",number:"01"}),
- bomb:Object.freeze({src:"./src/assets/video/bomb_mission_demo.mp4",label:"BOMB MISSION",detail:"TACTICAL · PLANT & DEFUSE",number:"02"})
+ deathmatch:Object.freeze({src:GAME_ASSET_URLS.deathmatch,label:"DEATHMATCH",detail:"5V5 · ALL-OUT COMBAT",number:"01"}),
+ bomb:Object.freeze({src:GAME_ASSET_URLS.bomb,label:"BOMB MISSION",detail:"TACTICAL · PLANT & DEFUSE",number:"02"})
 });
 var homeDemoKey="deathmatch",homeDemoHasError=false;
 var homeDemoVideo=document.getElementById("homeDemoVideo"),
