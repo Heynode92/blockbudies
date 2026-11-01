@@ -42,5 +42,5 @@ test('file-based paths use hash navigation, HTTP paths use history and local ass
  assert.match(route,/location\.hash=hash/);
  assert.match(route,/history\[replace\?"replaceState":"pushState"\]/);
  assert.match(route,/addEventListener\("popstate",appRouteRestore\)/);
- assert.match(html,/<base/); // Dynamically created to preserve direct deep-link asset loading.
+ assert.match(html,/document\.createElement\("base"\)/); // Base is created before stylesheet/script references.
 });
