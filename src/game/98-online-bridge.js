@@ -8,7 +8,7 @@ var onlineLobbyTimer=0,onlineRoomOpening=false,onlineRoomTimer=0,onlineRouteToke
 var onlineTeamNotice=null,onlineInputId=0,onlineVisualLoaded=false;
 var onlineReconnectTimer=0,onlineReconnectStarted=0,onlineReconnecting=false;
 var onlineAimInitialized=false,onlineTrainingProgressValue=null,onlinePrevAlive=true;
-var onlineSelfTarget=null,onlineLastWinner=null;
+var onlineSelfTarget=null,onlineLastWinner=undefined,onlineMuzzleTime=0;
 function onlineWarn(error) {
  var code=typeof error==='string'?error:error&&error.code||'BACKEND_UNAVAILABLE';
  roomSetMessage(code);if(typeof roomLiveLog==='function'&&roomCurrent)roomLiveLog(code);
@@ -198,7 +198,7 @@ function onlineResetLive(){
  for(const item of onlineActors.values()){if(item.model?.g)S.remove(item.model.g)}
  onlineActors.clear();onlineMeId=null;onlineSeq=0;onlineSendAt=0;onlineVisualLoaded=false;
  onlineAimInitialized=false;onlineTrainingProgressValue=null;onlinePrevAlive=true;
- onlineSelfTarget=null;onlineLastWinner=null;
+ onlineSelfTarget=null;onlineLastWinner=undefined;onlineMuzzleTime=0;
  onlineApi?.closeLive();clearInterval(onlineRoomTimer);clearTimeout(onlineReconnectTimer);
  onlineReconnecting=false;onlineReconnectStarted=0;
 }
@@ -266,10 +266,10 @@ function onlineReceiveFrame(frame){
   return;
  }
  if(frame.type==='match_completed'){
-  var result=frame.game,matchId=frame.matchId,winner=onlineLastWinner;
+  var result=frame.game,matchId=frame.matchId,winner=onlineLastWinner,mode=roomCurrent?.mode??selM;
   mt.over=true;onlineGame=result;onlineResetLive();
   matchExitToLobby('list');
-  onlineShowMatchReport(result,matchId,winner);
+  onlineShowMatchReport(result,matchId,winner,mode);
   return;
  }
  if(frame.type==='training_result'){
@@ -479,14 +479,14 @@ function onlineLabelActor(model,name){
  model.nm.material.needsUpdate=true;
  if(old&&typeof old.dispose==='function')old.dispose();
 }
-function onlineShowMatchReport(game,matchId,winner){
+function onlineShowMatchReport(game,matchId,winner,mode){
  if(!game)return;
  var old=document.getElementById('pointblockMatchReport');if(old)old.remove();
  var overlay=document.createElement('div');overlay.id='pointblockMatchReport';overlay.className='point-online-dialog';
  var panel=document.createElement('section');panel.className='point-online-dialog-panel';
  var heading=document.createElement('h2');heading.textContent='SERVER-VERIFIED MATCH RESULT';
  var own=roomSide===1?1:0,score=game.teamKills||[0,0];
- if(Array.isArray(game.rounds)&&roomCurrent?.mode===1)score=game.rounds;
+ if(Array.isArray(game.rounds)&&mode===1)score=game.rounds;
  var summary=document.createElement('p');
  summary.textContent='POLICE '+score[0]+' — '+score[1]+' TERRORISTS';
  var verdict=document.createElement('p');
@@ -518,12 +518,19 @@ function onlineVisualUpdate(dt){
  adsT+=((ads?1:0)-adsT)*Math.min(1,dt*12);
  sprT+=((keys.ShiftLeft||keys.ShiftRight?1:0)-sprT)*Math.min(1,dt*9);
  pl.face-=ST.r.x*2.4*dt;pl.pitch=Math.max(-1.2,Math.min(1.2,pl.pitch-ST.r.y*1.6*dt));
+ var wantsFire=!pl.dead&&(!!keys.KeyF||fireHeld||
+   (mouse.down&&document.pointerLockElement===R.domElement));
+ if(wantsFire&&pl.mag>0&&performance.now()-onlineMuzzleTime>Math.max(75,(WP[pl.w]?.cd||.14)*1000)){
+  // Local VFX only: damage, ammo consumption and shot outcomes remain server-only.
+  onlineMuzzleTime=performance.now();
+  flashT=.035;kick=Math.min(.13,kick+.018);
+ }
  if(!pl.dead&&performance.now()-onlineSendAt>=50&&onlineApi?.live){
   onlineSendAt=performance.now();
   onlineApi.live.send({type:'input',frame:{
    seq:++onlineSeq,moveX:x,moveZ:z,yaw:pl.face,pitch:pl.pitch,
    sprint:!!(keys.ShiftLeft||keys.ShiftRight),ads:!!ads,
-   fire:!pl.dead&&(!!keys.KeyF||fireHeld||(mouse.down&&document.pointerLockElement===R.domElement)),
+   fire:wantsFire,
    reload:!!keys.KeyR,jump:!!(keys.Space||jumpHeld),crouch:!!(keys.ControlLeft||keys.ControlRight),
    interact:!!(keys.KeyE||bombHold),weaponId:pl.w,
   }});
@@ -574,6 +581,16 @@ onlineAction('mdm',onlineStartGate);
 onlineAction('tsP',onlineStartGate);
 onlineAction('tsT',onlineStartGate);
 onlineAction('dgo',()=>{onlineResetLive();matchExitToLobby('list')});
+onlineAction('go',onlineStartGate);
+onlineAction('escConfirmYes',async()=>{
+ if(onlineActive&&!onlineTraining&&roomCurrent){
+  try{await onlineApi.abandonRoom(roomCurrent.id)}
+  catch(error){onlineWarn(error);return}
+ }
+ // Training abandonment policy is intentionally not guessed; closing the
+ // socket never creates or refunds progression in the browser.
+ onlineResetLive();matchExitToLobby('list');
+});
 onlineAction('roomCreate',onlineCreateRoom);
 onlineAction('roomRefresh',onlineRefreshRooms);
 onlineAction('roomSave',()=>onlineSaveRoom(false));

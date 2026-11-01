@@ -1,3 +1,9 @@
+## 2026-11-02 — F5 server-owned abandon and local VFX separation
+- Route ESC confirmation through authenticated server match abandon before returning to lobby; remove path that could bypass server abandonment classification.
+- Keep original muzzle flash/recoil as cosmetic client feedback only, without modifying authoritative ammo, projectile or damage.
+- Protect server match report against falsely displaying DRAW when final winner event was not received and preserve Bomb round-score mode through room teardown.
+- Gate initial legacy overlay START against SIWE onboarding.
+
 ## 2026-11-02 — F5/F6: player snapshot presentation and verified result UX
 - Do not transmit gameplay input while the authoritative server marks the actor dead; this avoids the server rejecting dead-player frames and terminating the spectator socket.
 - Smooth own camera position toward authorized server snapshots without using client predictions as damage/position authority. Render proper username labels instead of placeholder BOT labels on human avatars.
