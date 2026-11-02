@@ -5,7 +5,7 @@
 var APP_PANEL_ROUTES=Object.freeze({
  lbs:"/",lbrooms:"/loby",lbroomlive:"/loby/room/",lbiv:"/inventory",lbshop:"/shop"
 });
-var appRouteBooting=false,appRouteHashWritten=null;
+var appRouteBooting=false,appRouteHashWritten=null,appRouteBootReady=false;
 function appRouteRoot(){
  if(location.protocol==="file:")return "";
  var p=location.pathname||"/";
@@ -41,22 +41,26 @@ function appRouteUpdate(panel,replace){
  }
 }
 function appRouteRestore(){
+ // Wait for verified SIWE session/room recovery before rendering protected URLs.
+ if(!appRouteBootReady)return;
  // Never let browser history silently abort a running match or its result report.
  if(!lob){
   appRouteUpdate("lbroomlive",true);
   return;
  }
  var panel=appRouteRead();
+ var state=typeof onlineApi!=='undefined'&&onlineApi?.state?.();
+ if(panel!=='lbs'&&(!state?.authenticated||!state.registered)){
+  // Invalid/unregistered sessions can never enter lobby, room, inventory or shop.
+  appRouteUpdate('lbs',true);panel='lbs';
+ }
  appRouteBooting=true;
  try{
-  if(panel==="lbrooms"){
-   if(roomCurrent)roomCloseLocal();
+  if(panel==="lbrooms"||panel==="lbroomlive"){
    roomQuickFromBrowser=false;
+   // A DB-owned room wins over any stale route; only explicit leave may
+   // discard the player's membership. A fresh tab recovers it at boot.
    roomLobbyOpen();
-  }else if(panel==="lbroomlive"){
-   // A fresh document load has no selected in-memory room: fall back to Room List.
-   if(roomCurrent)roomLobbyOpen();
-   else{roomQuickFromBrowser=false;roomLobbyOpen();}
   }else if(panel==="lbiv"){
    roomQuickFromBrowser=false;inventoryOpen();
   }else if(panel==="lbshop"){

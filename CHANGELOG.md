@@ -1,3 +1,10 @@
+## 2026-11-03 — Authenticated navigation, room rehydration and post-match return
+- Gate every protected route (loby, room, inventory, shop) behind server-revalidated SIWE and registered callsign. Logout immediately returns to Home.
+- Restore room membership using GET /v1/rooms/current after tab reload; do not destroy a database-owned room when a local UI route is restored. Reconnect the current ACTIVE match where authorized.
+- Handle ALREADY_IN_ROOM conflicts by recovering the actual membership instead of stranding the player.
+- After match completion, return users to the original Room Lobby with their master/team preserved; results are presented as an overlay on the room.
+- Reuse existing room layout and original frontend flows; no new room state hardcoded client-side.
+
 ## 2026-11-03 — Reload-safe, server-validated SIWE authentication
 - Keep a scoped session token in per-tab sessionStorage after verified SIWE login, revalidate via authenticated onboarding/profile on reload, and discard it on sign-out or backend 401. Never persist a private key or use wallet-connect as authentication proof.
 - Bound reload persistence to the configured API origin and path; refuse malformed restoration records. Transient backend failures never fabricate an authenticated state.

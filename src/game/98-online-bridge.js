@@ -431,6 +431,14 @@ function onlineLiveRoomDecorate(room) {
  if(me){roomSide=me.team===1?1:0;roomSeat=room.members.filter(m=>m.team===roomSide).findIndex(m=>m.playerId===me.playerId)}
  onlineRoomTeams();
 }
+async function onlineRecoverMembership() {
+ if(!onlineApi?.state().registered)return null;
+ var reply=await onlineApi.currentRoom();
+ if(!reply?.room){roomCurrent=null;return null;}
+ var room=onlineAdoptRoom(reply.room);
+ onlineLiveRoomDecorate(room);onlineStartRoomPoll();
+ return room;
+}
 async function onlineSelectRoom(id) {
  if(!onlineAuth()||onlineRoomOpening)return;
  onlineRoomOpening=true;
@@ -443,7 +451,11 @@ async function onlineSelectRoom(id) {
   var current=onlineAdoptRoom(room);onlineLiveRoomDecorate(current);
   roomLiveLog(current.code+' · CONNECTED TO ROOM SERVER');
   onlineStartRoomPoll();
- }catch(error){onlineWarn(error)}
+ }catch(error){
+  if(error?.code==='ALREADY_IN_ROOM'){
+   try{await onlineRecoverMembership();}catch(recovery){onlineWarn(recovery);}
+  }else onlineWarn(error);
+ }
  finally{onlineRoomOpening=false}
 }
 async function onlineCreateRoom(){
@@ -456,7 +468,11 @@ async function onlineCreateRoom(){
   roomBrowserCreateClose();onlineLiveRoomDecorate(roomCurrent);
   roomLiveLog('Server created '+roomCurrent.code);
   onlineStartRoomPoll();
- }catch(error){onlineWarn(error)}
+ }catch(error){
+  if(error?.code==='ALREADY_IN_ROOM'){
+   try{await onlineRecoverMembership();}catch(recovery){onlineWarn(recovery);}
+  }else onlineWarn(error);
+ }
 }
 async function onlineSaveRoom(inModal){
  if(!onlineAuth()||!onlineIsMaster()){onlineWarn('ROOM_MASTER_REQUIRED');return false}
@@ -716,7 +732,10 @@ function onlineReceiveFrame(frame){
  if(frame.type==='match_completed'){
   var result=frame.game,matchId=frame.matchId,winner=onlineLastWinner,mode=roomCurrent?.mode??selM;
   mt.over=true;onlineGame=result;onlineResetLive();
-  matchExitToLobby('list');
+  // BE has already reopened the same room and retained all participants.
+  if(roomCurrent)roomCurrent={...roomCurrent,status:'OPEN'};
+  matchExitToLobby(roomCurrent?'room':'list');
+  if(roomCurrent)void onlineRecoverMembership().catch(onlineWarn);
   onlineShowMatchReport(result,matchId,winner,mode);
   return;
  }
@@ -809,7 +828,11 @@ async function onlineStartGate(){
  if(!onlineAuth())return;
  try{
   var info=await onlineApi.refreshProfile();
-  if(info.registered){await onlineLoadInventory();roomLobbyOpen();return}
+  if(info.registered){
+   await onlineLoadInventory();
+   await onlineRecoverMembership();
+   roomLobbyOpen();return
+  }
   if(info.onboarding?.trainingCompleted){
    onlineDialog('REGISTER CALLSIGN','Training verified. Choose your player name.','REGISTER',async name=>{
     await onlineApi.register(name);await onlineApi.refreshProfile();
@@ -962,7 +985,7 @@ function onlineShowMatchReport(game,matchId,winner,mode){
  var verdict=document.createElement('p');
  verdict.textContent=winner===null?'DRAW':winner===own?'VICTORY':winner===1-own?'DEFEAT':'MATCH COMPLETE';
  var reward=document.createElement('p');reward.textContent='Reward verification pending';
- var button=document.createElement('button');button.type='button';button.textContent='BACK TO LOBBY';
+ var button=document.createElement('button');button.type='button';button.textContent=roomCurrent?'BACK TO ROOM':'BACK TO LOBBY';
  button.onclick=function(){overlay.remove();roomLobbyOpen()};
  panel.append(heading,summary,verdict,reward,button);overlay.append(panel);document.body.append(overlay);
  if(matchId&&onlineApi?.state().authenticated){
@@ -1054,12 +1077,16 @@ function onlineVisualUpdate(dt){
 }
 var oldOnlineRoomRender=roomRender,oldOnlineRoomLobbyOpen=roomLobbyOpen;
 roomRender=onlineRoomRender;
-roomLoad=function(){roomList=[]};
+roomLoad=function(){roomList=roomCurrent?[roomCurrent]:[]};
 roomPersist=function(){return false};
 roomLiveTeams=onlineRoomTeams;
 roomLobbyOpen=function(){
+ if(!onlineApi?.state().authenticated||!onlineApi.state().registered){
+  roomCurrent=null;roomList=[];lobP('lbs');return;
+ }
  oldOnlineRoomLobbyOpen();
- if(onlineApi?.state().registered)void onlineRefreshRooms();
+ if(roomCurrent){onlineLiveRoomDecorate(roomCurrent);onlineStartRoomPoll();}
+ void onlineRefreshRooms();
 };
 var onlineWasAuthenticated=onlineApi?.state().authenticated===true;
 if(onlineApi)onlineApi.setOnChange(function(state){
@@ -1071,6 +1098,9 @@ if(onlineApi)onlineApi.setOnChange(function(state){
   onlineResetLive();
   if(hadLiveGame&&(run||!lob))matchExitToLobby('list');
   roomList=[];roomCurrent=null;onlineRoomRender();
+  // Authenticated/registered access is mandatory for every non-home route.
+  if(typeof lobP==='function')lobP('lbs');
+  if(typeof appRouteUpdate==='function')appRouteUpdate('lbs',true);
  }
 });
 function onlineAction(id,fn) {
@@ -1104,4 +1134,23 @@ onlineAction('roomStart',onlineMasterStart);
 onlineAction('rmlStart',onlineMasterStart);
 onlineAction('roomBack',()=>{if(roomCurrent)onlineLiveRoomDecorate(roomCurrent);else lobP('lbs')});
 onlineAction('rmlSettings',()=>{if(onlineIsMaster())roomShowSettings();});
+// The route is restored only AFTER the backend validates this browser tab's
+// existing SIWE token and queries its current room membership.
+async function onlineRestoreOnBoot(){
+ try{
+  if(onlineApi){
+   await onlineApi.restoreSession();
+   if(onlineApi.state().registered)await onlineRecoverMembership();
+  }
+ }catch(error){onlineWarn(error);}
+ finally{
+  appRouteBootReady=true;
+  appRouteRestore();
+ }
+ if(roomCurrent?.status==='ACTIVE'&&onlineApi?.state().registered){
+  // Reloading during a live game reconnects to the same authoritative match.
+  void onlineAttachMatch(roomCurrent);
+ }
+}
+void onlineRestoreOnBoot();
 addEventListener('pagehide',()=>{onlineApi?.closeLive();clearInterval(onlineRoomTimer)});

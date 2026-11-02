@@ -224,6 +224,7 @@ export function createPointBlockClient({ baseUrl } = {}) {
     request, connectWallet, restoreSession, logout, refreshProfile, openLive, closeLive,
     get live(){return channel;},
     rooms:()=>request('/v1/rooms'),
+    currentRoom:()=>request('/v1/rooms/current'),
     createRoom:body=>request('/v1/rooms',{method:'POST',body}),
     getRoom:id=>request('/v1/rooms/'+checkedId(id)),
     joinRoom:(id,team)=>request('/v1/rooms/'+checkedId(id)+'/join',{method:'POST',body:{team}}),
