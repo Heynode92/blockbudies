@@ -15,10 +15,11 @@ function setup(opts={}){
  let locked=true,exits=0,requests=0,t=1000,inLobby=0,stopped=0;
  const handlers={};
  const overlay={style:{display:'none'}};
- const buttons={escR:{blur(){}},escB:{blur(){}},dmn:{onclick(){inLobby++;ctx.run=false;ctx.lob=true;}}};
+ const buttons={escR:{blur(){}},escB:{blur(){}},escConfirmNo:{focus(){}},escConfirmYes:{focus(){},onclick(){inLobby++;ctx.run=false;ctx.lob=true;}},dmn:{onclick(){inLobby++;ctx.run=false;ctx.lob=true;}}};
+ const confirmation={hidden:true,addEventListener(){}};
  const canvas={requestPointerLock(){requests++;document.pointerLockElement=canvas;}};
  const document={body,pointerLockElement:opts.locked===false?null:canvas,
-  getElementById(id){if(id==='esc')return overlay;return buttons[id];},
+  getElementById(id){if(id==='esc')return overlay;if(id==='escConfirm')return confirmation;return buttons[id];},
   addEventListener(name,fn){(handlers[name]??=[]).push(fn);},
   exitPointerLock(){exits++;this.pointerLockElement=null;
    for(const fn of handlers.pointerlockchange||[])fn();}};
@@ -51,6 +52,8 @@ test('RESUME hides pause menu, restores hidden-cursor state and requests FPS loc
 });
 test('BACK TO LOBBY restores menu cursor without re-locking the mouse',()=>{
  const h=setup();h.press();h.buttons.escB.onclick();
+ assert.equal(h.document.getElementById('escConfirm').hidden,false,'leave requires confirmation');
+ h.buttons.escConfirmYes.onclick();h.ctx.escHide();
  assert.equal(h.overlay.style.display,'none');assert.equal(h.classes.has('game-menu-open'),false);
  assert.equal(h.results().inLobby,1);assert.equal(h.results().requests,0);
 });

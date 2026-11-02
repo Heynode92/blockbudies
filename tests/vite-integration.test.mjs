@@ -27,12 +27,12 @@ test('All existing game parts compile in original order; no gameplay files dropp
  const oldBundle = read('assets/game.js');
  const oldSource = '(function(){\n'+manifest.parts.map(read).join('').replace(/\r\n/g,'\n')+'})();\n';
  assert.equal(oldBundle.replace(/\r\n/g,'\n'),oldSource);
- const expected = `export function mountPointBlock(THREE, GAME_ASSET_URLS, MENU_BGM, BACKGROUND_SIM) {\n${manifest.parts.map(read).join('').replace(/\r\n/g,'\n')}\n}\n`;
+ const expected = `export function mountPointBlock(THREE, GAME_ASSET_URLS, MENU_BGM, BACKGROUND_SIM, PB_ONLINE) {\n${manifest.parts.map(read).join('').replace(/\r\n/g,'\n')}\n}\n`;
  assert.equal(code, expected);
  assert.ok(files.has(resolve(root,'tools/source-manifest.json')));
 });
-test('All 16 CSS files block first paint from HTML head in original cascade order', () => {
- assert.equal(manifest.styles.length,16);
+test('All 17 CSS files block first paint from HTML head in original cascade order', () => {
+ assert.equal(manifest.styles.length,17);
  const links=[...html.matchAll(/<link rel="stylesheet" href="\.\/(src\/styles\/[^"]+\.css)">/g)]
   .map(match=>match[1]);
  assert.deepEqual(links,manifest.styles);
@@ -63,7 +63,7 @@ test('Menu music uses a bundled MP3 and only runs in menu/room states', () => {
  assert.match(entry,/import menuMusic from '\.\/assets\/audio\/Pointblock_bgm\.mp3\?url'/);
  assert.match(entry,/const menuBgm = createMenuBgm\(menuMusic\)/);
  assert.match(entry,/mountPointBlock\(THREE, Object\.freeze\(\{ deathmatch: deathmatchVideo, bomb: bombVideo \}\), menuBgm,/);
- assert.match(plugin,/mountPointBlock\(THREE, GAME_ASSET_URLS, MENU_BGM, BACKGROUND_SIM\)/);
+ assert.match(plugin,/mountPointBlock\(THREE, GAME_ASSET_URLS, MENU_BGM, BACKGROUND_SIM, PB_ONLINE\)/);
  assert.match(controller,/sound\.loop = true/);
  assert.match(controller,/events\.addEventListener\('pointerdown'/);
  assert.match(controller,/events\.addEventListener\('keydown'/);
@@ -80,7 +80,7 @@ test('Hidden-tab worker and fixed-step simulation are injected without changing 
  assert.match(entry,/import \{ createBackgroundTicker \} from '\.\/background\/background-ticker\.js'/);
  assert.match(entry,/import \{ createSimulationClock \} from '\.\/background\/simulation-clock\.js'/);
  assert.match(entry,/const backgroundTicker = createBackgroundTicker\(\)/);
- assert.match(plugin,/mountPointBlock\(THREE, GAME_ASSET_URLS, MENU_BGM, BACKGROUND_SIM\)/);
+ assert.match(plugin,/mountPointBlock\(THREE, GAME_ASSET_URLS, MENU_BGM, BACKGROUND_SIM, PB_ONLINE\)/);
  assert.match(source,/backgroundGameClock\.tickBackground\(performance\.now\(\)\)/);
  assert.match(source,/if\(!document\.hidden\)backgroundGameClock\.tickVisible\(now\)/);
  assert.match(source,/BACKGROUND_SIM\.ticker\.setHidden\(document\.hidden\)/);
@@ -99,7 +99,8 @@ test('Hold-TAB K/D scoreboard is built from authoritative in-game statistics', (
  const finish=read('src/game/70-kills-and-damage-hud.js');
  const lobby=read('src/game/85-lobby-and-match.js');
  assert.equal(manifest.parts[manifest.parts.indexOf('src/game/80-input.js')+1],'src/game/81-match-scoreboard.js');
- assert.equal(manifest.styles.at(-1),'src/styles/16-match-scoreboard.css');
+ assert.ok(manifest.styles.includes('src/styles/16-match-scoreboard.css'));
+ assert.equal(manifest.styles.at(-1),'src/styles/17-online.css');
  for(const id of ['matchScoreboard','matchScoreboardPoliceRows','matchScoreboardTerroristRows','matchScoreboardPoliceKills','matchScoreboardTerroristDeaths'])
    assert.ok(html.includes('id="'+id+'"'),id);
  assert.match(css,/#matchScoreboard\[hidden\]\{display:none!important\}/);

@@ -53,7 +53,7 @@ function setup(){
   MODE_MAP_PREVIEWS:[{name:'BLOCK DISTRICT',caption:'Urban Combat Zone'},
    {name:'LOCKDOWN',caption:'Indoor Tactical Arena'}],
   modePreviewSelect:mode=>view.previews.push(mode),lobP:page=>{view.page=page;},
-  selM:0,BOMB_RULES:{teamSize:5,rounds:12,roundSeconds:120,wins:7,freezeSeconds:7},ts:[0,0],mt:{cd:5},
+  selM:0,MENU_BGM:{enterMenu(){},leaveMenu(){}},BOMB_RULES:{teamSize:5,rounds:12,roundSeconds:120,wins:7,freezeSeconds:7},ts:[0,0],mt:{cd:5},
   BN:[['Jack','Mike','Ryan','Alex','Owen'],['Viper','Razor','Hawk','Shadow','Ghost']],
   begin:tm=>{view.begunTeam=tm;context.mt.cd=view.previews.at(-1)===1?context.BOMB_RULES.freezeSeconds:5;context.run=true;},
   loadoutBeginLiveWindow:seconds=>{view.liveLoadoutSeconds=seconds;},inventoryRoomPreviewOpen:side=>{view.previewOpens=(view.previewOpens||0)+1;view.previewSides.push(side);},

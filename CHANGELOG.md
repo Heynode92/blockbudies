@@ -1,3 +1,8 @@
+## 2026-11-02 — Regression fixture and Vite migration corrections
+- Update real ESC confirmation, injected video URLs and menu BGM test environments without relaxing expected UI behavior.
+- Replace obsolete direct-open CDN/16-CSS assertions with manifest-backed 17-CSS Vite/online entry assertions.
+- Keep real game logic and source parity assertions; no combat/economy changes.
+
 ## 2026-11-02 — FE/BE implementation documentation synchronization
 - Replace outdated README and architecture claims that the Vite game has no backend or that browser-based physics is still authoritative.
 - Document exact server-authoritative online boundaries and current Vite/Three.js render dependencies; retain original code as non-authoritative visual references.

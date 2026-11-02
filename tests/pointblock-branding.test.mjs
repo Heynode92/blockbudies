@@ -43,7 +43,8 @@ test('PointBlock QA API and schema stay in sync across source, bundle and tests'
 
 test('repository path and original fixture remain stable until separate migration',()=>{
  const readme=read('README.md');
- assert.match(readme,/https:\/\/github\.com\/Heynode92\/blockbudies\.git/);
+ assert.match(readme,/Heynode92\/blockbudies/);
+ assert.match(readme,/ONLINE_BACKEND_INTEGRATION\.md/);
  const fixture=read('tests/fixtures/source-original.html');
  assert.match(fixture,/<title>Blok Buddies FPS<\/title>/);
 });

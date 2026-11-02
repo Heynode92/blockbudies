@@ -30,10 +30,12 @@ test('Historical weapon table fixture remains unchanged and new weapon modules r
   assert.ok(bundle.includes('WEAPON_PROFILES[1]=Object.freeze('));
   assert.ok(bundle.includes('function botsUpdOld(dt)'));
 });
-test('index references every ordered CSS module, game bundle, and original CDN',()=>{
+test('Vite index loads manifest styles but not obsolete CDN/game scripts',()=>{
   for(const p of m.styles)assert.ok(index.includes(`href="./${p}"`),p);
-  assert.ok(index.includes('src="./assets/game.js"'));
-  assert.ok(index.includes('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'));
+  assert.ok(index.includes('type="module" src="./src/main.js"'));
+  assert.ok(!index.includes('src="./assets/game.js"'));
+  assert.ok(!index.includes('cdnjs.cloudflare.com/ajax/libs/three.js'));
+  assert.equal(m.styles.length,17);
   assert.ok(css.includes('#bombStatus'));
   assert.equal(new Set(m.styles).size,m.styles.length);
   assert.equal(new Set(m.parts).size,m.parts.length);
