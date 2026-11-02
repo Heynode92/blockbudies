@@ -1,3 +1,8 @@
+## 2026-11-03 — Restore original offline gh() in multiplayer prediction
+- Reuse the original FE gh() untouched during online prediction, jump/land, respawn snaps, and correction. No map-specific hardcoded floor heights in the online adapter.
+- Fix clamp to y=0 that previously placed the first-person camera inside walkable buildings and platforms.
+- Add VM tests loading the original gh() source to validate foundation step-up, jumping/landing and correction below ground; keep offline movement and rendering unchanged.
+
 ## 2026-11-03 — Fix multiplayer player collision and camera reconciliation
 - Drive online client movement prediction and smoothing through the existing offline OB collider registry, not separate hardcoded map boxes.
 - Use swept/axis-separated collision for client-side visual movement and apply collision checks to each reconciliation adjustment so the camera cannot be pulled through walls while the BE continues to own actual movement.

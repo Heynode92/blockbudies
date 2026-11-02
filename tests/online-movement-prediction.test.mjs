@@ -7,7 +7,12 @@ const code=readFileSync(new URL('../src/game/98-online-bridge.js',import.meta.ur
 const start=code.indexOf('function onlinePositionBlocked(');
 const stop=code.indexOf('\nfunction onlineWarn(',start);
 assert.ok(start>=0&&stop>start,'prediction helpers must exist in canonical runtime');
-const helpers=code.slice(start,stop)+'\nthis.predictionApi={step:onlinePredictStep,reconcile:onlineReconcileSelf,interpolate:onlineInterpolateActor,blocked:onlinePositionBlocked,correct:onlineApplyCollisionCorrection};';
+const originalPhysics=readFileSync(new URL('../src/game/20-sky-and-physics.js',import.meta.url),'utf8');
+const ghStart=originalPhysics.indexOf('function gh(');
+const ghEnd=originalPhysics.indexOf('// resolve():',ghStart);
+assert.ok(ghStart>0&&ghEnd>ghStart,'the canonical offline gh() must exist');
+const helpers=originalPhysics.slice(ghStart,ghEnd)+'\n'+code.slice(start,stop)+
+ '\nthis.predictionApi={step:onlinePredictStep,reconcile:onlineReconcileSelf,interpolate:onlineInterpolateActor,blocked:onlinePositionBlocked,correct:onlineApplyCollisionCorrection};';
 const speed=6.5*.79/1.15;
 function harness(){
  const pl={x:0,y:0,z:0,vy:0,grounded:true};
@@ -201,4 +206,33 @@ test('prediction respects doors, overhead geometry and map perimeter',()=>{
  pl.x=59.4;pl.z=0;
  for(let i=0;i<10;i++)api.step(pl,{...forward,yaw:Math.PI/2},.05);
  assert.ok(pl.x<=59.45,'prediction remains inside the canonical A=60 boundary');
+});
+
+test('online foundation step-up uses actual offline gh() surface, not y=0',()=>{
+ const {ctx,pl,api}=harness();
+ ctx.OB.push({x:0,z:2,hw:2,hd:2,h:.9,fl:1,st:.95});
+ for(let i=0;i<90;i++)api.step(pl,forward,1/60);
+ assert.ok(pl.z>2,'walkable original foundation allows movement');
+ assert.equal(pl.y,.9,'feet stay on the top face, not inside foundation');
+ assert.equal(pl.grounded,true);
+});
+test('jumping and landing on elevated foundation matches original ground solver',()=>{
+ const {ctx,pl,api}=harness();
+ ctx.OB.push({x:0,z:0,hw:2,hd:2,h:.9,fl:1,st:.95});
+ pl.y=.9;
+ api.step(pl,{...forward,moveZ:0,jump:true},.05);
+ assert.ok(pl.y>.9,'jump rises above platform');
+ assert.equal(pl.grounded,false);
+ for(let i=0;i<40;i++)api.step(pl,{...forward,moveZ:0},.05);
+ assert.equal(pl.y,.9,'falling lands on foundation');
+ assert.equal(pl.grounded,true);
+});
+test('reconciliation cannot push a grounded camera beneath an original raised floor',()=>{
+ const {ctx,pl,api}=harness();
+ ctx.OB.push({x:0,z:0,hw:2,hd:2,h:.9,fl:1,st:.95});
+ pl.y=.9;
+ const offset={x:0,y:-.7,z:0};
+ for(let i=0;i<15;i++)api.correct(pl,offset,.3,.55);
+ assert.equal(pl.y,.9);
+ assert.equal(offset.y,0);
 });
