@@ -48,7 +48,44 @@ function walletCandidates() {
 export function createPointBlockClient({ baseUrl } = {}) {
   const root = apiRoot(baseUrl);
   let auth = null, provider = null, channel = null, onChange = () => {};
-  let socketEpoch = 0;
+  let socketEpoch = 0, restorePromise = null;
+  // Reload persistence is limited to this browser tab. Never use localStorage
+  // or persist wallet secrets. Revalidate the bearer session with the backend
+  // before marking the user authenticated after a reload.
+  const sessionKey = root ? 'pointblock:siwe-session:'+root.origin+root.pathname : null;
+  function saveSession() {
+    try {
+      if (!sessionKey) return;
+      if(auth?.token) sessionStorage.setItem(sessionKey,JSON.stringify({
+        token:auth.token,address:auth.address,
+      }));
+      else sessionStorage.removeItem(sessionKey);
+    } catch { /* Private browsing can disable web storage. */ }
+  }
+  function clearAuth() { auth=null;saveSession();closeLive();change(); }
+  async function restoreSession() {
+    if(auth)return state();
+    if(restorePromise)return restorePromise;
+    restorePromise=(async()=>{
+      let saved;
+      try{saved=sessionKey?JSON.parse(sessionStorage.getItem(sessionKey)||'null'):null;}
+      catch{saved=null;}
+      if(!saved||!ADDRESS.test(saved.address||'')||
+         !/^[A-Za-z0-9_-]{32,128}$/.test(saved.token||''))return state();
+      auth={token:saved.token,address:saved.address,registered:false,player:null,onboarding:null};
+      try {
+        // refreshProfile uses protected, no-cache /v1/onboarding and /v1/me.
+        // A revoked/expired token triggers request()'s normal 401 cleanup.
+        await refreshProfile();
+      }catch(error){
+        if(error.status===401){clearAuth();return state();}
+        // A network outage is not proof the SIWE session has expired.
+        auth=null;change();throw error;
+      }
+      return state();
+    })().finally(()=>{restorePromise=null;});
+    return restorePromise;
+  }
   const state = () => ({
     configured: Boolean(root), authenticated: Boolean(auth),
     address: auth?.address ?? null, registered: Boolean(auth?.registered),
@@ -72,7 +109,7 @@ export function createPointBlockClient({ baseUrl } = {}) {
     let data;
     try { data = await res.json(); } catch { throw new PointBlockError('INVALID_BACKEND_RESPONSE',res.status); }
     if (!res.ok) {
-      if (res.status === 401 && authRequired) { auth = null; closeLive(); change(); }
+      if (res.status === 401 && authRequired) clearAuth();
       throw new PointBlockError(typeof data?.code === 'string' ? data.code : 'BACKEND_REQUEST_FAILED',res.status);
     }
     return data;
@@ -105,6 +142,7 @@ export function createPointBlockClient({ baseUrl } = {}) {
     });
     if (!/^[A-Za-z0-9_-]{32,128}$/.test(verified?.token??'')) throw new PointBlockError('INVALID_LOGIN_RESPONSE');
     auth = {token:verified.token,address,registered:verified.registered===true,onboarding:null,player:null};
+    saveSession();
     const currentProvider = provider;
     // Invalidate a SIWE session if the wallet account or chain changes.
     if (typeof currentProvider.on === 'function') {
@@ -124,7 +162,7 @@ export function createPointBlockClient({ baseUrl } = {}) {
     change();
   }
   async function logout() {
-    const token = auth?.token; closeLive(); auth=null; change();
+    const token = auth?.token; clearAuth();
     if(token && root) {
       try { await timeoutFetch(new URL(root.pathname.replace(/\/+$/,'')+'/v1/auth/logout',root.origin),{
         method:'POST',headers:{Authorization:'Bearer '+token},cache:'no-store',credentials:'omit',
@@ -183,7 +221,7 @@ export function createPointBlockClient({ baseUrl } = {}) {
   }
   const api = {
     state, setOnChange(callback) { onChange=typeof callback==='function'?callback:()=>{};change(); },
-    request, connectWallet, logout, refreshProfile, openLive, closeLive,
+    request, connectWallet, restoreSession, logout, refreshProfile, openLive, closeLive,
     get live(){return channel;},
     rooms:()=>request('/v1/rooms'),
     createRoom:body=>request('/v1/rooms',{method:'POST',body}),

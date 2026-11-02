@@ -1,3 +1,8 @@
+## 2026-11-03 — Reload-safe, server-validated SIWE authentication
+- Keep a scoped session token in per-tab sessionStorage after verified SIWE login, revalidate via authenticated onboarding/profile on reload, and discard it on sign-out or backend 401. Never persist a private key or use wallet-connect as authentication proof.
+- Bound reload persistence to the configured API origin and path; refuse malformed restoration records. Transient backend failures never fabricate an authenticated state.
+- Expose restoreSession() for route hydration and clear the persisted token before closing realtime sockets on logout.
+
 ## 2026-11-03 — Reuse original blood pool lifecycle for authorized multiplayer kills
 - Use existing FE bloodPoolSpawn()/bloodPoolUpdate()/bloodPoolClear() from the original offline effect system when a trusted KILL event refers to an already visible authorized model.
 - Never display unseen enemy corpse effects or synthesize a damage claim; original blood pool geometry, timing, fading, and physics remain unchanged.
