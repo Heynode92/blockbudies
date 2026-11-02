@@ -234,9 +234,11 @@ function onlineConfirmedDeath(event){
  if(!event||typeof event.victimId!=='string')return;
  var model=onlineActors.get(event.victimId)?.model;
  if(!model||!model.g?.visible)return;
- if(model.tm!==pl.tm&&event.actorId!==onlineUserId())return;
  var record=onlineActors.get(event.victimId);
- if(!record.fellAt)record.fellAt=performance.now();
+ // Visibility already comes from this recipient's authorized world snapshot.
+ // Every observer who actually saw the victim should see the original fall.
+ if(record.fellAt)return;
+ record.fellAt=performance.now();
  model.dead=true;model.g.visible=true;
  bloodPoolSpawn(model.x,model.y||0,model.z,null);
 }
@@ -473,7 +475,8 @@ async function onlineCreateRoom(){
   onlineStartRoomPoll();
  }catch(error){
   if(error?.code==='ALREADY_IN_ROOM'){
-   try{await onlineRecoverMembership();}catch(recovery){onlineWarn(recovery);}
+   try{await onlineRecoverMembership();roomBrowserCreateClose();}
+   catch(recovery){onlineWarn(recovery);}
   }else onlineWarn(error);
  }
 }

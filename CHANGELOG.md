@@ -1,3 +1,7 @@
+## 2026-11-03 — Visible kill FX and stale-room modal recovery
+- Every client with an already authorized, visible victim model sees the original shared fall and blood-pool animation; duplicated KILL messages cannot spawn duplicate death FX.
+- Recovering an ALREADY_IN_ROOM create conflict now closes the Create popup and restores the actual room lobby rather than leaving the user behind a stale modal.
+
 ## 2026-11-03 — Share original fall animation with authoritative online kills
 - Extract the unchanged offline player fall pose into blockDeathPose() in the original shared character module; both offline deaths and online server-confirmed visible lethal events now call the same animation function.
 - Retain only a previously authorized visible victim for the original short fall effect after a KILL event, then remove it; never create or reveal a hidden character, and leave damage/kill authority in BE.

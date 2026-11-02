@@ -249,9 +249,10 @@ test('only authoritative visible kills create an original offline blood pool',()
  assert.equal(pools.length,0,'no actor may be materialized from a killfeed');
  actors.set('target',{model});
  ctx.death({actorId:'teammate',victimId:'target'});
- assert.equal(pools.length,0,'never disclose hidden enemy death effects to non-shooter');
+ assert.deepEqual(pools[0],[2,.9,3,null],
+  'visible observers share original death FX regardless of who scored the kill');
  ctx.death({actorId:'me',victimId:'target'});
- assert.deepEqual(pools[0],[2,.9,3,null]);
+ assert.equal(pools.length,1,'duplicate KILL messages must not spawn duplicate pools');
  assert.match(code,/bloodPoolUpdate\(dt\)/);
  assert.match(code,/bloodPoolClear\(\)/);
 });
