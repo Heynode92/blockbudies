@@ -27,10 +27,11 @@ test("ITEM shows complete tactical gear empty screen",()=>{
  assert.match(css,/#ivcards\.ivcards-empty\{display:flex/);
  assert.match(css,/#ivcards \.ivempty-gear/);
 });
-test("Other categories, Kriss V mode and loadout persistence remain unchanged",()=>{
+test("Other categories, Kriss V mode and backend-approved loadout remain",()=>{
  assert.match(script,/function inventoryEquip\(cat,id\)/);
- assert.match(script,/localStorage\.setItem/);
- assert.match(script,/if\(c\.key==="main"&&wish===7\)wish=6/);
+ assert.match(script,/PB_ONLINE\.saveLoadout\(id\)/);
+ assert.match(script,/inventoryServerOwned=new Set/);
+ assert.doesNotMatch(script,/localStorage\.(?:getItem|setItem)\(/);
  assert.match(read("src/game/75-weapon-controls.js"),/function toggleDual\(\)/);
  assert.match(script,/Custom helmets will arrive in future updates/);
 });

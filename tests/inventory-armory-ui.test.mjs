@@ -35,9 +35,12 @@ test('approved three-column layout, live thumbnails and status controls are wire
  assert.doesNotMatch(css,/\.iv-list/);
  assert.match(css,/@media\(max-width:680px\)/);
 });
-test('all six categories and equipped values retain inventory persistence',()=>{
+test('all six inventory categories remain, but backend exclusively owns equipped primary',()=>{
  assert.match(inv,/function inventoryEquip\(cat,id\)/);
- assert.match(inv,/inventoryOwned\(cat\)\.indexOf\(id\)<0/);
- assert.match(inv,/localStorage\.setItem\(INVENTORY_STORAGE/);
- for(const k of ['main','secondary','mele','explosive','helm','item'])assert.ok(inv.includes('key:"'+k+'"'));
+ assert.match(inv,/PB_ONLINE\.saveLoadout\(id\)/);
+ assert.match(inv,/inventoryServerOwned\.has\(id\)/);
+ assert.match(inv,/function inventoryClaimPrimary\(\)\{return false;\}/);
+ assert.doesNotMatch(inv,/localStorage\.(?:getItem|setItem)\(/);
+ for(const k of ['main','secondary','mele','explosive','helm','item'])
+  assert.ok(inv.includes('key:"'+k+'"'));
 });

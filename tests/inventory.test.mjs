@@ -10,9 +10,11 @@ test("Inventory menu, 3D preview and six tabs are connected",()=>{
  for(const t of ["MAIN WEAPON","SECONDARY","MELE","EXPLOSIVE","HELM","ITEM"])assert.ok(inventory.includes(t));
  assert.match(inventory,/terro\(0\)/);assert.match(inventory,/mkGun\(id\)/);assert.match(inventory,/new T\.WebGLRenderer/);
 });
-test("One equipped weapon per category and persistent saved loadout",()=>{
- assert.match(inventory,/inventoryState\.equipped\[cat\]=id/);
- assert.match(inventory,/localStorage\.setItem/);assert.match(inventory,/localStorage\.getItem/);
+test("Backend confirms primary equipment; secondary and fixed gear remain available",()=>{
+ assert.match(inventory,/PB_ONLINE\.saveLoadout\(id\)/);
+ assert.match(inventory,/inventoryState\.equipped\.main=id/);
+ assert.match(inventory,/inventoryServerOwned\.has\(id\)/);
+ assert.doesNotMatch(inventory,/localStorage\.(?:getItem|setItem)\(/);
  assert.match(lobby,/function startMatch\(tm\)\{inventoryForNewMatch\(\)/);
  assert.match(slots,/inventoryEquipped\("secondary"\)/);
  assert.match(slots,/inventoryEquipped\("mele"\)/);

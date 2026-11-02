@@ -47,18 +47,19 @@ test('Dedicated weapon meshes have correct reference-driven silhouettes, texture
  const src=read('src/game/50-items-and-drops.js');
  assert.match(src,/kind==="smg"/);assert.match(src,/kind==="rifle"/);
 });
-test('Shop catalog automatically includes all three new guns without granting ownership on fresh browser',()=>{
+test('MP7, P90 and SOPMOD remain catalogued, but only server grants ownership and shop prices',()=>{
  const {WP,WEAPON_STARTER_ID}=loadProfiles();
  const setup=inventory.slice(0,inventory.indexOf('// Pose specifications'));
- const storage={getItem(){return null},setItem(){}};
+ const storage={getItem(){throw Error('unauthorized browser storage read')},setItem(){throw Error('unauthorized browser storage write')}};
  const ctx={Math,WP,WEAPON_STARTER_ID,localStorage:storage,favPrim:1,
   refreshWeaponSelection(){},inventoryRender(){}};
  runInNewContext(setup,ctx);ctx.inventoryLoad();
- assert.deepEqual(Array.from(ctx.inventoryOwned('main')),[9]);
+ assert.deepEqual(Array.from(ctx.inventoryOwned('main')),[]);
  const ids=ctx.inventoryCatalogMain();
  for(const id of [10,11,12]){assert.ok(ids.includes(id));assert.ok(!ctx.inventoryOwned('main').includes(id));}
- assert.match(shop,/inventoryCatalogMain\(\)\.filter/);
- assert.match(shop,/inventoryClaimPrimary\(id\)/);
+ assert.match(shop,/Array\.from\(shopServerItems\.keys\(\)\)/);
+ assert.match(shop,/PB_ONLINE\.buyWeapon\(id,key\)/);
+ assert.doesNotMatch(shop,/UNLOCK FREE/);
  assert.match(control,/var owned=inventoryOwned\("main"\)/);
  assert.match(bots,/primaries:\[1,1,1,2,2,6,6,6,7,8\]/);
 });

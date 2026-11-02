@@ -6,10 +6,10 @@ import {fileURLToPath} from "node:url";
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),".."),read=p=>readFileSync(resolve(root,p),"utf8").replace(/\r\n/g,'\n');
 const code=read("src/game/89-inventory.js"),css=read("src/styles/09-inventory.css");
-test("Inventory Kriss is a single owned item while V mode remains in gameplay",()=>{
+test("Inventory Kriss is a single backend-owned weapon and V mode remains visual gameplay",()=>{
  const main=code.slice(code.indexOf('key:"main"'),code.indexOf('key:"secondary"'));
  assert.ok(main.includes('"smg"'));assert.ok(!main.includes('"dual"'));
- assert.match(code,/if\(c\.key==="main"&&wish===7\)wish=6/);
+ assert.match(code,/return inventoryCatalogMain\(\)\.filter\(function\(id\)\{return inventoryServerOwned\.has\(id\);\}\)/);
  assert.match(code,/Press V in a match/);
  assert.match(read("src/game/75-weapon-controls.js"),/function toggleDual\(\)/);
 });
@@ -31,10 +31,12 @@ test("Character inventory preview uses gameplay IK for each hand, not floating d
  assert.match(code,/INVENTORY_POSES=/);
  for(const type of ["rifle","shotgun","smg","sniper","rocket","pistol","knife","grenade"])assert.ok(code.includes(type+":{gun:"));
 });
-test("Inventory still persists to localStorage and maintains game-ready equipment",()=>{
- assert.match(code,/inventoryState\.equipped\[cat\]=id/);
- assert.match(code,/localStorage\.setItem/);
+test("Inventory persists only after backend confirms server loadout",()=>{
+ assert.match(code,/PB_ONLINE\.saveLoadout\(id\)\.then/);
+ assert.match(code,/inventoryState\.equipped\.main=id/);
+ assert.match(code,/if\(!owned\.has\(main\)\)throw Error/);
  assert.match(code,/function inventoryForNewMatch\(\)/);
+ assert.doesNotMatch(code,/localStorage\.(?:getItem|setItem)\(/);
  assert.match(code,/inventoryRender\(\);inventoryStartPreview\(\)/);
 });
 test("Committed assets/game.js matches ordered modular sources",()=>{
