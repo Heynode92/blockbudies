@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const read=name=>readFileSync(resolve(root,name),'utf8');
+const read=name=>readFileSync(resolve(root,name),'utf8').replace(/\r\n/g,'\n');
 const weaponTable=JSON.parse(read('tools/source-manifest.json')).parts.filter(p=>p.startsWith('src/game/weapon/')&&!p.endsWith('30-viewmodels.js')).map(read).join('');
 function load(){const sandbox={Math};runInNewContext(weaponTable+'\nthis.profiles=WEAPON_PROFILES;this.weapons=WP;this.tuning=WEAPON_TUNING;',sandbox);return sandbox;}
 const expected=[

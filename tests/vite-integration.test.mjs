@@ -5,7 +5,7 @@ import { resolve } from 'node:path';
 import { pointBlockGamePlugin } from '../tools/vite-game-plugin.mjs';
 
 const root = resolve(import.meta.dirname, '..');
-const read = path => readFileSync(resolve(root, path), 'utf8');
+const read = path => readFileSync(resolve(root, path), 'utf8').replace(/\r\n/g,'\n');
 const manifest = JSON.parse(read('tools/source-manifest.json'));
 const html = read('index.html');
 const entry = read('src/main.js');

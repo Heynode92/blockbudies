@@ -1,3 +1,8 @@
+## 2026-11-02 — Windows CRLF regression parity and ESC confirmation fixture
+- Normalize source LF/CRLF line endings before raw-source containment assertions so Windows checkout cannot cause false failures after `tools/build.mjs` canonical LF bundling.
+- Configure Windows Vite CI to preserve repo's canonical LF before checkout, matching BOT M0 workflow while retaining cross-platform test normalization.
+- Complete the ESC two-step confirmation fixture with an explicit in-game `matchExitToLobby('list')` callback, preserving proper user confirmation and pointer-lock checks.
+
 ## 2026-11-02 — ESC key event fixture API parity
 - Supply a real `preventDefault()` method to the synthesized ESC KeyboardEvent so the fixture executes the actual two-step game-menu logic without a false ReferenceError.
 - Keep the confirmation/PointerLock behavioral assertions intact.

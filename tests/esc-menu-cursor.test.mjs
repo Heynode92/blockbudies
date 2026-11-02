@@ -26,6 +26,7 @@ function setup(opts={}){
  const ctx={document,R:{domElement:canvas},run:true,lob:false,touch:false,mt:{over:false,cd:0},
   wsOn:!!opts.loadout,keys:{KeyW:true},mouse:{down:true,right:true},fireHeld:true,
   performance:{now(){return t;}},lookStopDrag(){stopped++;},setTimeout(){},
+  matchExitToLobby(destination){assert.equal(destination,'list');inLobby++;ctx.run=false;ctx.lob=true;},
   addEventListener(name,fn){(handlers[name]??=[]).push(fn);}};
  runInNewContext(esc,ctx);
  return {ctx,overlay,body,buttons,document,classes:cls,
