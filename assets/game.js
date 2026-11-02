@@ -7326,6 +7326,15 @@ function onlineAnimateRemoteActor(record,sample,dt){
  // Offline BOT simulation owns hit wobble; online must update visual damage separately.
  if(bot.fl>0||Math.abs(bot.hx||0)>.001||Math.abs(bot.hv||0)>.001)flash(bot,dt);
 }
+// Server-owned KILL events may trigger the existing offline blood pool effect
+// only for already authorized visible actors. Never reveal an unseen death site.
+function onlineConfirmedDeath(event){
+ if(!event||typeof event.victimId!=='string')return;
+ var model=onlineActors.get(event.victimId)?.model;
+ if(!model||!model.g?.visible)return;
+ if(model.tm!==pl.tm&&event.actorId!==onlineUserId())return;
+ bloodPoolSpawn(model.x,model.y||0,model.z,null);
+}
 function onlineReactToImpact(victimId,headshot){
  if(typeof victimId!=='string'||!onlineActive)return;
  // Never create an actor from combat events; use only an already authorized visual.
@@ -7345,6 +7354,7 @@ function onlineTickEffects(dt){
   beam.m.position.z+=beam.vz*dt;
  }
  updCl(dt);updCh(dt);
+ bloodPoolUpdate(dt);
  // The offline update() is intentionally disabled online. Its short-lived FX
  // must still be simulated and reclaimed, or muzzle flashes accumulate as
  // huge glowing spheres and ejected casings freeze in midair.
@@ -7618,7 +7628,7 @@ function onlineResetLive(){
  for(const tracer of onlineShotTracers)S.remove(tracer.m);onlineShotTracers.length=0;
  for(const mark of DC){S.remove(mark);if(mark.userData.t!==undefined)mark.material.dispose()}DC.length=0;
  for(const chunk of CH)S.remove(chunk.m);CH.length=0;
- clrFD();clrSm();
+ clrFD();clrSm();bloodPoolClear();
  onlineApi?.closeLive();clearInterval(onlineRoomTimer);clearTimeout(onlineReconnectTimer);
  onlineReconnecting=false;onlineReconnectStarted=0;
 }
@@ -7793,9 +7803,12 @@ function onlineReceiveFrame(frame){
  if(frame.type==='match_event'){
   var event=frame.event;
   if(event?.kind==='MATCH_END')onlineLastWinner=event.winner;
-  if(event?.kind==='KILL'&&onlineActive){var actor=onlineActors.get(event.actorId)?.label||'PLAYER';
+  if(event?.kind==='KILL'&&onlineActive){
+   onlineConfirmedDeath(event);
+   var actor=onlineActors.get(event.actorId)?.label||'PLAYER';
    var victim=onlineActors.get(event.victimId)?.label||'PLAYER';
-   roomLiveLog(actor+' ELIMINATED '+victim);}
+   roomLiveLog(actor+' ELIMINATED '+victim);
+  }
   return;
  }
  if(frame.type==='match_completed'){
