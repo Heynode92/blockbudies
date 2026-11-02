@@ -1528,6 +1528,15 @@ function aimA(q,px,py,tx,ty,tz,sd){var L1=.4,L2=.46;va.set(tx-px,ty-py,tz);var d
 function aimArms(e){var r=e.rc||0,ce=0,ph=tt*7+e.ph,gx0=Math.sin(tt*1.1+e.ph)*.015,gy0=.05*r+Math.sin(tt*1.7+e.ph)*.012,gx=gx0+ce*(.3+Math.sin(ph*.5)*.05),gy=gy0+ce*(.9+Math.abs(Math.sin(ph))*.1),gz=-.14*r;e.g.userData.gun.position.set(-.15+gx,gy,-.1+gz);aimA(e.arms[1],.55,1.3,.05+gx,.85+gy,.24+gz,1);aimA(e.arms[0],-.55,1.3,(.05+gx0)*(1-ce)-.6*ce,(.98+gy0)*(1-ce)+(2.25+Math.abs(Math.sin(ph+1))*.15)*ce,(.5+gz)*(1-ce)+.05*ce,-1);}
 // flash(): hit-flash/knockback wobble of a bot after it takes damage (e.fl timer, e.hv/e.hx wobble).
 function flash(e,dt){e.fl=Math.max(0,e.fl-dt);if(e.tm===undefined)return;e.hv=e.hv||0;e.hx=e.hx||0;e.hv+=(-e.hx*170-e.hv*13)*dt;e.hx+=e.hv*dt;var h=Math.max(-.5,Math.min(.9,e.hx));e.body.rotation.x-=h*.75;e.body.rotation.y+=h*(e.hs||1)*.35;e.body.position.y-=Math.abs(h)*.06;e.g.position.x+=(e.hdx||0)*h*.3;e.g.position.z+=(e.hdz||0)*h*.3;}
+
+// Shared original offline character fall pose (extracted from 95-simulation.js).
+// Animation only; never awards kills or infers server damage.
+function blockDeathPose(model,elapsed){
+ var dp=Math.min(1,elapsed/.6),ds=dp*dp*(3-2*dp),an=-Math.PI/2*ds;
+ model.body.rotation.set(an,0,0);model.body.position.y=.3*Math.abs(Math.sin(an));
+ model.arms[0].rotation.z=-1.1*ds;model.arms[1].rotation.z=1.1*ds;
+ model.legs[0].rotation.z=-.3*ds;model.legs[1].rotation.z=.3*ds;
+}
 // Common damage rules for human and AI characters. Armor is restored on every spawn/round.
 var DEFENSE_RULES=Object.freeze({maxHp:100,vestMax:50,bodyReduction:.20,headshotMultiplier:3});
 function defenseSpawn(actor){actor.hp=DEFENSE_RULES.maxHp;actor.vest=DEFENSE_RULES.vestMax;actor.helm=true;}
@@ -5198,7 +5207,7 @@ function tmUpd(){var g=function(i){return document.getElementById(i);},r=g("rsp"
 var APP_PANEL_ROUTES=Object.freeze({
  lbs:"/",lbrooms:"/loby",lbroomlive:"/loby/room/",lbiv:"/inventory",lbshop:"/shop"
 });
-var appRouteBooting=false,appRouteHashWritten=null;
+var appRouteBooting=false,appRouteHashWritten=null,appRouteBootReady=false;
 function appRouteRoot(){
  if(location.protocol==="file:")return "";
  var p=location.pathname||"/";
@@ -5234,22 +5243,26 @@ function appRouteUpdate(panel,replace){
  }
 }
 function appRouteRestore(){
+ // Wait for verified SIWE session/room recovery before rendering protected URLs.
+ if(!appRouteBootReady)return;
  // Never let browser history silently abort a running match or its result report.
  if(!lob){
   appRouteUpdate("lbroomlive",true);
   return;
  }
  var panel=appRouteRead();
+ var state=typeof onlineApi!=='undefined'&&onlineApi?.state?.();
+ if(panel!=='lbs'&&(!state?.authenticated||!state.registered)){
+  // Invalid/unregistered sessions can never enter lobby, room, inventory or shop.
+  appRouteUpdate('lbs',true);panel='lbs';
+ }
  appRouteBooting=true;
  try{
-  if(panel==="lbrooms"){
-   if(roomCurrent)roomCloseLocal();
+  if(panel==="lbrooms"||panel==="lbroomlive"){
    roomQuickFromBrowser=false;
+   // A DB-owned room wins over any stale route; only explicit leave may
+   // discard the player's membership. A fresh tab recovers it at boot.
    roomLobbyOpen();
-  }else if(panel==="lbroomlive"){
-   // A fresh document load has no selected in-memory room: fall back to Room List.
-   if(roomCurrent)roomLobbyOpen();
-   else{roomQuickFromBrowser=false;roomLobbyOpen();}
   }else if(panel==="lbiv"){
    roomQuickFromBrowser=false;inventoryOpen();
   }else if(panel==="lbshop"){
@@ -6967,7 +6980,7 @@ function update(dt){
   for(i=mzf.length-1;i>=0;i--){mzf[i].t-=dt;if(mzf[i].t<=0){S.remove(mzf[i].m);mzf.splice(i,1);}}
   updCl(dt);updSm(dt);
   for(i=fx.length-1;i>=0;i--){var f2=fx[i];f2.t+=dt*3;f2.m.scale.setScalar(.5+f2.t*4);f2.m.material.opacity=Math.max(0,.7-f2.t*.7);if(f2.t>=1){S.remove(f2.m);fx.splice(i,1);}}
-  pm.g.position.set(pl.x,pl.y,pl.z);pm.g.rotation.y=pl.face;pm.legs[0].rotation.x=Math.sin(tt*10)*.6*ml;pm.legs[1].rotation.x=-pm.legs[0].rotation.x;pm.body.rotation.y=0;flash(pm,dt);if(pl.dead){var dp=Math.min(1,pl.dt/.6),ds=dp*dp*(3-2*dp),an=-Math.PI/2*ds;pm.body.rotation.set(an,0,0);pm.body.position.y=.3*Math.abs(Math.sin(an));pm.arms[0].rotation.z=-1.1*ds;pm.arms[1].rotation.z=1.1*ds;pm.legs[0].rotation.z=-.3*ds;pm.legs[1].rotation.z=.3*ds;}
+  pm.g.position.set(pl.x,pl.y,pl.z);pm.g.rotation.y=pl.face;pm.legs[0].rotation.x=Math.sin(tt*10)*.6*ml;pm.legs[1].rotation.x=-pm.legs[0].rotation.x;pm.body.rotation.y=0;flash(pm,dt);if(pl.dead){blockDeathPose(pm,pl.dt);}
   // Bomb objective and round resolution run after damage so an eliminated actor cannot finish an action.
   if(isBombMode())bombUpdate(dt);
   // HUD
@@ -7333,6 +7346,9 @@ function onlineConfirmedDeath(event){
  var model=onlineActors.get(event.victimId)?.model;
  if(!model||!model.g?.visible)return;
  if(model.tm!==pl.tm&&event.actorId!==onlineUserId())return;
+ var record=onlineActors.get(event.victimId);
+ if(!record.fellAt)record.fellAt=performance.now();
+ model.dead=true;model.g.visible=true;
  bloodPoolSpawn(model.x,model.y||0,model.z,null);
 }
 function onlineReactToImpact(victimId,headshot){
@@ -7529,6 +7545,14 @@ function onlineLiveRoomDecorate(room) {
  if(me){roomSide=me.team===1?1:0;roomSeat=room.members.filter(m=>m.team===roomSide).findIndex(m=>m.playerId===me.playerId)}
  onlineRoomTeams();
 }
+async function onlineRecoverMembership() {
+ if(!onlineApi?.state().registered)return null;
+ var reply=await onlineApi.currentRoom();
+ if(!reply?.room){roomCurrent=null;return null;}
+ var room=onlineAdoptRoom(reply.room);
+ onlineLiveRoomDecorate(room);onlineStartRoomPoll();
+ return room;
+}
 async function onlineSelectRoom(id) {
  if(!onlineAuth()||onlineRoomOpening)return;
  onlineRoomOpening=true;
@@ -7541,7 +7565,11 @@ async function onlineSelectRoom(id) {
   var current=onlineAdoptRoom(room);onlineLiveRoomDecorate(current);
   roomLiveLog(current.code+' · CONNECTED TO ROOM SERVER');
   onlineStartRoomPoll();
- }catch(error){onlineWarn(error)}
+ }catch(error){
+  if(error?.code==='ALREADY_IN_ROOM'){
+   try{await onlineRecoverMembership();}catch(recovery){onlineWarn(recovery);}
+  }else onlineWarn(error);
+ }
  finally{onlineRoomOpening=false}
 }
 async function onlineCreateRoom(){
@@ -7554,7 +7582,11 @@ async function onlineCreateRoom(){
   roomBrowserCreateClose();onlineLiveRoomDecorate(roomCurrent);
   roomLiveLog('Server created '+roomCurrent.code);
   onlineStartRoomPoll();
- }catch(error){onlineWarn(error)}
+ }catch(error){
+  if(error?.code==='ALREADY_IN_ROOM'){
+   try{await onlineRecoverMembership();}catch(recovery){onlineWarn(recovery);}
+  }else onlineWarn(error);
+ }
 }
 async function onlineSaveRoom(inModal){
  if(!onlineAuth()||!onlineIsMaster()){onlineWarn('ROOM_MASTER_REQUIRED');return false}
@@ -7814,7 +7846,10 @@ function onlineReceiveFrame(frame){
  if(frame.type==='match_completed'){
   var result=frame.game,matchId=frame.matchId,winner=onlineLastWinner,mode=roomCurrent?.mode??selM;
   mt.over=true;onlineGame=result;onlineResetLive();
-  matchExitToLobby('list');
+  // BE has already reopened the same room and retained all participants.
+  if(roomCurrent)roomCurrent={...roomCurrent,status:'OPEN'};
+  matchExitToLobby(roomCurrent?'room':'list');
+  if(roomCurrent)void onlineRecoverMembership().catch(onlineWarn);
   onlineShowMatchReport(result,matchId,winner,mode);
   return;
  }
@@ -7907,7 +7942,11 @@ async function onlineStartGate(){
  if(!onlineAuth())return;
  try{
   var info=await onlineApi.refreshProfile();
-  if(info.registered){await onlineLoadInventory();roomLobbyOpen();return}
+  if(info.registered){
+   await onlineLoadInventory();
+   await onlineRecoverMembership();
+   roomLobbyOpen();return
+  }
   if(info.onboarding?.trainingCompleted){
    onlineDialog('REGISTER CALLSIGN','Training verified. Choose your player name.','REGISTER',async name=>{
     await onlineApi.register(name);await onlineApi.refreshProfile();
@@ -7969,6 +8008,7 @@ function onlineApplyWorld(){
   }
   var bot=current.model;
   bot.dead=!actor.alive;
+  if(actor.alive)current.fellAt=null;
   if(!current.samples){current.samples=[];bot.g.position.set(actor.x,actor.y,actor.z);
    bot.x=actor.x;bot.y=actor.y;bot.z=actor.z;}
   if(fresh&&(!current.lastTick||world.serverTick>current.lastTick)){
@@ -7981,13 +8021,16 @@ function onlineApplyWorld(){
   }
   if(bot.visualWeapon!==actor.weaponId)botVisualWeapon(bot,actor.weaponId);
   bot.weapon=actor.weaponId;bot.primary=actor.weaponId;
-  bot.g.visible=!!actor.alive;
+  bot.g.visible=!!actor.alive||!!current.fellAt;
   if(bot.nm)bot.nm.visible=actor.team===pl.tm&&actor.alive;
  });
  // Server redacts hidden enemies. Drop the old visual AND its last known coordinates
  // from the local actor pool; the browser must not keep a phantom radar target.
  for(const [id,current] of onlineActors){
   if(!visible.has(id)){
+   // A previously authorized lethal event may finish its original fall pose.
+   // Do not resurrect an unseen actor or extrapolate its movement after death.
+   if(current.fellAt&&performance.now()-current.fellAt<700)continue;
    if(current.model?.g)S.remove(current.model.g);
    var index=en.indexOf(current.model);
    if(index>=0)en.splice(index,1);
@@ -8060,7 +8103,7 @@ function onlineShowMatchReport(game,matchId,winner,mode){
  var verdict=document.createElement('p');
  verdict.textContent=winner===null?'DRAW':winner===own?'VICTORY':winner===1-own?'DEFEAT':'MATCH COMPLETE';
  var reward=document.createElement('p');reward.textContent='Reward verification pending';
- var button=document.createElement('button');button.type='button';button.textContent='BACK TO LOBBY';
+ var button=document.createElement('button');button.type='button';button.textContent=roomCurrent?'BACK TO ROOM':'BACK TO LOBBY';
  button.onclick=function(){overlay.remove();roomLobbyOpen()};
  panel.append(heading,summary,verdict,reward,button);overlay.append(panel);document.body.append(overlay);
  if(matchId&&onlineApi?.state().authenticated){
@@ -8136,6 +8179,12 @@ function onlineVisualUpdate(dt){
  var renderAt=now-onlineRemoteDelay;
  onlineActors.forEach(function(actor){
   if(!actor.model?.g||!actor.model.g.visible)return;
+  if(actor.fellAt){
+   var elapsed=(now-actor.fellAt)/1000;
+   if(elapsed<.7)blockDeathPose(actor.model,elapsed);
+   else actor.model.g.visible=false;
+   return;
+  }
   var sample=onlineInterpolateActor(actor.samples||[],renderAt);
   if(!sample)return;
   onlineAnimateRemoteActor(actor,sample,dt);
@@ -8152,12 +8201,16 @@ function onlineVisualUpdate(dt){
 }
 var oldOnlineRoomRender=roomRender,oldOnlineRoomLobbyOpen=roomLobbyOpen;
 roomRender=onlineRoomRender;
-roomLoad=function(){roomList=[]};
+roomLoad=function(){roomList=roomCurrent?[roomCurrent]:[]};
 roomPersist=function(){return false};
 roomLiveTeams=onlineRoomTeams;
 roomLobbyOpen=function(){
+ if(!onlineApi?.state().authenticated||!onlineApi.state().registered){
+  roomCurrent=null;roomList=[];lobP('lbs');return;
+ }
  oldOnlineRoomLobbyOpen();
- if(onlineApi?.state().registered)void onlineRefreshRooms();
+ if(roomCurrent){onlineLiveRoomDecorate(roomCurrent);onlineStartRoomPoll();}
+ void onlineRefreshRooms();
 };
 var onlineWasAuthenticated=onlineApi?.state().authenticated===true;
 if(onlineApi)onlineApi.setOnChange(function(state){
@@ -8169,6 +8222,9 @@ if(onlineApi)onlineApi.setOnChange(function(state){
   onlineResetLive();
   if(hadLiveGame&&(run||!lob))matchExitToLobby('list');
   roomList=[];roomCurrent=null;onlineRoomRender();
+  // Authenticated/registered access is mandatory for every non-home route.
+  if(typeof lobP==='function')lobP('lbs');
+  if(typeof appRouteUpdate==='function')appRouteUpdate('lbs',true);
  }
 });
 function onlineAction(id,fn) {
@@ -8202,6 +8258,25 @@ onlineAction('roomStart',onlineMasterStart);
 onlineAction('rmlStart',onlineMasterStart);
 onlineAction('roomBack',()=>{if(roomCurrent)onlineLiveRoomDecorate(roomCurrent);else lobP('lbs')});
 onlineAction('rmlSettings',()=>{if(onlineIsMaster())roomShowSettings();});
+// The route is restored only AFTER the backend validates this browser tab's
+// existing SIWE token and queries its current room membership.
+async function onlineRestoreOnBoot(){
+ try{
+  if(onlineApi){
+   await onlineApi.restoreSession();
+   if(onlineApi.state().registered)await onlineRecoverMembership();
+  }
+ }catch(error){onlineWarn(error);}
+ finally{
+  appRouteBootReady=true;
+  appRouteRestore();
+ }
+ if(roomCurrent?.status==='ACTIVE'&&onlineApi?.state().registered){
+  // Reloading during a live game reconnects to the same authoritative match.
+  void onlineAttachMatch(roomCurrent);
+ }
+}
+void onlineRestoreOnBoot();
 addEventListener('pagehide',()=>{onlineApi?.closeLive();clearInterval(onlineRoomTimer)});
 // ---- MAIN LOOP ----
 // loop(now): runs update(dt) while a match is on, then positions the camera (normal view, lobby orbit, or death cam),
