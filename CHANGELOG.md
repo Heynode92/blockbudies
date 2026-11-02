@@ -1,3 +1,8 @@
+## 2026-11-03 — Share original fall animation with authoritative online kills
+- Extract the unchanged offline player fall pose into blockDeathPose() in the original shared character module; both offline deaths and online server-confirmed visible lethal events now call the same animation function.
+- Retain only a previously authorized visible victim for the original short fall effect after a KILL event, then remove it; never create or reveal a hidden character, and leave damage/kill authority in BE.
+- Continue original bloodPoolSpawn/Update/Clear flow without additional synthetic death effects.
+
 ## 2026-11-03 — Authenticated navigation, room rehydration and post-match return
 - Gate every protected route (loby, room, inventory, shop) behind server-revalidated SIWE and registered callsign. Logout immediately returns to Home.
 - Restore room membership using GET /v1/rooms/current after tab reload; do not destroy a database-owned room when a local UI route is restored. Reconnect the current ACTIVE match where authorized.

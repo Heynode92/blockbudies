@@ -235,6 +235,9 @@ function onlineConfirmedDeath(event){
  var model=onlineActors.get(event.victimId)?.model;
  if(!model||!model.g?.visible)return;
  if(model.tm!==pl.tm&&event.actorId!==onlineUserId())return;
+ var record=onlineActors.get(event.victimId);
+ if(!record.fellAt)record.fellAt=performance.now();
+ model.dead=true;model.g.visible=true;
  bloodPoolSpawn(model.x,model.y||0,model.z,null);
 }
 function onlineReactToImpact(victimId,headshot){
@@ -894,6 +897,7 @@ function onlineApplyWorld(){
   }
   var bot=current.model;
   bot.dead=!actor.alive;
+  if(actor.alive)current.fellAt=null;
   if(!current.samples){current.samples=[];bot.g.position.set(actor.x,actor.y,actor.z);
    bot.x=actor.x;bot.y=actor.y;bot.z=actor.z;}
   if(fresh&&(!current.lastTick||world.serverTick>current.lastTick)){
@@ -906,13 +910,16 @@ function onlineApplyWorld(){
   }
   if(bot.visualWeapon!==actor.weaponId)botVisualWeapon(bot,actor.weaponId);
   bot.weapon=actor.weaponId;bot.primary=actor.weaponId;
-  bot.g.visible=!!actor.alive;
+  bot.g.visible=!!actor.alive||!!current.fellAt;
   if(bot.nm)bot.nm.visible=actor.team===pl.tm&&actor.alive;
  });
  // Server redacts hidden enemies. Drop the old visual AND its last known coordinates
  // from the local actor pool; the browser must not keep a phantom radar target.
  for(const [id,current] of onlineActors){
   if(!visible.has(id)){
+   // A previously authorized lethal event may finish its original fall pose.
+   // Do not resurrect an unseen actor or extrapolate its movement after death.
+   if(current.fellAt&&performance.now()-current.fellAt<700)continue;
    if(current.model?.g)S.remove(current.model.g);
    var index=en.indexOf(current.model);
    if(index>=0)en.splice(index,1);
@@ -1061,6 +1068,12 @@ function onlineVisualUpdate(dt){
  var renderAt=now-onlineRemoteDelay;
  onlineActors.forEach(function(actor){
   if(!actor.model?.g||!actor.model.g.visible)return;
+  if(actor.fellAt){
+   var elapsed=(now-actor.fellAt)/1000;
+   if(elapsed<.7)blockDeathPose(actor.model,elapsed);
+   else actor.model.g.visible=false;
+   return;
+  }
   var sample=onlineInterpolateActor(actor.samples||[],renderAt);
   if(!sample)return;
   onlineAnimateRemoteActor(actor,sample,dt);
