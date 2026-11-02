@@ -112,7 +112,8 @@ test('online particle lifecycle removes muzzle flash and blood instead of leavin
  const removed=[],flash={position:{}},blood={position:{x:0,y:0,z:0},scale:{setScalar:()=>{}}};
  const ctx={Math,mzf:[{m:flash,t:.04}],
   sk:[{m:blood,t:0,l:.05,vx:0,vy:0,vz:0,sz:.06,blood:true}],
-  bloodActive:1,S:{remove:m=>removed.push(m)},updDrops:()=>{},updSm:()=>{}};
+  bloodActive:1,onlineShotTracers:[],S:{remove:m=>removed.push(m)},
+  updCl:()=>{},updCh:()=>{},updDrops:()=>{},updSm:()=>{}};
  runInNewContext(code.slice(start,end)+'\nthis.tick=onlineTickEffects;',ctx);
  ctx.tick(.06);
  assert.equal(ctx.mzf.length,0);
