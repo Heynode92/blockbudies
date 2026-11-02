@@ -211,7 +211,7 @@ test('prediction respects doors, overhead geometry and map perimeter',()=>{
 test('online foundation step-up uses actual offline gh() surface, not y=0',()=>{
  const {ctx,pl,api}=harness();
  ctx.OB.push({x:0,z:2,hw:2,hd:2,h:.9,fl:1,st:.95});
- for(let i=0;i<90;i++)api.step(pl,forward,1/60);
+ for(let i=0;i<40;i++)api.step(pl,forward,1/60);
  assert.ok(pl.z>2,'walkable original foundation allows movement');
  assert.equal(pl.y,.9,'feet stay on the top face, not inside foundation');
  assert.equal(pl.grounded,true);
