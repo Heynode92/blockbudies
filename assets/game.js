@@ -7262,6 +7262,7 @@ function onlineAnimateRemoteActor(record,sample,dt){
   bot.body.position.y=Math.abs(Math.sin(bot.wp))*.07*pace;
   bot.body.rotation.z=Math.sin(bot.wp)*.05*pace;
   bot.body.rotation.x=-.05*(bot.rc||0);
+  bot.body.rotation.y=0; // Reset per-frame hit wobble so repeated hits never twist the model permanently.
  }
  bot.rc=Math.max(0,(bot.rc||0)-dt*6);
  if(bot.arms&&bot.arms.length>=2&&bot.g.userData.gun)aimArms(bot);
