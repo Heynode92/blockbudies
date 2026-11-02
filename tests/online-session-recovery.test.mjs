@@ -4,7 +4,7 @@ import {createPointBlockClient} from '../src/network/pointblock-client.js';
 
 const address='0x'+'a'.repeat(40),token='s'.repeat(43);
 const baseUrl='http://127.0.0.1:3001';
-const storageKey='pointblock:siwe-session:'+baseUrl;
+const storageKey='pointblock:siwe-session:'+new URL(baseUrl).origin+new URL(baseUrl).pathname;
 function storage(){
  const m=new Map();
  return{getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,String(v)),

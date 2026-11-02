@@ -243,7 +243,7 @@ test('only authoritative visible kills create an original offline blood pool',()
  let pools=[],actors=new Map();
  const model={x:2,y:.9,z:3,tm:1,g:{visible:true}};
  const ctx={onlineActors:actors,pl:{tm:0},onlineUserId:()=>'me',
-  bloodPoolSpawn:(...args)=>pools.push(args)};
+  performance:{now:()=>1000},bloodPoolSpawn:(...args)=>pools.push(args)};
  runInNewContext(code.slice(start,end)+'\nthis.death=onlineConfirmedDeath;',ctx);
  ctx.death({actorId:'me',victimId:'target'});
  assert.equal(pools.length,0,'no actor may be materialized from a killfeed');
