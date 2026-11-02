@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 
 const code=readFileSync(new URL('../src/game/98-online-bridge.js',import.meta.url),'utf8');
-const start=code.indexOf('function onlinePredictStep(');
+const start=code.indexOf('function onlinePositionBlocked(');
 const stop=code.indexOf('\nfunction onlineWarn(',start);
 assert.ok(start>=0&&stop>start,'prediction helpers must exist in canonical runtime');
 const helpers=code.slice(start,stop)+'\nthis.predictionApi={step:onlinePredictStep,reconcile:onlineReconcileSelf,interpolate:onlineInterpolateActor,blocked:onlinePositionBlocked,correct:onlineApplyCollisionCorrection};';
