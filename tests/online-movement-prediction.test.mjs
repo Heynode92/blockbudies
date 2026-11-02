@@ -236,3 +236,22 @@ test('reconciliation cannot push a grounded camera beneath an original raised fl
  assert.equal(pl.y,.9);
  assert.equal(offset.y,0);
 });
+
+test('only authoritative visible kills create an original offline blood pool',()=>{
+ const start=code.indexOf('function onlineConfirmedDeath('),end=code.indexOf('\nfunction onlineReactToImpact(',start);
+ assert.ok(start>=0&&end>start);
+ let pools=[],actors=new Map();
+ const model={x:2,y:.9,z:3,tm:1,g:{visible:true}};
+ const ctx={onlineActors:actors,pl:{tm:0},onlineUserId:()=>'me',
+  bloodPoolSpawn:(...args)=>pools.push(args)};
+ runInNewContext(code.slice(start,end)+'\nthis.death=onlineConfirmedDeath;',ctx);
+ ctx.death({actorId:'me',victimId:'target'});
+ assert.equal(pools.length,0,'no actor may be materialized from a killfeed');
+ actors.set('target',{model});
+ ctx.death({actorId:'teammate',victimId:'target'});
+ assert.equal(pools.length,0,'never disclose hidden enemy death effects to non-shooter');
+ ctx.death({actorId:'me',victimId:'target'});
+ assert.deepEqual(pools[0],[2,.9,3,null]);
+ assert.match(code,/bloodPoolUpdate\(dt\)/);
+ assert.match(code,/bloodPoolClear\(\)/);
+});

@@ -1,3 +1,8 @@
+## 2026-11-03 — Reuse original blood pool lifecycle for authorized multiplayer kills
+- Use existing FE bloodPoolSpawn()/bloodPoolUpdate()/bloodPoolClear() from the original offline effect system when a trusted KILL event refers to an already visible authorized model.
+- Never display unseen enemy corpse effects or synthesize a damage claim; original blood pool geometry, timing, fading, and physics remain unchanged.
+- Add executable VM regression for visible shooter-only enemy elimination effects.
+
 ## 2026-11-03 — Restore original offline gh() in multiplayer prediction
 - Reuse the original FE gh() untouched during online prediction, jump/land, respawn snaps, and correction. No map-specific hardcoded floor heights in the online adapter.
 - Fix clamp to y=0 that previously placed the first-person camera inside walkable buildings and platforms.
