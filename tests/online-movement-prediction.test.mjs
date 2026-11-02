@@ -104,3 +104,29 @@ test('online renderer binds approved combat and remote animation hooks',()=>{
  assert.match(code,/gunSfx\(GS\[SFXI\[pl.w\]\],1\)/);
  assert.match(code,/privateState\.spawnShieldRemaining/);
 });
+
+test('online particle lifecycle removes muzzle flash and blood instead of leaving floating orbs',()=>{
+ const start=code.indexOf('function onlineTickEffects(');
+ const end=code.indexOf('\nfunction onlineWarn(',start);
+ assert.ok(start>0&&end>start);
+ const removed=[],flash={position:{}},blood={position:{x:0,y:0,z:0},scale:{setScalar:()=>{}}};
+ const ctx={Math,mzf:[{m:flash,t:.04}],
+  sk:[{m:blood,t:0,l:.05,vx:0,vy:0,vz:0,sz:.06,blood:true}],
+  bloodActive:1,S:{remove:m=>removed.push(m)},updDrops:()=>{},updSm:()=>{}};
+ runInNewContext(code.slice(start,end)+'\nthis.tick=onlineTickEffects;',ctx);
+ ctx.tick(.06);
+ assert.equal(ctx.mzf.length,0);
+ assert.equal(ctx.sk.length,0);
+ assert.equal(ctx.bloodActive,0);
+ assert.ok(removed.includes(flash));
+ assert.ok(removed.includes(blood));
+});
+test('network hit reactions remain server-driven, visible-only and short lived',()=>{
+ assert.match(code,/frame.type==='combat_impact'/);
+ assert.match(code,/onlineReactToImpact\(frame.victimId,!!frame.headshot\)/);
+ assert.match(code,/onlineActors.get\(victimId\)/);
+ assert.match(code,/bloodHit\(bot.x,/);
+ assert.match(code,/flash\(bot,dt\)/);
+ assert.match(code,/onlineTickEffects\(dt\)/);
+ assert.match(code,/gun.localToWorld\(new T.Vector3\(0,0,-\.7\)\)/);
+});

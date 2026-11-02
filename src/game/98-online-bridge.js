@@ -167,6 +167,42 @@ function onlineAnimateRemoteActor(record,sample,dt){
  }
  bot.rc=Math.max(0,(bot.rc||0)-dt*6);
  if(bot.arms&&bot.arms.length>=2&&bot.g.userData.gun)aimArms(bot);
+ // Offline BOT simulation owns hit wobble; online must update visual damage separately.
+ if(bot.fl>0||Math.abs(bot.hx||0)>.001||Math.abs(bot.hv||0)>.001)flash(bot,dt);
+}
+function onlineReactToImpact(victimId,headshot){
+ if(typeof victimId!=='string'||!onlineActive)return;
+ // Never create an actor from combat events; use only an already authorized visual.
+ var record=onlineActors.get(victimId),bot=record?.model;
+ if(!bot||bot.dead||!bot.g?.visible)return;
+ bot.fl=.18;bot.hs=Math.random()<.5?-1:1;
+ bot.hv=(bot.hv||0)+(headshot?7:4);
+ // Visual-only blood; damage and victim identity are already verified by BE.
+ var dx=bot.x-pl.x,dz=bot.z-pl.z;
+ bloodHit(bot.x,(bot.y||0)+(headshot?1.7:1.12),bot.z,dx,dz,!!headshot);
+}
+function onlineTickEffects(dt){
+ // The offline update() is intentionally disabled online. Its short-lived FX
+ // must still be simulated and reclaimed, or muzzle flashes accumulate as
+ // huge glowing spheres and ejected casings freeze in midair.
+ for(var i=mzf.length-1;i>=0;i--){
+  var flashFx=mzf[i];flashFx.t-=dt;
+  if(flashFx.t<=0){S.remove(flashFx.m);mzf.splice(i,1);}
+ }
+ for(var j=sk.length-1;j>=0;j--){
+  var particle=sk[j];particle.t+=dt;
+  particle.m.position.x+=particle.vx*dt;
+  particle.m.position.y+=particle.vy*dt;
+  particle.m.position.z+=particle.vz*dt;
+  particle.vy-=9*dt;
+  particle.m.scale.setScalar(Math.max(.001,particle.sz*(1-particle.t/particle.l)));
+  if(particle.t>=particle.l){
+   S.remove(particle.m);sk.splice(j,1);
+   if(particle.blood)bloodActive=Math.max(0,bloodActive-1);
+  }
+ }
+ updDrops(dt);
+ updSm(dt);
 }
 function onlineWarn(error) {
  var code=typeof error==='string'?error:error&&error.code||'BACKEND_UNAVAILABLE';
@@ -373,6 +409,10 @@ function onlineResetLive(){
  onlineSelfTarget=null;onlineLastWinner=undefined;onlineMuzzleTime=0;onlineScoreboard.clear();
  onlinePendingWeapon=null;onlinePendingWeaponAt=0;onlineHitUntil=0;
  if(onlineHitMarker){onlineHitMarker.remove();onlineHitMarker=null;}
+ for(const fx of mzf)S.remove(fx.m);mzf.length=0;
+ for(const particle of sk)S.remove(particle.m);sk.length=0;bloodActive=0;
+ for(const dropped of dg)S.remove(dropped.m);dg.length=0;
+ clrSm();
  onlineApi?.closeLive();clearInterval(onlineRoomTimer);clearTimeout(onlineReconnectTimer);
  onlineReconnecting=false;onlineReconnectStarted=0;
 }
@@ -500,7 +540,14 @@ function onlineReceiveFrame(frame){
   return;
  }
  if(frame.type==='combat_hit'){
-  if(onlineActive)onlineHitConfirm(!!frame.headshot);
+  if(onlineActive){
+   onlineHitConfirm(!!frame.headshot);
+   onlineReactToImpact(frame.victimId,!!frame.headshot);
+  }
+  return;
+ }
+ if(frame.type==='combat_impact'){
+  onlineReactToImpact(frame.victimId,!!frame.headshot);
   return;
  }
  if(frame.type==='combat_hurt'){
@@ -519,7 +566,15 @@ function onlineReceiveFrame(frame){
    if(Number.isInteger(frame.weaponId)&&frame.weaponId>=0&&frame.weaponId<WP.length){
     botVisualWeapon(bot,frame.weaponId);bot.weapon=frame.weaponId;
    }
-   if(bot.weapon!==4&&bot.weapon!==5)enemyShotFx(bot,bot.x,bot.y+1.3,bot.z);
+   if(bot.weapon!==4&&bot.weapon!==5){
+    // Emit at the real animated gun muzzle, not the soldier center.
+    var gun=bot.g?.userData?.rg;
+    if(gun){
+     gun.updateWorldMatrix(true,false);
+     var tip=gun.localToWorld(new T.Vector3(0,0,-.7));
+     enemyShotFx(bot,tip.x,tip.y,tip.z);
+    }
+   }
   }
   return;
  }
@@ -866,6 +921,7 @@ function onlineVisualUpdate(dt){
  if(onlineHitMarker&&now>onlineHitUntil)onlineHitMarker.style.opacity='0';
  var hurtOverlay=document.getElementById('hit');
  if(hurtOverlay)hurtOverlay.style.opacity=Math.max(0,(parseFloat(hurtOverlay.style.opacity)||0)-dt*2);
+ onlineTickEffects(dt);
  if(typeof hud==='function')hud();
  if(typeof hdUpd==='function')hdUpd(dt);
  if(typeof kfUpd==='function')kfUpd(dt);

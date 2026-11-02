@@ -1,3 +1,9 @@
+## 2026-11-02 — Fix online muzzle flash accumulation and restore visible enemy hit reactions
+- Correct the previous online combat regression: animate and reclaim temporary remote gun muzzle flashes, shell casing physics, smoke and blood particles every online render tick; clear them on disconnect.
+- Attach enemy shot flashes to the actual weapon muzzle instead of the actor center, preventing luminous orbs accumulating across the level.
+- Consume server-authorized, per-recipient visible target hit events to trigger the original block soldier hit wobble and short blood impact animation; never use client raycast or estimated damage.
+- Add focused visual-effects lifetime and server-driven reaction assertions. Keep 5v5 gameplay, BOT AI, weapon damage, rewards and LOS authority unchanged.
+
 ## 2026-11-02 — Restore online FPS weapon controls, animations and combat feedback
 - Preserve local weapon-slot intent until server confirms it; stale snapshots no longer instantly revert handgun/knife/grenade selection.
 - Restore online first-person shot sound, recoil, ejected casings and knife/grenade/pump animation without client-owned damage calculations.
