@@ -1,3 +1,10 @@
+## 2026-11-02 — Server-authoritative FPS prediction, reconciliation, remote smoothing and telemetry
+- Predict local first-person movement on every visible render frame with canonical weapon movement, local collision visuals and jumping; no client-claimed coordinates or combat outcome are ever sent.
+- Reconcile against the per-user processed input sequence from the trusted server snapshot, replay bounded unacknowledged visual frames, smooth small discrepancies, and hard reset on server teleports/respawns.
+- Buffer only already-visible authoritative enemy/teammate snapshots and interpolate at jitter-adaptive render delay without hidden-actor extrapolation or retained phantom targets.
+- Add opt-in `?pbNetQa=1` performance overlay: frame p95, snapshot p95, server ticks, input ack, unacknowledged history and positional correction.
+- Support sequence continuity on authenticated WS reconnect, bounded client history, and freeze prediction when authoritative snapshots become stale.
+
 ## 2026-11-02 — Fix ACTIVE room double-normalization blocking game entry
 - Correct the actual match-entry blocker: the realtime attach function was passing a canonical frontend mode (0/1) back through a backend-only DM/BM room parser and failing with `INVALID_ROOM_RESPONSE` after match activation.
 - Treat an already validated normalized room as normalized during WS attach; still parse raw backend payloads when needed.

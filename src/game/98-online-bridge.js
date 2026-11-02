@@ -10,6 +10,109 @@ var onlineReconnectTimer=0,onlineReconnectStarted=0,onlineReconnecting=false;
 var onlineAimInitialized=false,onlineTrainingProgressValue=null,onlinePrevAlive=true;
 var onlineSelfTarget=null,onlineLastWinner=undefined,onlineMuzzleTime=0;
 var onlineScoreboard=new Map();
+// Local display-only movement, never an authoritative position or damage claim.
+var onlinePredSteps=[],onlineCorrection={x:0,y:0,z:0},onlineHasPrediction=false;
+var onlineLastAuthTick=-1,onlineLastAck=0,onlineLastAccepted=0;
+var onlineFrameSamples=[],onlineSnapshotSamples=[],onlineLastFrameAt=0,onlineLastSnapshotAt=0;
+var onlineLastSnapshotTick=-1,onlineLastMetricsAt=0,onlineCorrectionSize=0;
+var onlinePerfEnabled=typeof location!=='undefined'&&new URLSearchParams(location.search).has('pbNetQa');
+var onlinePerfPanel=null;
+function onlineSample(samples,value,limit){
+ if(Number.isFinite(value)&&value>=0){samples.push(value);if(samples.length>limit)samples.shift();}
+}
+function onlineP95(samples){
+ if(!samples.length)return 0;
+ var ordered=samples.slice().sort(function(a,b){return a-b});
+ return ordered[Math.ceil(ordered.length*.95)-1];
+}
+function onlineMeasureFrame(now){
+ if(onlineLastFrameAt&&now-onlineLastFrameAt<1000)
+  onlineSample(onlineFrameSamples,now-onlineLastFrameAt,180);
+ onlineLastFrameAt=now;
+ if(!onlinePerfEnabled||now-onlineLastMetricsAt<1000)return;
+ onlineLastMetricsAt=now;
+ if(!onlinePerfPanel){
+  onlinePerfPanel=document.createElement('pre');
+  onlinePerfPanel.id='pointblockNetQa';
+  onlinePerfPanel.style.cssText='position:fixed;right:12px;bottom:12px;z-index:999999;pointer-events:none;color:#e4f4ff;background:rgba(4,12,24,.88);border:1px solid #71869b;padding:9px 12px;font:12px/1.6 monospace;white-space:pre;min-width:235px';
+  document.body.appendChild(onlinePerfPanel);
+ }
+ var frame=onlineP95(onlineFrameSamples),snapshot=onlineP95(onlineSnapshotSamples);
+ var elapsed=onlineLastSnapshotAt?now-onlineLastSnapshotAt:0;
+ onlinePerfPanel.textContent='POINTBLOCK · NETWORK QA (LOCAL)\n'+
+  'Frame p95: '+frame.toFixed(1)+' ms · FPS ~'+(frame?Math.round(1000/frame):'—')+'\n'+
+  'Snapshot p95: '+snapshot.toFixed(1)+' ms\n'+
+  'Last snapshot: '+Math.round(elapsed)+' ms ago\n'+
+  'Server tick: '+onlineLastSnapshotTick+' · input ack: '+onlineLastAck+'\n'+
+  'Pending frames: '+onlinePredSteps.length+' · correction: '+onlineCorrectionSize.toFixed(2)+'m';
+}
+function onlineMeasureSnapshot(world,now){
+ if(!world||!Number.isSafeInteger(world.serverTick)||world.serverTick<=onlineLastSnapshotTick)return;
+ if(onlineLastSnapshotAt&&now-onlineLastSnapshotAt<2000)
+  onlineSample(onlineSnapshotSamples,now-onlineLastSnapshotAt,80);
+ onlineLastSnapshotAt=now;onlineLastSnapshotTick=world.serverTick;
+}
+// Mirrors server-approved speed and local-axis transform. Calls the existing
+// FE collider as a visual prediction only; the server remains the final judge.
+function onlinePredictStep(position,input,dt){
+ if(!(dt>0)||!Number.isFinite(dt))return position;
+ var step=Math.min(dt,.05),fw=-input.moveZ,sn=Math.sin(input.yaw),cs=Math.cos(input.yaw);
+ var speed=weaponMovementSpeed(input.weaponId,input.sprint&&!input.crouch?1:0,input.ads?1:0);
+ position.x+=(fw*sn-input.moveX*cs)*speed*step;
+ position.z+=(fw*cs+input.moveX*sn)*speed*step;
+ resolve(position,.55);
+ if(input.jump&&position.grounded){position.vy=9;position.grounded=false}
+ if(!Number.isFinite(position.vy))position.vy=0;
+ position.vy-=28*step;position.y+=position.vy*step;
+ if(position.y<=0){position.y=0;position.vy=0;position.grounded=true}
+ return position;
+}
+function onlineReconcileSelf(actor,privateState,fresh){
+ if(!fresh)return;
+ var ack=privateState?.lastProcessedInputSeq,accepted=privateState?.lastAcceptedInputSeq;
+ if(!Number.isSafeInteger(ack)||ack<0)return;
+ onlineLastAck=Math.max(onlineLastAck,ack);
+ if(Number.isSafeInteger(accepted)&&accepted>=0){
+  onlineLastAccepted=Math.max(onlineLastAccepted,accepted);
+  onlineSeq=Math.max(onlineSeq,onlineLastAccepted); // 60s rejoin keeps sequence monotonic
+ }
+ // Only frames not yet simulated by the server are replayable.
+ onlinePredSteps=onlinePredSteps.filter(function(step){return step.seq>onlineLastAck});
+ if(!onlineHasPrediction||!actor.alive||!onlinePrevAlive){
+  pl.x=actor.x;pl.y=actor.y;pl.z=actor.z;pl.vy=0;
+  onlineCorrection={x:0,y:0,z:0};onlinePredSteps.length=0;
+  onlineHasPrediction=!!actor.alive;
+  onlineCorrectionSize=0;return;
+ }
+ var projected={x:actor.x,y:actor.y,z:actor.z,vy:pl.vy,
+  grounded:privateState?.grounded===true};
+ for(var i=0;i<onlinePredSteps.length;i++){
+  var frame=onlinePredSteps[i];
+  onlinePredictStep(projected,frame,frame.dt);
+ }
+ var dx=projected.x-pl.x,dy=projected.y-pl.y,dz=projected.z-pl.z,dist=Math.hypot(dx,dy,dz);
+ onlineCorrectionSize=dist;
+ // Respawn, map mismatch or large server correction: never interpolate through walls.
+ if(dist>2.5){
+  pl.x=actor.x;pl.y=actor.y;pl.z=actor.z;pl.vy=0;
+  onlineCorrection={x:0,y:0,z:0};onlinePredSteps.length=0;return;
+ }
+ // Small timing differences below a centimeter are not worth camera jitter.
+ if(dist>.04)onlineCorrection={x:dx,y:dy,z:dz};
+}
+function onlineInterpolateActor(samples,renderAt){
+ if(!samples.length)return null;
+ if(samples.length===1||renderAt<=samples[0].t)return samples[0];
+ for(var i=1;i<samples.length;i++){
+  var b=samples[i],a=samples[i-1];
+  if(renderAt>b.t)continue;
+  var alpha=Math.max(0,Math.min(1,(renderAt-a.t)/(b.t-a.t||1)));
+  return{x:a.x+(b.x-a.x)*alpha,y:a.y+(b.y-a.y)*alpha,z:a.z+(b.z-a.z)*alpha,
+   yaw:a.yaw+Math.atan2(Math.sin(b.yaw-a.yaw),Math.cos(b.yaw-a.yaw))*alpha};
+ }
+ // Never extrapolate enemies past server-authorized snapshots.
+ return samples[samples.length-1];
+}
 function onlineWarn(error) {
  var code=typeof error==='string'?error:error&&error.code||'BACKEND_UNAVAILABLE';
  roomSetMessage(code);if(typeof roomLiveLog==='function'&&roomCurrent)roomLiveLog(code);
@@ -206,6 +309,11 @@ function onlineResetLive(){
  onlineWorld=null;onlineGame=null;
  for(const item of onlineActors.values()){if(item.model?.g)S.remove(item.model.g)}
  onlineActors.clear();onlineMeId=null;onlineSeq=0;onlineSendAt=0;onlineVisualLoaded=false;
+ onlinePredSteps.length=0;onlineCorrection={x:0,y:0,z:0};onlineHasPrediction=false;
+ onlineLastAuthTick=-1;onlineLastAck=0;onlineLastAccepted=0;
+ onlineLastFrameAt=0;onlineLastSnapshotAt=0;onlineLastSnapshotTick=-1;
+ onlineFrameSamples.length=0;onlineSnapshotSamples.length=0;onlineCorrectionSize=0;
+ if(onlinePerfPanel){onlinePerfPanel.remove();onlinePerfPanel=null;}
  onlineAimInitialized=false;onlineTrainingProgressValue=null;onlinePrevAlive=true;
  onlineSelfTarget=null;onlineLastWinner=undefined;onlineMuzzleTime=0;onlineScoreboard.clear();
  onlineApi?.closeLive();clearInterval(onlineRoomTimer);clearTimeout(onlineReconnectTimer);
@@ -315,7 +423,17 @@ function onlineReceiveFrame(frame){
     frame.type==='match_snapshot'||frame.type==='training_snapshot'){
   // Rejoined masters recover the same matchId from the authoritative WS handshake.
   if(frame.type==='match_ready'&&typeof frame.matchId==='string')onlineMatchId=frame.matchId;
-  if(frame.world&&typeof frame.world.serverTick==='number'){
+  if(frame.world&&Number.isSafeInteger(frame.world.serverTick)){
+   // Drop out-of-order authoritative world snapshots. Snapshot telemetry is opt-in.
+   if(onlineWorld&&frame.world.matchId===onlineWorld.matchId&&
+      frame.world.serverTick<onlineWorld.serverTick)return;
+   var metricsNow=performance.now();
+   onlineMeasureSnapshot(frame.world,metricsNow);
+   if(frame.type==='match_ready'||frame.type==='training_ready'){
+    onlinePredSteps.length=0;onlineHasPrediction=false;onlineLastAuthTick=-1;
+    var joinedSeq=frame.world.privateState?.lastAcceptedInputSeq;
+    if(Number.isSafeInteger(joinedSeq))onlineSeq=Math.max(onlineSeq,joinedSeq);
+   }
    onlineWorld=frame.world;onlineGame=frame.game;
    if(!onlineMeId){onlineMeId=onlineTraining?
      frame.world.actors.find(a=>!a.bot)?.id:onlineApi?.state().player?.id;}
@@ -447,13 +565,13 @@ function onlineApplyWorld(){
   ROS=pl.st?[pl.st]:[];onlineActors.clear();onlineScoreboard.clear();onlineVisualLoaded=true;
  }
  var selfId=onlineUserId();
+ var fresh=world.serverTick!==onlineLastAuthTick;
+ if(fresh)onlineLastAuthTick=world.serverTick;
  var self=world.actors.find(a=>a.id===selfId);
  // Spectator snapshots remain recipient-bound; hidden enemies are never created.
  if(self){
   pl.tm=self.team;
-  if(!onlineSelfTarget||Math.hypot(self.x-pl.x,self.z-pl.z)>12||!onlinePrevAlive&&self.alive){
-   pl.x=self.x;pl.y=self.y;pl.z=self.z;
-  }
+  onlineReconcileSelf(self,world.privateState,fresh);
   onlineSelfTarget={x:self.x,y:self.y,z:self.z};
   pl.dead=!self.alive;
   var privateState=world.privateState;
@@ -490,11 +608,17 @@ function onlineApplyWorld(){
    current=onlineActors.get(actor.id);
   }
   var bot=current.model;
-  bot.x=actor.x;bot.y=actor.y;bot.z=actor.z;
   bot.dead=!actor.alive;
-  if(!current.target){bot.g.position.set(actor.x,actor.y,actor.z)}
-  current.target={x:actor.x,y:actor.y,z:actor.z,yaw:actor.yaw};bot.weapon=actor.weaponId;bot.primary=actor.weaponId;
-  bot.g.rotation.y=actor.yaw;
+  if(!current.samples){current.samples=[];bot.g.position.set(actor.x,actor.y,actor.z)}
+  if(fresh&&(!current.lastTick||world.serverTick>current.lastTick)){
+   var samples=current.samples,last=samples[samples.length-1];
+   // Never interpolate across a server-authorized teleport or new life.
+   if(last&&Math.hypot(last.x-actor.x,last.z-actor.z)>4)samples.length=0;
+   samples.push({t:performance.now(),x:actor.x,y:actor.y,z:actor.z,yaw:actor.yaw});
+   if(samples.length>8)samples.shift();
+   current.lastTick=world.serverTick;
+  }
+  bot.weapon=actor.weaponId;bot.primary=actor.weaponId;
   bot.g.visible=!!actor.alive;
   if(bot.nm)bot.nm.visible=actor.team===pl.tm&&actor.alive;
  });
@@ -587,6 +711,7 @@ function onlineShowMatchReport(game,matchId,winner,mode){
 }
 function onlineVisualUpdate(dt){
  if(!onlineActive||!run||lob)return;
+ var now=performance.now();onlineMeasureFrame(now);
  tt+=dt;
  var x=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0)+ST.l.x,
      z=(keys.KeyS||keys.ArrowDown?1:0)-(keys.KeyW||keys.ArrowUp?1:0)+ST.l.y,
@@ -607,29 +732,46 @@ function onlineVisualUpdate(dt){
   onlineMuzzleTime=performance.now();
   flashT=.035;kick=Math.min(.13,kick+.018);
  }
- if(!pl.dead&&performance.now()-onlineSendAt>=50&&onlineApi?.live){
-  onlineSendAt=performance.now();
-  onlineApi.live.send({type:'input',frame:{
-   seq:++onlineSeq,moveX:x,moveZ:z,yaw:pl.face,pitch:pl.pitch,
-   sprint:!!(keys.ShiftLeft||keys.ShiftRight),ads:!!ads,
-   fire:wantsFire,
-   reload:!!keys.KeyR,jump:!!(keys.Space||jumpHeld),crouch:!!(keys.ControlLeft||keys.ControlRight),
-   interact:!!(keys.KeyE||bombHold),weaponId:pl.w,
-  }});
+ var sprint=!!(keys.ShiftLeft||keys.ShiftRight),jump=!!(keys.Space||jumpHeld),
+     crouch=!!(keys.ControlLeft||keys.ControlRight);
+ if(!pl.dead&&now-onlineSendAt>=50&&onlineApi?.live){
+  var sequence=onlineSeq+1;
+  if(onlineApi.live.send({type:'input',frame:{
+   seq:sequence,moveX:x,moveZ:z,yaw:pl.face,pitch:pl.pitch,
+   sprint:sprint,ads:!!ads,fire:wantsFire,reload:!!keys.KeyR,
+   jump:jump,crouch:crouch,interact:!!(keys.KeyE||bombHold),weaponId:pl.w,
+  }})){onlineSeq=sequence;onlineSendAt=now;}
  }
  onlineApplyWorld();
- if(onlineSelfTarget){
-  var followRate=Math.min(1,dt*17);
-  pl.x+=(onlineSelfTarget.x-pl.x)*followRate;
-  pl.y+=(onlineSelfTarget.y-pl.y)*followRate;
-  pl.z+=(onlineSelfTarget.z-pl.z)*followRate;
+ // First-person camera responds immediately on every render frame; it never
+ // waits for a 10 Hz server snapshot to permit movement.
+ if(!pl.dead&&onlineHasPrediction&&now-onlineLastSnapshotAt<600){
+  var prediction={seq:onlineSeq,moveX:x,moveZ:z,yaw:pl.face,ads:!!ads,
+   sprint:sprint,jump:jump,crouch:crouch,weaponId:pl.w,dt:Math.max(0,Math.min(dt,.05))};
+  onlinePredictStep(pl,prediction,prediction.dt);
+  onlinePredSteps.push(prediction);
+  if(onlinePredSteps.length>128)onlinePredSteps.shift();
+  // Never feed the correction, predicted position, or render FPS into the
+  // authoritative match engine; this is local visual reconciliation only.
+  var correctionAlpha=1-Math.exp(-12*prediction.dt);
+  for(var axis of ['x','y','z']){
+   var correction=onlineCorrection[axis]*correctionAlpha;
+   pl[axis]+=correction;onlineCorrection[axis]-=correction;
+  }
+  camY=pl.y;
  }
- // Interpolate visual meshes between 10 Hz server snapshots. Never feed client
- // interpolation back into physics, collision, damage or any reward calculation.
+ // 10 Hz server snapshots -> buffered ~150 ms render interpolation for
+ // visible remote actors. Hidden enemy snapshots are never extrapolated.
+ var snapshotP95=onlineP95(onlineSnapshotSamples);
+ var delay=Math.min(220,Math.max(115,snapshotP95*1.25));
+ var renderAt=now-delay;
  onlineActors.forEach(function(actor){
-  if(!actor.model?.g||!actor.target||!actor.model.g.visible)return;
-  var p=actor.model.g.position,t=actor.target,alpha=Math.min(1,dt*13);
-  p.x+=(t.x-p.x)*alpha;p.y+=(t.y-p.y)*alpha;p.z+=(t.z-p.z)*alpha;
+  if(!actor.model?.g||!actor.model.g.visible)return;
+  var sample=onlineInterpolateActor(actor.samples||[],renderAt);
+  if(!sample)return;
+  actor.model.x=sample.x;actor.model.y=sample.y;actor.model.z=sample.z;
+  actor.model.g.position.set(sample.x,sample.y,sample.z);
+  actor.model.g.rotation.y=sample.yaw;
  });
  if(typeof hud==='function')hud();
  if(typeof hdUpd==='function')hdUpd(dt);
