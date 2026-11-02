@@ -11,19 +11,20 @@ const runSource=source.slice(begin,end)+'\nthis.start=onlineMasterStart;';
 const playerId='11111111-1111-4111-8111-111111111111';
 const roomId='33333333-3333-4333-8333-333333333333';
 function fixture(status='ACTIVE',ownerId=playerId){
- const counts={patch:0,start:0,attach:0,warnings:[]};
+ const counts={patch:0,start:0,attach:0,decorations:0,warnings:[]};
  const button={disabled:false};
  let current={id:roomId,ownerId,status};
  const onlineApi={
   state:()=>({player:{id:playerId}}),
   getRoom:async()=>current,
-  startRoom:async()=>{counts.start++;return{matchId:'44444444-4444-4444-8444-444444444444'}},
+  startRoom:async()=>{counts.start++;return{matchId:'44444444-4444-4444-8444-444444444444',status:'ACTIVE'}},
  };
  const ctx={
-  onlineApi,onlineActive:false,roomCurrent:current,
+  onlineApi,onlineActive:false,onlineAttaching:false,roomCurrent:current,
   onlineAuth:()=>true,onlineIsMaster:()=>true,
   document:{getElementById:()=>button},
   onlineAdoptRoom:r=>{ctx.roomCurrent=r;return r},
+  onlineLiveRoomDecorate:r=>{counts.decorations++;ctx.roomCurrent=r},
   onlineAttachMatch:async()=>{counts.attach++},
   onlineSaveRoom:async()=>{counts.patch++;return true},
   onlineWarn:value=>counts.warnings.push(value),
@@ -35,6 +36,7 @@ test('existing ACTIVE creator can rejoin without PATCH or duplicate START',async
  const f=fixture();
  await f.ctx.start();
  assert.equal(f.counts.attach,1);
+ assert.equal(f.counts.decorations,1);
  assert.equal(f.counts.patch,0);
  assert.equal(f.counts.start,0);
  assert.equal(f.button.disabled,false);
@@ -63,4 +65,59 @@ test('concurrent start conflict recovers the same active room without duplicate 
  assert.equal(f.counts.start,1);
  assert.equal(f.counts.attach,1);
  assert.deepEqual(f.counts.warnings,[]);
+});
+
+test('server ACTIVE room is rendered before attempting realtime attachment',async()=>{
+ const f=fixture('ACTIVE');
+ f.ctx.onlineAttachMatch=async()=>{f.counts.attach++;return false;};
+ await f.ctx.start();
+ assert.equal(f.ctx.roomCurrent.status,'ACTIVE');
+ assert.equal(f.counts.decorations,1);
+ assert.equal(f.counts.attach,1);
+ assert.equal(f.counts.start,0);
+});
+const functionStart=source.indexOf('function onlineStartRoomPoll()');
+const functionEnd=source.indexOf('\nfunction onlineResetLive()',functionStart);
+const attachStart=source.indexOf('async function onlineAttachMatch(');
+const attachEnd=source.indexOf('\nasync function onlineMasterStart()',attachStart);
+assert.ok(functionStart>=0&&functionEnd>functionStart&&attachStart>=0&&attachEnd>attachStart);
+const wsSource=source.slice(functionStart,functionEnd)+'\n'+source.slice(attachStart,attachEnd)+
+ '\nthis.poll=onlineStartRoomPoll;this.attach=onlineAttachMatch;';
+test('polling ACTIVE status refreshes REJOIN UI and attempts server WS, not another START',async()=>{
+ let timer,shown=0,attached=0;
+ const room={id:roomId,ownerId:playerId,status:'ACTIVE'};
+ const ctx={
+  roomCurrent:{...room,status:'OPEN'},onlineActive:false,onlineAttaching:false,onlineRoomTimer:0,
+  setInterval:fn=>{timer=fn;return 1},clearInterval:()=>{},
+  onlineApi:{getRoom:async()=>room,openLive:async()=>{attached++;}},
+  document:{getElementById:()=>({classList:{contains:()=>true},textContent:''})},
+  onlineAuth:()=>true,onlineIsMaster:()=>true,
+  onlineAdoptRoom:r=>{ctx.roomCurrent=r;return r},
+  onlineLiveRoomDecorate:()=>{shown++},onlineReceiveFrame:()=>{},onlineSocketStatus:()=>{},
+  onlineBeginTransition:()=>{},onlineWarn:()=>{},onlineResetLive:()=>{},
+ };
+ runInNewContext(wsSource,ctx);
+ ctx.poll();await timer();
+ assert.equal(shown,1);
+ assert.equal(attached,1);
+ assert.equal(ctx.onlineActive,true);
+});
+test('parallel ACTIVE rejoin attempts cannot consume two single-use WS tickets',async()=>{
+ let connections=0,release;
+ const room={id:roomId,ownerId:playerId,status:'ACTIVE'};
+ const ctx={
+  roomCurrent:room,onlineActive:false,onlineAttaching:false,onlineRoomTimer:0,
+  onlineApi:{openLive:async()=>{connections++;await new Promise(resolve=>{release=resolve})}},
+  document:{getElementById:()=>({textContent:''})},
+  onlineAuth:()=>true,onlineIsMaster:()=>true,
+  onlineAdoptRoom:r=>r,onlineReceiveFrame:()=>{},onlineSocketStatus:()=>{},
+  onlineBeginTransition:()=>{},onlineWarn:()=>{},onlineResetLive:()=>{},
+  clearInterval:()=>{},
+ };
+ runInNewContext(wsSource,ctx);
+ const first=ctx.attach(room),second=ctx.attach(room);
+ assert.equal(await second,false);
+ assert.equal(connections,1);
+ release();assert.equal(await first,true);
+ assert.equal(ctx.onlineAttaching,false);
 });

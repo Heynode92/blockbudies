@@ -1,3 +1,10 @@
+## 2026-11-02 — Active Room START/WS handshake synchronization
+- Fix the stale START MATCH / ROOM SETTINGS UI when PostgreSQL reports an ACTIVE room: polling now renders ACTIVE/REJOIN state before connecting to realtime.
+- Serialize all room WS attachments across automatic room polling and Room Master actions, preventing competing one-use WS ticket handshakes and socket cancellations.
+- Preserve a retryable room UI after a rejected realtime connection and show the connection error in the visible room status line; never create a duplicate match.
+- Render trusted START success as ACTIVE immediately; add runtime regression cases for ACTIVE polling, simultaneous attaches, and stale Room Master buttons.
+- No change to BE authority, gameplay damage, BOT tuning, wallet signature, or rewards.
+
 ## 2026-11-02 — Room Master verified active-match rejoin
 - Guard Room Master START with a server-fetched room owner/status; rejoin an already ACTIVE match using authenticated single-use realtime tickets without attempting another settings save or match start.
 - Recover from a concurrent START turning OPEN into ACTIVE, while maintaining server-side ownership checks and avoiding duplicate matches.

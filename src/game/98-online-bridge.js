@@ -4,7 +4,7 @@
 var onlineApi=typeof PB_ONLINE!=='undefined'?PB_ONLINE:null;
 var onlineActive=false,onlineTraining=false,onlineCurrentId=null,onlineMatchId=null;
 var onlineWorld=null,onlineGame=null,onlineActors=new Map(),onlineSeq=0,onlineSendAt=0,onlineMeId=null;
-var onlineLobbyTimer=0,onlineRoomOpening=false,onlineRoomTimer=0,onlineRouteToken=0;
+var onlineLobbyTimer=0,onlineRoomOpening=false,onlineRoomTimer=0,onlineRouteToken=0,onlineAttaching=false;
 var onlineTeamNotice=null,onlineInputId=0,onlineVisualLoaded=false;
 var onlineReconnectTimer=0,onlineReconnectStarted=0,onlineReconnecting=false;
 var onlineAimInitialized=false,onlineTrainingProgressValue=null,onlinePrevAlive=true;
@@ -183,11 +183,16 @@ function onlineStartRoomPoll() {
  if(!roomCurrent)return;
  var id=roomCurrent.id;
  onlineRoomTimer=setInterval(async function(){
-  if(!roomCurrent||roomCurrent.id!==id||onlineActive)return;
+  if(!roomCurrent||roomCurrent.id!==id||onlineActive||onlineAttaching)return;
   try{
    var next=await onlineApi.getRoom(id);
+   // Keep the rendered Room Master controls synchronized with the DB status.
+   // Do this BEFORE connecting: a failed WS handshake must leave REJOIN visible.
+   if(!roomCurrent||roomCurrent.id!==id||onlineActive||onlineAttaching)return;
    var normalized=onlineAdoptRoom(next);
    if(next.status==='ACTIVE'){
+    if(document.getElementById('lbroomlive').classList.contains('on'))
+     onlineLiveRoomDecorate(normalized);
     clearInterval(onlineRoomTimer);
     await onlineAttachMatch(normalized);
    }else if(next.status==='OPEN'&&document.getElementById('lbroomlive').classList.contains('on')){
@@ -207,16 +212,32 @@ function onlineResetLive(){
  onlineReconnecting=false;onlineReconnectStarted=0;
 }
 async function onlineAttachMatch(room){
- if(!onlineAuth()||onlineActive)return;
+ // Poll and Room Master clicks can both observe ACTIVE during the WS handshake.
+ // Only one connection may consume a one-use realtime ticket at a time.
+ if(!onlineAuth()||onlineActive||onlineAttaching)return false;
+ onlineAttaching=true;
  try{
   var current=onlineAdoptRoom(room);
+  if(onlineIsMaster())document.getElementById('rmlStart').textContent='CONNECTING TO MATCH...';
   await onlineApi.openLive('room',current.id,onlineReceiveFrame,onlineSocketStatus);
   onlineCurrentId=current.id;onlineTraining=false;onlineActive=true;onlineVisualLoaded=false;
+  clearInterval(onlineRoomTimer);
   onlineBeginTransition(current);
- }catch(error){onlineResetLive();onlineWarn(error)}
+  return true;
+ }catch(error){
+  onlineResetLive();
+  var code=onlineWarn(error);
+  // Match stays ACTIVE on the server. Surface the actual connection failure
+  // instead of leaving a misleading START MATCH button with no visible feedback.
+  roomText('rmlBotSummary','MATCH CONNECTION FAILED · '+code);
+  if(roomCurrent?.status==='ACTIVE'&&onlineIsMaster())
+   document.getElementById('rmlStart').textContent='RETRY MATCH CONNECTION';
+  return false;
+ }finally{onlineAttaching=false}
 }
 async function onlineMasterStart(){
- if(!onlineAuth()||!onlineIsMaster()||onlineActive){onlineWarn('ROOM_MASTER_REQUIRED');return}
+ if(!onlineAuth()||!onlineIsMaster()){onlineWarn('ROOM_MASTER_REQUIRED');return}
+ if(onlineActive||onlineAttaching)return;
  var startControl=document.getElementById('rmlStart');
  startControl.disabled=true;
  try{
@@ -225,27 +246,38 @@ async function onlineMasterStart(){
   var playerId=onlineApi.state().player?.id;
   var authoritative=await onlineApi.getRoom(roomCurrent.id);
   if(authoritative.ownerId!==playerId){onlineWarn('ROOM_MASTER_REQUIRED');return}
+  // Never trust the local button's stale status: read and render server truth.
+  onlineLiveRoomDecorate(onlineAdoptRoom(authoritative));
   if(authoritative.status==='ACTIVE'){
-   await onlineAttachMatch(onlineAdoptRoom(authoritative));return;
+   await onlineAttachMatch(roomCurrent);return;
   }
   if(authoritative.status!=='OPEN'){onlineWarn('ROOM_NOT_WAITING');return}
   onlineAdoptRoom(authoritative);
   if(!await onlineSaveRoom(false)){
    // A concurrent start may have activated this room after the status check.
    var afterSave=await onlineApi.getRoom(authoritative.id);
-   if(afterSave.ownerId===playerId&&afterSave.status==='ACTIVE')
-    await onlineAttachMatch(onlineAdoptRoom(afterSave));
+   if(afterSave.ownerId===playerId&&afterSave.status==='ACTIVE'){
+    onlineLiveRoomDecorate(onlineAdoptRoom(afterSave));
+    await onlineAttachMatch(roomCurrent);
+   }
    return;
   }
   try{
    var started=await onlineApi.startRoom(authoritative.id);
+   if(started.status!=='ACTIVE'||typeof started.matchId!=='string')
+    throw Error('INVALID_MATCH_START_RESPONSE');
    onlineMatchId=started.matchId;
+   // The backend confirmed ACTIVE. Update the button before WS connects,
+   // preserving the owner's ability to retry without a duplicate match.
+   roomCurrent={...roomCurrent,status:'ACTIVE'};
+   onlineLiveRoomDecorate(roomCurrent);
    await onlineAttachMatch(roomCurrent);
   }catch(error){
    if(error?.code!=='ROOM_ALREADY_ACTIVE'&&error?.code!=='ROOM_NOT_READY')throw error;
    var activeRoom=await onlineApi.getRoom(authoritative.id);
    if(activeRoom.ownerId!==playerId||activeRoom.status!=='ACTIVE')throw error;
-   await onlineAttachMatch(onlineAdoptRoom(activeRoom));
+   onlineLiveRoomDecorate(onlineAdoptRoom(activeRoom));
+   await onlineAttachMatch(roomCurrent);
   }
  }catch(error){onlineWarn(error)}
  finally{startControl.disabled=false}
