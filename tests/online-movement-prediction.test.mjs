@@ -82,3 +82,25 @@ test('runtime keeps collision and damage server authoritative',()=>{
  assert.match(code,/visible\.has\(id\)/);
  assert.doesNotMatch(code,/type:'input',frame:\{[\s\S]{0,220}?(?:position|damage|kills):/);
 });
+
+test('weapon intent survives a stale snapshot until acknowledged',()=>{
+ const ctx={Math,performance:{now:()=>100},WP:Array.from({length:19},()=>({})),
+  pl:{w:4,ammo:{4:{mag:1,res:Infinity}},mag:1,res:Infinity,rl:0,slot:2,sw:0},
+  onlinePendingWeapon:4,onlinePendingWeaponAt:50};
+ const helper=code.slice(code.indexOf('function onlineWeaponSnapshot('),code.indexOf('function onlineHitConfirm('));
+ runInNewContext(helper+'\nthis.applyWeapon=onlineWeaponSnapshot;',ctx);
+ ctx.applyWeapon({weaponId:9},{ammo:{magazine:40,reserve:200}},true);
+ assert.equal(ctx.pl.w,4);
+ ctx.applyWeapon({weaponId:4},{ammo:{magazine:1,reserve:0}},true);
+ assert.equal(ctx.onlinePendingWeapon,null);assert.equal(ctx.pl.w,4);
+ ctx.applyWeapon({weaponId:9},{ammo:{magazine:39,reserve:200,reloadRemaining:0}},true);
+ assert.equal(ctx.pl.w,9);assert.equal(ctx.pl.mag,39);
+});
+test('online renderer binds approved combat and remote animation hooks',()=>{
+ assert.match(code,/onlineAnimateRemoteActor\(actor,sample,dt\)/);
+ assert.match(code,/botVisualWeapon\(bot,actor.weaponId\)/);
+ assert.match(code,/frame.type==='combat_hit'/);
+ assert.match(code,/frame.type==='combat_shot'/);
+ assert.match(code,/gunSfx\(GS\[SFXI\[pl.w\]\],1\)/);
+ assert.match(code,/privateState\.spawnShieldRemaining/);
+});

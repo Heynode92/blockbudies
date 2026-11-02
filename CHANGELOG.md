@@ -1,3 +1,10 @@
+## 2026-11-02 — Restore online FPS weapon controls, animations and combat feedback
+- Preserve local weapon-slot intent until server confirms it; stale snapshots no longer instantly revert handgun/knife/grenade selection.
+- Restore online first-person shot sound, recoil, ejected casings and knife/grenade/pump animation without client-owned damage calculations.
+- Animate authorized remote legs, body and arms from interpolated movement and keep visible 3D weapon models consistent with server weapon IDs.
+- Consume server-filtered shot/hit/hurt events, display hit feedback and expire effects; sync HUD spawn immunity and reload progress from private server snapshots.
+- Add focused network regression tests; damage, weapon ownership, ammo, results and visibility remain server authoritative.
+
 ## 2026-11-02 — Multiplayer FPS performance verification handoff
 - Document canonical BE input acknowledgement, client prediction/replay, trusted remote interpolation, snapshot cadence and explicit non-authority boundaries.
 - Add Windows QA checklist for `?pbNetQa=1` with frame p95, snapshot p95, and reconciliation error interpretation.
