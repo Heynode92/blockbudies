@@ -1,3 +1,8 @@
+## 2026-11-02 — Regenerate exact canonical legacy parity artifact
+- Regenerated `assets/game.js` from all 71 ordered `tools/source-manifest.json` source modules, with LF normalization and original closure wrapper, matching `tools/build.mjs` byte-for-byte.
+- Legacy bundle is non-runtime Vite parity only; no manual edits to generated JavaScript or gameplay logic.
+- Repaired stale `--check` dependency in BOT M0 CI without bypassing its verification.
+
 ## 2026-11-02 — Regression fixture and Vite migration corrections
 - Update real ESC confirmation, injected video URLs and menu BGM test environments without relaxing expected UI behavior.
 - Replace obsolete direct-open CDN/16-CSS assertions with manifest-backed 17-CSS Vite/online entry assertions.
