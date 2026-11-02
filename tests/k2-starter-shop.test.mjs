@@ -54,51 +54,62 @@ test("K2 is id 9 with exact user stats, own real model and rifle tuning",()=>{
  assert.match(read("src/game/weapon/10-k2.js"),/receiver/);
  assert.match(controls,/9:'<svg/);
 });
-test("New player only owns K2 as primary but always has the usual sidearm and utility",()=>{
+test("Unverified browser owns no primary; fixed sidearm, knife and utility remain",()=>{
  const {ctx}=state();
- assert.deepEqual(Array.from(ctx.inventoryOwned("main")),[9]);
- assert.equal(ctx.inventoryEquipped("main"),9);
- assert.equal(ctx.favPrim,9);
+ assert.deepEqual(Array.from(ctx.inventoryOwned("main")),[]);
+ assert.equal(ctx.inventoryEquipped("main"),null);
+ assert.equal(ctx.favPrim,9,"starter visual fallback is not an owned asset");
  assert.deepEqual(Array.from(ctx.inventoryOwned("secondary")),[0]);
  assert.deepEqual(Array.from(ctx.inventoryOwned("mele")),[4]);
  assert.deepEqual(Array.from(ctx.inventoryOwned("explosive")),[5]);
  assert.deepEqual(Array.from(ctx.inventoryOwned("helm")),["standard_helmet"]);
 });
-test("Old pre-shop equipped settings do not grant free ownership of all guns",()=>{
- const {ctx}=state({equipped:{main:6,secondary:0,mele:4,explosive:5}});
- assert.deepEqual(Array.from(ctx.inventoryOwned("main")),[9]);
- assert.equal(ctx.inventoryEquipped("main"),9);
- assert.equal(ctx.favPrim,9);
+test("Old browser storage cannot grant equipment or change backend ownership",()=>{
+ const {ctx}=state({equipped:{main:6,secondary:0,mele:4,explosive:5},unlockedMain:[1,6,8]});
+ assert.deepEqual(Array.from(ctx.inventoryOwned("main")),[]);
+ assert.equal(ctx.inventoryEquipped("main"),null);
  assert.equal(ctx.inventoryEquip("main",6),false);
-});
-test("Shop unlock persists and main equipment can be changed after claiming",()=>{
- const {ctx,stored}=state();
- assert.equal(ctx.inventoryClaimPrimary(6),true);
  assert.equal(ctx.inventoryClaimPrimary(6),false);
- assert.ok(ctx.inventoryOwned("main").includes(6));
- assert.equal(ctx.inventoryEquip("main",6),true);
- assert.equal(ctx.inventoryEquipped("main"),6);
- assert.equal(JSON.parse(stored.get("bbfps_inventory_v1")).equipped.main,6);
- const again=state(JSON.parse(stored.get("bbfps_inventory_v1")));
- assert.equal(again.ctx.inventoryEquipped("main"),6);
- assert.ok(again.ctx.inventoryOwned("main").includes(6));
+ assert.equal(ctx.inventorySave(),false);
 });
-test("Locked variants and fake IDs cannot be equipped or claimed",()=>{
+test("Verified server inventory and committed loadout replace all free local unlocks",async()=>{
+ const {ctx,stored}=state();
+ let saves=0;
+ ctx.document={getElementById:()=>({classList:{contains:()=>false}})};
+ ctx.PB_ONLINE={
+  state:()=>({registered:true}),
+  inventory:async()=>({owned:[{weaponId:9},{weaponId:6}]}),
+  loadout:async()=>({equipped:{main:9}}),
+  saveLoadout:async id=>{saves++;return {equipped:{main:id}};}
+ };
+ assert.equal(await ctx.onlineLoadInventory(),true);
+ assert.deepEqual(Array.from(ctx.inventoryOwned("main")),[6,9]);
+ assert.equal(ctx.inventoryEquipped("main"),9);
+ assert.equal(ctx.inventoryClaimPrimary(6),false);
+ assert.equal(ctx.inventoryEquip("main",6),true);
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(saves,1);
+ assert.equal(ctx.inventoryEquipped("main"),6);
+ assert.equal(ctx.favPrim,6);
+ assert.equal(stored.has("bbfps_inventory_v1"),false,'backend equipment is never written to localStorage');
+});
+test("Locked variants, invalid IDs and direct browser claims are rejected",()=>{
  const {ctx}=state();
- for(const id of [7,-1,99,0,4,5]){
+ for(const id of [7,-1,99,0,4,5,6,9]){
    assert.equal(ctx.inventoryClaimPrimary(id),false);
    assert.equal(ctx.inventoryEquip("main",id),false);
  }
- assert.equal(ctx.inventoryClaimPrimary(9),false);
- assert.deepEqual(Array.from(ctx.inventoryOwned("main")),[9]);
+ assert.deepEqual(Array.from(ctx.inventoryOwned("main")),[]);
 });
-test("Ownership is enforced by pre-round selection and shop is not a placeholder",()=>{
+test("Pre-round selection and priced shop reject browser-generated ownership claims",()=>{
  assert.match(controls,/function refreshWeaponSelection\(\)/);
  assert.match(controls,/var owned=inventoryOwned\("main"\)/);
  assert.match(controls,/WSEL\.indexOf\(id\)<0\|\|inventoryOwned\("main"\)\.indexOf\(id\)<0/);
  assert.match(shop,/function shopRender\(\)/);
- assert.match(shop,/inventoryClaimPrimary\(id\)/);
- assert.match(shop,/UNLOCK FREE/);
+ assert.match(shop,/PB_ONLINE\.buyWeapon\(id,key\)/);
+ assert.match(shop,/shopServerItems\.get\(id\)/);
+ assert.doesNotMatch(shop,/UNLOCK FREE/);
+ assert.match(inventory,/function inventoryClaimPrimary\(\)\{return false;\}/);
  assert.match(read("index.html"),/id="lbshop"/);
  assert.match(read("index.html"),/id="lshop"/);
  assert.match(read("src/game/85-lobby-and-match.js"),/"lbshop"/);
