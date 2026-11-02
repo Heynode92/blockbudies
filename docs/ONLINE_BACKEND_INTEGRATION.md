@@ -51,15 +51,55 @@ hidden-tab local simulation during online matches. The local modules remain
 as source material for rendering and gameplay parity work, not for
 authoritative PvP or economic results.
 
+## Authoritative movement smoothing (2026-11-02)
+
+- **Local prediction:** the first-person camera applies WASD, weapon walk/sprint/ADS
+  movement, jump/gravity and the existing map collider on every render frame.
+  The browser sends input intent only, never a claimed position, damage or score.
+- **Reconciliation:** each recipient-only BE snapshot includes
+  `privateState.lastAcceptedInputSeq`, `lastProcessedInputSeq`,
+  `grounded` and `velocityY`. The FE bounds its local prediction history,
+  removes acknowledged frames and replays remaining intent on the trusted
+  server coordinates. Small corrections blend visually; teleports, death
+  and respawn use immediate authoritative placement.
+- **Remote interpolation:** already-visible BOT and player positions are
+  interpolated from up to eight trusted snapshots at an adaptive 115–220 ms
+  visual delay. No extrapolation beyond the newest snapshot, and no retained
+  hidden-enemy coordinates after visibility redaction.
+- **Backend pacing:** game engine fixed-step movement is 30 Hz; the latest
+  input is supplied at up to 20 Hz and private snapshots broadcast after
+  every three *new* authoritative ticks, around 10 Hz. There is no gameplay
+  processing based on untrusted client render FPS.
+
+### Windows/local performance diagnosis
+
+Run backend and Vite normally, then load
+`http://localhost:5173/?pbNetQa=1` and complete SIWE again.
+A small **opt-in** panel displays measured frame-time p95 (ms),
+snapshot-interarrival p95 (ms), last snapshot age, server tick,
+latest processed input acknowledgement, local prediction history length,
+and latest positional correction. This does not send telemetry externally.
+
+- At 60 FPS, frame-time p95 should usually be below ~16.7 ms; at 120 FPS
+  below ~8.3 ms. These are targets, **not measured performance claims**.
+- Snapshot interarrival should generally be near 100 ms locally, but browser
+  throttling, event-loop stalls and server load can delay it.
+- If frame p95 is high, profile Three.js GPU/render work. If frame p95 is low
+  but snapshot p95 or correction is high, inspect BE's existing
+  `Authoritative game runtime metrics` timing logs and WebSocket frames.
+- A single green CI build is not a live Windows 5v5/network-load benchmark.
+  Full map collision parity, real latency compensation, M7 browser QA and
+  server load testing are separate release gates.
+
 ## Implementation status / limitations
 
 This integration is under active development, not production-certified.
 The backend source has not undergone complete real-DB, five-map, all-weapon,
-network-latency, BOT M7, or economically safe load tests. Local legacy
-tests were written against a free offline shop and browser-created rooms:
-they need deliberate contract migration rather than false green assertions.
-Existing CI remains visible, and a separate build-only Windows workflow
-validates whether the new online frontend compiles.
+network-latency, BOT M7, or economically safe load tests. Legacy offline assumptions were migrated for the Windows Vite regression suite,
+which now verifies the online-aware contract. The separate online Windows
+build and M0 regressions also run; the old M7 browser harness remains
+incompatible with the Vite entry and is not a verified online 5v5 playtest.
+Do not represent passing builds as production gameplay certification.
 
 No PBT onchain checkout is enabled; contract/address/prices/finality have not
 been approved. Do not silently invent them. Do not publish this client or

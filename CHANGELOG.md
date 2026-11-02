@@ -1,3 +1,8 @@
+## 2026-11-02 — Multiplayer FPS performance verification handoff
+- Document canonical BE input acknowledgement, client prediction/replay, trusted remote interpolation, snapshot cadence and explicit non-authority boundaries.
+- Add Windows QA checklist for `?pbNetQa=1` with frame p95, snapshot p95, and reconciliation error interpretation.
+- Clarify that obsolete M7 offline harness failure is distinct from passing online Vite builds and live multiplayer playtest acceptance.
+
 ## 2026-11-02 — Jump parity and bounded interpolation cost
 - Initialize prediction gravity/grounded state using recipient-only trusted server velocity and grounding during spawn, death and teleport reconciliation.
 - Cache the jitter-adaptive remote snapshot buffer delay on receipt rather than sorting the rolling p95 history every rendered frame.
