@@ -1,3 +1,9 @@
+## 2026-11-03 — Fix multiplayer player collision and camera reconciliation
+- Drive online client movement prediction and smoothing through the existing offline OB collider registry, not separate hardcoded map boxes.
+- Use swept/axis-separated collision for client-side visual movement and apply collision checks to each reconciliation adjustment so the camera cannot be pulled through walls while the BE continues to own actual movement.
+- Add regression cases for wall tunneling, correction through walls, floor-like geometry and the canonical arena perimeter.
+- Preserve original offline movement, map source, combat FX and backend authority; do not change map dimensions.
+
 ## 2026-11-03 — Restore online firearm tracers, bullet holes, sparks and wall impacts
 - Route server-verified wall hits into existing offline progressive crack/chunk decals, with a bounded fallback decal for slightly mismatched FE map geometry.
 - Use server-approved shot origins and headings for short-lived ballistic tracer lines (cosmetic only), including cases where backend rejects the client visual trigger.

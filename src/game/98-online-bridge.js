@@ -56,15 +56,55 @@ function onlineMeasureSnapshot(world,now){
  if(onlineSnapshotSamples.length>=3)
   onlineRemoteDelay=Math.min(220,Math.max(115,onlineP95(onlineSnapshotSamples)*1.25));
 }
-// Mirrors server-approved speed and local-axis transform. Calls the existing
-// FE collider as a visual prediction only; the server remains the final judge.
+// Read the original offline map's OB colliders. Do not build a second hardcoded
+// map: the server is authoritative, while FE prediction uses the same geometry
+// that bld()/wl()/map constructors already registered.
+function onlinePositionBlocked(x,y,z,radius){
+ if(!Number.isFinite(x)||!Number.isFinite(y)||!Number.isFinite(z))return true;
+ if(Math.abs(x)+radius>A||Math.abs(z)+radius>A)return true;
+ for(var i=0;i<OB.length;i++){
+  var o=OB[i];
+  if(o.fl||y+1.8<=(o.y0||0)||y>=o.h-.05)continue;
+  if(Math.abs(x-o.x)<o.hw+radius&&Math.abs(z-o.z)<o.hd+radius)return true;
+ }
+ return false;
+}
+// Swept, axis-separated local prediction: same step-size and sliding approach
+// as server moveWithCollision(), with FE's existing OB as the geometry source.
+function onlineMoveWithCollision(p,vx,vz,dt,radius){
+ var distance=Math.hypot(vx*dt,vz*dt),count=Math.max(1,Math.ceil(distance/Math.max(.1,radius*.45)));
+ var sx=vx*dt/count,sz=vz*dt/count;
+ for(var i=0;i<count;i++){
+  if(!onlinePositionBlocked(p.x+sx,p.y,p.z,radius))p.x+=sx;
+  if(!onlinePositionBlocked(p.x,p.y,p.z+sz,radius))p.z+=sz;
+ }
+}
+// Smooth correction is cosmetic only, but must obey the original world
+// collider. Never drag the camera through walls during reconciliation.
+function onlineApplyCollisionCorrection(p,correction,alpha,radius){
+ var amount=Math.max(0,Math.min(1,alpha)),dx=correction.x*amount,dz=correction.z*amount;
+ var dy=correction.y*amount,plannedY=p.y+dy;
+ if(!onlinePositionBlocked(p.x,plannedY,p.z,radius)){p.y=plannedY;correction.y-=dy;}
+ else correction.y=0;
+ var distance=Math.hypot(dx,dz),count=Math.max(1,Math.ceil(distance/Math.max(.1,radius*.45)));
+ var sx=dx/count,sz=dz/count,acceptedX=0,acceptedZ=0;
+ for(var i=0;i<count;i++){
+  if(!onlinePositionBlocked(p.x+sx,p.y,p.z,radius)){p.x+=sx;acceptedX+=sx;}
+  if(!onlinePositionBlocked(p.x,p.y,p.z+sz,radius)){p.z+=sz;acceptedZ+=sz;}
+ }
+ correction.x-=acceptedX;correction.z-=acceptedZ;
+ // A blocked direction must not accumulate endlessly and jitter at a wall.
+ if(Math.abs(acceptedX-dx)>.00001)correction.x=0;
+ if(Math.abs(acceptedZ-dz)>.00001)correction.z=0;
+}
+// Mirrors server-approved speed and local-axis transform; FE geometry is
+// visual prediction only and never claims authoritative position or damage.
 function onlinePredictStep(position,input,dt){
  if(!(dt>0)||!Number.isFinite(dt))return position;
  var step=Math.min(dt,.05),fw=-input.moveZ,sn=Math.sin(input.yaw),cs=Math.cos(input.yaw);
  var speed=weaponMovementSpeed(input.weaponId,input.sprint&&!input.crouch?1:0,input.ads?1:0);
- position.x+=(fw*sn-input.moveX*cs)*speed*step;
- position.z+=(fw*cs+input.moveX*sn)*speed*step;
- resolve(position,.55);
+ onlineMoveWithCollision(position,(fw*sn-input.moveX*cs)*speed,
+  (fw*cs+input.moveX*sn)*speed,step,.55);
  if(input.jump&&position.grounded){position.vy=9;position.grounded=false}
  if(!Number.isFinite(position.vy))position.vy=0;
  position.vy-=28*step;position.y+=position.vy*step;
@@ -961,10 +1001,7 @@ function onlineVisualUpdate(dt){
   // Never feed the correction, predicted position, or render FPS into the
   // authoritative match engine; this is local visual reconciliation only.
   var correctionAlpha=1-Math.exp(-12*prediction.dt);
-  for(var axis of ['x','y','z']){
-   var correction=onlineCorrection[axis]*correctionAlpha;
-   pl[axis]+=correction;onlineCorrection[axis]-=correction;
-  }
+  onlineApplyCollisionCorrection(pl,onlineCorrection,correctionAlpha,.55);
   camY=pl.y;
  }
  // 10 Hz server snapshots -> buffered ~150 ms render interpolation for

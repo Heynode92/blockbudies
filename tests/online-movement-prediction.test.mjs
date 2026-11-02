@@ -7,12 +7,12 @@ const code=readFileSync(new URL('../src/game/98-online-bridge.js',import.meta.ur
 const start=code.indexOf('function onlinePredictStep(');
 const stop=code.indexOf('\nfunction onlineWarn(',start);
 assert.ok(start>=0&&stop>start,'prediction helpers must exist in canonical runtime');
-const helpers=code.slice(start,stop)+'\nthis.predictionApi={step:onlinePredictStep,reconcile:onlineReconcileSelf,interpolate:onlineInterpolateActor};';
+const helpers=code.slice(start,stop)+'\nthis.predictionApi={step:onlinePredictStep,reconcile:onlineReconcileSelf,interpolate:onlineInterpolateActor,blocked:onlinePositionBlocked,correct:onlineApplyCollisionCorrection};';
 const speed=6.5*.79/1.15;
 function harness(){
  const pl={x:0,y:0,z:0,vy:0,grounded:true};
  const ctx={
-  Math,pl,onlinePredSteps:[],onlineCorrection:{x:0,y:0,z:0},
+  Math,pl,A:60,OB:[],onlinePredSteps:[],onlineCorrection:{x:0,y:0,z:0},
   onlineHasPrediction:true,onlineLastAck:0,onlineLastAccepted:0,onlineSeq:0,
   onlineCorrectionSize:0,onlinePrevAlive:true,
   weaponMovementSpeed:(weaponId,sprint,ads)=>{
@@ -174,4 +174,31 @@ test('server-confirmed projectile draws a short-lived visual tracer without simu
  assert.equal(ctx.onlineShotTracers[0].vz,180);
  ctx.draw({actorId:'me',weaponId:9,x:NaN,y:0,z:0,yaw:0,pitch:0});
  assert.equal(ctx.onlineShotTracers.length,1);
+});
+
+test('online prediction uses original OB wall collider; cannot tunnel through a wall',()=>{
+ const {ctx,pl,api}=harness();
+ ctx.OB.push({x:0,z:2,hw:2,hd:.5,h:3});
+ for(let i=0;i<90;i++)api.step(pl,forward,1/60);
+ assert.ok(pl.z<=2-.5-.55+1e-6,'camera must remain in front of existing wall');
+ assert.equal(api.blocked(pl.x,pl.y,2,.55),true);
+});
+test('server reconciliation never interpolates camera through the original collider',()=>{
+ const {ctx,pl,api}=harness();
+ ctx.OB.push({x:0,z:2,hw:2,hd:.5,h:3});
+ pl.z=.8;
+ const correction={x:0,y:0,z:5};
+ for(let i=0;i<60;i++)api.correct(pl,correction,.25,.55);
+ assert.ok(pl.z<=.95+1e-6,'smoothing must stop before wall face');
+ assert.equal(correction.z,0,'blocked correction must clear without jitter');
+});
+test('prediction respects doors, overhead geometry and map perimeter',()=>{
+ const {ctx,pl,api}=harness();
+ ctx.OB.push({x:0,z:2,hw:2,hd:.5,h:3,fl:1});
+ for(let i=0;i<60;i++)api.step(pl,forward,1/60);
+ assert.ok(pl.z>2,'original floor-like colliders remain walkable');
+ ctx.OB.length=0;
+ pl.x=59.4;pl.z=0;
+ for(let i=0;i<10;i++)api.step(pl,{...forward,yaw:Math.PI/2},.05);
+ assert.ok(pl.x<=59.45,'prediction remains inside the canonical A=60 boundary');
 });
