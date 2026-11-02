@@ -7194,6 +7194,13 @@ function onlineApplyCollisionCorrection(p,correction,alpha,radius){
  // A blocked direction must not accumulate endlessly and jitter at a wall.
  if(Math.abs(acceptedX-dx)>.00001)correction.x=0;
  if(Math.abs(acceptedZ-dz)>.00001)correction.z=0;
+ // Reuse original gh() also after reconciliation; a server correction must not
+ // gradually drag a grounded camera into the walkable foundation.
+ var ground=gh(p.x,p.z,p.y);
+ if(p.grounded&&p.vy<=0&&p.y<=ground+.001){
+  p.y=ground;
+  if(correction.y<0)correction.y=0;
+ }
 }
 // Mirrors server-approved speed and local-axis transform; FE geometry is
 // visual prediction only and never claims authoritative position or damage.
@@ -7203,10 +7210,17 @@ function onlinePredictStep(position,input,dt){
  var speed=weaponMovementSpeed(input.weaponId,input.sprint&&!input.crouch?1:0,input.ads?1:0);
  onlineMoveWithCollision(position,(fw*sn-input.moveX*cs)*speed,
   (fw*cs+input.moveX*sn)*speed,step,.55);
- if(input.jump&&position.grounded){position.vy=9;position.grounded=false}
+ // Offline source of truth calls gh() before jump and after gravity.
+ var previousY=position.y,ground=gh(position.x,position.z,previousY);
  if(!Number.isFinite(position.vy))position.vy=0;
+ if(position.grounded&&position.vy<=0&&position.y<=ground)position.y=ground;
+ if(input.jump&&position.grounded&&position.y<=ground+.001){
+  position.vy=9;position.grounded=false;
+ }
  position.vy-=28*step;position.y+=position.vy*step;
- if(position.y<=0){position.y=0;position.vy=0;position.grounded=true}
+ ground=gh(position.x,position.z,previousY);
+ if(position.y<=ground){position.y=ground;position.vy=0;position.grounded=true;}
+ else position.grounded=false;
  return position;
 }
 function onlineReconcileSelf(actor,privateState,fresh){
@@ -7222,6 +7236,7 @@ function onlineReconcileSelf(actor,privateState,fresh){
  onlinePredSteps=onlinePredSteps.filter(function(step){return step.seq>onlineLastAck});
  if(!onlineHasPrediction||!actor.alive||!onlinePrevAlive){
   pl.x=actor.x;pl.y=actor.y;pl.z=actor.z;
+  if(privateState?.grounded===true)pl.y=Math.max(pl.y,gh(pl.x,pl.z,pl.y));
   pl.vy=Number.isFinite(privateState?.velocityY)?privateState.velocityY:0;
   pl.grounded=privateState?.grounded===true;
   onlineCorrection={x:0,y:0,z:0};onlinePredSteps.length=0;
@@ -7240,6 +7255,7 @@ function onlineReconcileSelf(actor,privateState,fresh){
  // Respawn, map mismatch or large server correction: never interpolate through walls.
  if(dist>2.5){
   pl.x=actor.x;pl.y=actor.y;pl.z=actor.z;
+  if(privateState?.grounded===true)pl.y=Math.max(pl.y,gh(pl.x,pl.z,pl.y));
   pl.vy=Number.isFinite(privateState?.velocityY)?privateState.velocityY:0;
   pl.grounded=privateState?.grounded===true;
   onlineCorrection={x:0,y:0,z:0};onlinePredSteps.length=0;return;
