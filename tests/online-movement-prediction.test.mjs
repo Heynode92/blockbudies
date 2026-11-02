@@ -130,3 +130,14 @@ test('network hit reactions remain server-driven, visible-only and short lived',
  assert.match(code,/onlineTickEffects\(dt\)/);
  assert.match(code,/gun.localToWorld\(new T.Vector3\(0,0,-\.7\)\)/);
 });
+
+test('trusted server wall impacts and projectile tracers reach original FE visual effects',()=>{
+ assert.match(code,/frame.type==='combat_wall_hit'/);
+ assert.match(code,/function onlineWallImpact\(frame\)/);
+ assert.match(code,/impact\(o,\{x:x,y:y,z:z,ax:ax,sg:sg\},\{rk:false\}\)/);
+ assert.match(code,/gDecal\(TXH\[/);
+ assert.match(code,/function onlineShotTracer\(frame\)/);
+ assert.match(code,/onlineShotTracer\(frame\)/);
+ assert.match(code,/updCl\(dt\);updCh\(dt\);/);
+ assert.doesNotMatch(code,/function onlineWallImpact\(frame\)[\s\S]{0,400}damage\(/);
+});

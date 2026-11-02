@@ -1,3 +1,9 @@
+## 2026-11-03 — Restore online firearm tracers, bullet holes, sparks and wall impacts
+- Route server-verified wall hits into existing offline progressive crack/chunk decals, with a bounded fallback decal for slightly mismatched FE map geometry.
+- Use server-approved shot origins and headings for short-lived ballistic tracer lines (cosmetic only), including cases where backend rejects the client visual trigger.
+- Run the legacy wall crack and debris FX timers during online games; prevent leaks on game exit.
+- Preserve offline simulation paths, backend health/damage ownership, visibility redaction, inventory and economy.
+
 ## 2026-11-02 — Fix online muzzle flash accumulation and restore visible enemy hit reactions
 - Correct the previous online combat regression: animate and reclaim temporary remote gun muzzle flashes, shell casing physics, smoke and blood particles every online render tick; clear them on disconnect.
 - Attach enemy shot flashes to the actual weapon muzzle instead of the actor center, preventing luminous orbs accumulating across the level.

@@ -10,6 +10,7 @@ var onlineReconnectTimer=0,onlineReconnectStarted=0,onlineReconnecting=false;
 var onlineAimInitialized=false,onlineTrainingProgressValue=null,onlinePrevAlive=true;
 var onlineSelfTarget=null,onlineLastWinner=undefined,onlineMuzzleTime=0;
 var onlinePendingWeapon=null,onlinePendingWeaponAt=0,onlineHitMarker=null,onlineHitUntil=0;
+var onlineShotTracers=[];
 var onlineScoreboard=new Map();
 // Local display-only movement, never an authoritative position or damage claim.
 var onlinePredSteps=[],onlineCorrection={x:0,y:0,z:0},onlineHasPrediction=false;
@@ -183,6 +184,13 @@ function onlineReactToImpact(victimId,headshot){
  bloodHit(bot.x,(bot.y||0)+(headshot?1.7:1.12),bot.z,dx,dz,!!headshot);
 }
 function onlineTickEffects(dt){
+ for(var n=onlineShotTracers.length-1;n>=0;n--){
+  var beam=onlineShotTracers[n];beam.t-=dt;
+  if(beam.t<=0){S.remove(beam.m);onlineShotTracers.splice(n,1);continue;}
+  beam.m.position.x+=beam.vx*dt;beam.m.position.y+=beam.vy*dt;
+  beam.m.position.z+=beam.vz*dt;
+ }
+ updCl(dt);updCh(dt);
  // The offline update() is intentionally disabled online. Its short-lived FX
  // must still be simulated and reclaimed, or muzzle flashes accumulate as
  // huge glowing spheres and ejected casings freeze in midair.
@@ -204,6 +212,46 @@ function onlineTickEffects(dt){
  }
  updDrops(dt);
  updSm(dt);
+}
+// Server-confirmed bullet marks reuse offline impact, crack, decal and spark assets.
+function onlineWallImpact(frame){
+ if(![frame.x,frame.y,frame.z,frame.nx,frame.ny,frame.nz].every(Number.isFinite))return;
+ var x=frame.x,y=frame.y,z=frame.z,nx=frame.nx,ny=frame.ny,nz=frame.nz;
+ if(Math.hypot(nx,ny,nz)<.9)return;
+ if(ny>.8&&y<=.2){gDecal(TXH[(Math.random()*TXH.length)|0],x,z,.24);spark(x,y+.035,z,0xd9d0bb,3,1.6,.08);return;}
+ var ax=Math.abs(nx)>.8?0:Math.abs(ny)>.8?1:2,sg=ax===0?Math.sign(nx):ax===1?Math.sign(ny):Math.sign(nz);
+ var o=obsAt(x-nx*.16,z-nz*.16,y-ny*.16);
+ if(o){
+  var expected=ax===0?o.x+sg*o.hw:ax===2?o.z+sg*o.hd:o.h;
+  var actual=ax===0?x:ax===2?z:y;
+  if(Math.abs(expected-actual)<.65){
+   impact(o,{x:x,y:y,z:z,ax:ax,sg:sg},{rk:false});return;
+  }
+ }
+ // Backstop for small authoritative-vs-visual geometry differences.
+ var mark=new T.Mesh(dcG,TXH[(Math.random()*TXH.length)|0].clone());
+ mark.scale.set(.25,.25,1);
+ mark.position.set(x+nx*.035,y+ny*.035,z+nz*.035);
+ mark.quaternion.setFromUnitVectors(new T.Vector3(0,0,1),new T.Vector3(nx,ny,nz).normalize());
+ mark.rotateZ(Math.random()*Math.PI*2);
+ mark.userData.t=DECAY;
+ S.add(mark);DC.push(mark);
+ if(DC.length>DCMAX){var gone=DC.shift();S.remove(gone);if(gone.material!==undefined&&gone.material!==TXH[0])gone.material.dispose();}
+ spark(x+nx*.04,y+ny*.04,z+nz*.04,0xd9d0bb,3,1.6,.08);
+}
+// Cosmetic tracer, sourced only from a server-confirmed shot origin and direction.
+function onlineShotTracer(frame){
+ if(![frame.x,frame.y,frame.z,frame.yaw,frame.pitch].every(Number.isFinite))return;
+ if(!Number.isInteger(frame.weaponId)||frame.weaponId<0||frame.weaponId>=WP.length)return;
+ var w=WP[frame.weaponId];
+ if(w.melee||w.gr)return;
+ if(onlineShotTracers.length>=40){var oldest=onlineShotTracers.shift();S.remove(oldest.m);}
+ var own=frame.actorId===onlineUserId()?'p':'e',mesh=tracer(own,false);
+ var angle=frame.yaw,pitch=frame.pitch,speed=Math.min(260,w.spd||180);
+ mesh.rotation.order='YXZ';mesh.rotation.set(-pitch,angle,0);
+ mesh.position.set(frame.x,frame.y,frame.z);S.add(mesh);
+ onlineShotTracers.push({m:mesh,vx:Math.sin(angle)*Math.cos(pitch)*speed,
+  vy:Math.sin(pitch)*speed,vz:Math.cos(angle)*Math.cos(pitch)*speed,t:.085});
 }
 function onlineWarn(error) {
  var code=typeof error==='string'?error:error&&error.code||'BACKEND_UNAVAILABLE';
@@ -413,7 +461,10 @@ function onlineResetLive(){
  for(const fx of mzf)S.remove(fx.m);mzf.length=0;
  for(const particle of sk)S.remove(particle.m);sk.length=0;bloodActive=0;
  for(const dropped of dg)S.remove(dropped.m);dg.length=0;
- clrSm();
+ for(const tracer of onlineShotTracers)S.remove(tracer.m);onlineShotTracers.length=0;
+ for(const mark of DC){S.remove(mark);if(mark.userData.t!==undefined)mark.material.dispose()}DC.length=0;
+ for(const chunk of CH)S.remove(chunk.m);CH.length=0;
+ clrFD();clrSm();
  onlineApi?.closeLive();clearInterval(onlineRoomTimer);clearTimeout(onlineReconnectTimer);
  onlineReconnecting=false;onlineReconnectStarted=0;
 }
@@ -540,6 +591,10 @@ function onlineReceiveFrame(frame){
   if(frame.progress)onlineTrainingProgress(frame.progress);
   return;
  }
+ if(frame.type==='combat_wall_hit'){
+  if(onlineActive)onlineWallImpact(frame);
+  return;
+ }
  if(frame.type==='combat_hit'){
   if(onlineActive){
    onlineHitConfirm(!!frame.headshot);
@@ -560,7 +615,9 @@ function onlineReceiveFrame(frame){
   return;
  }
  if(frame.type==='combat_shot'){
-  if(!onlineActive||frame.actorId===onlineUserId())return;
+  if(!onlineActive)return;
+  onlineShotTracer(frame);
+  if(frame.actorId===onlineUserId())return;
   var remote=onlineActors.get(frame.actorId);
   if(remote&&remote.model&&!remote.model.dead){
    var bot=remote.model;bot.rc=1;
