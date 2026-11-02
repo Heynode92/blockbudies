@@ -29,7 +29,7 @@ function setup(opts={}){
   addEventListener(name,fn){(handlers[name]??=[]).push(fn);}};
  runInNewContext(esc,ctx);
  return {ctx,overlay,body,buttons,document,classes:cls,
-  press(code='Escape'){for(const fn of handlers.keydown||[])fn({code});},
+  press(code='Escape'){for(const fn of handlers.keydown||[])fn({code,preventDefault(){}});},
   advance(ms){t+=ms;},release(){document.exitPointerLock();},
   results(){return{exits,requests,inLobby,stopped}}};
 }

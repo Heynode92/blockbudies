@@ -1,3 +1,7 @@
+## 2026-11-02 — ESC key event fixture API parity
+- Supply a real `preventDefault()` method to the synthesized ESC KeyboardEvent so the fixture executes the actual two-step game-menu logic without a false ReferenceError.
+- Keep the confirmation/PointerLock behavioral assertions intact.
+
 ## 2026-11-02 — Regenerate exact canonical legacy parity artifact
 - Regenerated `assets/game.js` from all 71 ordered `tools/source-manifest.json` source modules, with LF normalization and original closure wrapper, matching `tools/build.mjs` byte-for-byte.
 - Legacy bundle is non-runtime Vite parity only; no manual edits to generated JavaScript or gameplay logic.
