@@ -14,7 +14,7 @@ var onlineScoreboard=new Map();
 var onlinePredSteps=[],onlineCorrection={x:0,y:0,z:0},onlineHasPrediction=false;
 var onlineLastAuthTick=-1,onlineLastAck=0,onlineLastAccepted=0;
 var onlineFrameSamples=[],onlineSnapshotSamples=[],onlineLastFrameAt=0,onlineLastSnapshotAt=0;
-var onlineLastSnapshotTick=-1,onlineLastMetricsAt=0,onlineCorrectionSize=0;
+var onlineLastSnapshotTick=-1,onlineLastMetricsAt=0,onlineCorrectionSize=0,onlineRemoteDelay=150;
 var onlinePerfEnabled=typeof location!=='undefined'&&new URLSearchParams(location.search).has('pbNetQa');
 var onlinePerfPanel=null;
 function onlineSample(samples,value,limit){
@@ -51,6 +51,8 @@ function onlineMeasureSnapshot(world,now){
  if(onlineLastSnapshotAt&&now-onlineLastSnapshotAt<2000)
   onlineSample(onlineSnapshotSamples,now-onlineLastSnapshotAt,80);
  onlineLastSnapshotAt=now;onlineLastSnapshotTick=world.serverTick;
+ if(onlineSnapshotSamples.length>=3)
+  onlineRemoteDelay=Math.min(220,Math.max(115,onlineP95(onlineSnapshotSamples)*1.25));
 }
 // Mirrors server-approved speed and local-axis transform. Calls the existing
 // FE collider as a visual prediction only; the server remains the final judge.
@@ -79,12 +81,15 @@ function onlineReconcileSelf(actor,privateState,fresh){
  // Only frames not yet simulated by the server are replayable.
  onlinePredSteps=onlinePredSteps.filter(function(step){return step.seq>onlineLastAck});
  if(!onlineHasPrediction||!actor.alive||!onlinePrevAlive){
-  pl.x=actor.x;pl.y=actor.y;pl.z=actor.z;pl.vy=0;
+  pl.x=actor.x;pl.y=actor.y;pl.z=actor.z;
+  pl.vy=Number.isFinite(privateState?.velocityY)?privateState.velocityY:0;
+  pl.grounded=privateState?.grounded===true;
   onlineCorrection={x:0,y:0,z:0};onlinePredSteps.length=0;
   onlineHasPrediction=!!actor.alive;
   onlineCorrectionSize=0;return;
  }
- var projected={x:actor.x,y:actor.y,z:actor.z,vy:pl.vy,
+ var projected={x:actor.x,y:actor.y,z:actor.z,
+  vy:Number.isFinite(privateState?.velocityY)?privateState.velocityY:0,
   grounded:privateState?.grounded===true};
  for(var i=0;i<onlinePredSteps.length;i++){
   var frame=onlinePredSteps[i];
@@ -94,7 +99,9 @@ function onlineReconcileSelf(actor,privateState,fresh){
  onlineCorrectionSize=dist;
  // Respawn, map mismatch or large server correction: never interpolate through walls.
  if(dist>2.5){
-  pl.x=actor.x;pl.y=actor.y;pl.z=actor.z;pl.vy=0;
+  pl.x=actor.x;pl.y=actor.y;pl.z=actor.z;
+  pl.vy=Number.isFinite(privateState?.velocityY)?privateState.velocityY:0;
+  pl.grounded=privateState?.grounded===true;
   onlineCorrection={x:0,y:0,z:0};onlinePredSteps.length=0;return;
  }
  // Small timing differences below a centimeter are not worth camera jitter.
@@ -311,7 +318,7 @@ function onlineResetLive(){
  onlineActors.clear();onlineMeId=null;onlineSeq=0;onlineSendAt=0;onlineVisualLoaded=false;
  onlinePredSteps.length=0;onlineCorrection={x:0,y:0,z:0};onlineHasPrediction=false;
  onlineLastAuthTick=-1;onlineLastAck=0;onlineLastAccepted=0;
- onlineLastFrameAt=0;onlineLastSnapshotAt=0;onlineLastSnapshotTick=-1;
+ onlineLastFrameAt=0;onlineLastSnapshotAt=0;onlineLastSnapshotTick=-1;onlineRemoteDelay=150;
  onlineFrameSamples.length=0;onlineSnapshotSamples.length=0;onlineCorrectionSize=0;
  if(onlinePerfPanel){onlinePerfPanel.remove();onlinePerfPanel=null;}
  onlineAimInitialized=false;onlineTrainingProgressValue=null;onlinePrevAlive=true;
@@ -762,9 +769,7 @@ function onlineVisualUpdate(dt){
  }
  // 10 Hz server snapshots -> buffered ~150 ms render interpolation for
  // visible remote actors. Hidden enemy snapshots are never extrapolated.
- var snapshotP95=onlineP95(onlineSnapshotSamples);
- var delay=Math.min(220,Math.max(115,snapshotP95*1.25));
- var renderAt=now-delay;
+ var renderAt=now-onlineRemoteDelay;
  onlineActors.forEach(function(actor){
   if(!actor.model?.g||!actor.model.g.visible)return;
   var sample=onlineInterpolateActor(actor.samples||[],renderAt);

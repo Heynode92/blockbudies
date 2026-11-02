@@ -1,3 +1,7 @@
+## 2026-11-02 — Jump parity and bounded interpolation cost
+- Initialize prediction gravity/grounded state using recipient-only trusted server velocity and grounding during spawn, death and teleport reconciliation.
+- Cache the jitter-adaptive remote snapshot buffer delay on receipt rather than sorting the rolling p95 history every rendered frame.
+
 ## 2026-11-02 — Server-authoritative FPS prediction, reconciliation, remote smoothing and telemetry
 - Predict local first-person movement on every visible render frame with canonical weapon movement, local collision visuals and jumping; no client-claimed coordinates or combat outcome are ever sent.
 - Reconcile against the per-user processed input sequence from the trusted server snapshot, replay bounded unacknowledged visual frames, smooth small discrepancies, and hard reset on server teleports/respawns.
