@@ -1,3 +1,9 @@
+## 2026-11-02 — Room Master verified active-match rejoin
+- Guard Room Master START with a server-fetched room owner/status; rejoin an already ACTIVE match using authenticated single-use realtime tickets without attempting another settings save or match start.
+- Recover from a concurrent START turning OPEN into ACTIVE, while maintaining server-side ownership checks and avoiding duplicate matches.
+- Show REJOIN MATCH for ACTIVE owner rooms, lock room settings after starting, and restore match ID from the server WS handshake.
+- Keep Three.js render, BOT, combat, and wallet custody unchanged.
+
 ## 2026-11-02 — Windows CRLF regression parity and ESC confirmation fixture
 - Normalize source LF/CRLF line endings before raw-source containment assertions so Windows checkout cannot cause false failures after `tools/build.mjs` canonical LF bundling.
 - Configure Windows Vite CI to preserve repo's canonical LF before checkout, matching BOT M0 workflow while retaining cross-platform test normalization.

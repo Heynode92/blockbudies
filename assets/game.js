@@ -7210,8 +7210,11 @@ function onlineLiveRoomDecorate(room) {
  var mine=onlineIsMaster();
  document.getElementById('roomMasterActions').hidden=!mine;
  document.getElementById('roomMasterStatus').hidden=!mine;
- document.getElementById('rmlStart').hidden=!mine;
- document.getElementById('rmlSettings').hidden=!mine;
+ var startControl=document.getElementById('rmlStart');
+ startControl.hidden=!mine||!['OPEN','ACTIVE'].includes(room.status);
+ startControl.textContent=room.status==='ACTIVE'?'REJOIN MATCH':'START MATCH';
+ // A Room Master still owns an ACTIVE room, but its rules are locked in.
+ document.getElementById('rmlSettings').hidden=!mine||room.status!=='OPEN';
  if(me){roomSide=me.team===1?1:0;roomSeat=room.members.filter(m=>m.team===roomSide).findIndex(m=>m.playerId===me.playerId)}
  onlineRoomTeams();
 }
@@ -7310,14 +7313,38 @@ async function onlineAttachMatch(room){
 }
 async function onlineMasterStart(){
  if(!onlineAuth()||!onlineIsMaster()||onlineActive){onlineWarn('ROOM_MASTER_REQUIRED');return}
- document.getElementById('rmlStart').disabled=true;
+ var startControl=document.getElementById('rmlStart');
+ startControl.disabled=true;
  try{
-  if(!await onlineSaveRoom(false))return;
-  var started=await onlineApi.startRoom(roomCurrent.id);
-  onlineMatchId=started.matchId;
-  await onlineAttachMatch(roomCurrent);
+  // A click can race with a previous START response or a backend reconnect.
+  // Ask the server: only the signed-in Player's immutable ownerId grants master rights.
+  var playerId=onlineApi.state().player?.id;
+  var authoritative=await onlineApi.getRoom(roomCurrent.id);
+  if(authoritative.ownerId!==playerId){onlineWarn('ROOM_MASTER_REQUIRED');return}
+  if(authoritative.status==='ACTIVE'){
+   await onlineAttachMatch(onlineAdoptRoom(authoritative));return;
+  }
+  if(authoritative.status!=='OPEN'){onlineWarn('ROOM_NOT_WAITING');return}
+  onlineAdoptRoom(authoritative);
+  if(!await onlineSaveRoom(false)){
+   // A concurrent start may have activated this room after the status check.
+   var afterSave=await onlineApi.getRoom(authoritative.id);
+   if(afterSave.ownerId===playerId&&afterSave.status==='ACTIVE')
+    await onlineAttachMatch(onlineAdoptRoom(afterSave));
+   return;
+  }
+  try{
+   var started=await onlineApi.startRoom(authoritative.id);
+   onlineMatchId=started.matchId;
+   await onlineAttachMatch(roomCurrent);
+  }catch(error){
+   if(error?.code!=='ROOM_ALREADY_ACTIVE'&&error?.code!=='ROOM_NOT_READY')throw error;
+   var activeRoom=await onlineApi.getRoom(authoritative.id);
+   if(activeRoom.ownerId!==playerId||activeRoom.status!=='ACTIVE')throw error;
+   await onlineAttachMatch(onlineAdoptRoom(activeRoom));
+  }
  }catch(error){onlineWarn(error)}
- finally{document.getElementById('rmlStart').disabled=false}
+ finally{startControl.disabled=false}
 }
 function onlineBeginTransition(room){
  var flow=roomStartFlow;
@@ -7345,6 +7372,8 @@ function onlineReceiveFrame(frame){
  }
  if(frame.type==='match_ready'||frame.type==='training_ready'||
     frame.type==='match_snapshot'||frame.type==='training_snapshot'){
+  // Rejoined masters recover the same matchId from the authoritative WS handshake.
+  if(frame.type==='match_ready'&&typeof frame.matchId==='string')onlineMatchId=frame.matchId;
   if(frame.world&&typeof frame.world.serverTick==='number'){
    onlineWorld=frame.world;onlineGame=frame.game;
    if(!onlineMeId){onlineMeId=onlineTraining?
