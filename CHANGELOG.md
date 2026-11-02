@@ -1,3 +1,8 @@
+## 2026-11-02 — Fix ACTIVE room double-normalization blocking game entry
+- Correct the actual match-entry blocker: the realtime attach function was passing a canonical frontend mode (0/1) back through a backend-only DM/BM room parser and failing with `INVALID_ROOM_RESPONSE` after match activation.
+- Treat an already validated normalized room as normalized during WS attach; still parse raw backend payloads when needed.
+- Add VM regression covering the exact ACTIVE room handshake and ensuring a second parse cannot be attempted.
+
 ## 2026-11-02 — Active Room START/WS handshake synchronization
 - Fix the stale START MATCH / ROOM SETTINGS UI when PostgreSQL reports an ACTIVE room: polling now renders ACTIVE/REJOIN state before connecting to realtime.
 - Serialize all room WS attachments across automatic room polling and Room Master actions, preventing competing one-use WS ticket handshakes and socket cancellations.

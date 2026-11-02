@@ -104,13 +104,15 @@ test('polling ACTIVE status refreshes REJOIN UI and attempts server WS, not anot
 });
 test('parallel ACTIVE rejoin attempts cannot consume two single-use WS tickets',async()=>{
  let connections=0,release;
- const room={id:roomId,ownerId:playerId,status:'ACTIVE'};
+ const room={id:roomId,ownerId:playerId,status:'ACTIVE',mode:0,members:[]};
  const ctx={
   roomCurrent:room,onlineActive:false,onlineAttaching:false,onlineRoomTimer:0,
   onlineApi:{openLive:async()=>{connections++;await new Promise(resolve=>{release=resolve})}},
   document:{getElementById:()=>({textContent:''})},
   onlineAuth:()=>true,onlineIsMaster:()=>true,
-  onlineAdoptRoom:r=>r,onlineReceiveFrame:()=>{},onlineSocketStatus:()=>{},
+  // Never reinterpret an already normalized numeric-mode room as raw API input.
+  onlineAdoptRoom:()=>{throw Error('double normalization of ACTIVE room')},
+  onlineReceiveFrame:()=>{},onlineSocketStatus:()=>{},
   onlineBeginTransition:()=>{},onlineWarn:()=>{},onlineResetLive:()=>{},
   clearInterval:()=>{},
  };
@@ -120,4 +122,24 @@ test('parallel ACTIVE rejoin attempts cannot consume two single-use WS tickets',
  assert.equal(connections,1);
  release();assert.equal(await first,true);
  assert.equal(ctx.onlineAttaching,false);
+});
+
+test('a parsed backend ACTIVE Room Master room reaches realtime without invalid re-normalization',async()=>{
+ let wsCount=0,transitions=0;
+ const room={id:roomId,ownerId:playerId,status:'ACTIVE',mode:0,members:[]};
+ const ctx={
+  roomCurrent:room,onlineActive:false,onlineAttaching:false,onlineRoomTimer:0,
+  onlineApi:{openLive:async()=>{wsCount++}},
+  document:{getElementById:()=>({textContent:''})},
+  onlineAuth:()=>true,onlineIsMaster:()=>true,
+  onlineAdoptRoom:()=>{throw Error('INVALID_ROOM_RESPONSE')},
+  onlineReceiveFrame:()=>{},onlineSocketStatus:()=>{},
+  onlineBeginTransition:()=>{transitions++},onlineWarn:()=>{},onlineResetLive:()=>{},
+  clearInterval:()=>{},
+ };
+ runInNewContext(wsSource,ctx);
+ assert.equal(await ctx.attach(room),true);
+ assert.equal(wsCount,1);
+ assert.equal(transitions,1);
+ assert.equal(ctx.onlineActive,true);
 });

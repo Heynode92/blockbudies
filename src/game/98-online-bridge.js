@@ -217,7 +217,12 @@ async function onlineAttachMatch(room){
  if(!onlineAuth()||onlineActive||onlineAttaching)return false;
  onlineAttaching=true;
  try{
-  var current=onlineAdoptRoom(room);
+  // Room data is normalized once by onlineAdoptRoom (DM/BM -> 0/1).
+  // Every caller here can pass that already-normalized room. Re-running
+  // onlineRoomOf() on mode=0/1 would incorrectly throw INVALID_ROOM_RESPONSE
+  // after the backend has successfully started the authoritative match.
+  var current=room&&(room.mode===0||room.mode===1)&&typeof room.id==='string'&&
+    Array.isArray(room.members)?room:onlineAdoptRoom(room);
   if(onlineIsMaster())document.getElementById('rmlStart').textContent='CONNECTING TO MATCH...';
   await onlineApi.openLive('room',current.id,onlineReceiveFrame,onlineSocketStatus);
   onlineCurrentId=current.id;onlineTraining=false;onlineActive=true;onlineVisualLoaded=false;
