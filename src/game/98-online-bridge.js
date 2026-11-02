@@ -236,7 +236,7 @@ function onlineWallImpact(frame){
  mark.rotateZ(Math.random()*Math.PI*2);
  mark.userData.t=DECAY;
  S.add(mark);DC.push(mark);
- if(DC.length>DCMAX){var gone=DC.shift();S.remove(gone);if(gone.material!==undefined&&gone.material!==TXH[0])gone.material.dispose();}
+ if(DC.length>DCMAX){var gone=DC.shift();S.remove(gone);if(gone.userData.t!==undefined)gone.material.dispose();}
  spark(x+nx*.04,y+ny*.04,z+nz*.04,0xd9d0bb,3,1.6,.08);
 }
 // Cosmetic tracer, sourced only from a server-confirmed shot origin and direction.
