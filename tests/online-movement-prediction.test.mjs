@@ -142,3 +142,36 @@ test('trusted server wall impacts and projectile tracers reach original FE visua
  assert.match(code,/updCl\(dt\);updCh\(dt\);/);
  assert.doesNotMatch(code,/function onlineWallImpact\(frame\)[\s\S]{0,400}damage\(/);
 });
+
+test('a server-owned wall hit invokes the original offline wall damage and ground decals',()=>{
+ const start=code.indexOf('function onlineWallImpact('),end=code.indexOf('function onlineShotTracer(',start);
+ assert.ok(start>=0&&end>start);
+ const seen=[],wall={x:4,z:4,hw:1,hd:2,h:3};
+ const ctx={Math,Number,obsAt:()=>wall,impact:(o,h,bullet)=>seen.push({o,h,bullet}),
+   gDecal:(...a)=>seen.push({floor:a}),spark:()=>{},TXH:[{}]};
+ runInNewContext(code.slice(start,end)+'\nthis.paint=onlineWallImpact;',ctx);
+ ctx.paint({x:5,y:1.3,z:4,nx:1,ny:0,nz:0});
+ assert.equal(seen.length,1);assert.equal(seen[0].o,wall);
+ assert.equal(seen[0].h.ax,0);assert.equal(seen[0].h.sg,1);
+ assert.equal(seen[0].h.x,5);assert.equal(seen[0].bullet.rk,false);
+ ctx.paint({x:2,y:.05,z:3,nx:0,ny:1,nz:0});
+ assert.equal(seen.length,2);assert.ok(seen[1].floor);
+ ctx.paint({x:NaN,y:1,z:3,nx:1,ny:0,nz:0});
+ assert.equal(seen.length,2,'invalid impact payload cannot draw anything');
+});
+test('server-confirmed projectile draws a short-lived visual tracer without simulated damage',()=>{
+ const start=code.indexOf('function onlineShotTracer('),end=code.indexOf('\nfunction onlineWarn(',start);
+ assert.ok(start>=0&&end>start);
+ const added=[],ctx={Math,Number,WP:Array.from({length:19},()=>({spd:180})),
+   onlineShotTracers:[],onlineUserId:()=> 'me',
+   tracer:()=>({rotation:{order:'',set:()=>{}},position:{set:()=>{}}}),
+   S:{add:m=>added.push(m),remove:()=>{}}};
+ runInNewContext(code.slice(start,end)+'\nthis.draw=onlineShotTracer;',ctx);
+ ctx.draw({actorId:'me',weaponId:9,x:0,y:1.4,z:0,yaw:0,pitch:0});
+ assert.equal(ctx.onlineShotTracers.length,1);
+ assert.equal(added.length,1);
+ assert.equal(ctx.onlineShotTracers[0].t,.085);
+ assert.equal(ctx.onlineShotTracers[0].vz,180);
+ ctx.draw({actorId:'me',weaponId:9,x:NaN,y:0,z:0,yaw:0,pitch:0});
+ assert.equal(ctx.onlineShotTracers.length,1);
+});
