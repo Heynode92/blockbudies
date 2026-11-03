@@ -10,6 +10,7 @@ var onlineReconnectTimer=0,onlineReconnectStarted=0,onlineReconnecting=false;
 var onlineAimInitialized=false,onlineTrainingProgressValue=null,onlinePrevAlive=true;
 var onlineSelfTarget=null,onlineLastWinner=undefined,onlineMuzzleTime=0;
 var onlinePendingMatchCompleted=null,onlineResultsDisplayed=false;
+var onlineResultFallbackTimer=null;
 var onlineRewardMatchId=null,onlineRewardTimer=null,onlineRewardChecking=false;
 var onlineStallChecking=false,onlineLastStallCheckAt=0;
 var onlinePendingKillTick=-1,onlinePendingKillTotal=null;
@@ -561,6 +562,7 @@ function onlineStartRoomPoll() {
  },2300);
 }
 function onlineResetLive(){
+ clearTimeout(onlineResultFallbackTimer);onlineResultFallbackTimer=null;
  onlinePendingMatchCompleted=null;
  onlineCombatQa={fireInputs:0,confirmedShots:0,confirmedHits:0,wallImpacts:0,damageTaken:0,lastEvent:'NONE'};
  onlineActive=false;onlineTraining=false;onlineCurrentId=null;onlineMatchId=null;
@@ -945,10 +947,17 @@ function onlineReceiveFrame(frame){
   onlineResetLive();matchExitToLobby('room');onlineWarn(frame.code||'SERVER_MATCH_FAILURE');return;
  }
  if(frame.type==='match_completed'){
-  if(onlineActive&&dead.length>0){
-   // Finish ragdolls created by confirmed KILL events before opening results.
-   // No client-side settlement, damage, or new timers are involved.
+  if(!onlineActive)return;
+  if(dead.length>0){
+   // Prefer the original offline corpse animation. It must NEVER hold the
+   // verified result hostage if the 3-D loop stalls or a model is retained.
    onlinePendingMatchCompleted=frame;
+   clearTimeout(onlineResultFallbackTimer);
+   onlineResultFallbackTimer=setTimeout(function(){
+    if(!onlineActive||onlinePendingMatchCompleted?.matchId!==frame.matchId)return;
+    var completed=onlinePendingMatchCompleted;onlinePendingMatchCompleted=null;
+    onlineFinalizeCompletedMatch(completed);
+   },2200);
   }else onlineFinalizeCompletedMatch(frame);
   return;
  }
@@ -1405,7 +1414,13 @@ async function onlineRestoreOnBoot(){
  try{
   if(onlineApi){
    await onlineApi.restoreSession();
-   if(onlineApi.state().registered)await onlineRecoverMembership();
+   if(onlineApi.state().authenticated&&onlineApi.state().registered){
+    // Direct /loby/room restore bypasses Home START: rehydrate the verified
+    // fixed loadout BEFORE attaching the realtime match. Failure must not
+    // block rejoining; slot UI remains null-safe and server stays authoritative.
+    await onlineLoadInventory().catch(onlineWarn);
+    await onlineRecoverMembership();
+   }
   }
  }catch(error){onlineWarn(error);}
  finally{

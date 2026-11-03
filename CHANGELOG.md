@@ -1,3 +1,9 @@
+## 2026-11-03 — Hotfix online match input/render liveness and results after inventory-only change
+- Fix a fatal cross-feature regression: `inventoryOwned()` legitimately hides private collection data while session/loadout is loading, but gameplay HUD `slotUI()` was dereferencing `ammo[null].mag` for standard sidearm/melee/grenade slots. Keep all Inventory cards entitlement-gated while resolving fixed HUD slots from existing validated loadout state; invalid slots now render unavailable instead of crashing the RAF game loop. Guard weapon switch against null slot IDs.
+- Rehydrate inventory/loadout on registered session boot as well as Home START, so direct room/rejoin does not skip authentication's read-only loadout fetch. Match attachment is still allowed during temporary inventory API failures; BE remains authoritative.
+- Bound the already-verified `match_completed` corpse animation wait to 2.2 seconds. The genuine offline `endMatch()` is always reached even if a corpse FX cannot finish; no fabricated winner/reward.
+- Add regression tests for empty collection, safe HUD/weapon slot, and server-verified results liveness. No combat balance, BOT AI, bullet physics or offline engine changes.
+
 ## 2026-11-03 — Gate signed-in unregistered players to verified training, not an empty Inventory
 - Wallet signup popup now distinguishes unsigned users, verified wallets awaiting training, and registered profiles awaiting a read-only refresh.
 - A second explicit START TRAINING action uses existing server-authenticated onboarding flow; verified Inventory still requires loaded player identity and cannot expose stale weapon entitlements.

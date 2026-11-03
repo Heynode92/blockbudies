@@ -8,7 +8,11 @@ function swW(i){pl.ammo[pl.w]={mag:pl.mag,res:pl.res};pl.w=i;var a=pl.ammo[i];pl
  if(typeof onlineActive!=='undefined'&&onlineActive){onlinePendingWeapon=i;onlinePendingWeaponAt=performance.now();}
 }
 // swSlot(s): switches to slot s (0 primary, 1 pistol, 2 knife, 3 grenade) with the switch animation.
-function swSlot(s){var id=[pl.prim,inventoryEquipped("secondary"),inventoryEquipped("mele"),inventoryEquipped("explosive")][s],a=amo(id);
+function swSlot(s){var id=[pl.prim,inventoryEquipped("secondary"),inventoryEquipped("mele"),inventoryEquipped("explosive")][s];
+  // An unavailable entitlement is never a valid weapon index. Dropping this
+  // action is safer than dereferencing ammo[null] and killing the render loop.
+  if(!Number.isInteger(id)||!WP[id]||!pl.ammo?.[id])return;
+  var a=amo(id);
   if(id===pl.w){pl.slot=s;return;}
   if((id===5&&a.mag+a.res<=0)||(id===pl.prim&&a.mag+a.res<=0)){toast(id===5?"Out of grenades":"Out of ammo");return;}
   pl.slot=s;swW(id);if(id===5&&pl.mag===0&&pl.res>0)reload();}
@@ -63,7 +67,20 @@ var slEls=[],slKey=[];
 // slotUI(w): updates the bottom weapon-slot bar.
 function slotUI(w){
   var ids=[pl.prim,inventoryEquipped("secondary"),inventoryEquipped("mele"),inventoryEquipped("explosive")],i,id,a,el,txt,em,on,key;
-  for(i=0;i<4;i++){id=ids[i];a=amo(id);
+  for(i=0;i<4;i++){id=ids[i];
+    if(!Number.isInteger(id)||!WP[id]||!(id===pl.w||pl.ammo?.[id])){
+      // The browser may be restoring an authenticated loadout in parallel
+      // with the match. Show an empty slot, but NEVER throw in hud()/RAF.
+      key="unavailable|"+i;
+      if(slKey[i]!==key){
+        slKey[i]=key;el=slEls[i];el.className="sl em";
+        el.children[1].textContent="";
+        el.children[2].textContent=["PRIMARY","Handgun","Knife","Grenade"][i];
+        el.children[3].textContent="—";
+      }
+      continue;
+    }
+    a=amo(id);
     txt=id===4?"\u221e":a.mag+"/"+(a.res===Infinity?"\u221e":a.res);
     em=id===4?false:a.mag+a.res<=0;on=id===pl.w;
     key=id+"|"+on+"|"+em+"|"+txt;

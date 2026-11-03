@@ -75,7 +75,18 @@ function inventoryOwned(cat){
 function inventorySave(){return false;}
 function inventoryClaimPrimary(){return false;}
 function inventoryEquipped(cat){
- var ids=inventoryOwned(cat),id=inventoryState.equipped[cat];
+ var id=inventoryState.equipped[cat];
+ // Inventory visibility and gameplay slot IDs are separate concerns. The
+ // collection must remain hidden until a verified /me/inventory read, but the
+ // original four-slot HUD must not turn fixed sidearm/knife/grenade IDs into
+ // null during startup, session restoration or an in-flight inventory refresh.
+ // These slots come from the existing loadout state and are validated against
+ // the canonical weapon category; they are NEVER new ownership entitlements.
+ if(cat==="secondary"||cat==="mele"||cat==="explosive"){
+  var definition=INVENTORY_TABS.find(function(t){return t.key===cat;});
+  return Number.isInteger(id)&&WP[id]&&definition.kinds.includes(WP[id].stats.kind)?id:null;
+ }
+ var ids=inventoryOwned(cat);
  return ids.indexOf(id)>=0?id:(ids.length?ids[0]:null);
 }
 function inventoryLoad(){

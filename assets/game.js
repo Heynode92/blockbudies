@@ -3244,7 +3244,11 @@ function swW(i){pl.ammo[pl.w]={mag:pl.mag,res:pl.res};pl.w=i;var a=pl.ammo[i];pl
  if(typeof onlineActive!=='undefined'&&onlineActive){onlinePendingWeapon=i;onlinePendingWeaponAt=performance.now();}
 }
 // swSlot(s): switches to slot s (0 primary, 1 pistol, 2 knife, 3 grenade) with the switch animation.
-function swSlot(s){var id=[pl.prim,inventoryEquipped("secondary"),inventoryEquipped("mele"),inventoryEquipped("explosive")][s],a=amo(id);
+function swSlot(s){var id=[pl.prim,inventoryEquipped("secondary"),inventoryEquipped("mele"),inventoryEquipped("explosive")][s];
+  // An unavailable entitlement is never a valid weapon index. Dropping this
+  // action is safer than dereferencing ammo[null] and killing the render loop.
+  if(!Number.isInteger(id)||!WP[id]||!pl.ammo?.[id])return;
+  var a=amo(id);
   if(id===pl.w){pl.slot=s;return;}
   if((id===5&&a.mag+a.res<=0)||(id===pl.prim&&a.mag+a.res<=0)){toast(id===5?"Out of grenades":"Out of ammo");return;}
   pl.slot=s;swW(id);if(id===5&&pl.mag===0&&pl.res>0)reload();}
@@ -3299,7 +3303,20 @@ var slEls=[],slKey=[];
 // slotUI(w): updates the bottom weapon-slot bar.
 function slotUI(w){
   var ids=[pl.prim,inventoryEquipped("secondary"),inventoryEquipped("mele"),inventoryEquipped("explosive")],i,id,a,el,txt,em,on,key;
-  for(i=0;i<4;i++){id=ids[i];a=amo(id);
+  for(i=0;i<4;i++){id=ids[i];
+    if(!Number.isInteger(id)||!WP[id]||!(id===pl.w||pl.ammo?.[id])){
+      // The browser may be restoring an authenticated loadout in parallel
+      // with the match. Show an empty slot, but NEVER throw in hud()/RAF.
+      key="unavailable|"+i;
+      if(slKey[i]!==key){
+        slKey[i]=key;el=slEls[i];el.className="sl em";
+        el.children[1].textContent="";
+        el.children[2].textContent=["PRIMARY","Handgun","Knife","Grenade"][i];
+        el.children[3].textContent="—";
+      }
+      continue;
+    }
+    a=amo(id);
     txt=id===4?"\u221e":a.mag+"/"+(a.res===Infinity?"\u221e":a.res);
     em=id===4?false:a.mag+a.res<=0;on=id===pl.w;
     key=id+"|"+on+"|"+em+"|"+txt;
@@ -6140,7 +6157,18 @@ function inventoryOwned(cat){
 function inventorySave(){return false;}
 function inventoryClaimPrimary(){return false;}
 function inventoryEquipped(cat){
- var ids=inventoryOwned(cat),id=inventoryState.equipped[cat];
+ var id=inventoryState.equipped[cat];
+ // Inventory visibility and gameplay slot IDs are separate concerns. The
+ // collection must remain hidden until a verified /me/inventory read, but the
+ // original four-slot HUD must not turn fixed sidearm/knife/grenade IDs into
+ // null during startup, session restoration or an in-flight inventory refresh.
+ // These slots come from the existing loadout state and are validated against
+ // the canonical weapon category; they are NEVER new ownership entitlements.
+ if(cat==="secondary"||cat==="mele"||cat==="explosive"){
+  var definition=INVENTORY_TABS.find(function(t){return t.key===cat;});
+  return Number.isInteger(id)&&WP[id]&&definition.kinds.includes(WP[id].stats.kind)?id:null;
+ }
+ var ids=inventoryOwned(cat);
  return ids.indexOf(id)>=0?id:(ids.length?ids[0]:null);
 }
 function inventoryLoad(){
@@ -7311,6 +7339,7 @@ var onlineReconnectTimer=0,onlineReconnectStarted=0,onlineReconnecting=false;
 var onlineAimInitialized=false,onlineTrainingProgressValue=null,onlinePrevAlive=true;
 var onlineSelfTarget=null,onlineLastWinner=undefined,onlineMuzzleTime=0;
 var onlinePendingMatchCompleted=null,onlineResultsDisplayed=false;
+var onlineResultFallbackTimer=null;
 var onlineRewardMatchId=null,onlineRewardTimer=null,onlineRewardChecking=false;
 var onlineStallChecking=false,onlineLastStallCheckAt=0;
 var onlinePendingKillTick=-1,onlinePendingKillTotal=null;
@@ -7862,6 +7891,7 @@ function onlineStartRoomPoll() {
  },2300);
 }
 function onlineResetLive(){
+ clearTimeout(onlineResultFallbackTimer);onlineResultFallbackTimer=null;
  onlinePendingMatchCompleted=null;
  onlineCombatQa={fireInputs:0,confirmedShots:0,confirmedHits:0,wallImpacts:0,damageTaken:0,lastEvent:'NONE'};
  onlineActive=false;onlineTraining=false;onlineCurrentId=null;onlineMatchId=null;
@@ -8246,10 +8276,17 @@ function onlineReceiveFrame(frame){
   onlineResetLive();matchExitToLobby('room');onlineWarn(frame.code||'SERVER_MATCH_FAILURE');return;
  }
  if(frame.type==='match_completed'){
-  if(onlineActive&&dead.length>0){
-   // Finish ragdolls created by confirmed KILL events before opening results.
-   // No client-side settlement, damage, or new timers are involved.
+  if(!onlineActive)return;
+  if(dead.length>0){
+   // Prefer the original offline corpse animation. It must NEVER hold the
+   // verified result hostage if the 3-D loop stalls or a model is retained.
    onlinePendingMatchCompleted=frame;
+   clearTimeout(onlineResultFallbackTimer);
+   onlineResultFallbackTimer=setTimeout(function(){
+    if(!onlineActive||onlinePendingMatchCompleted?.matchId!==frame.matchId)return;
+    var completed=onlinePendingMatchCompleted;onlinePendingMatchCompleted=null;
+    onlineFinalizeCompletedMatch(completed);
+   },2200);
   }else onlineFinalizeCompletedMatch(frame);
   return;
  }
@@ -8706,7 +8743,13 @@ async function onlineRestoreOnBoot(){
  try{
   if(onlineApi){
    await onlineApi.restoreSession();
-   if(onlineApi.state().registered)await onlineRecoverMembership();
+   if(onlineApi.state().authenticated&&onlineApi.state().registered){
+    // Direct /loby/room restore bypasses Home START: rehydrate the verified
+    // fixed loadout BEFORE attaching the realtime match. Failure must not
+    // block rejoining; slot UI remains null-safe and server stays authoritative.
+    await onlineLoadInventory().catch(onlineWarn);
+    await onlineRecoverMembership();
+   }
   }
  }catch(error){onlineWarn(error);}
  finally{
