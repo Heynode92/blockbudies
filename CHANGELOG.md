@@ -1,3 +1,7 @@
+## 2026-11-04 — Canonical online muzzle anchor and regression updates
+- Remote muzzle flash and tracer originate at the same world-space tip of the existing weapon model, using the exact per-weapon MZ coordinate; local first-person shots use the existing viewmodel muzzle translated through the camera. Server-side shot vectors, collision and damage are unchanged.
+- Align two stale test assertions with the newly required always-visible public kill feed and authoritative death-state transition.
+
 ## 2026-11-04 — Fix online respawn NaN / restore DM drone and public kill-feed names
 - Show the original third-person Death Match drone camera and death-state UI during the server-issued five-second respawn window. Mirror the authenticated private respawnRemaining and interpolate only for display; the server controls actual spawn.
 - Resolve kill-feed identity from authenticated public scoreboard and room membership, even when the shooter or victim 3D mesh has been redacted by fog-of-war. Call the original kFeed for every verified kill with sanitized callsigns and no position leakage.

@@ -12,5 +12,5 @@ test('online star rehydration calls original offline star renderer without celeb
 test('canonical offline toast, impact, and kill feed lifecycles also run online',()=>{
  assert.match(online,/if\(toastT>0&&\(toastT-=dt\)<=0\)/);
  assert.match(online,/effect\.m\.material\.opacity=Math\.max\(0,\.7-effect\.t\*\.7\)/);
- assert.match(online,/if\(eliminated\)kFeed\(attacker\|\|null,event\.weaponId/);
+ assert.match(online,/kFeed\(killer,Number\.isInteger\(event\.weaponId\)/);
 });

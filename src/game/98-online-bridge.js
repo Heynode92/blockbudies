@@ -352,7 +352,25 @@ function onlineWallImpact(frame){
  spark(x+nx*.04,y+ny*.04,z+nz*.04,0xd9d0bb,3,1.6,.08);
 }
 // Cosmetic tracer, sourced only from a server-confirmed shot origin and direction.
-function onlineShotTracer(frame){
+// Muzzle origin is computed from the real canonical gun model, not the actor
+// center. The backend remains authoritative over trajectory, speed and hits.
+function onlineShotMuzzle(frame){
+ var z=Number.isInteger(frame.weaponId)?MZ[frame.weaponId]:null;
+ if(!Number.isFinite(z))return null;
+ if(frame.actorId===onlineUserId()){
+  if(pl.dead)return null;
+  mflash.position.set(0,.02,z);mflash.updateWorldMatrix(true,false);
+  var viewTip=mflash.getWorldPosition(new T.Vector3());
+  C.updateWorldMatrix(true,false);
+  return viewTip.applyQuaternion(C.quaternion).add(C.position);
+ }
+ var model=onlineActors.get(frame.actorId)?.model;
+ var gun=model?.g?.userData?.rg;
+ if(!gun||model.dead||!model.g.visible)return null;
+ gun.updateWorldMatrix(true,false);
+ return gun.localToWorld(new T.Vector3(0,0,z));
+}
+function onlineShotTracer(frame,muzzle){
  if(![frame.x,frame.y,frame.z,frame.yaw,frame.pitch].every(Number.isFinite))return;
  if(!Number.isInteger(frame.weaponId)||frame.weaponId<0||frame.weaponId>=WP.length)return;
  var w=WP[frame.weaponId];
@@ -366,7 +384,9 @@ function onlineShotTracer(frame){
    frame.projectileSpeed:(w.spd||180),
   duration=Math.min(.15,Math.max(.075,24/speed));
  mesh.rotation.order='YXZ';mesh.rotation.set(-pitch,angle,0);
- mesh.position.set(frame.x,frame.y,frame.z);S.add(mesh);
+ if(muzzle&&[muzzle.x,muzzle.y,muzzle.z].every(Number.isFinite))mesh.position.copy(muzzle);
+ else mesh.position.set(frame.x,frame.y,frame.z);
+ S.add(mesh);
  onlineShotTracers.push({m:mesh,vx:Math.sin(angle)*Math.cos(pitch)*speed,
   vy:Math.sin(pitch)*speed,vz:Math.cos(angle)*Math.cos(pitch)*speed,t:duration});
 }
@@ -1099,8 +1119,9 @@ function onlineReceiveFrame(frame){
    onlineCombatQa.confirmedShots++;
    onlineCombatQa.lastEvent='SHOT';
   }
-  onlineShotTracer(frame);
-  if(frame.actorId===onlineUserId())return;
+  if(frame.actorId===onlineUserId()){
+   onlineShotTracer(frame,onlineShotMuzzle(frame));return;
+  }
   var remote=onlineActors.get(frame.actorId);
   if(remote&&remote.model&&!remote.model.dead){
    var bot=remote.model;bot.rc=1;
@@ -1108,15 +1129,11 @@ function onlineReceiveFrame(frame){
     botVisualWeapon(bot,frame.weaponId);bot.weapon=frame.weaponId;
    }
    if(bot.weapon!==4&&bot.weapon!==5){
-    // Emit at the real animated gun muzzle, not the soldier center.
-    var gun=bot.g?.userData?.rg;
-    if(gun){
-     gun.updateWorldMatrix(true,false);
-     var tip=gun.localToWorld(new T.Vector3(0,0,-.7));
-     enemyShotFx(bot,tip.x,tip.y,tip.z);
-    }
+    var muzzle=onlineShotMuzzle(frame);
+    if(muzzle)enemyShotFx(bot,muzzle.x,muzzle.y,muzzle.z);
    }
   }
+  onlineShotTracer(frame,onlineShotMuzzle(frame));
   return;
  }
  if(frame.type==='match_event'){

@@ -44,7 +44,7 @@ test('snapshot rehydrates old stars without animation or invented kill',()=>{
 test('bridge binds BE K/D, life streak and death reset',()=>{
  assert.match(source,/onlineSyncKillDisplay\(kills,false\)/);
  assert.match(source,/ck\.n=privateState\.streak/);
- assert.match(source,/!self\.alive&&onlinePrevAlive\)\{resetKillStreak\(\)/);
+ assert.match(source,/!self\.alive&&wasAlive\)\{/);
  assert.match(source,/onlineSeenKillIds\.clear\(\)/);
  assert.match(source,/onlineApplyVerifiedKill\(event\)/);
 });
