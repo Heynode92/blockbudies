@@ -1,3 +1,8 @@
+## 2026-11-03 — Gate signed-in unregistered players to verified training, not an empty Inventory
+- Wallet signup popup now distinguishes unsigned users, verified wallets awaiting training, and registered profiles awaiting a read-only refresh.
+- A second explicit START TRAINING action uses existing server-authenticated onboarding flow; verified Inventory still requires loaded player identity and cannot expose stale weapon entitlements.
+- No changes to signature verification, wallet keys, onchain state, gameplay or reward accounting.
+
 ## 2026-11-03 — Align UI regression fixtures with verified session and ownership rules
 - Update isolated Home VM fixture for the new keyboard-accessible wallet dialog.
 - Assert helmet ownership and 3D preview only after server loadout verification, and count both server-approved projectile visualizations in the tracer test.

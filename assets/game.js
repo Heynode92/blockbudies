@@ -3835,21 +3835,22 @@ function homeAuthGateClose(){
 function homeAuthGateOpen(intent){
  homeGateIntent=intent==='match'?'match':'inventory';
  var state=typeof PB_ONLINE!=='undefined'?PB_ONLINE.state():null;
- var enrolled=!!state?.authenticated&&!!state.registered;
+ var enrolled=!!state?.authenticated&&!!state.registered&&typeof state.player?.id==='string';
  if(enrolled){
   homeAuthGateClose();
   if(homeGateIntent==='inventory')inventoryOpen();
   else void onlineStartGate();
   return;
  }
- var registered=!!state?.authenticated;
- document.getElementById('walletGateTitle').textContent=registered?'TRAINING REQUIRED':'CONNECT YOUR WALLET';
- document.getElementById('walletGateText').textContent=registered?
-  'Finish verified training and register your callsign before entering your Inventory.':
+ var registered=!!state?.authenticated,profileMissing=registered&&state.registered&&!state.player?.id;
+ document.getElementById('walletGateTitle').textContent=profileMissing?'PROFILE SYNC REQUIRED':registered?'TRAINING REQUIRED':'CONNECT YOUR WALLET';
+ document.getElementById('walletGateText').textContent=profileMissing?
+  'Wallet verified. Refresh your server profile before opening account-owned equipment.':
+  registered?'Finish verified training and register your callsign before entering your Inventory.':
   homeGateIntent==='inventory'?
    'Authenticate your wallet to access the weapons owned by your player account.':
    'Sign in with your wallet to access verified matches and your player progression.';
- document.getElementById('walletGateConnect').textContent=registered?'START TRAINING':'CONNECT & SIGN IN';
+ document.getElementById('walletGateConnect').textContent=profileMissing?'SYNC PLAYER PROFILE':registered?'START TRAINING':'CONNECT & SIGN IN';
  document.getElementById('walletGateError').hidden=true;
  homeGateOverlay.hidden=false;
  document.getElementById('walletGateConnect').focus();
@@ -3865,9 +3866,16 @@ document.getElementById('walletGateConnect').addEventListener('click',async func
  var button=this,errorBox=document.getElementById('walletGateError');
  button.disabled=true;errorBox.hidden=true;
  try{
-  var state=PB_ONLINE.state();
-  if(!state.authenticated)state=await homeWalletSignIn();
-  if(!state.registered){homeAuthGateOpen(homeGateIntent);return;}
+  var state=PB_ONLINE.state(),justSignedIn=!state.authenticated;
+  if(justSignedIn)state=await homeWalletSignIn();
+  if(state.registered&&!state.player?.id)state=await PB_ONLINE.refreshProfile();
+  if(!state.registered){
+   if(justSignedIn){homeAuthGateOpen(homeGateIntent);return;}
+   // This is the explicit START TRAINING action for an authenticated but
+   // not yet registered player; it never bypasses backend verification.
+   homeAuthGateClose();await onlineStartGate();return;
+  }
+  if(typeof state.player?.id!=='string')throw Error('PLAYER_PROFILE_UNAVAILABLE');
   var target=homeGateIntent;homeAuthGateClose();
   if(target==='inventory')inventoryOpen();
   else await onlineStartGate();

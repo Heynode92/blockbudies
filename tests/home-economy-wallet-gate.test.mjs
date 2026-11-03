@@ -17,6 +17,9 @@ test('wallet gate is a themed accessible SIWE dialog, not a bypass into private 
  assert.match(js,/function homeAuthGateOpen\(intent\)/);
  assert.match(js,/await homeWalletSignIn\(\)/);
  assert.match(js,/if\(target==='inventory'\)inventoryOpen\(\)/);
+ assert.match(js,/if\(justSignedIn\)\{homeAuthGateOpen\(homeGateIntent\);return;\}/);
+ assert.match(js,/homeAuthGateClose\(\);await onlineStartGate\(\);return/);
+ assert.match(js,/state\.registered&&!state\.player\?\.id/);
 });
 test('half-unit formatter preserves server integer accuracy without decimal floating-point',()=>{
  const start=js.indexOf('function homeFormatHalf(');
