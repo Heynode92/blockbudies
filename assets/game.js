@@ -2912,7 +2912,23 @@ var ck={n:0,hs:0},hsF=false,dead=[],inBoom=false,boomN=0,shakeT=0,AC=null,boomLa
 function resetKillStreak(){ck.n=0;ck.hs=0;}
 function registerPlayerKill(headshot){ck.n++;if(headshot)ck.hs++;}
 // dmgE(): applies damage d to bot e (knock direction kx,kz). Handles invulnerability, hit flash and calls killE() at 0 HP.
-function dmgE(e,d,kx,kz,ex,kind){if(e.inv>0||e.dead)return;if(isBombMode())bombInterruptPlant(e);d=defenseDamage(e,d,kind||"bullet-body");if(d>0)bloodHit(e.x,(e.y||0)+(kind==="head"?1.7:1.12),e.z,kx,kz,kind==="head");e.hp-=d;e.fl=.14;e.hs=Math.random()<.5?-1:1;e.hv=(e.hv||0)+Math.min(9,3+d*.5);var hm=Math.hypot(kx||0,kz||0);if(hm>.01){e.hdx=kx/hm;e.hdz=kz/hm;}if(e.hp<=0)killE(e,kx||0,kz||0,ex);}
+// Shared original knockback, blood, and hit wobble. A confirmed online HIT may
+// call this purely visual helper, but ONLY dmgE() changes HP or runs killE().
+function botDamageReaction(e,d,kx,kz,head,confirmed){
+  if(d>0||confirmed)bloodHit(e.x,(e.y||0)+(head?1.7:1.12),e.z,kx,kz,!!head);
+  e.fl=.14;e.hs=Math.random()<.5?-1:1;
+  e.hv=(e.hv||0)+Math.min(9,3+d*.5);
+  var hm=Math.hypot(kx||0,kz||0);
+  if(hm>.01){e.hdx=kx/hm;e.hdz=kz/hm;}
+}
+function dmgE(e,d,kx,kz,ex,kind){
+  if(e.inv>0||e.dead)return;
+  if(isBombMode())bombInterruptPlant(e);
+  d=defenseDamage(e,d,kind||"bullet-body");
+  botDamageReaction(e,d,kx,kz,kind==="head",false);
+  e.hp-=d;
+  if(e.hp<=0)killE(e,kx||0,kz||0,ex);
+}
 // hlms = flying helmets (popped by headshots). popHelm()/popPl() pop a bot/player helmet; updH() animates them.
 var hlms=[];
 function popHelm(e,vx,vz){var h=e.hm;if(!h||!e.helm)return;e.helm=false;h.updateMatrixWorld(true);
@@ -2930,17 +2946,24 @@ function updH(dt){for(var i=hlms.length-1;i>=0;i--){var h=hlms[i],m=h.m;h.t+=dt;
 // setHm(): shows/hides the helmet icon in the HUD (pop = play the pop animation).
 function setHm(pop){var e=document.getElementById("hmt");if(!e)return;e.className=pl.helm?"":"off";if(pop){e.classList.add("pop");setTimeout(function(){e.classList.remove("pop");},700);}}
 function popPl(){pl.helm=false;if(pm.hm)pm.hm.visible=false;var f=document.getElementById("hmfly");f.classList.remove("go");void f.offsetWidth;f.classList.add("go");setHm(true);toast("HELMET POPPED!");shakeT=Math.max(shakeT,.25);if(AC){tn(2600,1500,.1,"triangle",.12);tn(1700,800,.14,"square",.06,.03);}}
-// killE(): kills bot e: scoring, kill feed, ragdoll, gun drop, respawn timer. Credit goes to curK (the last damage dealer).
-function killE(e,kx,kz,ex){
-  var K=curK,pk=K===pl;kFeed(K,killW,hsF,e);if(e.mk)e.mk.visible=false;if(e.nm)e.nm.visible=false;
-  en.splice(en.indexOf(e),1);e.dead=true;e.st.d++;if(!isBombMode())rq.push({b:e,t:5});bombDrop(e);if(K){K.st.k++;if(!isBombMode())ts[K.tm]++;}
-  if(pk){score++;if(DM_RULES.crates)mkCrate(e.x,e.z,.45+gh(e.x,e.z,0),rci());starKill();}
+// Original visual-only ragdoll and dropped gun implementation, shared by offline
+// killE() and backend-confirmed online death events. Never edits scores/HP.
+function spawnBotDeathVisual(e,kx,kz,ex){
+  if(e.mk)e.mk.visible=false;if(e.nm)e.nm.visible=false;
   detachGun(e,kx,kz,ex);e.ms.forEach(function(m){m.emissive.setHex(0);});e.arms.forEach(function(q){q.rotation.set(0,0,0);q.scale.y=1;q.userData.fa.quaternion.set(0,0,0,1);});e.g.userData.gun.position.set(0,0,0);e.body.rotation.x=0;e.body.rotation.y=0;
   var m=Math.hypot(kx,kz);if(m<.01){kx=-Math.sin(e.g.rotation.y);kz=-Math.cos(e.g.rotation.y);m=1;}kx/=m;kz/=m;
   e.g.rotation.y=Math.atan2(-kx,-kz);
   var corpse={g:e.g,body:e.body,legs:e.legs,arms:e.arms,x:e.x,z:e.z,y:e.y||0,by:e.y||0,vx:kx*(ex?7:2.6),vz:kz*(ex?7:2.6),vy:ex?8:0,t:0,T:ex?.73:.55,flip:ex?1:0,w:0,land:false};
   corpse.bloodPool=bloodPoolSpawn(e.x,e.y||0,e.z,corpse);dead.push(corpse);
   spark(e.x,1.2,e.z,0xff6b6b,8,4,.1);
+  return corpse;
+}
+// killE(): kills bot e: scoring, kill feed, ragdoll, gun drop, respawn timer. Credit goes to curK (the last damage dealer).
+function killE(e,kx,kz,ex){
+  var K=curK,pk=K===pl;kFeed(K,killW,hsF,e);if(e.mk)e.mk.visible=false;if(e.nm)e.nm.visible=false;
+  en.splice(en.indexOf(e),1);e.dead=true;e.st.d++;if(!isBombMode())rq.push({b:e,t:5});bombDrop(e);if(K){K.st.k++;if(!isBombMode())ts[K.tm]++;}
+  if(pk){score++;if(DM_RULES.crates)mkCrate(e.x,e.z,.45+gh(e.x,e.z,0),rci());starKill();}
+  spawnBotDeathVisual(e,kx,kz,ex);
   if(pk){registerPlayerKill(hsF);
   if(inBoom)boomN++;else killNotify(false);}
 }
@@ -7349,26 +7372,28 @@ function onlineAnimateRemoteActor(record,sample,dt){
 // only for already authorized visible actors. Never reveal an unseen death site.
 function onlineConfirmedDeath(event){
  if(!event||typeof event.victimId!=='string')return;
- var model=onlineActors.get(event.victimId)?.model;
- if(!model||!model.g?.visible)return;
- var record=onlineActors.get(event.victimId);
- // Visibility already comes from this recipient's authorized world snapshot.
- // Every observer who actually saw the victim should see the original fall.
- if(record.fellAt)return;
- record.fellAt=performance.now();
- model.dead=true;model.g.visible=true;
- bloodPoolSpawn(model.x,model.y||0,model.z,null);
+ // The model must have been authorized in a PREVIOUS snapshot. A server kill
+ // for an unseen enemy never creates a body or exposes a location.
+ var record=onlineActors.get(event.victimId),model=record?.model;
+ if(!model||model.dead||!model.g?.visible)return;
+ var shooter=event.actorId===onlineUserId()?pl:onlineActors.get(event.actorId)?.model;
+ var dx=shooter?model.x-shooter.x:0,dz=shooter?model.z-shooter.z:0;
+ // Transfer ownership to the ORIGINAL offline corpse list. The next redacted
+ // world snapshot must not destroy the corpse or create a second dead model.
+ onlineActors.delete(event.victimId);
+ var index=en.indexOf(model);if(index>=0)en.splice(index,1);
+ model.dead=true;
+ spawnBotDeathVisual(model,dx,dz,0);
 }
-function onlineReactToImpact(victimId,headshot){
+function onlineReactToImpact(victimId,headshot,ownShot){
  if(typeof victimId!=='string'||!onlineActive)return;
- // Never create an actor from combat events; use only an already authorized visual.
- var record=onlineActors.get(victimId),bot=record?.model;
- if(!bot||bot.dead||!bot.g?.visible)return;
- bot.fl=.18;bot.hs=Math.random()<.5?-1:1;
- bot.hv=(bot.hv||0)+(headshot?7:4);
- // Visual-only blood; damage and victim identity are already verified by BE.
- var dx=bot.x-pl.x,dz=bot.z-pl.z;
- bloodHit(bot.x,(bot.y||0)+(headshot?1.7:1.12),bot.z,dx,dz,!!headshot);
+ var model=onlineActors.get(victimId)?.model;
+ if(!model||model.dead||!model.g?.visible)return;
+ // Reuse the original offline hit recoil and blood, not a second online formula.
+ // This intensity is cosmetic only and comes from the existing weapon profile.
+ var visualDamage=ownShot?(WP[pl.w]?.dmg||0):0;
+ var dx=ownShot?model.x-pl.x:0,dz=ownShot?model.z-pl.z:0;
+ botDamageReaction(model,visualDamage,dx,dz,!!headshot,true);
 }
 function onlineTickEffects(dt){
  for(var n=onlineShotTracers.length-1;n>=0;n--){
@@ -7377,7 +7402,10 @@ function onlineTickEffects(dt){
   beam.m.position.x+=beam.vx*dt;beam.m.position.y+=beam.vy*dt;
   beam.m.position.z+=beam.vz*dt;
  }
- updCl(dt);updCh(dt);
+ updCl(dt);
+ // Offline updDead owns exactly one corpse fall, helmet/gun drop, and debris
+ // update per frame. Do not duplicate any part of its lifecycle online.
+ updDead(dt);
  bloodPoolUpdate(dt);
  // The offline update() is intentionally disabled online. Its short-lived FX
  // must still be simulated and reclaimed, or muzzle flashes accumulate as
@@ -7398,7 +7426,6 @@ function onlineTickEffects(dt){
    if(particle.blood)bloodActive=Math.max(0,bloodActive-1);
   }
  }
- updDrops(dt);
  updSm(dt);
 }
 // Server-confirmed bullet marks reuse offline impact, crack, decal and spark assets.
@@ -7667,6 +7694,8 @@ function onlineResetLive(){
  for(const fx of mzf)S.remove(fx.m);mzf.length=0;
  for(const particle of sk)S.remove(particle.m);sk.length=0;bloodActive=0;
  for(const dropped of dg)S.remove(dropped.m);dg.length=0;
+ for(const corpse of dead){if(corpse.bloodPool)bloodPoolRemove(corpse.bloodPool);S.remove(corpse.g);}dead.length=0;
+ for(const helmet of hlms)S.remove(helmet.m);hlms.length=0;
  for(const tracer of onlineShotTracers)S.remove(tracer.m);onlineShotTracers.length=0;
  for(const mark of DC){S.remove(mark);if(mark.userData.t!==undefined)mark.material.dispose()}DC.length=0;
  for(const chunk of CH)S.remove(chunk.m);CH.length=0;
@@ -7810,12 +7839,12 @@ function onlineReceiveFrame(frame){
    onlineCombatQa.confirmedHits++;
    onlineCombatQa.lastEvent='HIT';
    onlineHitConfirm(!!frame.headshot);
-   onlineReactToImpact(frame.victimId,!!frame.headshot);
+   onlineReactToImpact(frame.victimId,!!frame.headshot,true);
   }
   return;
  }
  if(frame.type==='combat_impact'){
-  onlineReactToImpact(frame.victimId,!!frame.headshot);
+  onlineReactToImpact(frame.victimId,!!frame.headshot,false);
   return;
  }
  if(frame.type==='combat_hurt'){
@@ -7857,9 +7886,9 @@ function onlineReceiveFrame(frame){
   var event=frame.event;
   if(event?.kind==='MATCH_END')onlineLastWinner=event.winner;
   if(event?.kind==='KILL'&&onlineActive){
-   onlineConfirmedDeath(event);
    var actor=onlineActors.get(event.actorId)?.label||'PLAYER';
    var victim=onlineActors.get(event.victimId)?.label||'PLAYER';
+   onlineConfirmedDeath(event);
    roomLiveLog(actor+' ELIMINATED '+victim);
   }
   return;
@@ -8014,6 +8043,9 @@ function onlineApplyWorld(){
  var visible=new Set();
  world.actors.forEach(function(actor){
   if(!actor||actor.id===selfId||!Number.isFinite(actor.x)||!Number.isFinite(actor.z))return;
+  // Enemy deaths are hidden from new snapshots; teammates may still appear
+  // with alive=false. Never build a fresh visual for someone already dead.
+  if(!actor.alive)return;
   visible.add(actor.id);
   var current=onlineActors.get(actor.id);
   if(!current){
@@ -8028,8 +8060,7 @@ function onlineApplyWorld(){
    current=onlineActors.get(actor.id);
   }
   var bot=current.model;
-  bot.dead=!actor.alive;
-  if(actor.alive)current.fellAt=null;
+  bot.dead=false;
   if(!current.samples){current.samples=[];bot.g.position.set(actor.x,actor.y,actor.z);
    bot.x=actor.x;bot.y=actor.y;bot.z=actor.z;}
   if(fresh&&(!current.lastTick||world.serverTick>current.lastTick)){
@@ -8042,16 +8073,15 @@ function onlineApplyWorld(){
   }
   if(bot.visualWeapon!==actor.weaponId)botVisualWeapon(bot,actor.weaponId);
   bot.weapon=actor.weaponId;bot.primary=actor.weaponId;
-  bot.g.visible=!!actor.alive||!!current.fellAt;
+  bot.g.visible=true;
   if(bot.nm)bot.nm.visible=actor.team===pl.tm&&actor.alive;
  });
  // Server redacts hidden enemies. Drop the old visual AND its last known coordinates
  // from the local actor pool; the browser must not keep a phantom radar target.
  for(const [id,current] of onlineActors){
   if(!visible.has(id)){
-   // A previously authorized lethal event may finish its original fall pose.
-   // Do not resurrect an unseen actor or extrapolate its movement after death.
-   if(current.fellAt&&performance.now()-current.fellAt<700)continue;
+   // A verified corpse was already transferred to original dead[] at KILL.
+   // Non-authorized/stale living models are simply removed.
    if(current.model?.g)S.remove(current.model.g);
    var index=en.indexOf(current.model);
    if(index>=0)en.splice(index,1);
@@ -8203,12 +8233,6 @@ function onlineVisualUpdate(dt){
  var renderAt=now-onlineRemoteDelay;
  onlineActors.forEach(function(actor){
   if(!actor.model?.g||!actor.model.g.visible)return;
-  if(actor.fellAt){
-   var elapsed=(now-actor.fellAt)/1000;
-   if(elapsed<.7)blockDeathPose(actor.model,elapsed);
-   else actor.model.g.visible=false;
-   return;
-  }
   var sample=onlineInterpolateActor(actor.samples||[],renderAt);
   if(!sample)return;
   onlineAnimateRemoteActor(actor,sample,dt);
