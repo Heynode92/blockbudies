@@ -102,7 +102,16 @@ html.pb-route-restoring #lb { visibility:hidden; }
   </div>
   <div class="point-reward-status"><span id="verifiedRewardStatus" role="status" aria-live="polite">Awaiting settlement confirmation…</span><button type="button" id="verifiedRewardRetry" hidden>RECHECK</button></div>
 </section><div class="dbt"><button id="dgo">PLAY AGAIN<kbd>ENTER</kbd></button><button id="dmn">BACK TO ROOM</button></div></div>
-</div></div>
+</div>
+ <section id="trainingResult" class="point-training-result" aria-label="Server-verified training report" hidden>
+   <div class="point-training-kicker">POINT BLOCK · RECRUITMENT REPORT</div>
+   <h2 id="trainingResultTitle">TRAINING COMPLETE</h2>
+   <p id="trainingResultDescription"></p>
+   <div class="point-training-score"><span>COMBINED TEAM KILLS</span><strong id="trainingResultKills">—</strong></div>
+   <div class="point-training-status" id="trainingResultStatus"></div>
+   <button id="trainingResultContinue" type="button">CONTINUE · REGISTER CALLSIGN</button>
+ </section>
+</div>
 <div id="lb">
  <header id="gameLobbyHeader" class="home-global-header" aria-label="Point Block main menu header">
   <span class="home-header-chevron" aria-hidden="true"></span>

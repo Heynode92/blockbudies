@@ -653,6 +653,14 @@ async function onlineCreateRoom(){
   if(error?.code==='ALREADY_IN_ROOM'){
    try{await onlineRecoverMembership();roomBrowserCreateClose();}
    catch(recovery){onlineWarn(recovery);}
+  }else if(error?.code==='ROOM_DAILY_CREATE_LIMIT'){
+    var reset=typeof error.resetAt==='string'?new Date(error.resetAt):null;
+    var resetLabel=reset&&Number.isFinite(reset.getTime())?
+      reset.toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short',timeZoneName:'short'}):
+      'the next official server reset';
+    onlineRoomDialog('DAILY ROOM LIMIT REACHED',
+      'Your daily limit of '+(error.limit||'10')+' rooms has been reached. Room creation resets at '+
+      resetLabel+'.','OK',null,null);
   }else onlineWarn(error);
  }
 }
@@ -1132,10 +1140,9 @@ function onlineReceiveFrame(frame){
  }
  if(frame.type==='training_result'){
   onlineTrainingProgress(frame.progress);
-  if(frame.progress?.status==='COMPLETED'){void onlineTrainingCompleted();return;}
+  if(frame.progress?.status==='COMPLETED'){void onlineTrainingFinished(frame.progress);return;}
   if(frame.progress?.status==='TIMEOUT_POLICY_PENDING'){
-   onlineResetLive();run=false;lob=true;lb.style.display='flex';document.body.classList.add('lobby');
-   lobP('lbs');onlineWarn('TRAINING_TIME_EXPIRED_NOT_ELIGIBLE');
+   void onlineTrainingFinished(frame.progress);
   }
  }
 }
@@ -1186,26 +1193,63 @@ function onlineDialog(title,description,action,submit) {
  });
  input.focus();
 }
-async function onlineTrainingCompleted(){
- if(!onlineTraining)return;
- onlineResetLive();run=false;lob=true;lb.style.display='flex';document.body.classList.add('lobby');
- lobP('lbs');
- try{await onlineApi.refreshProfile()}catch(e){onlineWarn(e)}
- onlineDialog('TRAINING COMPLETE','Enter a unique PointBlock callsign (1–12 letters, numbers or underscore).','REGISTER',async name=>{
-  await onlineApi.register(name);
-  await onlineApi.refreshProfile();
-  await onlineLoadInventory();roomLobbyOpen();
- });
+// The Training Result is a proper result screen, not a fabricated match award.
+// Numbers and terminal state come from the authenticated training_result event.
+var onlineTrainingResultStatus=null;
+function onlineDisplayTrainingResult(progress){
+ if(!progress||!['COMPLETED','TIMEOUT_POLICY_PENDING'].includes(progress.status))return;
+ onlineTrainingResultStatus=progress.status;
+ var won=progress.status==='COMPLETED';
+ var kills=Number.isSafeInteger(progress.combinedKills)?progress.combinedKills:null;
+ var target=Number.isSafeInteger(progress.targetKills)?progress.targetKills:null;
+ document.getElementById('trainingResultTitle').textContent=won?'TRAINING COMPLETE':'TRAINING INCOMPLETE';
+ document.getElementById('trainingResultDescription').textContent=won?
+  'Training verified by the PointBlock match server. Your callsign registration is now unlocked.':
+  'The verified training session ended before the required combined kills. Registration remains locked.';
+ document.getElementById('trainingResultKills').textContent=kills!==null&&target!==null?
+  kills+' / '+target:won?'VERIFIED':'NOT COMPLETED';
+ document.getElementById('trainingResultStatus').textContent=won?
+  'SERVER VERIFIED · ELIGIBLE TO REGISTER':'SERVER VERIFIED · REGISTRATION LOCKED';
+ document.getElementById('trainingResultContinue').textContent=won?
+  'CONTINUE · REGISTER CALLSIGN':'BACK TO HOME';
+ document.getElementById('trainingResult').hidden=false;
+ document.getElementById('dv').classList.add('show','training-result-active');
+ document.body.classList.remove('dead','bomb-spectator');
+ document.body.classList.add('over');
+ run=false;lob=false;
+ if(document.exitPointerLock)document.exitPointerLock();
+ document.getElementById('trainingResultContinue').focus();
 }
+function onlineTrainingResultContinue(){
+ var result=onlineTrainingResultStatus;
+ if(!result)return;
+ onlineTrainingResultStatus=null;
+ document.getElementById('trainingResult').hidden=true;
+ document.getElementById('dv').classList.remove('show','training-result-active');
+ document.body.classList.remove('over');document.body.classList.add('lobby');
+ run=false;lob=true;lb.style.display='flex';lobP('lbs');
+ if(result!=='COMPLETED')return;
+ onlineDialog('REGISTER CALLSIGN',
+  'Training verified. Enter a unique callsign (1–12 letters, numbers or underscore).',
+  'REGISTER',async name=>{
+   await onlineApi.register(name);
+   await onlineApi.refreshProfile();
+   await onlineLoadInventory();roomLobbyOpen();
+  });
+}
+async function onlineTrainingFinished(progress){
+ if(!onlineTraining)return;
+ onlineResetLive();
+ try{await onlineApi.refreshProfile()}catch(e){onlineWarn(e)}
+ onlineDisplayTrainingResult(progress);
+}
+document.getElementById('trainingResultContinue').addEventListener('click',onlineTrainingResultContinue);
 async function onlineStartTraining(){
  if(!onlineAuth())return;
  try{
   var started=await onlineApi.startTraining();
   if(started.status==='COMPLETED'){
-   onlineDialog('REGISTER CALLSIGN','Training verified. Choose a unique username.','REGISTER',async name=>{
-    await onlineApi.register(name);await onlineApi.refreshProfile();
-    await onlineLoadInventory();roomLobbyOpen();
-   });return;
+   onlineDisplayTrainingResult({status:'COMPLETED'});return;
   }
   onlineResultsDisplayed=false;onlineTraining=true;onlineActive=true;
   await onlineApi.openLive('training',null,onlineReceiveFrame,onlineSocketStatus);
@@ -1229,10 +1273,7 @@ async function onlineStartGate(){
    roomLobbyOpen();return
   }
   if(info.onboarding?.trainingCompleted){
-   onlineDialog('REGISTER CALLSIGN','Training verified. Choose your player name.','REGISTER',async name=>{
-    await onlineApi.register(name);await onlineApi.refreshProfile();
-    await onlineLoadInventory();roomLobbyOpen();
-   });
+   onlineDisplayTrainingResult({status:'COMPLETED'});
   }else await onlineStartTraining();
  }catch(error){onlineWarn(error)}
 }

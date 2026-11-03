@@ -10,7 +10,13 @@ const MAX_WS_MESSAGE = 262144;
 const AUTH_TIMEOUT_MS = 9000;
 
 export class PointBlockError extends Error {
-  constructor(code, status = 0) { super(code); this.name = 'PointBlockError'; this.code = code; this.status = status; }
+  constructor(code, status = 0, details = null) {
+    super(code); this.name = 'PointBlockError'; this.code = code; this.status = status;
+    // Only expose bounded, server-supplied reset metadata; the client never computes a quota.
+    this.resetAt = typeof details?.resetAt === 'string' &&
+      Number.isFinite(Date.parse(details.resetAt)) ? details.resetAt : null;
+    this.limit = Number.isSafeInteger(details?.limit) && details.limit > 0 ? details.limit : null;
+  }
 }
 function apiRoot(value) {
   if (typeof value !== 'string' || !value.trim()) return null;
@@ -110,7 +116,7 @@ export function createPointBlockClient({ baseUrl } = {}) {
     try { data = await res.json(); } catch { throw new PointBlockError('INVALID_BACKEND_RESPONSE',res.status); }
     if (!res.ok) {
       if (res.status === 401 && authRequired) clearAuth();
-      throw new PointBlockError(typeof data?.code === 'string' ? data.code : 'BACKEND_REQUEST_FAILED',res.status);
+      throw new PointBlockError(typeof data?.code === 'string' ? data.code : 'BACKEND_REQUEST_FAILED',res.status,data);
     }
     return data;
   }

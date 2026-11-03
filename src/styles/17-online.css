@@ -191,3 +191,19 @@
 #gameLobbyHeader .home-vpbt-icon canvas[hidden]{display:none!important}
 #homeVpbtStarFallback{display:block;width:23px;height:23px;background:linear-gradient(135deg,#bafbe3,#2bae8c);clip-path:polygon(50% 0%,62% 32%,98% 35%,73% 57%,81% 94%,50% 75%,19% 94%,27% 57%,2% 35%,38% 32%)}
 #homeVpbtStarFallback[hidden]{display:none!important}
+
+/* Shared Battle Report backdrop, verified training outcome variant. */
+#dv.training-result-active{background:radial-gradient(ellipse at 50% 40%,#12444a,#071b2c 70%,#030d17)}
+#dv.training-result-active #dc{display:none!important}
+#trainingResult[hidden]{display:none!important}
+#trainingResult.point-training-result{position:relative;z-index:2;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:18px;width:min(760px,92vw);max-height:92vh;overflow-y:auto;padding:clamp(25px,5vw,65px);border:2px solid #55bea6;border-top:6px solid #ff9d38;text-align:center;background:linear-gradient(145deg,#183e53,#091b30 76%);box-shadow:0 20px 85px #000a}
+.point-training-kicker{color:#91e5d2;font:900 13px Rajdhani,sans-serif;letter-spacing:.17em}
+#trainingResult h2{margin:0;color:#fff;font:italic 900 clamp(40px,6vw,76px) Impact,sans-serif;letter-spacing:.04em}
+#trainingResult p{margin:0;max-width:48ch;font:700 clamp(15px,2vw,22px)/1.45 Rajdhani,sans-serif;color:#bad6ea}
+.point-training-score{display:flex;flex-direction:column;gap:8px;width:min(380px,100%);padding:15px;border:1px solid #467d8b;background:#0a2335}
+.point-training-score span{font:900 12px Rajdhani,sans-serif;letter-spacing:.13em;color:#9bc6d6}
+.point-training-score strong{font:900 42px Impact,sans-serif;color:#80f1c3}
+.point-training-status{font:900 13px Rajdhani,sans-serif;letter-spacing:.14em;color:#8af2b8}
+#trainingResultContinue{width:100%;min-height:60px;padding:12px;border:1px solid #ffd1a0;background:linear-gradient(120deg,#e86c1c,#ff9d38);color:#fff;font:900 clamp(17px,2.5vw,26px) Rajdhani,sans-serif;cursor:pointer}
+#trainingResultContinue:focus-visible{outline:2px solid white;outline-offset:3px}
+
