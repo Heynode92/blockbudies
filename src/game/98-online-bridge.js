@@ -1234,7 +1234,14 @@ function onlineCheckVerifiedReward(matchId,attempt){
   document.getElementById('verifiedExpAmount').textContent='+'+exp;
   document.getElementById('verifiedVpbtAmount').textContent='+'+vpbt;
   flag.textContent='AWARDED';
-  status.textContent='Rewards added to your account';
+  // The percentage and BOT roster are provided by the private authoritative
+  // settlement response. Never duplicate economy policy in the frontend.
+  var bots=value?.botCount,penalty=value?.botPenaltyPercent;
+  var applied=Number.isSafeInteger(bots)&&bots>=0&&bots<=9&&
+    Number.isSafeInteger(penalty)&&penalty>0&&penalty<=30;
+  status.textContent=applied?
+    'Rewards added · '+bots+' BOTs: -'+penalty+'% EXP & vPBT':
+    'Rewards added to your account';
   retry.hidden=true;
   // Read after settlement so the vPBT header and player rank meter reflect
   // actual persisted progress, rather than an optimistic local increment.
@@ -1248,7 +1255,10 @@ function onlineCheckVerifiedReward(matchId,attempt){
     }
    }
   }).catch(function(error){
-   if(onlineRewardVisible(matchId))status.textContent='Rewards added. Updating your rank…';
+   if(onlineRewardVisible(matchId))
+    status.textContent=applied?
+      'Rewards added · '+bots+' BOTs: -'+penalty+'% EXP & vPBT · Rank sync pending':
+      'Rewards added. Updating your rank…';
   });
  }).catch(function(error){
   if(!onlineRewardVisible(matchId))return;
