@@ -8957,7 +8957,7 @@ function onlineCheckVerifiedReward(matchId,attempt){
   // settlement response. Never duplicate economy policy in the frontend.
   var bots=value?.botCount,penalty=value?.botPenaltyPercent;
   var applied=Number.isSafeInteger(bots)&&bots>=0&&bots<=9&&
-    Number.isSafeInteger(penalty)&&penalty>0&&penalty<=30;
+    Number.isSafeInteger(penalty)&&penalty>0&&penalty<=100;
   status.textContent=applied?
     'Rewards added · '+bots+' BOTs: -'+penalty+'% EXP & vPBT':
     'Rewards added to your account';
