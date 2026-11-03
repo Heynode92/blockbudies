@@ -1,3 +1,7 @@
+## 2026-11-04 — Preserve standalone offline loading and style verified grenade charge
+- Use guarded onlineActive access in shared Room Lobby loader so offline-only execution remains valid and the existing timing regression harness passes without injecting an online runtime.
+- Add PointBlock-themed private server throw-power meter CSS; only displayed while a genuine authenticated grenade hold is active.
+
 ## 2026-11-04 — Stateful 3D grenade pin pull and original airborne trail
 - Original pin and spoon meshes are articulated on mouse hold, with a server-sourced private charge display. Release causes the server to throw, while weapon switch cancels and suppresses the trigger until mouse release. No client-selected power or damage.
 - Online visuals now advance original updG() (arc/bounce) and draw an economical wind trail behind visible server-authorized grenades; trusted detonation event still controls actual explosion, while client boom() is bypassed.

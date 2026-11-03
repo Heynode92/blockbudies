@@ -4731,8 +4731,9 @@ function roomStartLoading(token){
 }
 function roomStartLoadingCover(token,openedAt){
  var flow=roomStartFlow;if(!flow.active||token!==flow.token||flow.phase!=="loading")return;
- if(flow.mapReady&&document.getElementById("roomStartPercent").textContent===(onlineActive?"15%":"0%"))
-  roomStartMark(onlineActive?38:25,onlineActive?"BATTLEFIELD LOADED":"3D MAP READY");
+ if(flow.mapReady&&document.getElementById("roomStartPercent").textContent===(typeof onlineActive!=="undefined"&&onlineActive?"15%":"0%"))
+  roomStartMark(typeof onlineActive!=="undefined"&&onlineActive?38:25,
+    typeof onlineActive!=="undefined"&&onlineActive?"BATTLEFIELD LOADED":"3D MAP READY");
  var elapsed=performance.now()-openedAt;
  if(!flow.mapReady&&elapsed>5500){roomStartAbort();roomLiveLog("3D map is not ready. Try again.");return;}
  if(!flow.mapReady||elapsed<500){
@@ -4745,13 +4746,15 @@ function roomStartPrepareGame(token){
  var flow=roomStartFlow;if(!flow.active||token!==flow.token||flow.phase!=="loading")return;
  var room=flow.config;
  if(!roomCurrent||roomCurrent.id!==room.id){roomStartAbort();return;}
- flow.phase="preparing";roomStartMark(50,onlineActive?"LOADING GAME ASSETS":"PREPARING MATCH");
+ flow.phase="preparing";roomStartMark(50,
+  typeof onlineActive!=="undefined"&&onlineActive?"LOADING GAME ASSETS":"PREPARING MATCH");
  try{
   // Existing engine builds actual map, 5v5 BOTs and equipped weapon behind an opaque cover.
   roomMatchConfig=Object.assign({},room);selM=room.mode;begin(flow.team);
   flow.loadoutSeconds=mt.cd; // Preserve the original per-mode weapon selection duration.
   mt.cd=0;run=false;document.getElementById("rsp").textContent="";
-  roomStartMark(onlineActive?60:85,onlineActive?"PREPARING BATTLEFIELD":"INITIALIZING GAMEPLAY");
+  roomStartMark(typeof onlineActive!=="undefined"&&onlineActive?60:85,
+    typeof onlineActive!=="undefined"&&onlineActive?"PREPARING BATTLEFIELD":"INITIALIZING GAMEPLAY");
  }catch(err){
   run=false;lob=true;lb.style.display="flex";document.body.classList.add("lobby");
   lobP("lbroomlive");roomStartAbort();roomSetMessage("Match could not start. Please retry.");
