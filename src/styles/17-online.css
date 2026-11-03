@@ -157,3 +157,10 @@
  #lbroomlive .rml-slot .rml-seat-state{font-size:10px}
  #lbroomlive .rml-slot .rml-kick-player{padding:4px 6px;font-size:10px}
 }
+
+/* Keep the authoritative READY tag visible even where the legacy responsive
+   Room Lobby hides generic slot <em> helpers on narrow displays. */
+@media(max-width:680px){
+ #lbroomlive .rml-slot .rml-seat-state{display:inline-flex;align-items:center}
+ #lbroomlive .rml-slot-name{min-width:0}
+}

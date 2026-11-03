@@ -1,3 +1,6 @@
+## 2026-11-03 — Preserve Ready labels on narrow Room Lobby screens
+- Override legacy mobile rule hiding generic slot em elements so the new verified [READY] tag remains visible beside usernames at every supported viewport width. Cosmetic CSS only.
+
 ## 2026-11-03 — Update Room Master regression for authoritative READY state
 - Existing Start and polling fixtures now carry the authenticated owner membership and explicit Ready values.
 - New cases verify that unready humans block START, while all-ready humans permit exactly one match start; no runtime code change.
