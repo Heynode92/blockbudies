@@ -1,3 +1,6 @@
+## 2026-11-04 — Regression harness alignment
+- Use the existing direct file reader and actual guarded rank-init expression in the TAB scoreboard source contract test; no gameplay changes.
+
 ## 2026-11-04 — Responsive Battle Report and rank badges in live TAB scoreboard
 - Recompose online-only Battle Report rows as a compact five-column scoreboard (placement, true Three.js badge, callsign, kills, deaths), keeping BOT skull rank, YOUR highlight, and EXP/vPBT beside the large rank card. Restore dedicated headers, prevent flex rules from stretching every badge/name or wrapping BOT labels across lines.
 - The held-TAB 5v5 scoreboard now includes backend-owned player rank or BOT Trainee before the name; the same canonical 3D rank preview initializes safely even when the lobby rank view was never mounted. Offline scoreboard behavior stays unchanged.
