@@ -1601,6 +1601,9 @@ WEAPON_MODEL_BUILDERS[5]=function(g,a){
  a(bx(.15,.15,.15,0x4a5a2a,0,0,-.3),bx(.16,.03,.16,0x3a4620,0,.03,-.3),bx(.06,.05,.06,0x888e98,0,.1,-.3),bx(.04,.03,.14,0xaab0b9,0,.13,-.27),bx(.1,.02,.02,0xd4a017,.06,.1,-.36));
  // Animate the canonical pin and lever in place, without alternate assets.
  g.userData.grenadePin=g.children[3];g.userData.grenadeLever=g.children[4];
+ // Original mesh transforms are the single source for visual pose resets.
+ g.userData.grenadePinHome={position:g.userData.grenadePin.position.clone(),rotation:g.userData.grenadePin.rotation.clone()};
+ g.userData.grenadeLeverHome={rotation:g.userData.grenadeLever.rotation.clone()};
 };
 // Kriss: stable weapon ID 6 (smg). Profile ratings and range modifier are weapon-local.
 WEAPON_PROFILES[6]=Object.freeze({name:"Kriss",damage:21,rpm:93,control:59,speed:90,vRecoil:48,hRecoil:48,mag:30,res:210,range:60,kind:"smg"});
@@ -4684,8 +4687,10 @@ function roomCloseLocal(){
 }
 
 function roomStartMark(percent,label){
- document.getElementById("roomStartPercent").textContent=percent+"%";
- document.getElementById("roomStartBar").style.width=percent+"%";
+ var value=Number.isFinite(percent)?Math.max(0,Math.min(100,Math.floor(percent))):0;
+ document.getElementById("roomStartPercent").textContent=value+"%";
+ document.getElementById("roomStartBar").style.width=value+"%";
+ document.querySelector(".room-transition-track").setAttribute("aria-valuenow",String(value));
  document.getElementById("roomStartPhase").textContent=label;
 }
 function roomStartAbort(){
@@ -4705,7 +4710,10 @@ function roomStartCaptureMap(){
  var sw=source.width,sh=source.height,ratio=dest.width/dest.height,
      cw=Math.min(sw,sh*ratio),ch=Math.min(sh,sw/ratio);
  ctx.drawImage(source,(sw-cw)/2,(sh-ch)/2,cw,ch,0,0,dest.width,dest.height);
+ var firstReady=!roomStartFlow.mapReady;
  roomStartFlow.mapReady=true;
+ if(firstReady&&typeof onlineRenderVerifiedReadiness==='function'&&onlineActive&&!onlineTraining)
+  onlineRenderVerifiedReadiness();
  return true;
 }
 function roomStartCountdown(now,token){
@@ -4721,8 +4729,9 @@ function roomStartLoading(token){
  MENU_BGM.leaveMenu(); // Smooth 1.4s fade while the 3D map loading cover is visible.
  var overlay=document.getElementById("roomTransition");
  overlay.hidden=false;overlay.classList.remove("leaving");
- roomStartMark(typeof onlineActive!=="undefined"&&onlineActive?15:0,
-  typeof onlineActive!=="undefined"&&onlineActive?"CONNECTING TO SERVER":"CAPTURING 3D MAP");
+ if(typeof onlineActive!=="undefined"&&onlineActive&&!onlineTraining){
+  roomStartMark(0,"CONNECTING TO SERVER");onlineRenderVerifiedReadiness();
+ }else roomStartMark(0,"CAPTURING 3D MAP");
  flow.raf=requestAnimationFrame(function(){
   if(!flow.active||token!==flow.token)return;
   overlay.classList.add("on");
@@ -4731,9 +4740,12 @@ function roomStartLoading(token){
 }
 function roomStartLoadingCover(token,openedAt){
  var flow=roomStartFlow;if(!flow.active||token!==flow.token||flow.phase!=="loading")return;
- if(flow.mapReady&&document.getElementById("roomStartPercent").textContent===(typeof onlineActive!=="undefined"&&onlineActive?"15%":"0%"))
-  roomStartMark(typeof onlineActive!=="undefined"&&onlineActive?38:25,
-    typeof onlineActive!=="undefined"&&onlineActive?"BATTLEFIELD LOADED":"3D MAP READY");
+ if(flow.mapReady){
+  if(typeof onlineActive!=="undefined"&&onlineActive&&!onlineTraining)
+   onlineRenderVerifiedReadiness();
+  else if(document.getElementById("roomStartPercent").textContent==="0%")
+   roomStartMark(25,"3D MAP READY");
+ }
  var elapsed=performance.now()-openedAt;
  if(!flow.mapReady&&elapsed>5500){roomStartAbort();roomLiveLog("3D map is not ready. Try again.");return;}
  if(!flow.mapReady||elapsed<500){
@@ -4746,15 +4758,18 @@ function roomStartPrepareGame(token){
  var flow=roomStartFlow;if(!flow.active||token!==flow.token||flow.phase!=="loading")return;
  var room=flow.config;
  if(!roomCurrent||roomCurrent.id!==room.id){roomStartAbort();return;}
- flow.phase="preparing";roomStartMark(50,
-  typeof onlineActive!=="undefined"&&onlineActive?"LOADING GAME ASSETS":"PREPARING MATCH");
+ flow.phase="preparing";
+ if(typeof onlineActive!=="undefined"&&onlineActive&&!onlineTraining)
+  onlineRenderVerifiedReadiness();
+ else roomStartMark(50,"PREPARING MATCH");
  try{
   // Existing engine builds actual map, 5v5 BOTs and equipped weapon behind an opaque cover.
   roomMatchConfig=Object.assign({},room);selM=room.mode;begin(flow.team);
   flow.loadoutSeconds=mt.cd; // Preserve the original per-mode weapon selection duration.
   mt.cd=0;run=false;document.getElementById("rsp").textContent="";
-  roomStartMark(typeof onlineActive!=="undefined"&&onlineActive?60:85,
-    typeof onlineActive!=="undefined"&&onlineActive?"PREPARING BATTLEFIELD":"INITIALIZING GAMEPLAY");
+  if(typeof onlineActive!=="undefined"&&onlineActive&&!onlineTraining)
+   onlineRenderVerifiedReadiness();
+  else roomStartMark(85,"INITIALIZING GAMEPLAY");
  }catch(err){
   run=false;lob=true;lb.style.display="flex";document.body.classList.add("lobby");
   lobP("lbroomlive");roomStartAbort();roomSetMessage("Match could not start. Please retry.");
@@ -4765,6 +4780,7 @@ function roomStartPrepareGame(token){
  // are required before backend may tick a BOT or start the match timer.
  if(typeof onlineActive!=="undefined"&&onlineActive&&!onlineTraining){
   flow.phase="server-wait";
+  onlineRenderVerifiedReadiness();
   flow.raf=requestAnimationFrame(function(){
    if(!flow.active||token!==flow.token)return;
    flow.raf=requestAnimationFrame(function(){
@@ -4774,6 +4790,7 @@ function roomStartPrepareGame(token){
      roomStartAbort();onlineWarn('MATCH_CONNECTION_LOST');return;
     }
     onlineClientSceneReady=true;
+    onlineRenderVerifiedReadiness();
     onlineMatchLoadingStatus({matchId:onlineMatchId,phase:onlineServerPhase,
       ready:onlineLoadParticipants.ready,total:onlineLoadParticipants.total});
    });
@@ -7709,22 +7726,60 @@ var onlineServerPhase='CONNECTING',onlineClientSceneReady=false,onlineLoadPartic
 // Server input/ticks own charge; this state is for 3D first-person pose only.
 var onlineGrenadeHolding=false,onlineGrenadeCancelUntilRelease=false,
     onlineGrenadeHoldAt=0,onlineGrenadeServerCharge=null;
+var onlineGrenadeDetachedPin=null,onlineGrenadePinDetached=false,
+    onlineGrenadePinFxAt=0,onlineGrenadePinPoseUntil=0;
+function onlineGrenadeRestorePin(){
+ var weapon=guns?.[5],pin=weapon?.userData?.grenadePin,lever=weapon?.userData?.grenadeLever;
+ if(weapon&&onlineGrenadeDetachedPin)weapon.remove(onlineGrenadeDetachedPin);
+ onlineGrenadeDetachedPin=null;onlineGrenadePinDetached=false;onlineGrenadePinPoseUntil=0;
+ if(pin&&weapon.userData.grenadePinHome){
+  pin.visible=true;
+  pin.position.copy(weapon.userData.grenadePinHome.position);
+  pin.rotation.copy(weapon.userData.grenadePinHome.rotation);
+ }
+ if(lever&&weapon.userData.grenadeLeverHome)
+  lever.rotation.copy(weapon.userData.grenadeLeverHome.rotation);
+}
 function onlineGrenadeCancelPrime(){
  if(!onlineActive)return;
  if(onlineGrenadeHolding){
   onlineGrenadeHolding=false;onlineGrenadeCancelUntilRelease=true;
  }
+ onlineGrenadeRestorePin();
  pl.thr=0;onlineGrenadeServerCharge=null;
 }
 function onlineGrenadeHandPose(){
  if(!onlineActive)return;
- var weapon=guns?.[5],pin=weapon?.userData?.grenadePin,lever=weapon?.userData?.grenadeLever;
- if(!pin||!lever)return;
- var phase=onlineGrenadeHolding?
-  Math.min(1,Math.max(0,(performance.now()-onlineGrenadeHoldAt)/300)):0;
- pin.position.x=phase*.12;
- pin.rotation.z=-phase*.35;
- lever.rotation.x=phase*.65;
+ var weapon=guns?.[5],pin=weapon?.userData?.grenadePin,lever=weapon?.userData?.grenadeLever,
+     home=weapon?.userData?.grenadePinHome,leverHome=weapon?.userData?.grenadeLeverHome;
+ if(!pin||!lever||!home||!leverHome)return;
+ var now=performance.now(),holding=onlineGrenadeHolding&&pl.w===5&&!pl.dead,
+     releasing=!holding&&pl.w===5&&!pl.dead&&now<onlineGrenadePinPoseUntil;
+ if(!holding&&!releasing){
+  if(onlineGrenadePinDetached||onlineGrenadePinPoseUntil)onlineGrenadeRestorePin();
+  return;
+ }
+ var phase=holding?Math.min(1,Math.max(0,(now-onlineGrenadeHoldAt)/300)):1;
+ pin.position.copy(home.position);pin.position.x+=phase*.12;
+ pin.rotation.copy(home.rotation);pin.rotation.z-=phase*.35;
+ lever.rotation.copy(leverHome.rotation);lever.rotation.x+=phase*.65;
+ // Detach a clone of the canonical Three.js pin. This is cosmetic only:
+ // it cannot create a server grenade, consume ammo or apply damage.
+ if(phase>=.9&&!onlineGrenadePinDetached){
+  onlineGrenadeDetachedPin=pin.clone();
+  weapon.add(onlineGrenadeDetachedPin);
+  onlineGrenadePinFxAt=now;onlineGrenadePinDetached=true;
+ }
+ pin.visible=!onlineGrenadePinDetached;
+ if(onlineGrenadeDetachedPin){
+  var t=Math.max(0,(now-onlineGrenadePinFxAt)/1000);
+  onlineGrenadeDetachedPin.position.copy(home.position);
+  onlineGrenadeDetachedPin.position.x+=.14+t*.38;
+  onlineGrenadeDetachedPin.position.y-=t*.26+t*t*1.4;
+  onlineGrenadeDetachedPin.rotation.copy(home.rotation);
+  onlineGrenadeDetachedPin.rotation.z-=t*6;
+  if(t>.85){weapon.remove(onlineGrenadeDetachedPin);onlineGrenadeDetachedPin=null;}
+ }
 }
 function onlineGrenadeChargeUI(){
  var indicator=document.getElementById('grenadeChargeHud');
@@ -7744,7 +7799,7 @@ var onlineTeamNotice=null,onlineInputId=0,onlineVisualLoaded=false;
 var onlineReconnectTimer=0,onlineReconnectStarted=0,onlineReconnecting=false;
 var onlineAimInitialized=false,onlineTrainingProgressValue=null,onlinePrevAlive=true;
 var onlineSelfTarget=null,onlineLastWinner=undefined,onlineMuzzleTime=0;
-var onlinePendingMatchCompleted=null,onlineResultsDisplayed=false;
+var onlinePendingMatchCompleted=null,onlineResultsDisplayed=false,onlineReturnToRoomBusy=false;
 var onlineResultFallbackTimer=null;
 var onlineRewardMatchId=null,onlineRewardTimer=null,onlineRewardChecking=false;
 var onlineStallChecking=false,onlineLastStallCheckAt=0;
@@ -8115,7 +8170,7 @@ function onlineGrenadeThrow(frame){
  if(grs.filter(function(g){return g.serverVisual}).length>=24)return;
  grs.push({m:mkGren(),serverVisual:true,grenadeId:frame.grenadeId,
   x:frame.x,y:frame.y,z:frame.z,vx:frame.vx,vy:frame.vy,vz:frame.vz,t:frame.fuse});
- if(frame.actorId===onlineUserId()){pl.ghide=.65;onlineGrenadeServerCharge=null;}
+ if(frame.actorId===onlineUserId()){pl.ghide=.65;onlineGrenadeServerCharge=null;onlineGrenadeRestorePin();}
 }
 // Reuse offline explosion particles, scorch and smoke, but absolutely NOT the
 // offline boom() damage or kill calculation. The point comes from the BE.
@@ -8421,6 +8476,12 @@ function onlineLiveRoomDecorate(room) {
  var me=onlineOwnMember();
 
  var mine=onlineIsMaster();
+ var masterMember=room.members.find(m=>m.playerId===room.ownerId);
+ var masterName=masterMember?.username||'UNKNOWN PLAYER';
+ document.getElementById('rmlRoomMasterName').textContent=masterName+(mine?' (YOU) ★':' ★');
+ document.getElementById('rmlRoomMasterHint').textContent=
+   mine?'YOU ARE THE ROOM MASTER':'ROOM MASTER · '+masterName;
+ roomText('roomPanelSub',mine?'YOU ARE ROOM MASTER':'ROOM MASTER · '+masterName);
  document.getElementById('roomMasterActions').hidden=!mine;
  document.getElementById('roomMasterStatus').hidden=!mine;
  var startControl=document.getElementById('rmlStart');
@@ -8566,7 +8627,7 @@ function onlineResetLive(){
  document.getElementById('dv').classList.remove('online-results');
  pl.kb='';pl.rsT=0;pl.rt=0;pl.dt=0;pl.ghide=0;
  onlineGrenadeHolding=false;onlineGrenadeCancelUntilRelease=false;
- onlineGrenadeServerCharge=null;onlineGrenadeChargeUI();
+ onlineGrenadeServerCharge=null;onlineGrenadeRestorePin();onlineGrenadeChargeUI();
  if(pl.bloodPool){bloodPoolRemove(pl.bloodPool);pl.bloodPool=null;}
  document.body.classList.remove('dead','bomb-spectator');
  for(const item of onlineActors.values()){if(item.model?.g)S.remove(item.model.g)}
@@ -8678,19 +8739,37 @@ async function onlineMasterStart(){
  }catch(error){onlineWarn(error)}
  finally{startControl.disabled=false}
 }
+// Percentage counts only verified milestones, not fake elapsed-time loading.
+function onlineRenderVerifiedReadiness(){
+ if(!onlineActive||onlineTraining||!roomStartFlow.active)return;
+ var flow=roomStartFlow,total=onlineLoadParticipants.total,
+     known=Number.isSafeInteger(total)&&total>0&&total<=10;
+ var ready=known?Math.max(0,Math.min(total,onlineLoadParticipants.ready)):0;
+ var socketReady=!!onlineApi?.state().connected;
+ var finished=(socketReady?1:0)+(flow.mapReady?1:0)+(onlineClientSceneReady?1:0)+
+   ready+(onlineServerPhase==='LIVE'?1:0);
+ // The denominator is the observable protocol milestones plus each human.
+ var percent=known?Math.floor(100*finished/(total+4)):0;
+ if(onlineServerPhase!=='LIVE')percent=Math.min(percent,99);
+ var label=onlineServerPhase==='LIVE'?'SERVER AUTHORIZED · DEPLOYING':
+   onlineServerPhase==='COUNTDOWN'?'ALL PLAYERS CONNECTED · MATCH STARTING':
+   onlineClientSceneReady?'WAITING FOR ALL PLAYERS':'CONNECTING TO SERVER';
+ roomStartMark(percent,label);
+ document.getElementById('roomStartDetail').textContent=known?
+   ready+' / '+total+' PLAYERS VERIFIED BY SERVER':
+   'WAITING FOR SERVER PLAYER STATUS';
+}
 function onlineMatchLoadingStatus(frame){
  if(!onlineActive||!frame||frame.matchId!==onlineMatchId)return;
  if(!['CONNECTING','COUNTDOWN','LIVE'].includes(frame.phase))return;
  onlineServerPhase=frame.phase;
- onlineLoadParticipants={ready:Number.isSafeInteger(frame.ready)?frame.ready:0,
-  total:Number.isSafeInteger(frame.total)?frame.total:0};
+ // match_live omits the counts; do not overwrite authenticated loading totals.
+ onlineLoadParticipants={ready:Number.isSafeInteger(frame.ready)?frame.ready:onlineLoadParticipants.ready,
+  total:Number.isSafeInteger(frame.total)?frame.total:onlineLoadParticipants.total};
+ onlineRenderVerifiedReadiness();
  var flow=roomStartFlow;
- if(!flow.active||flow.phase!=='server-wait')return;
- var total=Math.max(1,onlineLoadParticipants.total),ready=Math.min(total,onlineLoadParticipants.ready);
- if(frame.phase==='CONNECTING')roomStartMark(65+Math.floor(28*ready/total),
-  'CONNECTING TO SERVER · '+ready+'/'+total+' PLAYERS READY');
- else if(frame.phase==='COUNTDOWN')roomStartMark(96,'ALL PLAYERS CONNECTED · MATCH STARTING');
- else onlineCompleteServerLoading(flow.token);
+ if(flow.active&&flow.phase==='server-wait'&&frame.phase==='LIVE')
+  onlineCompleteServerLoading(flow.token);
 }
 function onlineCompleteServerLoading(token){
  var flow=roomStartFlow;
@@ -8699,6 +8778,7 @@ function onlineCompleteServerLoading(token){
  flow.phase='preparing';
  flow.loadoutSeconds=0; // No second loadout lock after the server GO signal.
  roomStartMark(100,'DEPLOYMENT COMPLETE');
+ document.getElementById('roomStartDetail').textContent='LIVE MATCH AUTHORIZED BY SERVER';
  roomStartReveal(token);
 }
 function onlineBeginTransition(room){
@@ -9423,10 +9503,14 @@ function onlineVisualUpdate(dt){
  if(pl.w===5){
   var canPrime=wantsFire&&!onlineGrenadeCancelUntilRelease&&pl.mag>0&&pl.rl<=0;
   if(canPrime&&!onlineGrenadeHolding){
+   onlineGrenadeRestorePin();
    onlineGrenadeHolding=true;onlineGrenadeHoldAt=now;pl.thr=0;
   }else if(!canPrime&&onlineGrenadeHolding){
    onlineGrenadeHolding=false;
-   if(!onlineGrenadeCancelUntilRelease)pl.thr=.5;
+   if(!onlineGrenadeCancelUntilRelease&&!wantsFire){
+    onlineGrenadePinPoseUntil=now+850;
+    pl.thr=.5;
+   }else onlineGrenadeRestorePin();
   }
  }
  if(!wantsFire)onlineGrenadeCancelUntilRelease=false;
@@ -9553,17 +9637,51 @@ onlineAction('lbst',onlineStartGate);
 onlineAction('mdm',onlineStartGate);
 onlineAction('tsP',onlineStartGate);
 onlineAction('tsT',onlineStartGate);
+// EXIT GAME is an authenticated room rejoin, never a room leave or rematch.
+// The existing deployment cover stays visible until the actual DB membership
+// and OPEN room state have been confirmed by the backend.
+async function onlineExitResultsToRoom(){
+ if(onlineReturnToRoomBusy)return;
+ onlineReturnToRoomBusy=true;
+ var expectedRoomId=roomCurrent?.id,overlay=document.getElementById('roomTransition');
+ roomStartCaptureMap(); // Reuse the current real Three.js map frame.
+ roomStartMark(0,'CONNECTING TO SERVER');
+ document.getElementById('roomStartDetail').textContent='VERIFYING YOUR ROOM MEMBERSHIP';
+ overlay.hidden=false;overlay.classList.remove('leaving');overlay.classList.add('on');
+ try{
+  if(!expectedRoomId)throw Error('ROOM_MEMBERSHIP_NOT_FOUND');
+  var restored=await onlineRecoverMembership();
+  if(!restored||restored.id!==expectedRoomId||restored.status!=='OPEN')
+   throw Error('ROOM_RESTORE_UNAVAILABLE');
+  roomStartMark(100,'ROOM CONNECTION VERIFIED');
+  document.getElementById('roomStartDetail').textContent='ROOM MASTER AND PLAYERS SYNCED WITH SERVER';
+  // The bar reaches 100 ONLY after authenticated membership recovery.
+  onlineResultsDisplayed=false;onlineRewardStop();
+  var reward=document.getElementById('verifiedReward');if(reward)reward.hidden=true;
+  document.getElementById('dmn').hidden=false;
+  matchExitToLobby('room');
+  onlineLiveRoomDecorate(restored);
+  overlay.classList.add('leaving');
+  // Visual fade only, not a fabricated loading countdown.
+  await new Promise(resolve=>setTimeout(resolve,550));
+ }catch(error){
+  onlineWarn(error);
+  if(!roomCurrent){
+   // Membership may have been revoked; never render a stale Room Master.
+   onlineResultsDisplayed=false;onlineRewardStop();
+   matchExitToLobby('list');
+  }
+ }finally{
+  overlay.classList.remove('on','leaving');overlay.hidden=true;
+  onlineReturnToRoomBusy=false;
+ }
+}
 onlineAction('dgo',async()=>{
  if(!onlineResultsDisplayed){again();return;}
- onlineResultsDisplayed=false;onlineRewardStop();
- var reward=document.getElementById('verifiedReward');if(reward)reward.hidden=true;
- document.getElementById('dmn').hidden=false;
- matchExitToLobby('room');
- // This is intentionally NOT /leave, /match/leave, or /start.
- // The same existing Room Master and players remain in their room.
- if(roomCurrent)await onlineRecoverMembership().catch(onlineWarn);
+ await onlineExitResultsToRoom();
 });
 onlineAction('dmn',()=>{
+ if(onlineResultsDisplayed){void onlineExitResultsToRoom();return;}
  onlineResultsDisplayed=false;onlineRewardStop();
  var reward=document.getElementById('verifiedReward');if(reward)reward.hidden=true;
  document.getElementById('dmn').hidden=false;
