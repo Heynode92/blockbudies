@@ -1,3 +1,11 @@
+## 2026-11-04 — Correct authoritative multiplayer presentation and exit loading
+- Render Room Master name/role from the current backend ownerId (including after succession, rejoin and poll); never show permanent YOU ★ for non-masters.
+- Move map deployment progress to a bottom screen rail and compute online readiness from actual authenticated WS, map/scene initialization, server-acknowledged humans and LIVE. No timer-driven false percentage and no BOT head start.
+- On verified Results EXIT GAME, show the existing map cover until GET current room confirms authenticated OPEN membership, then return to the same room without leaving or restarting the match. Failure remains visible for retry.
+- Animate an actual detached clone of the canonical grenade pin and rotate the lever on hold/release; reset when switching weapons, canceling or leaving a match, without creating client-trusted damage or ammo.
+- Preserve opposite-edge Block District/Block Labs spawns, two-second server spawn shield, existing offline BOT M0–M7, and all economy/game balance.
+- Regenerate assets/game.js from original source-ordered module contents, checked against baseline bundle and parsed for JavaScript syntax. No production deployment or new migration.
+
 ## 2026-11-04 — Preserve standalone offline loading and style verified grenade charge
 - Use guarded onlineActive access in shared Room Lobby loader so offline-only execution remains valid and the existing timing regression harness passes without injecting an online runtime.
 - Add PointBlock-themed private server throw-power meter CSS; only displayed while a genuine authenticated grenade hold is active.
