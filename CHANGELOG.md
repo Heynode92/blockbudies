@@ -1,3 +1,7 @@
+## 2026-11-03 — Update canonical parity guard for Room Browser CSS
+- The project now has 18 ordered stylesheets, including the dedicated Room Browser redesign. Update legacy parity count to match the manifest; keep exact ordered links and source tests unchanged.
+- Test-only change.
+
 ## 2026-11-03 — Register redesign stylesheet in canonical Vite CSS manifest
 - Add the Room Browser visual stylesheet as the final stylesheet in `tools/source-manifest.json` and assert exact blocking-link order in Vite integration tests.
 - Fix the isolated lobby header regression to select the matching header closing tag, not an earlier unrelated HUD header in the document.

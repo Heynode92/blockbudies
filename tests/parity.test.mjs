@@ -35,7 +35,7 @@ test('Vite index loads manifest styles but not obsolete CDN/game scripts',()=>{
   assert.ok(index.includes('type="module" src="./src/main.js"'));
   assert.ok(!index.includes('src="./assets/game.js"'));
   assert.ok(!index.includes('cdnjs.cloudflare.com/ajax/libs/three.js'));
-  assert.equal(m.styles.length,17);
+  assert.equal(m.styles.length,18);
   assert.ok(css.includes('#bombStatus'));
   assert.equal(new Set(m.styles).size,m.styles.length);
   assert.equal(new Set(m.parts).size,m.parts.length);
