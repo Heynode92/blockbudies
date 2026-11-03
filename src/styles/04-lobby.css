@@ -475,7 +475,7 @@ body.lobby #gl{filter:brightness(.55) saturate(.8)}
 #lbroomlive .rml-slot-name{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:clamp(11px,.91vw,16px)}
 #lbroomlive .rml-slot .rml-seat-state{flex:0 0 auto;margin:0;white-space:nowrap;font:900 clamp(9px,.65vw,11px)/1.1 Rajdhani,sans-serif}
 #lbroomlive .rml-log-line::before{content:"[ROOM] "}
-@media(max-width:1200px){#lbroomlive .rml-team-grid{grid-template-columns:minmax(0,1fr)}#lbroomlive .rml-team{min-height:250px}}
+@media(max-width:1130px){#lbroomlive .rml-team-grid{grid-template-columns:minmax(0,1fr)}#lbroomlive .rml-team{min-height:250px}}
 @media(max-width:680px){#lbroomlive .rml-team{min-height:215px}}
 
 #lbroomlive .rml-rank-3d{display:block;flex:0 0 30px;width:30px;height:36px;object-fit:contain;filter:drop-shadow(0 2px 4px #000a)}

@@ -1,3 +1,6 @@
+## 2026-11-03 — Align roster stacking with parent room grid breakpoints
+- Team roster panels stack only when the parent room layout also switches to auto-height rows (1130px), preventing two five-slot teams from overflowing a fixed-height desktop track between 1131px and 1200px.
+
 ## 2026-11-03 — Remove remaining user-facing local labels
 - Clean up room-browser accessibility names, legacy fallback room creation notice and optional network QA panel wording. Internal storage keys and offline-compatibility engine identifiers remain unchanged to preserve existing data and gameplay.
 
