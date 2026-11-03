@@ -991,6 +991,10 @@ async function onlineStartTraining(){
  }catch(error){onlineResetLive();onlineWarn(error)}
 }
 async function onlineStartGate(){
+ if(!onlineApi?.state().authenticated){
+  if(typeof homeAuthGateOpen==='function')homeAuthGateOpen('match');
+  return;
+ }
  if(!onlineAuth())return;
  try{
   var info=await onlineApi.refreshProfile();
@@ -1286,6 +1290,8 @@ if(onlineApi)onlineApi.setOnChange(function(state){
  var wasLogout=onlineWasAuthenticated&&!state.authenticated;
  onlineWasAuthenticated=state.authenticated;
  if(wasLogout){
+  // Drop all cached weapons before returning to a public panel.
+  inventoryLoad();
   var hadLiveGame=onlineActive;
   onlineResetLive();
   if(hadLiveGame&&(run||!lob))matchExitToLobby('list');

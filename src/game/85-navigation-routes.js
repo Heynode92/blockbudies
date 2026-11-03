@@ -50,9 +50,13 @@ function appRouteRestore(){
  }
  var panel=appRouteRead();
  var state=typeof onlineApi!=='undefined'&&onlineApi?.state?.();
- if(panel!=='lbs'&&(!state?.authenticated||!state.registered)){
-  // Invalid/unregistered sessions can never enter lobby, room, inventory or shop.
+ if(panel!=='lbs'&&panel!=='lbshop'&&(!state?.authenticated||!state.registered)){
+  // Home and Shop are public. Match/lobby and Inventory require verified SIWE
+  // and a registered player. A directly opened private URL is never a bypass.
+  var requested=panel;
   appRouteUpdate('lbs',true);panel='lbs';
+  if(requested==='lbiv'&&typeof homeAuthGateOpen==='function')
+   setTimeout(function(){homeAuthGateOpen('inventory');},0);
  }
  appRouteBooting=true;
  try{

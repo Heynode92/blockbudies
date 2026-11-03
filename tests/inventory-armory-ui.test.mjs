@@ -7,8 +7,9 @@ import {fileURLToPath} from 'node:url';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const read=p=>readFileSync(resolve(root,p),'utf8').replace(/\r\n/g,'\n');
 const inv=read('src/game/89-inventory.js'),css=read('src/styles/12-inventory-armory.css'),html=read('index.html');
-test('all nine primary weapons appear while Shop retains ownership authority',()=>{
- assert.match(inv,/inventoryTab==="main"\?inventoryCatalogMain\(\):inventoryOwned\(inventoryTab\)/);
+test('inventory displays ONLY BE-owned weapons while Shop retains the full catalog',()=>{
+ assert.match(inv,/var ids=inventoryOwned\(inventoryTab\)/);
+ assert.match(inv,/if\(!c\|\|!inventoryServerLoaded\)return \[\]/);
  assert.match(inv,/var locked=owned\.indexOf\(id\)<0/);
  assert.match(inv,/locked\?"LOCKED":id===equipped\?"IN USE":""/);
  assert.match(inv,/if\(lockedSelection\)\{if\(typeof shopOpen==="function"\)shopOpen\(\);return;\}/);
@@ -22,9 +23,9 @@ test('class filters operate on natural catalog order',()=>{
   n:data[i]?.[0]||'Unknown',stats:{kind:data[i]?.[1],damage:data[i]?.[2]||0}})),
   inventoryCatalogMain(){return[1,2,3,6,8,9,10,11,12];},inventoryOwned(){return[9,1];}};
  runInNewContext(inv.slice(start,end),ctx);
- assert.equal(ctx.inventoryViewIds().length,9);
- ctx.inventoryClass='smg';assert.deepEqual(Array.from(ctx.inventoryViewIds()),[6,10,11]);
- ctx.inventoryClass='all';assert.deepEqual(Array.from(ctx.inventoryViewIds()),[1,2,3,6,8,9,10,11,12]);
+ assert.equal(ctx.inventoryViewIds().length,2);
+ ctx.inventoryClass='smg';assert.deepEqual(Array.from(ctx.inventoryViewIds()),[]);
+ ctx.inventoryClass='all';assert.deepEqual(Array.from(ctx.inventoryViewIds()),[9,1]);
 });
 test('approved three-column layout, live thumbnails and status controls are wired',()=>{
  for(const id of ['ivpreview','ivdetailthumb','ivdetailname','ivdetailclass','ivstats','ivclasses'])

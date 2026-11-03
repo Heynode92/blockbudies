@@ -39,11 +39,12 @@ function inventoryWeaponDescription(id){
 }
 var inventoryTab="main",inventoryPick={},inventoryScroll={},inventoryState={equipped:{},unlockedMain:[]};
 var inventoryServerOwned=new Set(),inventoryServerLoaded=false;
+var inventoryFetchEpoch=0,inventoryViewEpoch=0;
 // Inventory filters are visual-only. Shop ownership and equipped weapons remain authoritative.
 var inventoryClass="all";
 var INVENTORY_CLASSES=[["all","ALL"],["rifle","ASSAULT"],["smg","SMG"],["sniper","SNIPER"],["shotgun","SHOTGUN"],["rocket","LAUNCHER"]];
 function inventoryViewIds(){
- var ids=inventoryTab==="main"?inventoryCatalogMain():inventoryOwned(inventoryTab);
+ var ids=inventoryOwned(inventoryTab);
  if(inventoryTab!=="main")return ids;
  if(inventoryClass!=="all")ids=ids.filter(function(id){return WP[id].stats.kind===inventoryClass;});
  return ids;
@@ -58,14 +59,17 @@ function inventoryCatalogMain(){
   return WP.reduce(function(ids,w,id){if(kinds.indexOf(w.stats.kind)>=0)ids.push(id);return ids;},[]);
 }
 function inventoryOwned(cat){
- var c=INVENTORY_TABS.filter(function(t){return t.key===cat;})[0],ids=[];
- if(!c)return ids;
- if(INVENTORY_GEAR[cat])return INVENTORY_GEAR[cat].map(function(gear){return gear.id;});
+ var c=INVENTORY_TABS.filter(function(t){return t.key===cat;})[0];
+ if(!c||!inventoryServerLoaded)return [];
+ if(INVENTORY_GEAR[cat])
+  return INVENTORY_GEAR[cat].filter(function(gear){return gear.id===inventoryState.equipped[cat];}).map(function(gear){return gear.id;});
  if(cat==="main"){
    return inventoryCatalogMain().filter(function(id){return inventoryServerOwned.has(id);});
  }
- WP.forEach(function(w,id){if(c.kinds.indexOf(w.stats.kind)>=0)ids.push(id);});
- return ids;
+ // Fixed sidearm, melee and grenade slots are provided by the authenticated
+ // backend loadout. Nothing appears without an explicit server entitlement.
+ var id=inventoryState.equipped[cat];
+ return Number.isInteger(id)&&WP[id]&&c.kinds.includes(WP[id].stats.kind)?[id]:[];
 }
 // No localStore ownership, including historic free unlock saves.
 function inventorySave(){return false;}
@@ -78,23 +82,39 @@ function inventoryLoad(){
  inventoryState.unlockedMain=[];
  inventoryState.equipped={main:9,secondary:0,mele:4,explosive:5,helm:"standard_helmet"};
  inventoryServerOwned.clear();inventoryServerLoaded=false;
+ inventoryFetchEpoch++;inventoryViewEpoch++;
  favPrim=9;refreshWeaponSelection();
 }
 async function onlineLoadInventory(){
- if(typeof PB_ONLINE==="undefined"||!PB_ONLINE.state().registered){
+ var state=typeof PB_ONLINE!=='undefined'?PB_ONLINE.state():null;
+ if(!state?.authenticated||!state.registered||typeof state.player?.id!=='string'){
   inventoryServerOwned.clear();inventoryServerLoaded=false;return false;
  }
+ var account=state.player.id,requestEpoch=++inventoryFetchEpoch;
  var results=await Promise.all([PB_ONLINE.inventory(),PB_ONLINE.loadout()]);
+ // A slow response from a previously signed-out wallet must never populate
+ // the next account's Inventory or its equip state.
+ if(requestEpoch!==inventoryFetchEpoch||PB_ONLINE.state().player?.id!==account||
+    !PB_ONLINE.state().authenticated)throw Error('INVENTORY_SESSION_CHANGED');
  var items=results[0],loadout=results[1];
  if(!Array.isArray(items?.owned)||!Number.isInteger(loadout?.equipped?.main))
   throw Error("INVALID_BACKEND_INVENTORY");
  var list=items.owned.map(function(item){return item.weaponId;});
  if(list.some(function(id){return !Number.isInteger(id)||id<0||id>=WP.length;}))
   throw Error("INVALID_BACKEND_WEAPON_IDS");
- var owned=new Set(list),main=loadout.equipped.main;
+ var owned=new Set(list),equipped=loadout.equipped,main=equipped.main;
  if(!owned.has(main))throw Error("LOADOUT_NOT_OWNED");
+ for(var slot of ['secondary','mele','explosive']){
+  var tab=INVENTORY_TABS.find(function(c){return c.key===slot});
+  var id=equipped[slot];
+  if(!Number.isInteger(id)||!WP[id]||!tab.kinds.includes(WP[id].stats.kind))
+   throw Error('INVALID_SERVER_FIXED_LOADOUT');
+ }
+ if(typeof equipped.helm!=='string'||!inventoryGear(equipped.helm))
+  throw Error('INVALID_SERVER_HELMET_LOADOUT');
  inventoryServerOwned=owned;
- inventoryState.equipped={main:main,secondary:0,mele:4,explosive:5,helm:"standard_helmet"};
+ inventoryState.equipped={main:main,secondary:equipped.secondary,mele:equipped.mele,
+   explosive:equipped.explosive,helm:equipped.helm};
  favPrim=main;inventoryServerLoaded=true;
  refreshWeaponSelection();
  if(document.getElementById("lbiv").classList.contains("on"))inventoryRender();
@@ -442,11 +462,34 @@ function inventoryRender(){
  inventoryShowModel(selected);
 }
 function inventoryOpen(){
- if(typeof PB_ONLINE!=="undefined"&&PB_ONLINE.state().registered)
-  void onlineLoadInventory().catch(function(error){if(typeof toast==="function")toast(error.code||"INVENTORY UNAVAILABLE");});
- inventoryTab="main";inventoryClass="all";
- inventoryAngle=.14;lobP("lbiv");
- inventoryPreviewMount("ivpreview");inventoryPreviewSetSide(0);inventoryBuildThumbnails();inventoryRender();inventoryStartPreview();
+ var state=typeof PB_ONLINE!=='undefined'?PB_ONLINE.state():null;
+ if(!state?.authenticated||!state.registered){
+  if(typeof homeAuthGateOpen==='function')homeAuthGateOpen('inventory');
+  return;
+ }
+ var account=state.player?.id,visit=++inventoryViewEpoch;
+ if(typeof account!=='string')return;
+ inventoryTab="main";inventoryClass="all";inventoryAngle=.14;
+ // Preserve the authenticated /inventory route during async fetching, but do
+ // not paint old ownership or any catalog weapon before the BE has answered.
+ inventoryServerLoaded=false;
+ lobP("lbiv");
+ var cards=document.getElementById("ivcards");
+ cards.textContent='';
+ var message=document.createElement('div');message.className='ivempty ivempty-gear';
+ message.textContent='VERIFYING OWNED WEAPONS…';cards.appendChild(message);
+ void onlineLoadInventory().then(function(ready){
+  if(!ready||visit!==inventoryViewEpoch||PB_ONLINE.state().player?.id!==account||
+     !document.getElementById('lbiv').classList.contains('on'))return;
+  inventoryPreviewMount("ivpreview");inventoryPreviewSetSide(0);
+  inventoryBuildThumbnails();inventoryRender();inventoryStartPreview();
+ }).catch(function(error){
+  if(visit!==inventoryViewEpoch||!document.getElementById('lbiv').classList.contains('on'))return;
+  cards.textContent='';
+  var failure=document.createElement('div');failure.className='ivempty ivempty-gear';
+  failure.textContent='INVENTORY UNAVAILABLE · '+String(error?.code||error?.message||'SERVER_ERROR').slice(0,64);
+  cards.appendChild(failure);
+ });
 }
 inventoryLoad();
 document.getElementById("ivcards").addEventListener("scroll",function(){

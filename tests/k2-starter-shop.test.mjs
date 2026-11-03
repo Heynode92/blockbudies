@@ -54,15 +54,15 @@ test("K2 is id 9 with exact user stats, own real model and rifle tuning",()=>{
  assert.match(read("src/game/weapon/10-k2.js"),/receiver/);
  assert.match(controls,/9:'<svg/);
 });
-test("Unverified browser owns no primary; fixed sidearm, knife and utility remain",()=>{
+test("Unverified browser cannot display even fixed loadout before server verification",()=>{
  const {ctx}=state();
  assert.deepEqual(Array.from(ctx.inventoryOwned("main")),[]);
  assert.equal(ctx.inventoryEquipped("main"),null);
  assert.equal(ctx.favPrim,9,"starter visual fallback is not an owned asset");
- assert.deepEqual(Array.from(ctx.inventoryOwned("secondary")),[0]);
- assert.deepEqual(Array.from(ctx.inventoryOwned("mele")),[4]);
- assert.deepEqual(Array.from(ctx.inventoryOwned("explosive")),[5]);
- assert.deepEqual(Array.from(ctx.inventoryOwned("helm")),["standard_helmet"]);
+ assert.deepEqual(Array.from(ctx.inventoryOwned("secondary")),[]);
+ assert.deepEqual(Array.from(ctx.inventoryOwned("mele")),[]);
+ assert.deepEqual(Array.from(ctx.inventoryOwned("explosive")),[]);
+ assert.deepEqual(Array.from(ctx.inventoryOwned("helm")),[]);
 });
 test("Old browser storage cannot grant equipment or change backend ownership",()=>{
  const {ctx}=state({equipped:{main:6,secondary:0,mele:4,explosive:5},unlockedMain:[1,6,8]});
@@ -77,13 +77,16 @@ test("Verified server inventory and committed loadout replace all free local unl
  let saves=0;
  ctx.document={getElementById:()=>({classList:{contains:()=>false}})};
  ctx.PB_ONLINE={
-  state:()=>({registered:true}),
+  state:()=>({authenticated:true,registered:true,player:{id:'user-a'}}),
   inventory:async()=>({owned:[{weaponId:9},{weaponId:6}]}),
-  loadout:async()=>({equipped:{main:9}}),
+  loadout:async()=>({equipped:{main:9,secondary:0,mele:4,explosive:5,helm:'standard_helmet'}}),
   saveLoadout:async id=>{saves++;return {equipped:{main:id}};}
  };
  assert.equal(await ctx.onlineLoadInventory(),true);
  assert.deepEqual(Array.from(ctx.inventoryOwned("main")),[6,9]);
+ assert.deepEqual(Array.from(ctx.inventoryOwned("secondary")),[0]);
+ assert.deepEqual(Array.from(ctx.inventoryOwned("mele")),[4]);
+ assert.deepEqual(Array.from(ctx.inventoryOwned("explosive")),[5]);
  assert.equal(ctx.inventoryEquipped("main"),9);
  assert.equal(ctx.inventoryClaimPrimary(6),false);
  assert.equal(ctx.inventoryEquip("main",6),true);

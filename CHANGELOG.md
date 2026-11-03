@@ -1,3 +1,9 @@
+## 2026-11-03 — Inventory displays only wallet-owned server-verified gear; no public Shop gate
+- Filter MAIN inventory by official `/v1/me/inventory` ownership rather than the catalog. Secondary, melee, grenade and helmet slots are read from authenticated `/v1/me/loadout`, never displayed from defaults before verification.
+- Block unauthenticated or unregistered Inventory entry with the existing new PointBlock-themed wallet dialog, including Home shortcuts and direct /inventory routes. Authenticated loading shows only a safe loading state, never stale assets; wallet changes discard old ownership.
+- Home START opens the same SIWE popup before training/match entry. Shop remains publicly navigable; online purchases remain server authenticated.
+- Add owner-only, route and session-switch regressions; offline weapons, damage and game mechanics unchanged.
+
 ## 2026-11-03 — Show live vPBT and server rank/EXP in shared lobby header; themed SIWE gate
 - Add a separate verified vPBT balance beside the unchanged future PBT placeholder, and display registered callsign, official rank and current/required EXP with policy-supplied next-rank threshold on Home and room headers.
 - Preserve half-unit precision using BigInt-only formatting and show a placeholder until authenticated server data exists; do not invent token balances, rank points or credentials.
