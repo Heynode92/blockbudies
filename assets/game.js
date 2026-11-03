@@ -7143,6 +7143,7 @@ var onlineTeamNotice=null,onlineInputId=0,onlineVisualLoaded=false;
 var onlineReconnectTimer=0,onlineReconnectStarted=0,onlineReconnecting=false;
 var onlineAimInitialized=false,onlineTrainingProgressValue=null,onlinePrevAlive=true;
 var onlineSelfTarget=null,onlineLastWinner=undefined,onlineMuzzleTime=0;
+var onlinePendingMatchCompleted=null;
 var onlinePendingWeapon=null,onlinePendingWeaponAt=0,onlineHitMarker=null,onlineHitUntil=0;
 var onlineShotTracers=[];
 var onlineScoreboard=new Map();
@@ -7677,6 +7678,7 @@ function onlineStartRoomPoll() {
  },2300);
 }
 function onlineResetLive(){
+ onlinePendingMatchCompleted=null;
  onlineCombatQa={fireInputs:0,confirmedShots:0,confirmedHits:0,wallImpacts:0,damageTaken:0,lastEvent:'NONE'};
  onlineActive=false;onlineTraining=false;onlineCurrentId=null;onlineMatchId=null;
  onlineWorld=null;onlineGame=null;
@@ -7797,6 +7799,16 @@ function onlineBeginTransition(room){
 function onlineUserId(){
  return onlineTraining?onlineMeId:onlineApi?.state().player?.id;
 }
+// Match settlement is BE-owned. UI transition waits only for an existing,
+// server-confirmed corpse to finish the ORIGINAL offline ragdoll lifetime.
+function onlineFinalizeCompletedMatch(frame){
+ var result=frame.game,matchId=frame.matchId,winner=onlineLastWinner,mode=roomCurrent?.mode??selM;
+ mt.over=true;onlineGame=result;onlineResetLive();
+ if(roomCurrent)roomCurrent={...roomCurrent,status:'OPEN'};
+ matchExitToLobby(roomCurrent?'room':'list');
+ if(roomCurrent)void onlineRecoverMembership().catch(onlineWarn);
+ onlineShowMatchReport(result,matchId,winner,mode);
+}
 function onlineReceiveFrame(frame){
  if(frame.type==='lobby_snapshot'){
   if(roomCurrent&&frame.roomId===roomCurrent.id)void onlineApi.getRoom(roomCurrent.id)
@@ -7894,13 +7906,11 @@ function onlineReceiveFrame(frame){
   return;
  }
  if(frame.type==='match_completed'){
-  var result=frame.game,matchId=frame.matchId,winner=onlineLastWinner,mode=roomCurrent?.mode??selM;
-  mt.over=true;onlineGame=result;onlineResetLive();
-  // BE has already reopened the same room and retained all participants.
-  if(roomCurrent)roomCurrent={...roomCurrent,status:'OPEN'};
-  matchExitToLobby(roomCurrent?'room':'list');
-  if(roomCurrent)void onlineRecoverMembership().catch(onlineWarn);
-  onlineShowMatchReport(result,matchId,winner,mode);
+  if(onlineActive&&dead.length>0){
+   // Finish ragdolls created by confirmed KILL events before opening results.
+   // No client-side settlement, damage, or new timers are involved.
+   onlinePendingMatchCompleted=frame;
+  }else onlineFinalizeCompletedMatch(frame);
   return;
  }
  if(frame.type==='training_result'){
@@ -8039,7 +8049,7 @@ function onlineApplyWorld(){
  }
  if(Array.isArray(game.teamKills)){ts[0]=game.teamKills[0];ts[1]=game.teamKills[1]}
  mt.t=Number.isFinite(game.remaining)?Math.max(0,game.remaining):mt.t;
- mt.cd=0;mt.over=game.status==='COMPLETED';
+ mt.cd=0;mt.over=game.status==='COMPLETED'&&!onlineActive;
  var visible=new Set();
  world.actors.forEach(function(actor){
   if(!actor||actor.id===selfId||!Number.isFinite(actor.x)||!Number.isFinite(actor.z))return;
@@ -8186,7 +8196,7 @@ function onlineVisualUpdate(dt){
  adsT+=((ads?1:0)-adsT)*Math.min(1,dt*12);
  sprT+=((keys.ShiftLeft||keys.ShiftRight?1:0)-sprT)*Math.min(1,dt*9);
  pl.face-=ST.r.x*2.4*dt;pl.pitch=Math.max(-1.2,Math.min(1.2,pl.pitch-ST.r.y*1.6*dt));
- var wantsFire=!pl.dead&&(!!keys.KeyF||fireHeld||
+ var wantsFire=!onlinePendingMatchCompleted&&!pl.dead&&(!!keys.KeyF||fireHeld||
    (mouse.down&&document.pointerLockElement===R.domElement));
  if(wantsFire&&pl.mag>0&&now-onlineMuzzleTime>Math.max(75,(WP[pl.w]?.cd||.14)*1000)){
   // Cosmetic prediction only: server decides shot legitimacy, ammo, hit and damage.
@@ -8202,7 +8212,7 @@ function onlineVisualUpdate(dt){
  }
  var sprint=!!(keys.ShiftLeft||keys.ShiftRight),jump=!!(keys.Space||jumpHeld),
      crouch=!!(keys.ControlLeft||keys.ControlRight);
- if(!pl.dead&&now-onlineSendAt>=50&&onlineApi?.live){
+ if(!onlinePendingMatchCompleted&&!pl.dead&&now-onlineSendAt>=50&&onlineApi?.live){
   var sequence=onlineSeq+1;
   if(onlineApi.live.send({type:'input',frame:{
    seq:sequence,moveX:x,moveZ:z,yaw:pl.face,pitch:pl.pitch,
@@ -8241,6 +8251,12 @@ function onlineVisualUpdate(dt){
  var hurtOverlay=document.getElementById('hit');
  if(hurtOverlay)hurtOverlay.style.opacity=Math.max(0,(parseFloat(hurtOverlay.style.opacity)||0)-dt*2);
  onlineTickEffects(dt);
+ if(onlinePendingMatchCompleted&&dead.length===0){
+  var completed=onlinePendingMatchCompleted;
+  onlinePendingMatchCompleted=null;
+  onlineFinalizeCompletedMatch(completed);
+  return;
+ }
  if(typeof hud==='function')hud();
  if(typeof hdUpd==='function')hdUpd(dt);
  if(typeof kfUpd==='function')kfUpd(dt);
