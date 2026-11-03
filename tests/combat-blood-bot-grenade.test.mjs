@@ -71,7 +71,7 @@ test('3D blood droplets are finite, directional, capped, and removed by shared p
 });
 
 test('bot and human blood FX trigger only when damage is accepted, not during spawn shields',()=>{
- const botDamage=sourceSection(audio,'function dmgE(e,d,kx,kz,ex,kind){','// hlms =');
+ const botDamage=sourceSection(audio,'function botDamageReaction(','// hlms =');
  const playerDamage=sourceSection(hud,'function hurt(d,sx,sz,kind){','// die():');
  const calls=[];
  const botContext={Math,defenseDamage:(e,d)=>d,isBombMode:()=>false,

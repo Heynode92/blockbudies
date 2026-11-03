@@ -11,7 +11,7 @@ function extract(code,start,end){
  assert.ok(a>=0&&b>a,"source region: "+start);return code.slice(a,b);
 }
 const tracker=extract(audio,"var ck={n:0,hs:0}","// dmgE():");
-const killE=extract(audio,"function killE(e,kx,kz,ex){","// updDead(dt):");
+const killE=extract(audio,"function spawnBotDeathVisual(e,kx,kz,ex){","// updDead(dt):");
 const notification=extract(hud,"function killNotify(mass){","// ---- KILL FEED");
 function game(){
  const banners=[],player={name:"You",tm:0,dead:false,st:{k:0}};

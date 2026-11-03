@@ -96,10 +96,11 @@ test('bot stops an ongoing plant when a living enemy enters the site',()=>{
 test('real bot damage handler cancels planting and enforces recovery before retry',()=>{
   const {ctx,cop,terror}=makeState();ctx.bombMatch.state='idle';ctx.bombMatch.carrier=terror;cop.dead=true;
   ctx.bombAct(terror,2,true);assert.equal(terror.bAction.t,2);
-  const fn=audio.split('\n').find(line=>line.startsWith('function dmgE('));
-  assert.ok(fn,'original bot damage implementation exists');
+  const begin=audio.indexOf('function botDamageReaction(');
+  const end=audio.indexOf('// hlms =',begin);
+  assert.ok(begin>=0&&end>begin,'shared original bot damage and recoil implementation exists');
   ctx.killE=()=>{throw new Error('unexpected bot death');};
-  runInNewContext(fn,ctx);
+  runInNewContext(audio.slice(begin,end),ctx);
   ctx.dmgE(terror,15,0,0,0);
   assert.equal(terror.hp,85);assert.equal(terror.bAction,null);
   ctx.bombAct(terror,.5,true);assert.equal(terror.bAction,null);
