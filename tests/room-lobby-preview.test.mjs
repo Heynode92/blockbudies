@@ -56,7 +56,8 @@ test('Inventory, Room Browser and Room Master reuse one WebGL canvas, keeping po
 test('equipped selection is not the catalog highlight and gameplay remains intact',()=>{
  assert.match(inv,/function inventoryEquipped\(cat\)/);
  assert.match(inv,/var id=inventoryEquipped\("main"\),weapon=id===null\?null:WP\[id\]/);
- assert.match(inv,/inventoryPreviewMount\("ivpreview"\);inventoryPreviewSetSide\(0\);inventoryBuildThumbnails\(\);inventoryRender\(\);inventoryStartPreview\(\)/);
+ assert.match(inv,/inventoryPreviewMount\("ivpreview"\);inventoryPreviewSetSide\(0\)/);
+ assert.match(inv,/inventoryBuildThumbnails\(\);inventoryRender\(\);inventoryStartPreview\(\)/);
  assert.match(read('src/game/85-lobby-and-match.js'),/function startMatch\(tm\)/);
 });
 

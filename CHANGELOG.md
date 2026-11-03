@@ -1,3 +1,8 @@
+## 2026-11-03 — Align UI regression fixtures with verified session and ownership rules
+- Update isolated Home VM fixture for the new keyboard-accessible wallet dialog.
+- Assert helmet ownership and 3D preview only after server loadout verification, and count both server-approved projectile visualizations in the tracer test.
+- No game behavior, wallet permission, physics or reward calculation changes.
+
 ## 2026-11-03 — Clear EXP/vPBT Battle Report rewards and thin verified projectile streaks
 - Embed separate EXP and vPBT reward tiles inside the original offline `endMatch()` Battle Report. Populate them only from settled `/v1/me/matches/:id/reward` values; pending awards show placeholders, bounded automatic rechecks and a manual RECHECK action.
 - After confirmed settlement, refresh the authenticated player profile to update header vPBT and rank EXP. No optimistic local reward grants or client-computed payouts.

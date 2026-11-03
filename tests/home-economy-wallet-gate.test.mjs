@@ -8,7 +8,7 @@ test('vPBT and rank are separate from future PBT and require actual authenticate
  assert.match(html,/id="homeVpbtBalance"/);
  assert.match(html,/id="homeProgressPanel"/);
  assert.match(html,/id="homePbtAdd"/);
- assert.match(js,/state\.authenticated&&state.registered\?state.player:null/);
+ assert.match(js,/state\?\.authenticated&&state.registered\?state.player:null/);
  assert.match(js,/player\.nextRankHalfExp/);
 });
 test('wallet gate is a themed accessible SIWE dialog, not a bypass into private inventory',()=>{

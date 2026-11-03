@@ -9,7 +9,7 @@ const script=read("src/game/89-inventory.js"),css=read("src/styles/09-inventory.
 test("Standard Helmet is owned gear, separate from weapon profiles and always equipped",()=>{
  assert.match(script,/\{key:"helm",label:"HELM",kinds:\[\]\}/);
  assert.match(script,/id:"standard_helmet",name:"Standard Helmet"/);
- assert.match(script,/if\(INVENTORY_GEAR\[cat\]\)return INVENTORY_GEAR\[cat\]\.map/);
+ assert.match(script,/if\(INVENTORY_GEAR\[cat\]\)\s*return INVENTORY_GEAR\[cat\]\.filter/);
  assert.doesNotMatch(read("src/game/40-weapons-and-viewmodels.js"),/standard_helmet/);
  assert.match(read("src/game/39-defense.js"),/actor\.helm=true/);
 });

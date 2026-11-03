@@ -53,6 +53,7 @@ function fixture(){
  };
  const context={
   document:doc,window:{},lob:true,run:false,Math,Object,Promise,
+  addEventListener:(k,fn)=>{events['window:'+k]=fn;},
   GAME_ASSET_URLS:{deathmatch:'./src/assets/video/deatch_match_demo.mp4',bomb:'./src/assets/video/bomb_mission_demo.mp4'},
   setInterval:(fn,delay)=>{const id=nextTimer++;intervals.set(id,{fn,delay});return id;},
   clearInterval:id=>intervals.delete(id),
