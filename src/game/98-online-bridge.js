@@ -9,7 +9,9 @@ var onlineTeamNotice=null,onlineInputId=0,onlineVisualLoaded=false;
 var onlineReconnectTimer=0,onlineReconnectStarted=0,onlineReconnecting=false;
 var onlineAimInitialized=false,onlineTrainingProgressValue=null,onlinePrevAlive=true;
 var onlineSelfTarget=null,onlineLastWinner=undefined,onlineMuzzleTime=0;
-var onlinePendingMatchCompleted=null;
+var onlinePendingMatchCompleted=null,onlineResultsDisplayed=false;
+var onlineStallChecking=false,onlineLastStallCheckAt=0;
+var onlinePendingKillTick=-1,onlinePendingKillTotal=null;
 var onlinePendingWeapon=null,onlinePendingWeaponAt=0,onlineHitMarker=null,onlineHitUntil=0;
 var onlineShotTracers=[];
 var onlineScoreboard=new Map(),onlineSeenKillIds=new Set();
@@ -557,6 +559,7 @@ function onlineResetLive(){
  if(onlinePerfPanel){onlinePerfPanel.remove();onlinePerfPanel=null;}
  onlineAimInitialized=false;onlineTrainingProgressValue=null;onlinePrevAlive=true;
  onlineSelfTarget=null;onlineLastWinner=undefined;onlineMuzzleTime=0;onlineScoreboard.clear();onlineSeenKillIds.clear();
+ onlinePendingKillTick=-1;onlinePendingKillTotal=null;onlineLastStallCheckAt=0;
  onlinePendingWeapon=null;onlinePendingWeaponAt=0;onlineHitUntil=0;
  if(onlineHitMarker){onlineHitMarker.remove();onlineHitMarker=null;}
  for(const fx of mzf)S.remove(fx.m);mzf.length=0;
@@ -648,6 +651,7 @@ async function onlineMasterStart(){
  finally{startControl.disabled=false}
 }
 function onlineBeginTransition(room){
+ onlineResultsDisplayed=false;
  var flow=roomStartFlow;
  roomMatchConfig={...room};
  selectedTdmMapId=tdmMapId(room.mapId);selectedBombMapId=bombMapId(room.mapId);
@@ -690,30 +694,95 @@ function onlineSyncKillDisplay(kills,animate){
 function onlineApplyVerifiedKill(event){
  if(!event||typeof event.id!=='string'||onlineSeenKillIds.has(event.id))return;
  onlineSeenKillIds.add(event.id);
- if(onlineSeenKillIds.size>128)
-  onlineSeenKillIds.delete(onlineSeenKillIds.values().next().value);
- // No effects for loading, repeated or stale events. A fresh trusted
- // private snapshot will restore previous kill totals without celebrations.
+ if(onlineSeenKillIds.size>128)onlineSeenKillIds.delete(onlineSeenKillIds.values().next().value);
  if(!onlineActive||!run||lob||event.actorId!==onlineUserId()||!pl.st||
     (Number.isSafeInteger(event.tick)&&event.tick<=onlineLastAuthTick))return;
- var next=Math.max(score,pl.st.k)+1;
- pl.st.k=next;onlineSyncKillDisplay(next,true);
- var streak=Number.isSafeInteger(event.streak)&&event.streak>0?event.streak:1;
- if(streak<=1)ck.hs=0;
- ck.n=streak;
+ // No derived +1 or client damage calculation: the BE supplies actual total.
+ if(!Number.isSafeInteger(event.kills)||event.kills<0)return;
+ if(event.kills>=score){
+  onlineSyncKillDisplay(event.kills,event.kills===score+1);
+  pl.st.k=event.kills;
+ }
+ if(Number.isSafeInteger(event.tick)&&event.tick>=onlinePendingKillTick){
+  onlinePendingKillTick=event.tick;
+  onlinePendingKillTotal=Math.max(onlinePendingKillTotal??0,event.kills);
+ }
+ if(Number.isSafeInteger(event.streak)&&event.streak>=0){
+  if(event.streak===1)ck.hs=0;
+  ck.n=event.streak;
+ }
  if(event.headshot)ck.hs++;
+ // The canonical offline boom() emits one grouped notification per explosion.
+ if(event.explosive)return;
  hsF=!!event.headshot;
  try{killNotify(false)}finally{hsF=false;}
 }
-// Match settlement is BE-owned. UI transition waits only for an existing,
-// server-confirmed corpse to finish the ORIGINAL offline ragdoll lifetime.
+function onlineApplyVerifiedExplosion(event){
+ if(!event||typeof event.id!=='string'||onlineSeenKillIds.has(event.id)||
+    !onlineActive||!run||lob||event.actorId!==onlineUserId()||
+    !Number.isSafeInteger(event.count)||event.count<=0||
+    (Number.isSafeInteger(event.tick)&&event.tick<=onlineLastAuthTick))return;
+ onlineSeenKillIds.add(event.id);
+ if(onlineSeenKillIds.size>128)onlineSeenKillIds.delete(onlineSeenKillIds.values().next().value);
+ if(Number.isSafeInteger(event.streak)&&event.streak>=0)ck.n=event.streak;
+ boomN=event.count;
+ if(Number.isInteger(event.weaponId)&&WP[event.weaponId])
+  boomLab=WP[event.weaponId].n.toUpperCase();
+ hsF=false;killNotify(boomN>2);
+}
+// Match settlement is BE-owned. The ORIGINAL offline report is the renderer.
+function onlineAdoptFinalScore(game){
+ if(!game||game.status!=='COMPLETED'||!Array.isArray(game.scoreboard))return false;
+ var me=onlineUserId(),points=isBombMode()?game.rounds:game.teamKills,team=pl.tm;
+ if(!Array.isArray(points)||points.length!==2)return false;
+ var rows=[];
+ game.scoreboard.forEach(function(row){
+  if(!row||typeof row.id!=='string'||!Number.isSafeInteger(row.kills)||
+     !Number.isSafeInteger(row.deaths))return;
+  var entry=row.id===me?pl.st:onlineScoreboard.get(row.id);
+  if(!entry){
+   var human=roomCurrent?.members?.find(function(x){return x.playerId===row.id});
+   entry={name:human?.username||'BOT',tm:row.team,k:0,d:0};
+  }
+  // Legacy endMatch() uses innerHTML; do not interpolate arbitrary usernames.
+  if(row.id!==me&&!/^[A-Za-z0-9_]{1,12}$/.test(entry.name))entry.name='PLAYER';
+  entry.tm=row.team;entry.k=row.kills;entry.d=row.deaths;
+  if(row.id===me)team=row.team;
+  rows.push(entry);
+ });
+ if(!pl.st||!rows.includes(pl.st))return false;
+ ROS=rows;pl.tm=team;ts[0]=points[0];ts[1]=points[1];
+ onlineSyncKillDisplay(pl.st.k,false);
+ return true;
+}
+function onlineShowVerifiedReward(matchId){
+ var el=document.getElementById('verifiedReward');
+ if(!el)return;
+ el.hidden=false;el.textContent='Reward verification pending';
+ if(!matchId||!onlineApi?.state().authenticated)return;
+ var check=function(retries){
+  onlineApi.award(matchId).then(function(value){
+   if(!document.getElementById('dv').classList.contains('show'))return;
+   function half(v){var n=BigInt(v);return (n/2n).toString()+(n%2n?'.5':'');}
+   el.textContent='EXP +'+half(value.awardedExpHalf)+' · vPBT +'+half(value.awardedVpbtHalf);
+  }).catch(function(error){
+   if(!document.getElementById('dv').classList.contains('show'))return;
+   if(retries>0){setTimeout(function(){check(retries-1)},1200);return;}
+   el.textContent='Reward pending server verification ('+(error.code||'NOT_AVAILABLE')+')';
+  });
+ };
+ check(2);
+}
 function onlineFinalizeCompletedMatch(frame){
- var result=frame.game,matchId=frame.matchId,winner=onlineLastWinner,mode=roomCurrent?.mode??selM;
- mt.over=true;onlineGame=result;onlineResetLive();
+ if(!onlineActive||onlineTraining||!frame||frame.matchId!==onlineMatchId||
+    !onlineAdoptFinalScore(frame.game))return;
+ var matchId=frame.matchId;
+ onlineResetLive();
  if(roomCurrent)roomCurrent={...roomCurrent,status:'OPEN'};
- matchExitToLobby(roomCurrent?'room':'list');
- if(roomCurrent)void onlineRecoverMembership().catch(onlineWarn);
- onlineShowMatchReport(result,matchId,winner,mode);
+ onlineResultsDisplayed=true;
+ endMatch(); // ORIGINAL offline Victory/Defeat, stats, rank, best score and scoreboard.
+ if(!onlineIsMaster())document.getElementById('dgo').textContent='BACK TO ROOM';
+ onlineShowVerifiedReward(matchId);
 }
 function onlineReceiveFrame(frame){
  if(frame.type==='lobby_snapshot'){
@@ -803,6 +872,7 @@ function onlineReceiveFrame(frame){
  if(frame.type==='match_event'){
   var event=frame.event;
   if(event?.kind==='MATCH_END')onlineLastWinner=event.winner;
+  if(event?.kind==='EXPLOSION_RESULT')onlineApplyVerifiedExplosion(event);
   if(event?.kind==='KILL'&&onlineActive){
    var actor=onlineActors.get(event.actorId)?.label||'PLAYER';
    var victim=onlineActors.get(event.victimId)?.label||'PLAYER';
@@ -811,6 +881,10 @@ function onlineReceiveFrame(frame){
    roomLiveLog(actor+' ELIMINATED '+victim);
   }
   return;
+ }
+ if(frame.type==='match_failed'){
+  if(!onlineActive)return;
+  onlineResetLive();matchExitToLobby('room');onlineWarn(frame.code||'SERVER_MATCH_FAILURE');return;
  }
  if(frame.type==='match_completed'){
   if(onlineActive&&dead.length>0){
@@ -897,7 +971,7 @@ async function onlineStartTraining(){
     await onlineLoadInventory();roomLobbyOpen();
    });return;
   }
-  onlineTraining=true;onlineActive=true;
+  onlineResultsDisplayed=false;onlineTraining=true;onlineActive=true;
   await onlineApi.openLive('training',null,onlineReceiveFrame,onlineSocketStatus);
   onlineMeId=onlineWorld?.actors?.find(a=>!a.bot)?.id||null;
   roomMatchConfig={mode:0,mapId:'block-district',kills:10,minutes:5,rounds:12,roundMinutes:2};
@@ -950,9 +1024,13 @@ function onlineApplyWorld(){
   else if(typeof self.helmet==='boolean')pl.helm=self.helmet;
   onlineWeaponSnapshot(self,privateState,fresh);
   if(pl.st&&privateState){
-   pl.st.k=privateState.kills;pl.st.d=privateState.deaths;
-   onlineSyncKillDisplay(privateState.kills,false);
-   if(Number.isSafeInteger(privateState.streak)&&privateState.streak>=0){
+   var kills=privateState.kills;
+   var newer=onlinePendingKillTotal!==null&&onlinePendingKillTick>world.serverTick;
+   if(newer)kills=Math.max(kills,onlinePendingKillTotal);
+   else{onlinePendingKillTick=-1;onlinePendingKillTotal=null;}
+   pl.st.k=kills;pl.st.d=privateState.deaths;
+   onlineSyncKillDisplay(kills,false);
+   if(!newer&&Number.isSafeInteger(privateState.streak)&&privateState.streak>=0){
     if(privateState.streak===0&&ck.n!==0){ck.hs=0;kn.innerHTML='';}
     ck.n=privateState.streak;
    }
@@ -1066,33 +1144,33 @@ function onlineLabelActor(model,name){
  model.nm.material.needsUpdate=true;
  if(old&&typeof old.dispose==='function')old.dispose();
 }
-function onlineShowMatchReport(game,matchId,winner,mode){
- if(!game)return;
- var old=document.getElementById('pointblockMatchReport');if(old)old.remove();
- var overlay=document.createElement('div');overlay.id='pointblockMatchReport';overlay.className='point-online-dialog';
- var panel=document.createElement('section');panel.className='point-online-dialog-panel';
- var heading=document.createElement('h2');heading.textContent='SERVER-VERIFIED MATCH RESULT';
- var own=roomSide===1?1:0,score=game.teamKills||[0,0];
- if(Array.isArray(game.rounds)&&mode===1)score=game.rounds;
- var summary=document.createElement('p');
- summary.textContent='POLICE '+score[0]+' — '+score[1]+' TERRORISTS';
- var verdict=document.createElement('p');
- verdict.textContent=winner===null?'DRAW':winner===own?'VICTORY':winner===1-own?'DEFEAT':'MATCH COMPLETE';
- var reward=document.createElement('p');reward.textContent='Reward verification pending';
- var button=document.createElement('button');button.type='button';button.textContent=roomCurrent?'BACK TO ROOM':'BACK TO LOBBY';
- button.onclick=function(){overlay.remove();roomLobbyOpen()};
- panel.append(heading,summary,verdict,reward,button);overlay.append(panel);document.body.append(overlay);
- if(matchId&&onlineApi?.state().authenticated){
-  onlineApi.award(matchId).then(function(value){
-   function halfUnits(input){var n=BigInt(input);return (n/2n).toString()+(n%2n?'.5':'');}
-   reward.textContent='EXP +'+halfUnits(value.awardedExpHalf)+
-    ' · vPBT +'+halfUnits(value.awardedVpbtHalf);
-  }).catch(function(error){reward.textContent='Reward pending server verification ('+(error.code||'NOT_AVAILABLE')+')'});
- }
+// Recheck trusted room status when the WS stops advancing without closing.
+function onlineWatchSnapshots(now){
+ if(!onlineActive||onlineTraining||onlineReconnecting||onlineStallChecking||
+    !roomCurrent||!onlineMatchId||!onlineLastSnapshotAt||onlinePendingMatchCompleted)return;
+ var timeout=Math.max(4000,onlineRemoteDelay*20);
+ if(now-onlineLastSnapshotAt<timeout||now-onlineLastStallCheckAt<timeout)return;
+ onlineLastStallCheckAt=now;onlineStallChecking=true;
+ var id=onlineMatchId;
+ void onlineApi.getRoom(roomCurrent.id).then(function(room){
+  if(!onlineActive||onlineMatchId!==id)return;
+  if(room.status==='OPEN'){
+   if(onlineGame?.status==='COMPLETED')
+    onlineFinalizeCompletedMatch({matchId:id,game:onlineGame});
+   else{
+    onlineResetLive();matchExitToLobby('room');
+    onlineWarn('MATCH_RESULT_UNAVAILABLE_REJOIN_ROOM');
+   }
+  }else if(room.status==='ACTIVE'){
+   onlineApi.closeLive();onlineSocketStatus({code:1006});
+  }else{
+   onlineResetLive();matchExitToLobby('list');onlineWarn('MATCH_SERVER_STOPPED');
+  }
+ }).catch(onlineWarn).finally(function(){onlineStallChecking=false;});
 }
 function onlineVisualUpdate(dt){
  if(!onlineActive||!run||lob)return;
- var now=performance.now();onlineMeasureFrame(now);
+ var now=performance.now();onlineMeasureFrame(now);onlineWatchSnapshots(now);
  tt+=dt;sndN=0;
  pl.sw=Math.max(0,(pl.sw||0)-dt);
  pl.stab=Math.max(0,(pl.stab||0)-dt);
@@ -1216,7 +1294,21 @@ onlineAction('lbst',onlineStartGate);
 onlineAction('mdm',onlineStartGate);
 onlineAction('tsP',onlineStartGate);
 onlineAction('tsT',onlineStartGate);
-onlineAction('dgo',()=>{onlineResetLive();matchExitToLobby('list')});
+onlineAction('dgo',async()=>{
+ if(!onlineResultsDisplayed){again();return;}
+ var master=onlineIsMaster();
+ onlineResultsDisplayed=false;
+ var reward=document.getElementById('verifiedReward');if(reward)reward.hidden=true;
+ matchExitToLobby('room');
+ if(roomCurrent)await onlineRecoverMembership().catch(onlineWarn);
+ if(master&&roomCurrent)await onlineMasterStart();
+});
+onlineAction('dmn',()=>{
+ onlineResultsDisplayed=false;
+ var reward=document.getElementById('verifiedReward');if(reward)reward.hidden=true;
+ matchExitToLobby('room');
+ if(roomCurrent)void onlineRecoverMembership().catch(onlineWarn);
+});
 onlineAction('go',onlineStartGate);
 onlineAction('escConfirmYes',async()=>{
  if(onlineActive&&!onlineTraining&&roomCurrent){

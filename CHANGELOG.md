@@ -1,3 +1,10 @@
+## 2026-11-03 — Restore offline Battle Report, medals and realtime end-of-match recovery
+- Render server-verified multiplayer results through the ORIGINAL offline endMatch() Victory/Defeat, rank, best kills, K/D and 5v5 scoreboard; remove the replacement online result modal.
+- Original Play Again/Back To Room buttons remain; online replay must use authorized Room Master start, never local begin().
+- Original starKill()/killNotify() now consume BE cumulative KILL totals and per-life streak, with explosion group events for MASS KILL. No fabricated +1 client score; future trusted events are protected against stale cached 10Hz snapshots.
+- Verify reward through BE within existing results panel; detect stalled authenticated snapshots and recover room status/reconnect or display an explicit error.
+- Extend offline-results regression coverage without altering offline gameplay.
+
 ## 2026-11-03 — Synchronize online KILL counter, offline stars and medal effects
 - Connect BE-verified KILL events to the existing offline starKill() and killNotify() and the top-left score, while preserving the TAB scoreboard as the same authoritative per-player K/D.
 - Restore persistent star icons silently from private server snapshots on reconnect; do not fabricate kills or repeat prior celebrations.

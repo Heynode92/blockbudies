@@ -59,5 +59,6 @@ test('frontend routes and room restoration are scoped to registered server accou
  assert.match(nav,/!appRouteBootReady/);
  assert.match(bridge,/await onlineApi\.currentRoom\(\)/);
  assert.match(bridge,/await onlineApi\.restoreSession\(\)/);
- assert.match(bridge,/matchExitToLobby\(roomCurrent\?'room':'list'\)/);
+ assert.match(bridge,/matchExitToLobby\('room'\)/);
+ assert.match(bridge,/endMatch\(\);/);
 });

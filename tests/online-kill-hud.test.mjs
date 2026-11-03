@@ -21,13 +21,13 @@ function harness(){
 }
 test('server-owned KILL event drives same score, original stars and milestone',()=>{
  const h=harness(),{c,stars,notices}=h;
- c.kill({id:'a',tick:10,actorId:'me',streak:1,headshot:false});
+ c.kill({id:'a',tick:10,actorId:'me',kills:1,streak:1,headshot:false});
  assert.equal(c.score,1);assert.equal(c.pl.st.k,1);assert.equal(stars.length,1);
  assert.equal(h.animations,1);assert.equal(notices[0].n,1);
- c.kill({id:'a',tick:10,actorId:'me',streak:1,headshot:false});
- c.kill({id:'b',tick:11,actorId:'enemy',streak:2});
+ c.kill({id:'a',tick:10,actorId:'me',kills:1,streak:1,headshot:false});
+ c.kill({id:'b',tick:11,actorId:'enemy',kills:42,streak:2});
  assert.equal(h.animations,1);assert.equal(c.score,1);
- c.kill({id:'c',tick:12,actorId:'me',streak:2,headshot:true});
+ c.kill({id:'c',tick:12,actorId:'me',kills:2,streak:2,headshot:true});
  assert.equal(c.score,2);assert.equal(h.animations,2);
  assert.equal(notices[1].n,2);assert.equal(notices[1].headshot,true);assert.equal(c.hsF,false);
 });
@@ -37,7 +37,7 @@ test('snapshot rehydrates old stars without animation or invented kill',()=>{
  assert.equal(c.stnEl.textContent,'×5');assert.equal(h.animations,0);
  c.sync(11,false);assert.equal(stars.length,8);assert.equal(c.stnEl.textContent,'×11');
  c.sync(3,false);assert.equal(c.score,3);assert.equal(stars.length,3);
- c.kill({id:'stale',tick:0,actorId:'me',streak:3});
+ c.kill({id:'stale',tick:0,actorId:'me',kills:4,streak:3});
  assert.equal(c.score,3);assert.equal(h.animations,0);assert.equal(notices.length,0);
 });
 test('bridge binds BE K/D, life streak and death reset',()=>{

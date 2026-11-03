@@ -7,3 +7,6 @@
 .point-online-dialog-panel button{padding:12px;border:0;border-radius:6px;font:inherit;font-weight:700;color:#101318;background:#f6bd43;cursor:pointer}
 .point-online-dialog-panel button:disabled{opacity:.5;cursor:wait}
 .point-online-dialog-panel [role=status]{color:#ff9c8e;overflow-wrap:anywhere}
+
+#verifiedReward[hidden]{display:none}
+#verifiedReward.point-online-result-reward{margin:12px 0 4px;text-align:center;color:#c9e1f3;font:700 13px Rajdhani,Arial,sans-serif;letter-spacing:.08em}
