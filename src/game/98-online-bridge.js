@@ -351,6 +351,13 @@ function onlineWallImpact(frame){
  if(DC.length>DCMAX){var gone=DC.shift();S.remove(gone);if(gone.userData.t!==undefined)gone.material.dispose();}
  spark(x+nx*.04,y+ny*.04,z+nz*.04,0xd9d0bb,3,1.6,.08);
 }
+// The original offline loop reduces pl.ghide on every frame. In online,
+// update() is deliberately disabled, so this visual timer must tick here.
+// It never writes to the server or changes ammo, grenade fuses or damage.
+function onlineGrenadePresentationTick(dt){
+ if(!Number.isFinite(dt)||dt<0)return;
+ pl.ghide=Math.max(0,(Number.isFinite(pl.ghide)?pl.ghide:0)-dt);
+}
 // A server-confirmed throw uses the ORIGINAL offline grenade mesh and
 // updG() arc, bounce and blinking fuse. Geometry is cosmetic only.
 function onlineGrenadeThrow(frame){
@@ -810,7 +817,7 @@ function onlineResetLive(){
  onlineActive=false;onlineTraining=false;onlineCurrentId=null;onlineMatchId=null;
  onlineWorld=null;onlineGame=null;
  document.getElementById('dv').classList.remove('online-results');
- pl.kb='';pl.rsT=0;pl.rt=0;pl.dt=0;
+ pl.kb='';pl.rsT=0;pl.rt=0;pl.dt=0;pl.ghide=0;
  if(pl.bloodPool){bloodPoolRemove(pl.bloodPool);pl.bloodPool=null;}
  document.body.classList.remove('dead','bomb-spectator');
  for(const item of onlineActors.values()){if(item.model?.g)S.remove(item.model.g)}
@@ -1614,6 +1621,7 @@ function onlineVisualUpdate(dt){
  pl.sw=Math.max(0,(pl.sw||0)-dt);
  pl.stab=Math.max(0,(pl.stab||0)-dt);
  pl.thr=Math.max(0,(pl.thr||0)-dt);
+ onlineGrenadePresentationTick(dt);
  pl.pump=Math.max(0,(pl.pump||0)-dt);
  pl.rl=Math.max(0,(pl.rl||0)-dt);
  var x=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0)+ST.l.x,

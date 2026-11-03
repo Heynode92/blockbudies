@@ -1,3 +1,8 @@
+## 2026-11-04 — Restore visible second grenade in online first-person viewmodel
+- Root cause: authorised throw set pl.ghide=0.65 but onlineVisualUpdate never decremented it, unlike the offline update() loop. The selected grenade model therefore remained hidden permanently even when server ammo HUD showed 1/2.
+- Decrement the same visual-only timer every online render frame and reset it on session teardown. Original first-person 3D grenade and throw animation reappear after the normal .65-second handoff; do not invent new grenade counts or client-side ammo.
+- Backend independently restores original reserve reload. No changes to server-authoritative grenade damage or match state.
+
 ## 2026-11-04 — Regression harness alignment
 - Use the existing direct file reader and actual guarded rank-init expression in the TAB scoreboard source contract test; no gameplay changes.
 
