@@ -1,3 +1,9 @@
+## 2026-11-03 — Reuse exact original offline star, kill feed, and transient FX lifecycle
+- Make original starKill() support silent snapshot rehydration; online code calls that same function instead of constructing its own star DOM.
+- Route authorized online KILL events to original kFeed() with BE weapon identity and headshot flag, without creating any hidden actor or location.
+- Tick the same transient toast and impact FX expiration as original 95-simulation.js while local damage/objective simulation remains disabled online. Fix the stale 'YOU ARE POLICE' toast persisting indefinitely.
+- Add targeted UI parity assertions. No weapon stats, offline kill logic, BOT AI or server authority modified.
+
 ## 2026-11-03 — Keep offline Enter shortcut under Room Master online authority
 - The original results Enter-key shortcut now activates the exact existing Play Again button during online results, reusing the authenticated Room Master action instead of starting an offline local simulation.
 - Update focused regression harness to model the newly server-owned kill total and pending event tick; no gameplay rule changes.

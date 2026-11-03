@@ -15,7 +15,7 @@ function harness(){
  c.starsEl={querySelectorAll(){return stars},insertBefore(el){stars.push(el)}};
  c.starsReset=()=>{stars.length=0;c.stnEl.textContent=''};
  let animations=0;
- c.starKill=()=>{animations++;if(stars.length===8)stars.shift();stars.push({});c.stnEl.textContent='×'+c.score};
+ c.starKill=(silent)=>{if(!silent)animations++;if(stars.length===8)stars.shift();stars.push({});c.stnEl.textContent='×'+c.score};
  c.killNotify=()=>notices.push({n:c.ck.n,headshot:c.hsF});
  runInNewContext(adapter+'\nthis.sync=onlineSyncKillDisplay;this.kill=onlineApplyVerifiedKill;',c);
  return {c,stars,notices,get animations(){return animations}};

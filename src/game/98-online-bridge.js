@@ -296,6 +296,15 @@ function onlineTickEffects(dt){
   }
  }
  updSm(dt);
+ // Keep original offline impact lifecycle and transient toast expiry.
+ for(var i=fx.length-1;i>=0;i--){
+  var effect=fx[i];effect.t+=dt*3;
+  effect.m.scale.setScalar(.5+effect.t*4);
+  effect.m.material.opacity=Math.max(0,.7-effect.t*.7);
+  if(effect.t>=1){S.remove(effect.m);fx.splice(i,1);}
+ }
+ if(toastT>0&&(toastT-=dt)<=0)
+  document.getElementById("toast").style.opacity=0;
 }
 // Server-confirmed bullet marks reuse offline impact, crack, decal and spark assets.
 function onlineWallImpact(frame){
@@ -672,10 +681,8 @@ function onlineUserId(){
 // Use server-owned K/D and streak to drive the ORIGINAL offline cosmetic HUD.
 function onlineRestoreKillStars(kills){
  starsReset();
- for(var i=0;i<Math.min(8,kills);i++){
-  var star=document.createElement('div');star.className='st';star.innerHTML=STAR;
-  starsEl.insertBefore(star,stnEl);
- }
+ // Use the same original starKill renderer, but skip past celebrations.
+ for(var i=0;i<Math.min(8,kills);i++)starKill(true);
  stnEl.textContent=kills?'\u00d7'+kills:'';
 }
 function onlineSyncKillDisplay(kills,animate){
@@ -874,8 +881,12 @@ function onlineReceiveFrame(frame){
   if(event?.kind==='MATCH_END')onlineLastWinner=event.winner;
   if(event?.kind==='EXPLOSION_RESULT')onlineApplyVerifiedExplosion(event);
   if(event?.kind==='KILL'&&onlineActive){
-   var actor=onlineActors.get(event.actorId)?.label||'PLAYER';
-   var victim=onlineActors.get(event.victimId)?.label||'PLAYER';
+   var attacker=event.actorId===onlineUserId()?pl:onlineActors.get(event.actorId)?.model;
+   var eliminated=event.victimId===onlineUserId()?pl:onlineActors.get(event.victimId)?.model;
+   var actor=attacker?.name||'PLAYER',victim=eliminated?.name||'PLAYER';
+   // Reuse canonical offline kFeed() for previously authorized actors.
+   // Do not create a hidden enemy model/location solely for a kill feed.
+   if(eliminated)kFeed(attacker||null,event.weaponId,!!event.headshot,eliminated);
    onlineConfirmedDeath(event);
    onlineApplyVerifiedKill(event);
    roomLiveLog(actor+' ELIMINATED '+victim);

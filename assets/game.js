@@ -5192,10 +5192,22 @@ reset();
 // Star rating on the results screen.
 var starsEl=document.getElementById("stars"),stnEl=document.getElementById("stn"),STAR='<svg class="s" viewBox="0 0 24 24"><path d="M12 1.8l3 6.6 7.2.8-5.4 4.9 1.5 7.1L12 17.5 5.7 21.2l1.5-7.1L1.8 9.2 9 8.4z" fill="#ffd43b" stroke="#b45f06" stroke-width="1.2" stroke-linejoin="round"/><path d="M12 4.6l1.9 4.2 4.6.5-3.4 3.1" fill="none" stroke="#fff6c8" stroke-width="1.3" stroke-linecap="round"/></svg>';
 function starsReset(){[].forEach.call(starsEl.querySelectorAll(".st"),function(x){x.remove();});stnEl.textContent="";}
-function starKill(){var el=document.createElement("div"),h=STAR+'<i class="rg"></i>',i,all;for(i=0;i<10;i++)h+='<i class="ry" style="--a:'+(i*36+Math.random()*12)+'deg"></i>';el.className="st nw";el.innerHTML=h;starsEl.insertBefore(el,stnEl);
-  all=starsEl.querySelectorAll(".st");if(all.length>8)all[0].remove();stnEl.textContent="\u00d7"+score;stnEl.classList.remove("pop");void stnEl.offsetWidth;stnEl.classList.add("pop");
+function starKill(silent){
+  // Rehydration and new offline kills share this ONE original star builder.
+  // Silent mode restores trusted stars without replaying FX/audio.
+  var el=document.createElement("div"),h=STAR,i,all;
+  if(!silent){
+    h+='<i class="rg"></i>';
+    for(i=0;i<10;i++)h+='<i class="ry" style="--a:'+(i*36+Math.random()*12)+'deg"></i>';
+  }
+  el.className=silent?"st":"st nw";el.innerHTML=h;starsEl.insertBefore(el,stnEl);
+  all=starsEl.querySelectorAll(".st");if(all.length>8)all[0].remove();
+  stnEl.textContent="\u00d7"+score;
+  if(silent)return;
+  stnEl.classList.remove("pop");void stnEl.offsetWidth;stnEl.classList.add("pop");
   setTimeout(function(){el.classList.remove("nw");[].forEach.call(el.querySelectorAll(".rg,.ry"),function(x){x.remove();});},1100);
-  try{if(AC){tn(1046,2093,.1,"triangle",.09);tn(1568,3136,.18,"square",.05,.07);}}catch(e){}}
+  try{if(AC){tn(1046,2093,.1,"triangle",.09);tn(1568,3136,.18,"square",.05,.07);}}catch(e){}
+}
 // BN = bot names per team [police names, terrorist names].
 var BN=[["Jack","Mike","Ryan","Alex","Owen"],["Viper","Razor","Hawk","Shadow","Ghost"]];
 // spawnPt(tm): returns a RANDOM spawn point [x,z] inside the team's own zone: Police z in about +28..+48, Terrorist z in about -48..-28,
@@ -7437,6 +7449,15 @@ function onlineTickEffects(dt){
   }
  }
  updSm(dt);
+ // Keep original offline impact lifecycle and transient toast expiry.
+ for(var i=fx.length-1;i>=0;i--){
+  var effect=fx[i];effect.t+=dt*3;
+  effect.m.scale.setScalar(.5+effect.t*4);
+  effect.m.material.opacity=Math.max(0,.7-effect.t*.7);
+  if(effect.t>=1){S.remove(effect.m);fx.splice(i,1);}
+ }
+ if(toastT>0&&(toastT-=dt)<=0)
+  document.getElementById("toast").style.opacity=0;
 }
 // Server-confirmed bullet marks reuse offline impact, crack, decal and spark assets.
 function onlineWallImpact(frame){
@@ -7813,10 +7834,8 @@ function onlineUserId(){
 // Use server-owned K/D and streak to drive the ORIGINAL offline cosmetic HUD.
 function onlineRestoreKillStars(kills){
  starsReset();
- for(var i=0;i<Math.min(8,kills);i++){
-  var star=document.createElement('div');star.className='st';star.innerHTML=STAR;
-  starsEl.insertBefore(star,stnEl);
- }
+ // Use the same original starKill renderer, but skip past celebrations.
+ for(var i=0;i<Math.min(8,kills);i++)starKill(true);
  stnEl.textContent=kills?'\u00d7'+kills:'';
 }
 function onlineSyncKillDisplay(kills,animate){
@@ -8015,8 +8034,12 @@ function onlineReceiveFrame(frame){
   if(event?.kind==='MATCH_END')onlineLastWinner=event.winner;
   if(event?.kind==='EXPLOSION_RESULT')onlineApplyVerifiedExplosion(event);
   if(event?.kind==='KILL'&&onlineActive){
-   var actor=onlineActors.get(event.actorId)?.label||'PLAYER';
-   var victim=onlineActors.get(event.victimId)?.label||'PLAYER';
+   var attacker=event.actorId===onlineUserId()?pl:onlineActors.get(event.actorId)?.model;
+   var eliminated=event.victimId===onlineUserId()?pl:onlineActors.get(event.victimId)?.model;
+   var actor=attacker?.name||'PLAYER',victim=eliminated?.name||'PLAYER';
+   // Reuse canonical offline kFeed() for previously authorized actors.
+   // Do not create a hidden enemy model/location solely for a kill feed.
+   if(eliminated)kFeed(attacker||null,event.weaponId,!!event.headshot,eliminated);
    onlineConfirmedDeath(event);
    onlineApplyVerifiedKill(event);
    roomLiveLog(actor+' ELIMINATED '+victim);

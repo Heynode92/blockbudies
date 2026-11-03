@@ -110,10 +110,22 @@ reset();
 // Star rating on the results screen.
 var starsEl=document.getElementById("stars"),stnEl=document.getElementById("stn"),STAR='<svg class="s" viewBox="0 0 24 24"><path d="M12 1.8l3 6.6 7.2.8-5.4 4.9 1.5 7.1L12 17.5 5.7 21.2l1.5-7.1L1.8 9.2 9 8.4z" fill="#ffd43b" stroke="#b45f06" stroke-width="1.2" stroke-linejoin="round"/><path d="M12 4.6l1.9 4.2 4.6.5-3.4 3.1" fill="none" stroke="#fff6c8" stroke-width="1.3" stroke-linecap="round"/></svg>';
 function starsReset(){[].forEach.call(starsEl.querySelectorAll(".st"),function(x){x.remove();});stnEl.textContent="";}
-function starKill(){var el=document.createElement("div"),h=STAR+'<i class="rg"></i>',i,all;for(i=0;i<10;i++)h+='<i class="ry" style="--a:'+(i*36+Math.random()*12)+'deg"></i>';el.className="st nw";el.innerHTML=h;starsEl.insertBefore(el,stnEl);
-  all=starsEl.querySelectorAll(".st");if(all.length>8)all[0].remove();stnEl.textContent="\u00d7"+score;stnEl.classList.remove("pop");void stnEl.offsetWidth;stnEl.classList.add("pop");
+function starKill(silent){
+  // Rehydration and new offline kills share this ONE original star builder.
+  // Silent mode restores trusted stars without replaying FX/audio.
+  var el=document.createElement("div"),h=STAR,i,all;
+  if(!silent){
+    h+='<i class="rg"></i>';
+    for(i=0;i<10;i++)h+='<i class="ry" style="--a:'+(i*36+Math.random()*12)+'deg"></i>';
+  }
+  el.className=silent?"st":"st nw";el.innerHTML=h;starsEl.insertBefore(el,stnEl);
+  all=starsEl.querySelectorAll(".st");if(all.length>8)all[0].remove();
+  stnEl.textContent="\u00d7"+score;
+  if(silent)return;
+  stnEl.classList.remove("pop");void stnEl.offsetWidth;stnEl.classList.add("pop");
   setTimeout(function(){el.classList.remove("nw");[].forEach.call(el.querySelectorAll(".rg,.ry"),function(x){x.remove();});},1100);
-  try{if(AC){tn(1046,2093,.1,"triangle",.09);tn(1568,3136,.18,"square",.05,.07);}}catch(e){}}
+  try{if(AC){tn(1046,2093,.1,"triangle",.09);tn(1568,3136,.18,"square",.05,.07);}}catch(e){}
+}
 // BN = bot names per team [police names, terrorist names].
 var BN=[["Jack","Mike","Ryan","Alex","Owen"],["Viper","Razor","Hawk","Shadow","Ghost"]];
 // spawnPt(tm): returns a RANDOM spawn point [x,z] inside the team's own zone: Police z in about +28..+48, Terrorist z in about -48..-28,
