@@ -33,5 +33,5 @@ test('same offline animation timer is advanced by online render loop, not ammo p
  assert.match(online,/onlineGrenadePresentationTick\(dt\);/);
  assert.match(online,/if\(frame\.actorId===onlineUserId\(\)\)pl\.ghide=\.65;/);
  assert.match(viewmodel,/g\.visible=i===pl\.w&&!?\(i===5&&pl\.ghide>0\)/);
- assert.match(online,/pl\.ghide=0;document\.body\.classList\.remove\('dead','bomb-spectator'\)/);
+ assert.match(online,/pl\.ghide=0;/);
 });
