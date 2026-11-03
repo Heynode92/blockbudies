@@ -4,6 +4,38 @@
 var onlineApi=typeof PB_ONLINE!=='undefined'?PB_ONLINE:null;
 var onlineActive=false,onlineTraining=false,onlineCurrentId=null,onlineMatchId=null;
 var onlineServerPhase='CONNECTING',onlineClientSceneReady=false,onlineLoadParticipants={ready:0,total:0};
+// Server input/ticks own charge; this state is for 3D first-person pose only.
+var onlineGrenadeHolding=false,onlineGrenadeCancelUntilRelease=false,
+    onlineGrenadeHoldAt=0,onlineGrenadeServerCharge=null;
+function onlineGrenadeCancelPrime(){
+ if(!onlineActive)return;
+ if(onlineGrenadeHolding){
+  onlineGrenadeHolding=false;onlineGrenadeCancelUntilRelease=true;
+ }
+ pl.thr=0;onlineGrenadeServerCharge=null;
+}
+function onlineGrenadeHandPose(){
+ if(!onlineActive)return;
+ var weapon=guns?.[5],pin=weapon?.userData?.grenadePin,lever=weapon?.userData?.grenadeLever;
+ if(!pin||!lever)return;
+ var phase=onlineGrenadeHolding?
+  Math.min(1,Math.max(0,(performance.now()-onlineGrenadeHoldAt)/300)):0;
+ pin.position.x=phase*.12;
+ pin.rotation.z=-phase*.35;
+ lever.rotation.x=phase*.65;
+}
+function onlineGrenadeChargeUI(){
+ var indicator=document.getElementById('grenadeChargeHud');
+ if(!indicator)return;
+ var show=onlineGrenadeHolding&&pl.w===5&&!pl.dead&&
+  onlineGrenadeServerCharge?.maxSeconds>0;
+ indicator.hidden=!show;
+ if(!show)return;
+ var ratio=Math.max(0,Math.min(1,onlineGrenadeServerCharge.seconds/
+  onlineGrenadeServerCharge.maxSeconds));
+ indicator.querySelector('i').style.width=Math.round(ratio*100)+'%';
+ indicator.querySelector('strong').textContent=Math.round(ratio*100)+'%';
+}
 var onlineWorld=null,onlineGame=null,onlineActors=new Map(),onlineSeq=0,onlineSendAt=0,onlineMeId=null;
 var onlineLobbyTimer=0,onlineRoomOpening=false,onlineRoomTimer=0,onlineRouteToken=0,onlineAttaching=false;
 var onlineTeamNotice=null,onlineInputId=0,onlineVisualLoaded=false;
@@ -285,6 +317,17 @@ function onlineReactToImpact(victimId,headshot,ownShot){
  botDamageReaction(model,visualDamage,dx,dz,!!headshot,true);
 }
 function onlineTickEffects(dt){
+ // Original offline projectile arc and collision are visual-only online.
+ updG(dt);
+ for(var g of grs){
+  if(!g.serverVisual||g.t<=0)continue;
+  g.trailElapsed=(g.trailElapsed||0)+dt;
+  if(g.trailElapsed>=.12){
+   g.trailElapsed=0;
+   if(g.y>gh(g.x,g.z,g.y)+.32)
+    smoke(g.x,g.y,g.z,1,.38,.15,.65,.36,.12);
+  }
+ }
  for(var n=onlineShotTracers.length-1;n>=0;n--){
   var beam=onlineShotTracers[n];beam.t-=dt;
   if(beam.t<=0){S.remove(beam.m);onlineShotTracers.splice(n,1);continue;}
@@ -370,7 +413,7 @@ function onlineGrenadeThrow(frame){
  if(grs.filter(function(g){return g.serverVisual}).length>=24)return;
  grs.push({m:mkGren(),serverVisual:true,grenadeId:frame.grenadeId,
   x:frame.x,y:frame.y,z:frame.z,vx:frame.vx,vy:frame.vy,vz:frame.vz,t:frame.fuse});
- if(frame.actorId===onlineUserId())pl.ghide=.65;
+ if(frame.actorId===onlineUserId()){pl.ghide=.65;onlineGrenadeServerCharge=null;}
 }
 // Reuse offline explosion particles, scorch and smoke, but absolutely NOT the
 // offline boom() damage or kill calculation. The point comes from the BE.
@@ -820,6 +863,8 @@ function onlineResetLive(){
  onlineServerPhase='CONNECTING';onlineClientSceneReady=false;onlineLoadParticipants={ready:0,total:0};
  document.getElementById('dv').classList.remove('online-results');
  pl.kb='';pl.rsT=0;pl.rt=0;pl.dt=0;pl.ghide=0;
+ onlineGrenadeHolding=false;onlineGrenadeCancelUntilRelease=false;
+ onlineGrenadeServerCharge=null;onlineGrenadeChargeUI();
  if(pl.bloodPool){bloodPoolRemove(pl.bloodPool);pl.bloodPool=null;}
  document.body.classList.remove('dead','bomb-spectator');
  for(const item of onlineActors.values()){if(item.model?.g)S.remove(item.model.g)}
@@ -1497,6 +1542,8 @@ function onlineApplyWorld(){
    pl.rsT=Number.isFinite(privateState?.respawnRemaining)?
      Math.max(0,privateState.respawnRemaining):0;
   }
+  if(fresh&&self.alive)
+   onlineGrenadeServerCharge=privateState?.grenadeCharge??null;
   pl.hp=privateState?.hp??self.hp??pl.hp;
   pl.vest=privateState?.vest??self.vest??pl.vest;
   if(Number.isFinite(privateState?.spawnShieldRemaining))pl.inv=Math.max(0,privateState.spawnShieldRemaining);
@@ -1671,7 +1718,19 @@ function onlineVisualUpdate(dt){
  pl.face-=ST.r.x*2.4*dt;pl.pitch=Math.max(-1.2,Math.min(1.2,pl.pitch-ST.r.y*1.6*dt));
  var wantsFire=!onlinePendingMatchCompleted&&!pl.dead&&(!!keys.KeyF||fireHeld||
    (mouse.down&&document.pointerLockElement===R.domElement));
- if(wantsFire&&pl.mag>0&&now-onlineMuzzleTime>Math.max(75,(WP[pl.w]?.cd||.14)*1000)){
+ if(pl.w===5){
+  var canPrime=wantsFire&&!onlineGrenadeCancelUntilRelease&&pl.mag>0&&pl.rl<=0;
+  if(canPrime&&!onlineGrenadeHolding){
+   onlineGrenadeHolding=true;onlineGrenadeHoldAt=now;pl.thr=0;
+  }else if(!canPrime&&onlineGrenadeHolding){
+   onlineGrenadeHolding=false;
+   if(!onlineGrenadeCancelUntilRelease)pl.thr=.5;
+  }
+ }
+ if(!wantsFire)onlineGrenadeCancelUntilRelease=false;
+ onlineGrenadeChargeUI();
+ var acceptedFire=wantsFire&&!onlineGrenadeCancelUntilRelease;
+ if(acceptedFire&&pl.w!==5&&pl.mag>0&&now-onlineMuzzleTime>Math.max(75,(WP[pl.w]?.cd||.14)*1000)){
   // Cosmetic prediction only: server decides shot legitimacy, ammo, hit and damage.
   onlineMuzzleTime=now;
   if(pl.w===4)pl.stab=.42;
@@ -1689,11 +1748,11 @@ function onlineVisualUpdate(dt){
   var sequence=onlineSeq+1;
   if(onlineApi.live.send({type:'input',frame:{
    seq:sequence,moveX:x,moveZ:z,yaw:pl.face,pitch:pl.pitch,
-   sprint:sprint,ads:!!ads,fire:wantsFire,reload:!!keys.KeyR,
+   sprint:sprint,ads:!!ads,fire:acceptedFire,reload:!!keys.KeyR,
    jump:jump,crouch:crouch,interact:!!(keys.KeyE||bombHold),weaponId:pl.w,
   }})){
    onlineSeq=sequence;onlineSendAt=now;
-   if(wantsFire)onlineCombatQa.fireInputs++;
+   if(acceptedFire)onlineCombatQa.fireInputs++;
   }
  }
  onlineApplyWorld();

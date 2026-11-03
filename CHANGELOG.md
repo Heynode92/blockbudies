@@ -1,3 +1,8 @@
+## 2026-11-04 — Stateful 3D grenade pin pull and original airborne trail
+- Original pin and spoon meshes are articulated on mouse hold, with a server-sourced private charge display. Release causes the server to throw, while weapon switch cancels and suppresses the trigger until mouse release. No client-selected power or damage.
+- Online visuals now advance original updG() (arc/bounce) and draw an economical wind trail behind visible server-authorized grenades; trusted detonation event still controls actual explosion, while client boom() is bypassed.
+- Reset primed state on session teardown and keep existing 2/2 ammunition and reserve logic.
+
 ## 2026-11-04 — Server-verified room loading and master handoff copy
 - Online match transition opens the existing 3D map cover on authenticated WS attach; real map capture and actual game engine/scene initialization precede a single client_ready acknowledgement. The backend decides when all human clients are connected, runs its countdown and emits match_live. Only then may loading reach 100% or the player enter gameplay; BOTs cannot get a head start.
 - Move loading rail near bottom, preserve original orange/steel-blue FPS aesthetic, and replace technical phase labels with friendly English. Legacy offline loading stays untouched.

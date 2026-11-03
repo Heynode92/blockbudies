@@ -120,5 +120,6 @@ function animHands(){
       var by=.03+.04*lf,bz=-.08+.17*pu;bh8.position.set(.07,by,bz);
       handR.position.set(RG[8][0]+(.07-RG[8][0])*hg,RG[8][1]+(by-.04-RG[8][1])*hg,RG[8][2]+(bz-RG[8][2])*hg);}
     else bh8.position.set(.07,.03,-.08);}
+  if(typeof onlineActive!=='undefined'&&onlineActive)onlineGrenadeHandPose();
   aim(armR,[handR.position.x,handR.position.y,handR.position.z],SHR);aim(armL,[lx,ly,lz],SHL);handL.visible=armL.visible=(w<4||w>5);
 }
