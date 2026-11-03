@@ -1,3 +1,9 @@
+## 2026-11-03 — Clear EXP/vPBT Battle Report rewards and thin verified projectile streaks
+- Embed separate EXP and vPBT reward tiles inside the original offline `endMatch()` Battle Report. Populate them only from settled `/v1/me/matches/:id/reward` values; pending awards show placeholders, bounded automatic rechecks and a manual RECHECK action.
+- After confirmed settlement, refresh the authenticated player profile to update header vPBT and rank EXP. No optimistic local reward grants or client-computed payouts.
+- Reuse original shared tracer() with a slender tapered core and localized bright halo in both offline and online. Online shots follow trusted BE projectile-speed metadata for cosmetic motion only, without changing hit/damage/bullet simulation, recoil or balance.
+- Add focused result, FX and shot-speed regressions.
+
 ## 2026-11-03 — Inventory displays only wallet-owned server-verified gear; no public Shop gate
 - Filter MAIN inventory by official `/v1/me/inventory` ownership rather than the catalog. Secondary, melee, grenade and helmet slots are read from authenticated `/v1/me/loadout`, never displayed from defaults before verification.
 - Block unauthenticated or unregistered Inventory entry with the existing new PointBlock-themed wallet dialog, including Home shortcuts and direct /inventory routes. Authenticated loading shows only a safe loading state, never stale assets; wallet changes discard old ownership.

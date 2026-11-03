@@ -175,8 +175,10 @@ test('server-confirmed projectile draws a short-lived visual tracer without simu
  ctx.draw({actorId:'me',weaponId:9,x:0,y:1.4,z:0,yaw:0,pitch:0});
  assert.equal(ctx.onlineShotTracers.length,1);
  assert.equal(added.length,1);
- assert.equal(ctx.onlineShotTracers[0].t,.085);
+ assert.ok(ctx.onlineShotTracers[0].t>=.075&&ctx.onlineShotTracers[0].t<=.15);
  assert.equal(ctx.onlineShotTracers[0].vz,180);
+ ctx.draw({actorId:'me',weaponId:9,x:0,y:1.4,z:0,yaw:0,pitch:0,projectileSpeed:420});
+ assert.equal(ctx.onlineShotTracers[1].vz,420,'BE projectile speed drives only cosmetic movement');
  ctx.draw({actorId:'me',weaponId:9,x:NaN,y:0,z:0,yaw:0,pitch:0});
  assert.equal(ctx.onlineShotTracers.length,1);
 });

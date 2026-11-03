@@ -10,6 +10,7 @@ var onlineReconnectTimer=0,onlineReconnectStarted=0,onlineReconnecting=false;
 var onlineAimInitialized=false,onlineTrainingProgressValue=null,onlinePrevAlive=true;
 var onlineSelfTarget=null,onlineLastWinner=undefined,onlineMuzzleTime=0;
 var onlinePendingMatchCompleted=null,onlineResultsDisplayed=false;
+var onlineRewardMatchId=null,onlineRewardTimer=null,onlineRewardChecking=false;
 var onlineStallChecking=false,onlineLastStallCheckAt=0;
 var onlinePendingKillTick=-1,onlinePendingKillTotal=null;
 var onlinePendingWeapon=null,onlinePendingWeaponAt=0,onlineHitMarker=null,onlineHitUntil=0;
@@ -340,11 +341,16 @@ function onlineShotTracer(frame){
  if(w.melee||w.gr)return;
  if(onlineShotTracers.length>=40){var oldest=onlineShotTracers.shift();S.remove(oldest.m);}
  var own=frame.actorId===onlineUserId()?'p':'e',mesh=tracer(own,false);
- var angle=frame.yaw,pitch=frame.pitch,speed=Math.min(260,w.spd||180);
+ // Actual speed is sent with the authorized server shot. It influences only
+ // the cosmetic mesh, never client collision or hit registration.
+ var angle=frame.yaw,pitch=frame.pitch,
+  speed=Number.isFinite(frame.projectileSpeed)&&frame.projectileSpeed>0&&frame.projectileSpeed<=1000?
+   frame.projectileSpeed:(w.spd||180),
+  duration=Math.min(.15,Math.max(.075,24/speed));
  mesh.rotation.order='YXZ';mesh.rotation.set(-pitch,angle,0);
  mesh.position.set(frame.x,frame.y,frame.z);S.add(mesh);
  onlineShotTracers.push({m:mesh,vx:Math.sin(angle)*Math.cos(pitch)*speed,
-  vy:Math.sin(pitch)*speed,vz:Math.cos(angle)*Math.cos(pitch)*speed,t:.085});
+  vy:Math.sin(pitch)*speed,vz:Math.cos(angle)*Math.cos(pitch)*speed,t:duration});
 }
 function onlineWarn(error) {
  var code=typeof error==='string'?error:error&&error.code||'BACKEND_UNAVAILABLE';
@@ -762,23 +768,64 @@ function onlineAdoptFinalScore(game){
  onlineSyncKillDisplay(pl.st.k,false);
  return true;
 }
-function onlineShowVerifiedReward(matchId){
- var el=document.getElementById('verifiedReward');
- if(!el)return;
- el.hidden=false;el.textContent='Reward verification pending';
- if(!matchId||!onlineApi?.state().authenticated)return;
- var check=function(retries){
-  onlineApi.award(matchId).then(function(value){
-   if(!document.getElementById('dv').classList.contains('show'))return;
-   function half(v){var n=BigInt(v);return (n/2n).toString()+(n%2n?'.5':'');}
-   el.textContent='EXP +'+half(value.awardedExpHalf)+' · vPBT +'+half(value.awardedVpbtHalf);
-  }).catch(function(error){
-   if(!document.getElementById('dv').classList.contains('show'))return;
-   if(retries>0){setTimeout(function(){check(retries-1)},1200);return;}
-   el.textContent='Reward pending server verification ('+(error.code||'NOT_AVAILABLE')+')';
+// Results use the ORIGINAL offline Battle Report. Only the two numbers below
+// come from a persisted settlement, never a client-side award calculation.
+function onlineRewardVisible(matchId){
+ return onlineResultsDisplayed&&onlineRewardMatchId===matchId&&
+  document.getElementById('dv').classList.contains('show');
+}
+function onlineRewardStop(){
+ clearTimeout(onlineRewardTimer);onlineRewardTimer=null;
+ onlineRewardMatchId=null;onlineRewardChecking=false;
+}
+function onlineCheckVerifiedReward(matchId,attempt){
+ if(!onlineRewardVisible(matchId)||onlineRewardChecking||!onlineApi?.state().authenticated)return;
+ onlineRewardChecking=true;
+ var flag=document.getElementById('verifiedRewardFlag'),
+  status=document.getElementById('verifiedRewardStatus'),
+  retry=document.getElementById('verifiedRewardRetry');
+ flag.textContent='VERIFYING';retry.hidden=true;
+ void onlineApi.award(matchId).then(function(value){
+  if(!onlineRewardVisible(matchId))return;
+  // Backend balances and rewards are serialized nonnegative half units.
+  var exp=homeFormatHalf(value?.awardedExpHalf),vpbt=homeFormatHalf(value?.awardedVpbtHalf);
+  if(exp==='—'||vpbt==='—'||value.matchId!==matchId)
+   throw Error('INVALID_MATCH_SETTLEMENT_RESPONSE');
+  document.getElementById('verifiedExpAmount').textContent='+'+exp;
+  document.getElementById('verifiedVpbtAmount').textContent='+'+vpbt;
+  flag.textContent='SETTLED';
+  status.textContent='EXP and vPBT credited by PointBlock server';
+  retry.hidden=true;
+  // Read after settlement so the vPBT header and player rank meter reflect
+  // actual persisted progress, rather than an optimistic local increment.
+  void onlineApi.refreshProfile().catch(function(error){
+   if(onlineRewardVisible(matchId))status.textContent='Reward confirmed · profile refresh pending';
   });
- };
- check(2);
+ }).catch(function(error){
+  if(!onlineRewardVisible(matchId))return;
+  if(error?.code==='MATCH_REWARD_NOT_FOUND'&&attempt<8){
+   flag.textContent='PENDING';
+   status.textContent='Waiting for server settlement…';
+   onlineRewardTimer=setTimeout(function(){onlineCheckVerifiedReward(matchId,attempt+1);},1250);
+   return;
+  }
+  flag.textContent='PENDING';
+  status.textContent='Unable to verify rewards: '+String(error?.code||error?.message||'BACKEND_UNAVAILABLE').slice(0,48);
+  retry.hidden=false;
+ }).finally(function(){onlineRewardChecking=false;});
+}
+function onlineShowVerifiedReward(matchId){
+ var section=document.getElementById('verifiedReward');
+ if(!section)return;
+ onlineRewardStop();
+ onlineRewardMatchId=matchId;
+ section.hidden=false;
+ document.getElementById('verifiedExpAmount').textContent='—';
+ document.getElementById('verifiedVpbtAmount').textContent='—';
+ document.getElementById('verifiedRewardStatus').textContent='Awaiting server settlement confirmation…';
+ document.getElementById('verifiedRewardFlag').textContent='VERIFYING';
+ document.getElementById('verifiedRewardRetry').hidden=true;
+ onlineCheckVerifiedReward(matchId,0);
 }
 function onlineFinalizeCompletedMatch(frame){
  if(!onlineActive||onlineTraining||!frame||frame.matchId!==onlineMatchId||
@@ -1290,6 +1337,9 @@ if(onlineApi)onlineApi.setOnChange(function(state){
  var wasLogout=onlineWasAuthenticated&&!state.authenticated;
  onlineWasAuthenticated=state.authenticated;
  if(wasLogout){
+  onlineResultsDisplayed=false;onlineRewardStop();
+  document.getElementById('dv').classList.remove('show');
+  document.body.classList.remove('over');
   // Drop all cached weapons before returning to a public panel.
   inventoryLoad();
   var hadLiveGame=onlineActive;
@@ -1314,17 +1364,20 @@ onlineAction('tsT',onlineStartGate);
 onlineAction('dgo',async()=>{
  if(!onlineResultsDisplayed){again();return;}
  var master=onlineIsMaster();
- onlineResultsDisplayed=false;
+ onlineResultsDisplayed=false;onlineRewardStop();
  var reward=document.getElementById('verifiedReward');if(reward)reward.hidden=true;
  matchExitToLobby('room');
  if(roomCurrent)await onlineRecoverMembership().catch(onlineWarn);
  if(master&&roomCurrent)await onlineMasterStart();
 });
 onlineAction('dmn',()=>{
- onlineResultsDisplayed=false;
+ onlineResultsDisplayed=false;onlineRewardStop();
  var reward=document.getElementById('verifiedReward');if(reward)reward.hidden=true;
  matchExitToLobby('room');
  if(roomCurrent)void onlineRecoverMembership().catch(onlineWarn);
+});
+document.getElementById('verifiedRewardRetry').addEventListener('click',function(){
+ if(onlineRewardMatchId)onlineCheckVerifiedReward(onlineRewardMatchId,0);
 });
 onlineAction('go',onlineStartGate);
 onlineAction('escConfirmYes',async()=>{

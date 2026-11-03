@@ -89,3 +89,25 @@
  #gameLobbyHeader #homeWalletConnect{width:100%;flex:1 1 100%}
 }
 @media(prefers-reduced-motion:reduce){#gameLobbyHeader .home-progress-track i{transition:none}}
+
+/* Settlement values are visible inside the original, untouched Battle Report. */
+#verifiedReward[hidden],#verifiedRewardRetry[hidden]{display:none!important}
+#verifiedReward.point-online-result-reward{box-sizing:border-box;display:block;margin:6px 0 0;
+ padding:10px 12px;border:1px solid #45617e;border-left:3px solid #f3a54d;
+ background:linear-gradient(130deg,#10243b,#0b192c);color:#f2f8ff}
+#verifiedReward .point-reward-heading{display:flex;justify-content:space-between;align-items:center;gap:8px;
+ color:#eeb57f;font:800 11px Rajdhani,sans-serif;letter-spacing:.13em}
+#verifiedReward .point-reward-heading b{color:#8fdbbd;font-size:10px}
+#verifiedReward .point-reward-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px}
+#verifiedReward .point-reward-value{min-width:0;padding:8px 10px;display:flex;flex-direction:column;gap:4px;
+ border:1px solid #385c81;background:#152f49}
+#verifiedReward .point-reward-vpbt{border-color:#397568;background:#0f3838}
+#verifiedReward .point-reward-value small{color:#9dbbd7;letter-spacing:.1em;font:900 10px Rajdhani,sans-serif}
+#verifiedReward .point-reward-value strong{color:#fff4dc;font:900 clamp(19px,1.7vw,26px) Impact,sans-serif;
+ font-variant-numeric:tabular-nums;letter-spacing:.02em}
+#verifiedReward .point-reward-vpbt strong{color:#90eecf}
+#verifiedReward .point-reward-status{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:8px;
+ color:#b6cee3;font:700 11px Rajdhani,sans-serif}
+#verifiedRewardRetry{padding:3px 8px;border:1px solid #d78b40;background:#3e281b;color:#ffbd72;
+ font:800 11px Rajdhani,sans-serif;cursor:pointer}
+@media(max-width:560px){#verifiedReward .point-reward-value{padding:7px 8px}#verifiedReward .point-reward-value strong{font-size:20px}}

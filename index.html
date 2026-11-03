@@ -92,7 +92,15 @@ html.pb-route-restoring #lb { visibility:hidden; }
 <div class="dr r2"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 8v5l3 2M9 2h6"/></svg><span>Deaths</span><b id="dtm">0:00</b></div>
 <div class="dr r3"><svg viewBox="0 0 24 24"><path d="M3 8l4 4 5-7 5 7 4-4-2 11H5z"/></svg><span>Best Kills</span><b id="dbs">0</b></div>
 </div>
-<div id="sbd"></div><p id="verifiedReward" class="point-online-result-reward" hidden></p><div class="dbt"><button id="dgo">PLAY AGAIN<kbd>ENTER</kbd></button><button id="dmn">BACK TO ROOM</button></div></div>
+<div id="sbd"></div>
+<section id="verifiedReward" class="point-online-result-reward" aria-label="Verified match EXP and vPBT rewards" hidden>
+  <div class="point-reward-heading"><span>SERVER-VERIFIED REWARDS</span><b id="verifiedRewardFlag">VERIFYING</b></div>
+  <div class="point-reward-grid">
+    <div class="point-reward-value"><small>EXP EARNED</small><strong id="verifiedExpAmount">—</strong></div>
+    <div class="point-reward-value point-reward-vpbt"><small>vPBT EARNED</small><strong id="verifiedVpbtAmount">—</strong></div>
+  </div>
+  <div class="point-reward-status"><span id="verifiedRewardStatus" role="status" aria-live="polite">Awaiting settlement confirmation…</span><button type="button" id="verifiedRewardRetry" hidden>RECHECK</button></div>
+</section><div class="dbt"><button id="dgo">PLAY AGAIN<kbd>ENTER</kbd></button><button id="dmn">BACK TO ROOM</button></div></div>
 </div></div>
 <div id="lb">
  <header id="gameLobbyHeader" class="home-global-header" aria-label="Point Block main menu header">

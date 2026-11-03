@@ -12,14 +12,19 @@ function mkMed(){var g=new T.Group(),r=0xe03131;g.add(bx(.8,.6,.8,0xf8f9fa,0,0,0
 // rci(): random crate contents. Returns 3 (medkit) more often when the player HP is low, otherwise 0..2 (rifle/shotgun/rocket crates).
 function rci(){return Math.random()<(pl.hp<50?.5:.25)?3:Math.floor(Math.random()*3);}
 // Tracer (bullet streak) geometry and materials. coreM = white core, glP = player glow (yellow), glE = enemy glow (red), glR = rocket glow (orange).
-var trG=new T.CylinderGeometry(1,1,1,6);trG.rotateX(Math.PI/2);
-var coreM=new T.MeshBasicMaterial({color:0xffffff}),
- glP=new T.MeshBasicMaterial({color:0xffc233,transparent:true,opacity:.28,blending:T.AdditiveBlending,depthWrite:false}),
- glE=new T.MeshBasicMaterial({color:0xff3b3b,transparent:true,opacity:.3,blending:T.AdditiveBlending,depthWrite:false}),
+// A tapered, thin streak with a compact additive halo. Only rendering is
+// changed: the same shared tracer() is called by offline and verified online
+// effects; projectile hit/damage physics are not touched.
+var trG=new T.CylinderGeometry(.28,1,1,8);trG.rotateX(Math.PI/2);
+var coreM=new T.MeshBasicMaterial({color:0xfffbed}),
+ glP=new T.MeshBasicMaterial({color:0xffc765,transparent:true,opacity:.48,blending:T.AdditiveBlending,depthWrite:false}),
+ glE=new T.MeshBasicMaterial({color:0xff6c53,transparent:true,opacity:.5,blending:T.AdditiveBlending,depthWrite:false}),
  glR=new T.MeshBasicMaterial({color:0xff7a1a,transparent:true,opacity:.6,blending:T.AdditiveBlending,depthWrite:false});
-// tracer(): builds a bullet mesh (white core + additive glow). own = "p" (player) or "e" (enemy), rk = rocket (bigger).
-function tracer(own,rk){var g=new T.Group(),L=rk?.9:1.1,r=rk?.1:.016;
-  var c=new T.Mesh(trG,coreM);c.scale.set(r,r,L);var gl=new T.Mesh(trG,own==="p"?(rk?glR:glP):glE);gl.scale.set(r*2.6,r*2.6,L*1.15);g.add(c,gl);return g;}
+// tracer(): a slim tapered core and proportional halo; rockets retain their distinct body.
+function tracer(own,rk){var g=new T.Group(),L=rk?.9:1.1,r=rk?.1:.009;
+  var c=new T.Mesh(trG,coreM);c.scale.set(r,r,L);
+  var gl=new T.Mesh(trG,own==="p"?(rk?glR:glP):glE);
+  gl.scale.set(r*2.5,r*2.5,L*1.12);g.add(c,gl);return g;}
 // spark(): spawns n small additive particles at (x,y,z). Stored in `sk`, moved/faded in update().
 var spG=new T.SphereGeometry(1,6,6),spM={};
 function spark(x,y,z,col,n,sp,sz){var m0=spM[col]||(spM[col]=new T.MeshBasicMaterial({color:col,transparent:true,opacity:.9,blending:T.AdditiveBlending,depthWrite:false}));
