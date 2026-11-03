@@ -7,22 +7,60 @@ var onlineServerPhase='CONNECTING',onlineClientSceneReady=false,onlineLoadPartic
 // Server input/ticks own charge; this state is for 3D first-person pose only.
 var onlineGrenadeHolding=false,onlineGrenadeCancelUntilRelease=false,
     onlineGrenadeHoldAt=0,onlineGrenadeServerCharge=null;
+var onlineGrenadeDetachedPin=null,onlineGrenadePinDetached=false,
+    onlineGrenadePinFxAt=0,onlineGrenadePinPoseUntil=0;
+function onlineGrenadeRestorePin(){
+ var weapon=guns?.[5],pin=weapon?.userData?.grenadePin,lever=weapon?.userData?.grenadeLever;
+ if(weapon&&onlineGrenadeDetachedPin)weapon.remove(onlineGrenadeDetachedPin);
+ onlineGrenadeDetachedPin=null;onlineGrenadePinDetached=false;onlineGrenadePinPoseUntil=0;
+ if(pin&&weapon.userData.grenadePinHome){
+  pin.visible=true;
+  pin.position.copy(weapon.userData.grenadePinHome.position);
+  pin.rotation.copy(weapon.userData.grenadePinHome.rotation);
+ }
+ if(lever&&weapon.userData.grenadeLeverHome)
+  lever.rotation.copy(weapon.userData.grenadeLeverHome.rotation);
+}
 function onlineGrenadeCancelPrime(){
  if(!onlineActive)return;
  if(onlineGrenadeHolding){
   onlineGrenadeHolding=false;onlineGrenadeCancelUntilRelease=true;
  }
+ onlineGrenadeRestorePin();
  pl.thr=0;onlineGrenadeServerCharge=null;
 }
 function onlineGrenadeHandPose(){
  if(!onlineActive)return;
- var weapon=guns?.[5],pin=weapon?.userData?.grenadePin,lever=weapon?.userData?.grenadeLever;
- if(!pin||!lever)return;
- var phase=onlineGrenadeHolding?
-  Math.min(1,Math.max(0,(performance.now()-onlineGrenadeHoldAt)/300)):0;
- pin.position.x=phase*.12;
- pin.rotation.z=-phase*.35;
- lever.rotation.x=phase*.65;
+ var weapon=guns?.[5],pin=weapon?.userData?.grenadePin,lever=weapon?.userData?.grenadeLever,
+     home=weapon?.userData?.grenadePinHome,leverHome=weapon?.userData?.grenadeLeverHome;
+ if(!pin||!lever||!home||!leverHome)return;
+ var now=performance.now(),holding=onlineGrenadeHolding&&pl.w===5&&!pl.dead,
+     releasing=!holding&&pl.w===5&&!pl.dead&&now<onlineGrenadePinPoseUntil;
+ if(!holding&&!releasing){
+  if(onlineGrenadePinDetached||onlineGrenadePinPoseUntil)onlineGrenadeRestorePin();
+  return;
+ }
+ var phase=holding?Math.min(1,Math.max(0,(now-onlineGrenadeHoldAt)/300)):1;
+ pin.position.copy(home.position);pin.position.x+=phase*.12;
+ pin.rotation.copy(home.rotation);pin.rotation.z-=phase*.35;
+ lever.rotation.copy(leverHome.rotation);lever.rotation.x+=phase*.65;
+ // Detach a clone of the canonical Three.js pin. This is cosmetic only:
+ // it cannot create a server grenade, consume ammo or apply damage.
+ if(phase>=.9&&!onlineGrenadePinDetached){
+  onlineGrenadeDetachedPin=pin.clone();
+  weapon.add(onlineGrenadeDetachedPin);
+  onlineGrenadePinFxAt=now;onlineGrenadePinDetached=true;
+ }
+ pin.visible=!onlineGrenadePinDetached;
+ if(onlineGrenadeDetachedPin){
+  var t=Math.max(0,(now-onlineGrenadePinFxAt)/1000);
+  onlineGrenadeDetachedPin.position.copy(home.position);
+  onlineGrenadeDetachedPin.position.x+=.14+t*.38;
+  onlineGrenadeDetachedPin.position.y-=t*.26+t*t*1.4;
+  onlineGrenadeDetachedPin.rotation.copy(home.rotation);
+  onlineGrenadeDetachedPin.rotation.z-=t*6;
+  if(t>.85){weapon.remove(onlineGrenadeDetachedPin);onlineGrenadeDetachedPin=null;}
+ }
 }
 function onlineGrenadeChargeUI(){
  var indicator=document.getElementById('grenadeChargeHud');
@@ -413,7 +451,7 @@ function onlineGrenadeThrow(frame){
  if(grs.filter(function(g){return g.serverVisual}).length>=24)return;
  grs.push({m:mkGren(),serverVisual:true,grenadeId:frame.grenadeId,
   x:frame.x,y:frame.y,z:frame.z,vx:frame.vx,vy:frame.vy,vz:frame.vz,t:frame.fuse});
- if(frame.actorId===onlineUserId()){pl.ghide=.65;onlineGrenadeServerCharge=null;}
+ if(frame.actorId===onlineUserId()){pl.ghide=.65;onlineGrenadeServerCharge=null;onlineGrenadeRestorePin();}
 }
 // Reuse offline explosion particles, scorch and smoke, but absolutely NOT the
 // offline boom() damage or kill calculation. The point comes from the BE.
@@ -870,7 +908,7 @@ function onlineResetLive(){
  document.getElementById('dv').classList.remove('online-results');
  pl.kb='';pl.rsT=0;pl.rt=0;pl.dt=0;pl.ghide=0;
  onlineGrenadeHolding=false;onlineGrenadeCancelUntilRelease=false;
- onlineGrenadeServerCharge=null;onlineGrenadeChargeUI();
+ onlineGrenadeServerCharge=null;onlineGrenadeRestorePin();onlineGrenadeChargeUI();
  if(pl.bloodPool){bloodPoolRemove(pl.bloodPool);pl.bloodPool=null;}
  document.body.classList.remove('dead','bomb-spectator');
  for(const item of onlineActors.values()){if(item.model?.g)S.remove(item.model.g)}
@@ -1746,10 +1784,14 @@ function onlineVisualUpdate(dt){
  if(pl.w===5){
   var canPrime=wantsFire&&!onlineGrenadeCancelUntilRelease&&pl.mag>0&&pl.rl<=0;
   if(canPrime&&!onlineGrenadeHolding){
+   onlineGrenadeRestorePin();
    onlineGrenadeHolding=true;onlineGrenadeHoldAt=now;pl.thr=0;
   }else if(!canPrime&&onlineGrenadeHolding){
    onlineGrenadeHolding=false;
-   if(!onlineGrenadeCancelUntilRelease)pl.thr=.5;
+   if(!onlineGrenadeCancelUntilRelease&&!wantsFire){
+    onlineGrenadePinPoseUntil=now+850;
+    pl.thr=.5;
+   }else onlineGrenadeRestorePin();
   }
  }
  if(!wantsFire)onlineGrenadeCancelUntilRelease=false;
