@@ -111,3 +111,49 @@
 #verifiedRewardRetry{padding:3px 8px;border:1px solid #d78b40;background:#3e281b;color:#ffbd72;
  font:800 11px Rajdhani,sans-serif;cursor:pointer}
 @media(max-width:560px){#verifiedReward .point-reward-value{padding:7px 8px}#verifiedReward .point-reward-value strong{font-size:20px}}
+
+/* Verified Ready, Room Master Kick and results action UI.
+   Matches existing navy/orange PointBlock Room Lobby styling. */
+#lbroomlive .rml-slot.is-ready{border-color:#329b79;background:linear-gradient(100deg,#15382e,#0c243a)}
+#lbroomlive .rml-slot .rml-seat-state{font-style:normal;font-size:11px;letter-spacing:.07em}
+#lbroomlive .rml-slot.is-ready .rml-seat-state{color:#6dedb8;font-weight:900}
+#lbroomlive .rml-slot .rml-kick-player{
+ margin-left:4px;flex:0 0 auto;padding:5px 9px;border:1px solid #cf6744;
+ background:linear-gradient(120deg,#4f2627,#281b26);color:#ffb3a0;
+ font:900 11px Rajdhani,sans-serif;letter-spacing:.07em;cursor:pointer;
+}
+#lbroomlive .rml-slot .rml-kick-player:hover{background:#804034}
+#lbroomlive .rml-slot .rml-kick-player:focus-visible{outline:2px solid #ffb17d;outline-offset:2px}
+#lbroomlive #rmlStart.room-ready-action{
+ background:linear-gradient(110deg,#087d6e,#30ae8f);color:#edfffa;
+}
+#lbroomlive #rmlStart.room-ready-action:hover{filter:brightness(1.16)}
+#dv #dmn[hidden]{display:none!important}
+#dv #dgo{min-width:min(280px,80vw)}
+.room-online-modal[hidden]{display:none!important}
+.room-online-modal{position:fixed;inset:0;z-index:25000;display:grid;place-items:center;
+ background:rgba(1,8,20,.83);backdrop-filter:blur(7px);padding:18px;box-sizing:border-box}
+.room-online-modal-card{
+ position:relative;width:min(495px,100%);box-sizing:border-box;padding:27px 30px;
+ border:1px solid #6489ac;border-top:4px solid #ff982f;
+ background:linear-gradient(135deg,#132d49,#061525 85%);
+ box-shadow:0 25px 75px #000d,0 0 20px #ff822023;
+ font-family:Rajdhani,'Trebuchet MS',sans-serif;color:#f1f8ff;text-align:left}
+.room-online-modal-card::after{content:"";position:absolute;right:0;bottom:0;width:20px;height:20px;
+ border-right:3px solid #f98a31;border-bottom:3px solid #f98a31}
+.room-online-modal-brand{font:900 11px Rajdhani,sans-serif;letter-spacing:.17em;color:#ffa851}
+.room-online-modal-card h2{margin:14px 0 10px;color:#fff;
+ font:italic 900 clamp(27px,5vw,37px)/1.12 Impact,'Arial Black',sans-serif;letter-spacing:.06em}
+.room-online-modal-card p{margin:0;color:#bed1e3;font:700 17px/1.38 Rajdhani,sans-serif;overflow-wrap:anywhere}
+.room-online-modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}
+.room-online-modal-actions button{min-width:115px;min-height:44px;padding:10px 18px;
+ color:#fff;background:linear-gradient(110deg,#e76519,#ff9c35);border:1px solid #ffb87c;
+ font:900 15px Rajdhani,sans-serif;letter-spacing:.09em;cursor:pointer}
+.room-online-modal-actions #roomOnlineDialogCancel{background:#1b344c;border-color:#6687a6}
+.room-online-modal-actions button[hidden]{display:none!important}
+.room-online-modal-actions button:focus-visible{outline:2px solid #ffe0a2;outline-offset:2px}
+.room-online-modal-actions button:disabled{opacity:.55;cursor:wait}
+@media(max-width:700px){
+ #lbroomlive .rml-slot .rml-seat-state{font-size:10px}
+ #lbroomlive .rml-slot .rml-kick-player{padding:4px 6px;font-size:10px}
+}

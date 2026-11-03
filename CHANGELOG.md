@@ -1,3 +1,9 @@
+## 2026-11-03 — Ready, Kick and same-room EXIT GAME UX for authoritative online matches
+- Replace online Play Again / Back To Room in the native offline Battle Report with a single EXIT GAME button. EXIT GAME returns to the SAME authenticated room without invoking Leave, Abandon, or Start. Reward verification and results visuals are preserved until exit.
+- For non-master human members, the Room Lobby's existing large START button is now READY / READY · CANCEL; show [READY] at the right of their player names, and show MASTER separately for the owner.
+- Room Master START remains clickable while others are unready and displays a themed PointBlock popup listing waiting players. Server also rejects races atomically. Empty BOT-filled slots require no Ready.
+- Room Master-only KICK on human team slots, with explicit confirmation. A kicked player is detected by verified membership polling, returned to Room Browser, and shown "YOU ALREADY KICKED BY {username}" with OK. Server prevents rejoining that one room for exactly 60 seconds.
+- No duplicate local Ready authority, fake room/player data, duplicate Kick privileges, client-side cooldown enforcement, BOT modifications, or combat physics changes. Backend requires migration before startup.
 ## 2026-11-03 — Align Room Browser table and display numeric room IDs
 - Apply one six-column responsive CSS grid to both Available Rooms header and live room rows: numeric ID, room name, map/mode, player count, status and JOIN. Increase ID width, use tabular numerals, prevent wrapping and truncate long names instead of colliding with adjacent columns.
 - Display only the official BE room sequence from `PBT-00026-DM` / `PBT-00026-BM` as `00026`. Preserve the full BE public code and the original UUID in state and Join requests; no hardcoded room numbers.

@@ -366,6 +366,18 @@ html.pb-route-restoring #lb { visibility:hidden; }
 <div class="mmap" id="mmap"><canvas id="mapPreviewCanvas" width="960" height="540" aria-label="Live 3D map preview"></canvas><div class="mmap-shade"></div><div class="mmap-title"><span>MAP</span><strong id="mapName">BLOCK DISTRICT</strong><small id="mapCaption">Urban Combat Zone</small></div></div>
 <div class="msp" id="msp"></div><div class="moverview"><span class="moverview-head">MAP OVERVIEW</span><div id="mapOverview" class="moverview-facts"></div></div>
 <div class="mbt"><button id="mdm">PLAY NOW<kbd>ENTER</kbd></button></div></div></div>
+<div id="roomMultiplayerDialog" class="room-online-modal" hidden>
+  <section class="room-online-modal-card" role="dialog" aria-modal="true"
+    aria-labelledby="roomOnlineDialogTitle" aria-describedby="roomOnlineDialogBody">
+    <div class="room-online-modal-brand">POINT BLOCK · MULTIPLAYER CONTROL</div>
+    <h2 id="roomOnlineDialogTitle">ROOM NOTICE</h2>
+    <p id="roomOnlineDialogBody"></p>
+    <div class="room-online-modal-actions">
+      <button id="roomOnlineDialogCancel" type="button" hidden>CANCEL</button>
+      <button id="roomOnlineDialogOk" type="button">OK</button>
+    </div>
+  </section>
+</div>
 <div id="roomTransition" class="room-transition" aria-live="polite" hidden>
   <canvas id="roomStartMap" width="1280" height="720" aria-label="Actual 3D match map"></canvas>
   <div class="room-transition-shade"></div>

@@ -367,7 +367,9 @@ function onlineRoomOf(r) {
  if(!r||typeof r.id!=='string'||!['DM','BM'].includes(r.mode))return null;
  var mode=r.mode==='BM'?1:0,goals=r.goals||{};
  return {id:r.id,code:r.code,name:r.name,mode:mode,mapId:r.mapId,ownerId:r.ownerId,
-  status:r.status,members:Array.isArray(r.members)?r.members:[],
+  status:r.status,members:Array.isArray(r.members)?r.members.map(function(m){
+    return {playerId:m.playerId,team:m.team,username:m.username,ready:m.ready===true};
+  }):[],
   kills:goals.kills??50,minutes:goals.minutes??10,
   rounds:goals.maxRounds??12,roundMinutes:goals.roundMinutes??2};
 }
@@ -440,8 +442,103 @@ async function onlineRefreshRooms(){
   onlineRoomRender();
  }catch(error){roomList=[];onlineRoomRender();onlineWarn(error)}
 }
+// This is one PointBlock-styled, accessible dialog for server-verified room
+// events. Names enter via textContent only; no unsafe HTML interpolation.
+var onlineRoomDialogAccept=null,onlineRoomDialogBlocked=false;
+function onlineRoomDialogClose(){
+ var root=document.getElementById('roomMultiplayerDialog');
+ root.hidden=true;onlineRoomDialogAccept=null;onlineRoomDialogBlocked=false;
+}
+function onlineRoomDialog(title,message,actionLabel,cancelLabel,onAccept){
+ var root=document.getElementById('roomMultiplayerDialog');
+ document.getElementById('roomOnlineDialogTitle').textContent=title;
+ document.getElementById('roomOnlineDialogBody').textContent=message;
+ var ok=document.getElementById('roomOnlineDialogOk'),cancel=document.getElementById('roomOnlineDialogCancel');
+ ok.textContent=actionLabel||'OK';cancel.textContent=cancelLabel||'CANCEL';
+ cancel.hidden=!onAccept;onlineRoomDialogAccept=onAccept||null;
+ root.hidden=false;ok.focus();
+}
+document.getElementById('roomOnlineDialogOk').addEventListener('click',async function(){
+ if(onlineRoomDialogBlocked)return;
+ var action=onlineRoomDialogAccept;
+ if(!action){onlineRoomDialogClose();return;}
+ onlineRoomDialogBlocked=true;this.disabled=true;
+ try{await action();onlineRoomDialogClose();}
+ catch(error){onlineWarn(error);}
+ finally{onlineRoomDialogBlocked=false;this.disabled=false;}
+});
+document.getElementById('roomOnlineDialogCancel').addEventListener('click',onlineRoomDialogClose);
+document.getElementById('roomMultiplayerDialog').addEventListener('click',function(event){
+ if(event.target===this&&onlineRoomDialogAccept)onlineRoomDialogClose();
+});
+document.addEventListener('keydown',function(event){
+ if(event.key==='Escape'&&!document.getElementById('roomMultiplayerDialog').hidden){
+  event.preventDefault();event.stopImmediatePropagation();
+  if(onlineRoomDialogAccept)onlineRoomDialogClose();
+ }
+},true);
+function onlineUnreadyMembers(room){
+ return (room?.members||[]).filter(function(m){return m.playerId!==room.ownerId&&!m.ready;});
+}
+function onlineShowWaitingPlayers(room){
+ var waiting=onlineUnreadyMembers(room),names=waiting.map(m=>m.username).join(', ');
+ onlineRoomDialog('WAITING FOR PLAYERS READY',
+   names?'The following players must press READY before the match can start: '+names:
+     'Waiting for all connected players to be ready.',
+   'OK',null,null);
+}
+async function onlineToggleReady(){
+ if(!onlineAuth()||!roomCurrent||onlineActive||onlineAttaching)return;
+ var player=onlineApi.state().player?.id;
+ var room=onlineAdoptRoom(await onlineApi.getRoom(roomCurrent.id));
+ if(room.status==='ACTIVE'){await onlineAttachMatch(room);return;}
+ if(room.status!=='OPEN')return;
+ if(room.ownerId===player){await onlineMasterStart();return;}
+ var me=room.members.find(m=>m.playerId===player);if(!me){onlineWarn('ROOM_MEMBERSHIP_REQUIRED');return;}
+ try{
+  var updated=await onlineApi.setRoomReady(room.id,!me.ready);
+  onlineLiveRoomDecorate(onlineAdoptRoom(updated));
+ }catch(error){onlineWarn(error)}
+}
+function onlinePromptKickMember(id,name){
+ if(!onlineIsMaster()||roomCurrent?.status!=='OPEN')return;
+ var safeName=String(name||'PLAYER').slice(0,12);
+ onlineRoomDialog('KICK PLAYER',
+  'Kick '+safeName+' from your room? They cannot rejoin this room for 1 minute.',
+  'CONFIRM KICK','CANCEL',async function(){
+    if(!onlineIsMaster()||roomCurrent?.status!=='OPEN')throw Error('ROOM_MASTER_REQUIRED');
+    var update=await onlineApi.kickRoomMember(roomCurrent.id,id);
+    onlineLiveRoomDecorate(onlineAdoptRoom(update.room));
+  });
+}
+var onlineLastKickNotice='';
+async function onlineShowOwnKick(roomId){
+ var data;
+ try{data=await onlineApi.roomKickStatus(roomId)}
+ catch(error){onlineWarn(error);return}
+ if(!data?.kicked)return;
+ var key=roomId+':'+data.expiresAt;
+ if(key===onlineLastKickNotice)return;
+ onlineLastKickNotice=key;
+ var name=String(data.byUsername||'ROOM MASTER').slice(0,12);
+ onlineRoomDialog('REMOVED FROM ROOM',
+  'YOU ALREADY KICKED BY '+name+
+    (data.remainingSeconds>0?' · Wait '+data.remainingSeconds+' seconds before joining this room again.':''),
+  'OK',null,null);
+}
+async function onlineHandleMissingMembership(roomId){
+ clearInterval(onlineRoomTimer);onlineRoomTimer=0;
+ if(roomCurrent?.id!==roomId)return;
+ roomCurrent=null;roomList=[];roomEditState(null);
+ // Kicked users return to the public Room Browser, not to the HOME page;
+ // no LeaveRoom request is sent because membership was already revoked in BE.
+ roomLobbyOpen();
+ await onlineShowOwnKick(roomId);
+}
+
 function onlineRoomTeams(){
- var size=5, me=onlineApi?.state().player?.id;
+ var size=5, me=onlineApi?.state().player?.id,master=onlineIsMaster(),
+     roomOpen=roomCurrent?.status==='OPEN';
  for(var side=0;side<2;side++){
   var target=document.getElementById(side===0?'rmlPoliceSlots':'rmlTerrorSlots');
   target.replaceChildren();
@@ -449,14 +546,26 @@ function onlineRoomTeams(){
   roomText(side===0?'rmlPoliceCount':'rmlTerrorCount',members.length+' / '+size+' PLAYERS');
   for(var index=0;index<size;index++){
    var member=members[index],mine=member?.playerId===me;
-   var row=document.createElement('button');row.type='button';
-   row.className='rml-slot'+(mine?' is-you':'');row.disabled=!!member&&!mine;
-   row.setAttribute('aria-pressed',String(mine));
+   // Occupied seats are containers, not buttons containing more buttons.
+   var row=document.createElement(member?'div':'button');
+   if(!member)row.type='button';
+   row.className='rml-slot'+(mine?' is-you':'')+(member?.ready?' is-ready':'');
+   if(!member)row.setAttribute('aria-pressed','false');
    var num=document.createElement('span');num.className='rml-slot-index';num.textContent=String(index+1);
    var name=document.createElement('span');name.className='rml-slot-name';
    name.textContent=member?(mine?'YOU · '+member.username:member.username):'BOT ON START';
-   var hint=document.createElement('em');hint.textContent=mine?'YOU':member?'PLAYER':'OPEN';
+   var hint=document.createElement('em');hint.className='rml-seat-state';
+   hint.textContent=member?(member.playerId===roomCurrent.ownerId?'MASTER':member.ready?'[READY]':'NOT READY'):'OPEN';
    row.appendChild(num);row.appendChild(name);row.appendChild(hint);
+   if(member&&master&&!mine&&roomOpen){
+    var kick=document.createElement('button');kick.type='button';
+    kick.className='rml-kick-player';kick.textContent='KICK';
+    kick.setAttribute('aria-label','Kick '+member.username+' from this room');
+    (function(id,label){kick.addEventListener('click',function(){
+      onlinePromptKickMember(id,label);
+    });})(member.playerId,member.username);
+    row.appendChild(kick);
+   }
    if(!member){(function(team){row.addEventListener('click',()=>{void onlineSwitchTeam(team)})})(side)}
    target.appendChild(row);
   }
@@ -471,8 +580,12 @@ function onlineLiveRoomDecorate(room) {
  document.getElementById('roomMasterActions').hidden=!mine;
  document.getElementById('roomMasterStatus').hidden=!mine;
  var startControl=document.getElementById('rmlStart');
- startControl.hidden=!mine||!['OPEN','ACTIVE'].includes(room.status);
- startControl.textContent=room.status==='ACTIVE'?'REJOIN MATCH':'START MATCH';
+ startControl.hidden=!me||!['OPEN','ACTIVE'].includes(room.status);
+ startControl.disabled=false;
+ startControl.textContent=room.status==='ACTIVE'?'REJOIN MATCH':
+   mine?'START MATCH':me?.ready?'✓ READY · CANCEL':'READY';
+ startControl.classList.toggle('room-ready-action',!mine&&room.status==='OPEN');
+ document.getElementById('roomStart').disabled=!mine;
  // A Room Master still owns an ACTIVE room, but its rules are locked in.
  document.getElementById('rmlSettings').hidden=!mine||room.status!=='OPEN';
  if(me){roomSide=me.team===1?1:0;roomSeat=room.members.filter(m=>m.team===roomSide).findIndex(m=>m.playerId===me.playerId)}
@@ -481,7 +594,11 @@ function onlineLiveRoomDecorate(room) {
 async function onlineRecoverMembership() {
  if(!onlineApi?.state().registered)return null;
  var reply=await onlineApi.currentRoom();
- if(!reply?.room){roomCurrent=null;return null;}
+ if(!reply?.room){
+  roomCurrent=null;
+  if(reply?.lastKick?.roomId)void onlineShowOwnKick(reply.lastKick.roomId);
+  return null;
+ }
  var room=onlineAdoptRoom(reply.room);
  onlineLiveRoomDecorate(room);onlineStartRoomPoll();
  return room;
@@ -501,6 +618,8 @@ async function onlineSelectRoom(id) {
  }catch(error){
   if(error?.code==='ALREADY_IN_ROOM'){
    try{await onlineRecoverMembership();}catch(recovery){onlineWarn(recovery);}
+  }else if(error?.code==='ROOM_KICK_COOLDOWN'){
+   await onlineShowOwnKick(id);
   }else onlineWarn(error);
  }
  finally{onlineRoomOpening=false}
@@ -559,6 +678,9 @@ function onlineStartRoomPoll() {
   if(!roomCurrent||roomCurrent.id!==id||onlineActive||onlineAttaching)return;
   try{
    var next=await onlineApi.getRoom(id);
+   if(!next.members?.some(m=>m.playerId===onlineApi.state().player?.id)){
+    await onlineHandleMissingMembership(id);return;
+   }
    // Keep the rendered Room Master controls synchronized with the DB status.
    // Do this BEFORE connecting: a failed WS handshake must leave REJOIN visible.
    if(!roomCurrent||roomCurrent.id!==id||onlineActive||onlineAttaching)return;
@@ -651,6 +773,7 @@ async function onlineMasterStart(){
   }
   if(authoritative.status!=='OPEN'){onlineWarn('ROOM_NOT_WAITING');return}
   onlineAdoptRoom(authoritative);
+  if(onlineUnreadyMembers(authoritative).length){onlineShowWaitingPlayers(authoritative);return;}
   if(!await onlineSaveRoom(false)){
    // A concurrent start may have activated this room after the status check.
    var afterSave=await onlineApi.getRoom(authoritative.id);
@@ -671,7 +794,12 @@ async function onlineMasterStart(){
    onlineLiveRoomDecorate(roomCurrent);
    await onlineAttachMatch(roomCurrent);
   }catch(error){
-   if(error?.code!=='ROOM_ALREADY_ACTIVE'&&error?.code!=='ROOM_NOT_READY')throw error;
+   if(error?.code==='ROOM_PLAYERS_NOT_READY'||error?.code==='ROOM_NOT_READY'){
+    var next=await onlineApi.getRoom(authoritative.id);
+    onlineLiveRoomDecorate(onlineAdoptRoom(next));
+    onlineShowWaitingPlayers(next);return;
+   }
+   if(error?.code!=='ROOM_ALREADY_ACTIVE')throw error;
    var activeRoom=await onlineApi.getRoom(authoritative.id);
    if(activeRoom.ownerId!==playerId||activeRoom.status!=='ACTIVE')throw error;
    onlineLiveRoomDecorate(onlineAdoptRoom(activeRoom));
@@ -850,7 +978,10 @@ function onlineFinalizeCompletedMatch(frame){
  if(roomCurrent)roomCurrent={...roomCurrent,status:'OPEN'};
  onlineResultsDisplayed=true;
  endMatch(); // ORIGINAL offline Victory/Defeat, stats, rank, best score and scoreboard.
- if(!onlineIsMaster())document.getElementById('dgo').textContent='BACK TO ROOM';
+ // Results are not a rematch controller: one EXIT GAME returns to this
+ // same registered room, preserving the BE membership and room owner.
+ document.getElementById('dgo').textContent='EXIT GAME';
+ document.getElementById('dmn').hidden=true;
  onlineShowVerifiedReward(matchId);
 }
 function onlineReceiveFrame(frame){
@@ -1385,16 +1516,18 @@ onlineAction('tsP',onlineStartGate);
 onlineAction('tsT',onlineStartGate);
 onlineAction('dgo',async()=>{
  if(!onlineResultsDisplayed){again();return;}
- var master=onlineIsMaster();
  onlineResultsDisplayed=false;onlineRewardStop();
  var reward=document.getElementById('verifiedReward');if(reward)reward.hidden=true;
+ document.getElementById('dmn').hidden=false;
  matchExitToLobby('room');
+ // This is intentionally NOT /leave, /match/leave, or /start.
+ // The same existing Room Master and players remain in their room.
  if(roomCurrent)await onlineRecoverMembership().catch(onlineWarn);
- if(master&&roomCurrent)await onlineMasterStart();
 });
 onlineAction('dmn',()=>{
  onlineResultsDisplayed=false;onlineRewardStop();
  var reward=document.getElementById('verifiedReward');if(reward)reward.hidden=true;
+ document.getElementById('dmn').hidden=false;
  matchExitToLobby('room');
  if(roomCurrent)void onlineRecoverMembership().catch(onlineWarn);
 });
@@ -1418,7 +1551,7 @@ onlineAction('roomModalSave',()=>onlineSaveRoom(true));
 onlineAction('roomClose',onlineLeaveRoom);
 onlineAction('rmlLeave',onlineLeaveRoom);
 onlineAction('roomStart',onlineMasterStart);
-onlineAction('rmlStart',onlineMasterStart);
+onlineAction('rmlStart',onlineToggleReady);
 onlineAction('roomBack',()=>{if(roomCurrent)onlineLiveRoomDecorate(roomCurrent);else lobP('lbs')});
 onlineAction('rmlSettings',()=>{if(onlineIsMaster())roomShowSettings();});
 // The route is restored only AFTER the backend validates this browser tab's
