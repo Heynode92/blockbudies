@@ -114,7 +114,7 @@ html.pb-route-restoring #lb { visibility:hidden; }
     <section id="homeIdentityChip" class="home-identity-chip" aria-label="Authenticated player nickname" hidden>
       <span>OPERATOR</span><strong id="homeHeaderUsername">—</strong>
     </section>
-    <div class="home-vpbt" aria-label="Server-verified virtual PBT balance"><span class="home-vpbt-icon">V</span><span class="home-vpbt-amount"><small>vPBT</small><strong id="homeVpbtBalance">—</strong></span></div>
+    <div class="home-vpbt" aria-label="Server-verified virtual PBT balance"><span class="home-vpbt-icon"><canvas id="homeVpbtStar" width="48" height="48" role="img" aria-label="3D vPBT star"></canvas><span id="homeVpbtStarFallback" hidden aria-hidden="true"></span></span><span class="home-vpbt-amount"><small>vPBT</small><strong id="homeVpbtBalance">—</strong></span></div>
     <div class="home-pbt-wrap">
       <div class="home-pbt" aria-label="PBT token interface, coming soon">
         <img class="home-pbt-coin" src="./src/assets/icon/pb-logo.png" alt="" aria-hidden="true" width="25" height="25">

@@ -211,3 +211,58 @@ function rankInsigniaSet(index,serverRank){
  canvas.setAttribute('aria-label','3D rank insignia: '+String(serverRank||'').slice(0,48));
  rankInsigniaRender();
 }
+
+// Source-authorized Three.js rank thumbnails, created from the SAME 3D models.
+// Images are rendered locally from extruded meshes, not downloaded/static rank art.
+var rankRosterPreviewCache=new Map();
+function rankRosterPreview(index){
+ if(!rankInsigniaSpec(index))return null;
+ if(rankRosterPreviewCache.has(index))return rankRosterPreviewCache.get(index);
+ var source=rankInsignia3D;
+ if(!source)return null;
+ var canvas=document.createElement('canvas');canvas.width=54;canvas.height=64;
+ var renderer=null,view=null;
+ try{
+  renderer=new T.WebGLRenderer({canvas:canvas,alpha:true,antialias:true,preserveDrawingBuffer:true,powerPreference:'low-power'});
+  renderer.setPixelRatio(1);renderer.setSize(54,64,false);
+  var scene=new T.Scene(),camera=new T.OrthographicCamera(-.91,.91,1.03,-1.03,.1,12);
+  camera.position.set(0,0,5);scene.add(new T.AmbientLight(0xbdcfe4,.8));
+  var key=new T.DirectionalLight(0xffefd8,1.5);key.position.set(-2,3,5);scene.add(key);
+  var fill=new T.DirectionalLight(0x8bd2ff,.9);fill.position.set(3,-2,4);scene.add(fill);
+  var group=new T.Group();scene.add(group);
+  view={materials:source.materials,group:group,mesh:null,index:null};
+  rankInsigniaModel(index,view);group.rotation.set(.08,-.23,0);
+  renderer.render(scene,camera);
+  var preview=canvas.toDataURL('image/png');rankRosterPreviewCache.set(index,preview);
+  return preview;
+ }catch(error){console.warn('[PointBlock] Rank model preview unavailable',error);return null}
+ finally{if(view)rankInsigniaClearMesh(view);if(renderer)renderer.dispose()}
+}
+// Metallic extruded 3D star for the virtual PBT balance. Drawn once.
+var vpbtStarRenderer=null;
+function vpbtStarInit(){
+ var canvas=document.getElementById('homeVpbtStar');
+ if(!canvas||vpbtStarRenderer)return;
+ var renderer=null;
+ try{
+  renderer=new T.WebGLRenderer({canvas:canvas,alpha:true,antialias:true,powerPreference:'low-power'});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));renderer.setSize(48,48,false);
+  var scene=new T.Scene(),camera=new T.OrthographicCamera(-1,1,1,-1,.1,10);camera.position.set(0,0,4);
+  var shape=new T.Shape();
+  for(var i=0;i<10;i++){
+   var angle=-Math.PI/2+i*Math.PI/5,r=i%2===0?.72:.33,x=Math.cos(angle)*r,y=Math.sin(angle)*r;
+   if(!i)shape.moveTo(x,y);else shape.lineTo(x,y);
+  }shape.closePath();
+  var geometry=new T.ExtrudeGeometry(shape,{depth:.19,steps:1,bevelEnabled:true,bevelSegments:3,bevelSize:.04,bevelThickness:.04});
+  var material=new T.MeshStandardMaterial({color:0x68e9bf,metalness:.86,roughness:.18});
+  var mesh=new T.Mesh(geometry,material);mesh.rotation.set(-.17,-.34,.12);mesh.position.z=-.1;scene.add(mesh);
+  scene.add(new T.AmbientLight(0xb8fff0,.9));
+  var key=new T.DirectionalLight(0xffffff,1.7);key.position.set(-2,3,5);scene.add(key);
+  renderer.render(scene,camera);vpbtStarRenderer={renderer:renderer,geometry:geometry,material:material};
+ }catch(error){
+  if(renderer)renderer.dispose();
+  canvas.hidden=true;var fallback=document.getElementById('homeVpbtStarFallback');
+  if(fallback)fallback.hidden=false;
+ }
+}
+vpbtStarInit();

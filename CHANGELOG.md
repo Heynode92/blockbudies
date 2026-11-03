@@ -1,3 +1,7 @@
+## 2026-11-03 — Official 3D rank previews and original extruded vPBT star
+- Project each authenticated room member rankIndex/rank from backend into the existing roster rows. Render badge thumbnails dynamically from the same canonical Three.js rank geometry, cache unique indices and dispose temporary renderers; do not fake BOT ranks.
+- Display username (YOU) with a separate ROOM MASTER/READY state. Replace literal vPBT V glyph with an original extruded metallic 3D star rendered once at startup (safe WebGL fallback).
+
 ## 2026-11-03 — Room Lobby compact header, overflow fixes and authoritative leave confirmation
 - Remove obsolete second lobby masthead, visible local/offline/AI labels and [LOCAL] chat prefixes. Preserve underlying original gameplay module as compatibility code.
 - Keep team rows, status and KICK within the correct roster panel; stack teams on tighter widths. Show red CANCEL after Ready.

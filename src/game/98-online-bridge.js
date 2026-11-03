@@ -368,7 +368,9 @@ function onlineRoomOf(r) {
  var mode=r.mode==='BM'?1:0,goals=r.goals||{};
  return {id:r.id,code:r.code,name:r.name,mode:mode,mapId:r.mapId,ownerId:r.ownerId,
   status:r.status,members:Array.isArray(r.members)?r.members.map(function(m){
-    return {playerId:m.playerId,team:m.team,username:m.username,ready:m.ready===true};
+    return {playerId:m.playerId,team:m.team,username:m.username,ready:m.ready===true,
+      rankIndex:Number.isSafeInteger(m.rankIndex)&&m.rankIndex>=0&&m.rankIndex<17?m.rankIndex:null,
+      rank:typeof m.rank==='string'?m.rank.slice(0,48):null};
   }):[],
   kills:goals.kills??50,minutes:goals.minutes??10,
   rounds:goals.maxRounds??12,roundMinutes:goals.roundMinutes??2};
@@ -553,10 +555,23 @@ function onlineRoomTeams(){
    if(!member)row.setAttribute('aria-pressed','false');
    var num=document.createElement('span');num.className='rml-slot-index';num.textContent=String(index+1);
    var name=document.createElement('span');name.className='rml-slot-name';
-   name.textContent=member?(mine?'YOU · '+member.username:member.username):'BOT ON START';
+   name.textContent=member?(mine?member.username+' (YOU)':member.username):'BOT ON START';
    var hint=document.createElement('em');hint.className='rml-seat-state';
-   hint.textContent=member?(member.playerId===roomCurrent.ownerId?'MASTER':member.ready?'[READY]':'NOT READY'):'OPEN';
-   row.appendChild(num);row.appendChild(name);row.appendChild(hint);
+   hint.textContent=member?(member.playerId===roomCurrent.ownerId?'ROOM MASTER':member.ready?'READY':'NOT READY'):'OPEN';
+   row.appendChild(num);
+   if(member){
+    var preview=rankRosterPreview(member.rankIndex),badge;
+    if(preview){
+     badge=document.createElement('img');badge.src=preview;
+     badge.className='rml-rank-3d';badge.draggable=false;
+     badge.alt=member.rank?member.rank+' rank insignia':'3D rank insignia';
+    }else{
+     badge=document.createElement('span');badge.className='rml-rank-3d rml-rank-pending';
+     badge.setAttribute('aria-label','Rank insignia unavailable');
+    }
+    row.appendChild(badge);
+   }
+   row.appendChild(name);row.appendChild(hint);
    if(member&&master&&!mine&&roomOpen){
     var kick=document.createElement('button');kick.type='button';
     kick.className='rml-kick-player';kick.textContent='KICK';
