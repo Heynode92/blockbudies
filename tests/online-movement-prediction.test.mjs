@@ -118,7 +118,7 @@ test('online particle lifecycle removes muzzle flash and blood instead of leavin
  const ctx={Math,mzf:[{m:flash,t:.04}],
   sk:[{m:blood,t:0,l:.05,vx:0,vy:0,vz:0,sz:.06,blood:true}],
   bloodActive:1,onlineShotTracers:[],S:{remove:m=>removed.push(m)},
-  updCl:()=>{},updCh:()=>{},updDrops:()=>{},updSm:()=>{},bloodPoolUpdate:()=>{}};
+  updCl:()=>{},updDead:()=>{},updSm:()=>{},bloodPoolUpdate:()=>{}};
  runInNewContext(code.slice(start,end)+'\nthis.tick=onlineTickEffects;',ctx);
  ctx.tick(.06);
  assert.equal(ctx.mzf.length,0);
@@ -129,9 +129,9 @@ test('online particle lifecycle removes muzzle flash and blood instead of leavin
 });
 test('network hit reactions remain server-driven, visible-only and short lived',()=>{
  assert.match(code,/frame.type==='combat_impact'/);
- assert.match(code,/onlineReactToImpact\(frame.victimId,!!frame.headshot\)/);
+ assert.match(code,/onlineReactToImpact\(frame.victimId,!!frame.headshot,true\)/);
  assert.match(code,/onlineActors.get\(victimId\)/);
- assert.match(code,/bloodHit\(bot.x,/);
+ assert.match(code,/botDamageReaction\(model,visualDamage,dx,dz,!!headshot,true\)/);
  assert.match(code,/flash\(bot,dt\)/);
  assert.match(code,/onlineTickEffects\(dt\)/);
  assert.match(code,/gun.localToWorld\(new T.Vector3\(0,0,-\.7\)\)/);
@@ -144,7 +144,7 @@ test('trusted server wall impacts and projectile tracers reach original FE visua
  assert.match(code,/gDecal\(TXH\[/);
  assert.match(code,/function onlineShotTracer\(frame\)/);
  assert.match(code,/onlineShotTracer\(frame\)/);
- assert.match(code,/updCl\(dt\);updCh\(dt\);/);
+ assert.match(code,/updCl\(dt\);[\s\S]{0,160}updDead\(dt\);/);
  assert.doesNotMatch(code,/function onlineWallImpact\(frame\)[\s\S]{0,400}damage\(/);
 });
 
@@ -261,4 +261,43 @@ test('online confirmed shots use the original damage wobble, not duplicated visu
  assert.match(code,/updDead\(dt\)/);
  assert.doesNotMatch(code,/actor\.fellAt/);
  assert.match(code,/if\(!actor\.alive\)return;/);
+});
+
+test('original offline BOT corpse falls, stays on the ground, and cleans itself in online mode',()=>{
+ const offline=readFileSync(new URL('../src/game/65-audio.js',import.meta.url),'utf8');
+ const start=offline.indexOf('function spawnBotDeathVisual(');
+ const end=offline.indexOf('// killE():',start);
+ const deadStart=offline.indexOf('function updDead(');
+ assert.ok(start>0&&end>start&&deadStart>end,'offline ragdoll helpers must be shared');
+ const removed=[],pools=[],dead=[];
+ const ctx={Math,dead,S:{remove:g=>removed.push(g)},
+  detachGun:()=>{},spark:()=>{},gh:()=>0,resolve:()=>{},
+  updH:()=>{},updG:()=>{},updDrops:()=>{},updCh:()=>{},
+  bloodPoolSpawn:(x,y,z,corpse)=>{const p={corpse};pools.push(p);return p},
+  bloodPoolRemove:p=>{p.removed=true}};
+ runInNewContext(offline.slice(start,end)+'\n'+offline.slice(deadStart)+
+  '\nthis.spawn=spawnBotDeathVisual;this.advance=updDead;',ctx);
+ const arm=()=>({rotation:{z:0,set:()=>{}},scale:{y:1},
+  userData:{fa:{quaternion:{set:()=>{}}}}});
+ const rot={x:0,y:0,z:0,set(x,y,z){this.x=x;this.y=y;this.z=z}};
+ const model={x:0,y:0,z:1,tm:1,ms:[],
+  mk:{visible:true},nm:{visible:true},
+  g:{visible:true,userData:{gun:{position:{set:()=>{}}}},
+   rotation:{y:0},position:{set:()=>{}}},
+  body:{rotation:rot,position:{y:0}},arms:[arm(),arm()],
+  legs:[{rotation:{z:0}},{rotation:{z:0}}]};
+ ctx.spawn(model,0,1,0);
+ assert.equal(dead.length,1);
+ assert.equal(pools[0].corpse,dead[0],'blood pool follows the original animated corpse');
+ ctx.advance(.18);
+ assert.notEqual(rot.x,0,'the original ragdoll should visibly tilt after death');
+ ctx.advance(.5);
+ assert.equal(dead[0].land,true);
+ assert.equal(removed.includes(model.g),false,'actor cannot blink out after 700ms');
+ for(let i=0;i<10;i++)ctx.advance(.1);
+ assert.equal(dead.length,1,'corpse remains on ground before original fadeout');
+ for(let i=0;i<20;i++)ctx.advance(.1);
+ assert.equal(dead.length,0,'original corpse lifecycle performs cleanup');
+ assert.ok(removed.includes(model.g));
+ assert.equal(pools[0].removed,true);
 });
