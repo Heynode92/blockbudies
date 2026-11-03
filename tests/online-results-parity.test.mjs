@@ -14,10 +14,12 @@ test('final online state reuses original offline report, no separate modal',()=>
  assert.doesNotMatch(source,/function onlineShowMatchReport\(/);
 });
 test('server final scoreboard populates original result K/D and teams',()=>{
- const fragment=extract('function onlineAdoptFinalScore(','function onlineShowVerifiedReward(');
+ const fragment=extract('function onlineScoreIdentity(','function onlineShowVerifiedReward(');
  const me={name:'You',tm:0,k:0,d:0};
  const ctx={onlineUserId(){return 'me'},pl:{tm:0,st:me},
    onlineScoreboard:new Map(),roomCurrent:{members:[]},ROS:[],ts:[0,0],
+   onlineApi:{state:()=>({player:{username:'FIFO',rankIndex:3}})},
+   onlinePublicActor:(id)=>({name:id==='me'?'FIFO':'Alex',bot:id==='bot',tm:id==='me'?0:1}),
    isBombMode(){return false},onlineSyncKillDisplay(){}};
  runInNewContext(fragment+'\nthis.adopt=onlineAdoptFinalScore;',ctx);
  assert.equal(ctx.adopt({status:'ACTIVE',scoreboard:[],teamKills:[1,0]}),false);
@@ -25,6 +27,9 @@ test('server final scoreboard populates original result K/D and teams',()=>{
   {id:'me',team:0,kills:7,deaths:2},{id:'bot',team:1,kills:6,deaths:5}]}),true);
  assert.equal(me.k,7);assert.equal(me.d,2);assert.equal(ctx.ts[0],50);
  assert.equal(ctx.ROS.length,2);assert.strictEqual(ctx.ROS[0],me);
+ assert.equal(ctx.ROS[0].name,'FIFO');assert.equal(ctx.ROS[0].rankIndex,3);
+ assert.equal(ctx.ROS[1].name,'Alex');assert.equal(ctx.ROS[1].rankIndex,0);
+ assert.equal(ctx.ROS[1].bot,true);
 });
 test('missing finalization and stalled snapshots have explicit recovery',()=>{
  assert.match(source,/if\(frame.type==='match_failed'\)/);

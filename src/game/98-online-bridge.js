@@ -769,6 +769,7 @@ function onlineResetLive(){
  onlineCombatQa={fireInputs:0,confirmedShots:0,confirmedHits:0,wallImpacts:0,damageTaken:0,lastEvent:'NONE'};
  onlineActive=false;onlineTraining=false;onlineCurrentId=null;onlineMatchId=null;
  onlineWorld=null;onlineGame=null;
+ pl.kb='';pl.rsT=0;pl.rt=0;document.body.classList.remove('dead','bomb-spectator');
  for(const item of onlineActors.values()){if(item.model?.g)S.remove(item.model.g)}
  onlineActors.clear();onlineMeId=null;onlineSeq=0;onlineSendAt=0;onlineVisualLoaded=false;
  onlinePredSteps.length=0;onlineCorrection={x:0,y:0,z:0};onlineHasPrediction=false;
@@ -1013,7 +1014,7 @@ function onlineRenderResultScoreboard(rows,selfStat){
   row.appendChild(rank);
   var identity=document.createElement('span');identity.className='result-identity';
   var label=document.createElement('strong');label.textContent=
-   entry.bot?'BOT '+onlineCleanCallsign(entry.name,'BOT'):onlineCleanCallsign(entry.name,'PLAYER');
+   entry.bot?'BOT '+onlineCleanCallsign(entry.name,'BOT').toUpperCase():onlineCleanCallsign(entry.name,'PLAYER');
   identity.appendChild(label);
   var tag=document.createElement('small');
   tag.textContent=entry===selfStat?'(YOU)':entry.bot?'(BOT)':'';
@@ -1377,7 +1378,9 @@ function onlineApplyWorld(){
   var wasAlive=onlinePrevAlive,privateState=world.privateState;
   pl.dead=!self.alive;
   if(!self.alive&&wasAlive){
-   resetKillStreak();kn.innerHTML='';pl.rt=0;pl.rsT=0;pl.kb='';
+   resetKillStreak();kn.innerHTML='';pl.rt=0;pl.rsT=0;
+   // Keep an already-received public KILL attribution when its event arrives
+   // before the death snapshot. The next server-authorized respawn clears it.
    mouse.down=mouse.right=false;fireHeld=false;
    document.body.classList.toggle('dead',!isBombMode());
    document.body.classList.toggle('bomb-spectator',isBombMode());

@@ -1,3 +1,8 @@
+## 2026-11-04 — Protect killer caption across death-event reorder and align regression coverage
+- Preserve the public KILL event's killer name if it arrives before the Death Match death snapshot; clear the label on verified respawn or live-session reset.
+- Extend network tests to check that public BOT/human names survive fog-of-war without creating hidden actor meshes, and that Results rows retain real user rank plus rank-0 BOT data.
+- Update regression assertions for weapon-specific muzzle anchors and the new cosmetic tracer function signature. No backend combat rules are changed.
+
 ## 2026-11-04 — User-friendly Results reward placement and authentic BOT leaderboard
 - Battle Report moves real match EXP/vPBT earnings to the left beside the rank; replace technical settlement/verification copy with user-facing match rewards wording while retaining strict backend-only credit authority and pending/retry states.
 - Rank, position, username and K/D appear in one compact leaderboard row. Bots retain their authentic server-published Jack/Mike/Alex/Viper callsigns, show `BOT ALEX (BOT)`-style labels, and use the canonical 3D Trainee skull (rank index 0). Players use verified member rank indices and show (YOU) on their own row.
