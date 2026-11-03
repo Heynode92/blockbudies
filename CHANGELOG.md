@@ -1,3 +1,8 @@
+## 2026-11-04 — Restore offline corpse fall and authoritative online grenade FX
+- Animate dead online player via original blockDeathPose() and its .6-second fall timeline, with the existing player blood pool. Reset the visual pose/pool when the server respawns the actor; never grant local life/damage.
+- Reuse the original mkGren() model and updG() arc/bounce/fuse for server-issued grenade throws. Tag network grenades as visual-only so original offline boom() cannot be called by online renderer.
+- At trusted detonation positions apply the existing offline orange sparks, smoke clouds, crater decal, fade and shake without invoking any client damage. Dedupe explosion IDs and clear all associated meshes on session teardown.
+
 ## 2026-11-04 — Keep personal Results badge synchronized after rank-up
 - Refresh the player's rank badge in the numbered leaderboard when match settlement changes the authenticated player rank; keep EXP/vPBT awards exclusively backend-sourced.
 - Remove remaining technical verification language from visible Training Results; preserve successful versus incomplete registration eligibility without inventing a reward or retry policy.

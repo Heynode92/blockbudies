@@ -38,7 +38,11 @@ function updG(dt){
     if(g.y<fl){g.y=fl;if(g.vy<-1.5)spark(g.x,fl,g.z,0xcfcfcf,2,1.5,.06);g.vy=-g.vy*.4;g.vx*=.72;g.vz*=.72;if(Math.abs(g.vy)<1)g.vy=0;}
     g.m.position.set(g.x,g.y,g.z);g.m.rotation.x+=dt*(Math.abs(g.vx)+Math.abs(g.vz)+1)*1.2;
     g.m.children[0].material.emissive.setHex(g.t<.8&&Math.floor(g.t*10)%2?0x771111:0);
-    if(g.t<=0){S.remove(g.m);grs.splice(gi,1);if(g.by)boom(g.x,g.z,WP[5].dmg,"GRENADE",undefined,g.by);else boom(g.x,g.z,WP[5].dmg,"GRENADE");}
+    if(g.t<=0){S.remove(g.m);grs.splice(gi,1);
+      // Online displays the original grenade model/physics only. The trusted
+      // detonation event owns smoke; NEVER invoke offline boom() or damage.
+      if(g.serverVisual)continue;
+      if(g.by)boom(g.x,g.z,WP[5].dmg,"GRENADE",undefined,g.by);else boom(g.x,g.z,WP[5].dmg,"GRENADE");}
   }
 }
 // SV: inline SVG icons of each weapon id for the HUD.

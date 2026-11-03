@@ -15,7 +15,7 @@ var onlineRewardMatchId=null,onlineRewardTimer=null,onlineRewardChecking=false;
 var onlineStallChecking=false,onlineLastStallCheckAt=0;
 var onlinePendingKillTick=-1,onlinePendingKillTotal=null;
 var onlinePendingWeapon=null,onlinePendingWeaponAt=0,onlineHitMarker=null,onlineHitUntil=0;
-var onlineShotTracers=[];
+var onlineShotTracers=[],onlineSeenGrenadeBlasts=new Set();
 var onlineScoreboard=new Map(),onlineSeenKillIds=new Set();
 // Public identity metadata only, independent of actor visibility/coordinates.
 function onlineCleanCallsign(value,fallback){
@@ -350,6 +350,46 @@ function onlineWallImpact(frame){
  S.add(mark);DC.push(mark);
  if(DC.length>DCMAX){var gone=DC.shift();S.remove(gone);if(gone.userData.t!==undefined)gone.material.dispose();}
  spark(x+nx*.04,y+ny*.04,z+nz*.04,0xd9d0bb,3,1.6,.08);
+}
+// A server-confirmed throw uses the ORIGINAL offline grenade mesh and
+// updG() arc, bounce and blinking fuse. Geometry is cosmetic only.
+function onlineGrenadeThrow(frame){
+ if(!onlineActive||frame.weaponId!==5||typeof frame.grenadeId!=='string'||
+    frame.grenadeId.length>80)return;
+ if(![frame.x,frame.y,frame.z,frame.vx,frame.vy,frame.vz,frame.fuse].every(Number.isFinite)||
+    frame.fuse<=0||frame.fuse>5)return;
+ if(grs.some(function(g){return g.serverVisual&&g.grenadeId===frame.grenadeId}))return;
+ if(grs.filter(function(g){return g.serverVisual}).length>=24)return;
+ grs.push({m:mkGren(),serverVisual:true,grenadeId:frame.grenadeId,
+  x:frame.x,y:frame.y,z:frame.z,vx:frame.vx,vy:frame.vy,vz:frame.vz,t:frame.fuse});
+ if(frame.actorId===onlineUserId())pl.ghide=.65;
+}
+// Reuse offline explosion particles, scorch and smoke, but absolutely NOT the
+// offline boom() damage or kill calculation. The point comes from the BE.
+function onlineGrenadeExplosion(frame){
+ if(!onlineActive||typeof frame.grenadeId!=='string'||frame.grenadeId.length>80||
+    ![frame.x,frame.y,frame.z].every(Number.isFinite)||
+    onlineSeenGrenadeBlasts.has(frame.grenadeId))return;
+ onlineSeenGrenadeBlasts.add(frame.grenadeId);
+ if(onlineSeenGrenadeBlasts.size>128)
+  onlineSeenGrenadeBlasts.delete(onlineSeenGrenadeBlasts.values().next().value);
+ for(var i=grs.length-1;i>=0;i--){
+  var g=grs[i];if(g.serverVisual&&g.grenadeId===frame.grenadeId){
+   S.remove(g.m);grs.splice(i,1);break;
+  }
+ }
+ var x=frame.x,y=Math.max(.17,Math.min(1.5,frame.y)),z=frame.z;
+ if(y<1.1&&Math.abs(x)<A&&Math.abs(z)<A)
+  gDecal(TXS,x,z,3.2+Math.random()*.6);
+ var m=new T.Mesh(new T.SphereGeometry(1,14,14),
+  new T.MeshBasicMaterial({color:0xffa94d,transparent:true,opacity:.7}));
+ m.position.set(x,y,z);S.add(m);fx.push({m:m,t:0});
+ spark(x,1,z,0xffa94d,26,9,.28);
+ spark(x,1,z,0xfff3bf,10,5,.2);
+ smoke(x,y,z,8,3.2,1,2.4,1.2,1);
+ smoke(x,.35,z,10,4.5,.9,2.2,.25,0);
+ smoke(x,y+.4,z,5,1.2,1.2,3,1.6,1);
+ shakeT=Math.max(shakeT,.35);
 }
 // Cosmetic tracer, sourced only from a server-confirmed shot origin and direction.
 // Muzzle origin is computed from the real canonical gun model, not the actor
@@ -769,7 +809,9 @@ function onlineResetLive(){
  onlineCombatQa={fireInputs:0,confirmedShots:0,confirmedHits:0,wallImpacts:0,damageTaken:0,lastEvent:'NONE'};
  onlineActive=false;onlineTraining=false;onlineCurrentId=null;onlineMatchId=null;
  onlineWorld=null;onlineGame=null;
- pl.kb='';pl.rsT=0;pl.rt=0;document.body.classList.remove('dead','bomb-spectator');
+ pl.kb='';pl.rsT=0;pl.rt=0;pl.dt=0;
+ if(pl.bloodPool){bloodPoolRemove(pl.bloodPool);pl.bloodPool=null;}
+ document.body.classList.remove('dead','bomb-spectator');
  for(const item of onlineActors.values()){if(item.model?.g)S.remove(item.model.g)}
  onlineActors.clear();onlineMeId=null;onlineSeq=0;onlineSendAt=0;onlineVisualLoaded=false;
  onlinePredSteps.length=0;onlineCorrection={x:0,y:0,z:0};onlineHasPrediction=false;
@@ -788,6 +830,9 @@ function onlineResetLive(){
  for(const corpse of dead){if(corpse.bloodPool)bloodPoolRemove(corpse.bloodPool);S.remove(corpse.g);}dead.length=0;
  for(const helmet of hlms)S.remove(helmet.m);hlms.length=0;
  for(const tracer of onlineShotTracers)S.remove(tracer.m);onlineShotTracers.length=0;
+ for(const grenade of grs)if(grenade.serverVisual)S.remove(grenade.m);
+ for(var gi=grs.length-1;gi>=0;gi--)if(grs[gi].serverVisual)grs.splice(gi,1);
+ onlineSeenGrenadeBlasts.clear();
  for(const mark of DC){S.remove(mark);if(mark.userData.t!==undefined)mark.material.dispose()}DC.length=0;
  for(const chunk of CH)S.remove(chunk.m);CH.length=0;
  clrFD();clrSm();bloodPoolClear();
@@ -1164,11 +1209,17 @@ function onlineReceiveFrame(frame){
   }
   return;
  }
+ if(frame.type==='combat_grenade_explosion'){
+  onlineGrenadeExplosion(frame);return;
+ }
  if(frame.type==='combat_shot'){
   if(!onlineActive)return;
   if(frame.actorId===onlineUserId()){
    onlineCombatQa.confirmedShots++;
    onlineCombatQa.lastEvent='SHOT';
+  }
+  if(frame.weaponId===5){
+   onlineGrenadeThrow(frame);return;
   }
   if(frame.actorId===onlineUserId()){
    onlineShotTracer(frame,onlineShotMuzzle(frame));return;
@@ -1384,15 +1435,19 @@ function onlineApplyWorld(){
   var wasAlive=onlinePrevAlive,privateState=world.privateState;
   pl.dead=!self.alive;
   if(!self.alive&&wasAlive){
-   resetKillStreak();kn.innerHTML='';pl.rt=0;pl.rsT=0;
+   resetKillStreak();kn.innerHTML='';pl.rt=0;pl.dt=0;pl.rsT=0;
    // Keep an already-received public KILL attribution when its event arrives
    // before the death snapshot. The next server-authorized respawn clears it.
    mouse.down=mouse.right=false;fireHeld=false;
    document.body.classList.toggle('dead',!isBombMode());
    document.body.classList.toggle('bomb-spectator',isBombMode());
    if(pm?.g){pm.g.visible=true;pm.g.position.set(pl.x,pl.y||0,pl.z);}
+   if(pl.bloodPool)bloodPoolRemove(pl.bloodPool);
+   pl.bloodPool=bloodPoolSpawn(pl.x,pl.y||0,pl.z,null);
   }else if(self.alive&&!wasAlive){
-   pl.rsT=0;pl.rt=0;pl.kb='';
+   pl.rsT=0;pl.rt=0;pl.dt=0;pl.kb='';
+   if(pl.bloodPool){bloodPoolRemove(pl.bloodPool);pl.bloodPool=null;}
+   if(pm)blockDeathPose(pm,0);
    document.body.classList.remove('dead','bomb-spectator');
    if(pm?.g)pm.g.visible=false;
   }
@@ -1629,6 +1684,14 @@ function onlineVisualUpdate(dt){
  if(onlineHitMarker&&now>onlineHitUntil)onlineHitMarker.style.opacity='0';
  var hurtOverlay=document.getElementById('hit');
  if(hurtOverlay)hurtOverlay.style.opacity=Math.max(0,(parseFloat(hurtOverlay.style.opacity)||0)-dt*2);
+ // Match the original offline blockDeathPose() while maintaining the real
+ // authenticated death position. This is model-only, never a client respawn.
+ if(pl.dead&&pm?.g){
+  pl.dt=Math.min(5,(Number.isFinite(pl.dt)?pl.dt:0)+Math.max(0,dt));
+  pm.g.visible=true;pm.g.position.set(pl.x,pl.y||0,pl.z);
+  pm.g.rotation.y=pl.face;
+  blockDeathPose(pm,pl.dt);
+ }
  onlineTickEffects(dt);
  if(onlinePendingMatchCompleted&&dead.length===0){
   var completed=onlinePendingMatchCompleted;
