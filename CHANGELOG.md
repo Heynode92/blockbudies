@@ -1,3 +1,7 @@
+## 2026-11-04 — Show trusted BOT-composition penalty on online match Results
+- After authoritative settlement, display the bot-count percentage reduction returned from the private backend reward endpoint. No second client-side economy table or local reward calculation is introduced.
+- DM/BM weapon, map, rank, legacy offline game, BOT AI behavior and network gameplay are unchanged. New policy is backend-owned and only affects new verified matches after its additive PostgreSQL migration.
+
 ## 2026-11-04 — Correct authoritative multiplayer presentation and exit loading
 - Render Room Master name/role from the current backend ownerId (including after succession, rejoin and poll); never show permanent YOU ★ for non-masters.
 - Move map deployment progress to a bottom screen rail and compute online readiness from actual authenticated WS, map/scene initialization, server-acknowledged humans and LIVE. No timer-driven false percentage and no BOT head start.
