@@ -7130,6 +7130,9 @@ var onlineFrameSamples=[],onlineSnapshotSamples=[],onlineLastFrameAt=0,onlineLas
 var onlineLastSnapshotTick=-1,onlineLastMetricsAt=0,onlineCorrectionSize=0,onlineRemoteDelay=150;
 var onlinePerfEnabled=typeof location!=='undefined'&&new URLSearchParams(location.search).has('pbNetQa');
 var onlinePerfPanel=null;
+// Counts are sourced from the actual authenticated input send and BE events.
+// Diagnostic only; no client-side decisions about hits, damage or ammunition.
+var onlineCombatQa={fireInputs:0,confirmedShots:0,confirmedHits:0,wallImpacts:0,damageTaken:0,lastEvent:'NONE'};
 function onlineSample(samples,value,limit){
  if(Number.isFinite(value)&&value>=0){samples.push(value);if(samples.length>limit)samples.shift();}
 }
@@ -7157,7 +7160,10 @@ function onlineMeasureFrame(now){
   'Snapshot p95: '+snapshot.toFixed(1)+' ms\n'+
   'Last snapshot: '+Math.round(elapsed)+' ms ago\n'+
   'Server tick: '+onlineLastSnapshotTick+' · input ack: '+onlineLastAck+'\n'+
-  'Pending frames: '+onlinePredSteps.length+' · correction: '+onlineCorrectionSize.toFixed(2)+'m';
+  'Pending frames: '+onlinePredSteps.length+' · correction: '+onlineCorrectionSize.toFixed(2)+'m\n'+
+  'FIRE sent: '+onlineCombatQa.fireInputs+' · SHOT confirmed: '+onlineCombatQa.confirmedShots+'\n'+
+  'HIT confirmed: '+onlineCombatQa.confirmedHits+' · WALL impact: '+onlineCombatQa.wallImpacts+'\n'+
+  'Damage taken: '+onlineCombatQa.damageTaken+' · latest: '+onlineCombatQa.lastEvent;
 }
 function onlineMeasureSnapshot(world,now){
  if(!world||!Number.isSafeInteger(world.serverTick)||world.serverTick<=onlineLastSnapshotTick)return;
@@ -7644,6 +7650,7 @@ function onlineStartRoomPoll() {
  },2300);
 }
 function onlineResetLive(){
+ onlineCombatQa={fireInputs:0,confirmedShots:0,confirmedHits:0,wallImpacts:0,damageTaken:0,lastEvent:'NONE'};
  onlineActive=false;onlineTraining=false;onlineCurrentId=null;onlineMatchId=null;
  onlineWorld=null;onlineGame=null;
  for(const item of onlineActors.values()){if(item.model?.g)S.remove(item.model.g)}
@@ -7791,11 +7798,17 @@ function onlineReceiveFrame(frame){
   return;
  }
  if(frame.type==='combat_wall_hit'){
+  if(onlineActive&&frame.actorId===onlineUserId()){
+   onlineCombatQa.wallImpacts++;
+   onlineCombatQa.lastEvent='WALL_HIT';
+  }
   if(onlineActive)onlineWallImpact(frame);
   return;
  }
  if(frame.type==='combat_hit'){
   if(onlineActive){
+   onlineCombatQa.confirmedHits++;
+   onlineCombatQa.lastEvent='HIT';
    onlineHitConfirm(!!frame.headshot);
    onlineReactToImpact(frame.victimId,!!frame.headshot);
   }
@@ -7807,6 +7820,7 @@ function onlineReceiveFrame(frame){
  }
  if(frame.type==='combat_hurt'){
   if(onlineActive){
+   onlineCombatQa.damageTaken++;
    var hit=document.getElementById('hit');
    if(hit)hit.style.opacity='1';
    cs.s=Math.max(cs.s,.45);
@@ -7815,6 +7829,10 @@ function onlineReceiveFrame(frame){
  }
  if(frame.type==='combat_shot'){
   if(!onlineActive)return;
+  if(frame.actorId===onlineUserId()){
+   onlineCombatQa.confirmedShots++;
+   onlineCombatQa.lastEvent='SHOT';
+  }
   onlineShotTracer(frame);
   if(frame.actorId===onlineUserId())return;
   var remote=onlineActors.get(frame.actorId);
@@ -8160,7 +8178,10 @@ function onlineVisualUpdate(dt){
    seq:sequence,moveX:x,moveZ:z,yaw:pl.face,pitch:pl.pitch,
    sprint:sprint,ads:!!ads,fire:wantsFire,reload:!!keys.KeyR,
    jump:jump,crouch:crouch,interact:!!(keys.KeyE||bombHold),weaponId:pl.w,
-  }})){onlineSeq=sequence;onlineSendAt=now;}
+  }})){
+   onlineSeq=sequence;onlineSendAt=now;
+   if(wantsFire)onlineCombatQa.fireInputs++;
+  }
  }
  onlineApplyWorld();
  // First-person camera responds immediately on every render frame; it never
