@@ -42,7 +42,7 @@ var onlineTeamNotice=null,onlineInputId=0,onlineVisualLoaded=false;
 var onlineReconnectTimer=0,onlineReconnectStarted=0,onlineReconnecting=false;
 var onlineAimInitialized=false,onlineTrainingProgressValue=null,onlinePrevAlive=true;
 var onlineSelfTarget=null,onlineLastWinner=undefined,onlineMuzzleTime=0;
-var onlinePendingMatchCompleted=null,onlineResultsDisplayed=false;
+var onlinePendingMatchCompleted=null,onlineResultsDisplayed=false,onlineReturnToRoomBusy=false;
 var onlineResultFallbackTimer=null;
 var onlineRewardMatchId=null,onlineRewardTimer=null,onlineRewardChecking=false;
 var onlineStallChecking=false,onlineLastStallCheckAt=0;
@@ -1876,17 +1876,51 @@ onlineAction('lbst',onlineStartGate);
 onlineAction('mdm',onlineStartGate);
 onlineAction('tsP',onlineStartGate);
 onlineAction('tsT',onlineStartGate);
+// EXIT GAME is an authenticated room rejoin, never a room leave or rematch.
+// The existing deployment cover stays visible until the actual DB membership
+// and OPEN room state have been confirmed by the backend.
+async function onlineExitResultsToRoom(){
+ if(onlineReturnToRoomBusy)return;
+ onlineReturnToRoomBusy=true;
+ var expectedRoomId=roomCurrent?.id,overlay=document.getElementById('roomTransition');
+ roomStartCaptureMap(); // Reuse the current real Three.js map frame.
+ roomStartMark(0,'CONNECTING TO SERVER');
+ document.getElementById('roomStartDetail').textContent='VERIFYING YOUR ROOM MEMBERSHIP';
+ overlay.hidden=false;overlay.classList.remove('leaving');overlay.classList.add('on');
+ try{
+  if(!expectedRoomId)throw Error('ROOM_MEMBERSHIP_NOT_FOUND');
+  var restored=await onlineRecoverMembership();
+  if(!restored||restored.id!==expectedRoomId||restored.status!=='OPEN')
+   throw Error('ROOM_RESTORE_UNAVAILABLE');
+  roomStartMark(100,'ROOM CONNECTION VERIFIED');
+  document.getElementById('roomStartDetail').textContent='ROOM MASTER AND PLAYERS SYNCED WITH SERVER';
+  // The bar reaches 100 ONLY after authenticated membership recovery.
+  onlineResultsDisplayed=false;onlineRewardStop();
+  var reward=document.getElementById('verifiedReward');if(reward)reward.hidden=true;
+  document.getElementById('dmn').hidden=false;
+  matchExitToLobby('room');
+  onlineLiveRoomDecorate(restored);
+  overlay.classList.add('leaving');
+  // Visual fade only, not a fabricated loading countdown.
+  await new Promise(resolve=>setTimeout(resolve,550));
+ }catch(error){
+  onlineWarn(error);
+  if(!roomCurrent){
+   // Membership may have been revoked; never render a stale Room Master.
+   onlineResultsDisplayed=false;onlineRewardStop();
+   matchExitToLobby('list');
+  }
+ }finally{
+  overlay.classList.remove('on','leaving');overlay.hidden=true;
+  onlineReturnToRoomBusy=false;
+ }
+}
 onlineAction('dgo',async()=>{
  if(!onlineResultsDisplayed){again();return;}
- onlineResultsDisplayed=false;onlineRewardStop();
- var reward=document.getElementById('verifiedReward');if(reward)reward.hidden=true;
- document.getElementById('dmn').hidden=false;
- matchExitToLobby('room');
- // This is intentionally NOT /leave, /match/leave, or /start.
- // The same existing Room Master and players remain in their room.
- if(roomCurrent)await onlineRecoverMembership().catch(onlineWarn);
+ await onlineExitResultsToRoom();
 });
 onlineAction('dmn',()=>{
+ if(onlineResultsDisplayed){void onlineExitResultsToRoom();return;}
  onlineResultsDisplayed=false;onlineRewardStop();
  var reward=document.getElementById('verifiedReward');if(reward)reward.hidden=true;
  document.getElementById('dmn').hidden=false;
