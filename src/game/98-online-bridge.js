@@ -941,7 +941,10 @@ function onlineCheckVerifiedReward(matchId,attempt){
   retry.hidden=true;
   // Read after settlement so the vPBT header and player rank meter reflect
   // actual persisted progress, rather than an optimistic local increment.
-  void onlineApi.refreshProfile().catch(function(error){
+  void onlineApi.refreshProfile().then(function(state){
+   if(onlineRewardVisible(matchId)&&state?.authenticated&&state.registered)
+    resultsVerifiedRank(state.player);
+  }).catch(function(error){
    if(onlineRewardVisible(matchId))status.textContent='Reward confirmed · profile refresh pending';
   });
  }).catch(function(error){
@@ -1490,6 +1493,7 @@ if(onlineApi)onlineApi.setOnChange(function(state){
  var wasLogout=onlineWasAuthenticated&&!state.authenticated;
  onlineWasAuthenticated=state.authenticated;
  if(wasLogout){
+  rankInsigniaResultDetach();
   onlineResultsDisplayed=false;onlineRewardStop();
   document.getElementById('dv').classList.remove('show');
   document.body.classList.remove('over');

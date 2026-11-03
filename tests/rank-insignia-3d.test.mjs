@@ -6,6 +6,8 @@ const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8').replace(/\r\
 const source=read('src/game/81-rank-insignia.js');
 const home=read('src/game/82-home-showcase.js'),html=read('index.html');
 const styles=read('src/styles/18-room-lobby-redesign.css');
+const report=read('src/game/70-kills-and-damage-hud.js');
+const bridge=read('src/game/98-online-bridge.js');
 const manifest=JSON.parse(read('tools/source-manifest.json'));
 test('All 17 authorised rank indices have distinct mesh specifications',()=>{
  const scoped=source.slice(0,source.indexOf('var rankInsignia3D=null;'));

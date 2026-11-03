@@ -1,3 +1,9 @@
+## 2026-11-03 — Fix 3D rank overlap and show BE rank in online Results
+- Remove the obsolete decorative SVG badge from Room Browser and clip the existing Three.js rank canvas to its own identity-card slot.
+- Rank index 0 (backend 'Trainner') is now a true extruded 3D skull, with eye/nose cutouts and raised teeth, rather than a star. The other 16 rank designs are unchanged.
+- Reuse the SAME live Three.js canvas in online Battle Report, display verified rank and BE rank EXP, and refresh rank after settlement. Never infer online rank from kills. The offline-only result system remains unchanged.
+- Return the canvas to the room card on match exit/logout. No extra WebGL renderer, no rank-policy or reward changes.
+
 ## 2026-11-03 — Isolate 3D rank renderer in existing Home/Room profile fixtures
 - Home video and profile projection unit tests now supply the new renderer dependency as a stub and assert the exact trusted rank-index and logout calls. The independent rank-mesh test covers all 17 geometries; no changes to user-facing behavior.
 

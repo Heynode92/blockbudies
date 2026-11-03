@@ -57,12 +57,29 @@ function rankInsigniaModel(index,view){
  }
  if(spec.tier===0){
   if(spec.grade===1){
-   var disc=new T.Mesh(new T.CylinderGeometry(.23,.23,.07,20),M.silver);
-   disc.rotation.x=Math.PI/2;disc.position.set(0,0,.20);g.add(disc);
-   rankInsigniaExtrude(g,rankInsigniaPolygon([
-    [0,.18],[.06,.05],[.19,.04],[.09,-.04],[.13,-.17],
-    [0,-.09],[-.13,-.17],[-.09,-.04],[-.19,.04],[-.06,.05]
-   ]),M.highlight,.22,.026);
+   // Official server rank index 0: carved metallic skull.
+   var skull=new T.Shape();
+   skull.moveTo(-.27,-.045);
+   skull.bezierCurveTo(-.34,.09,-.31,.27,-.19,.36);
+   skull.bezierCurveTo(-.07,.46,.07,.46,.19,.36);
+   skull.bezierCurveTo(.31,.27,.34,.09,.27,-.045);
+   skull.quadraticCurveTo(.24,-.17,.15,-.19);
+   skull.lineTo(.15,-.34);
+   skull.quadraticCurveTo(0,-.39,-.15,-.34);
+   skull.lineTo(-.15,-.19);
+   skull.quadraticCurveTo(-.24,-.17,-.27,-.045);
+   skull.closePath();
+   for(var eyeX of [-.12,.12]){
+    var socket=new T.Path();
+    socket.absellipse(eyeX,.11,.072,.085,0,Math.PI*2,true,0);
+    skull.holes.push(socket);
+   }
+   var nose=new T.Path();
+   nose.moveTo(0,-.025);nose.lineTo(-.045,-.115);
+   nose.lineTo(.045,-.115);nose.closePath();skull.holes.push(nose);
+   rankInsigniaExtrude(g,skull,M.silver,.19,.085);
+   for(var tooth=-1.5;tooth<=1.5;tooth++)
+    rankInsigniaStrip(g,tooth*.073,-.292,.046,.088,.318,M.highlight);
   }else{
    var bars=spec.grade-1;
    for(var i=0;i<bars;i++){
@@ -159,23 +176,38 @@ function rankInsigniaInit(canvas){
   return null;
  }
 }
+// One shared WebGL model/canvas moves between Lobby and online Results.
+function rankInsigniaResultAttach(){
+ var canvas=document.getElementById('roomRankCanvas');
+ var mount=document.getElementById('resultsRankMount');
+ if(canvas&&mount){
+  if(canvas.parentElement!==mount)mount.appendChild(canvas);
+  rankInsigniaRender();
+ }
+}
+function rankInsigniaResultDetach(){
+ var canvas=document.getElementById('roomRankCanvas');
+ var host=document.getElementById('roomRankEmblem');
+ if(canvas&&host&&canvas.parentElement!==host){
+  host.appendChild(canvas);
+  rankInsigniaRender();
+ }
+}
 function rankInsigniaSet(index,serverRank){
- var frame=document.getElementById('roomRankEmblem');
- if(!frame)return;
- var canvas=document.getElementById('roomRankCanvas'),
-  svg=frame.querySelector('svg'),spec=rankInsigniaSpec(index);
- if(!spec){
-  rankInsigniaDispose();canvas.hidden=true;svg.hidden=false;
+ var canvas=document.getElementById('roomRankCanvas');
+ if(!canvas)return;
+ if(!rankInsigniaSpec(index)){
+  rankInsigniaResultDetach();
+  rankInsigniaDispose();canvas.hidden=true;
   canvas.removeAttribute('aria-label');return;
  }
  var view=rankInsignia3D||rankInsigniaInit(canvas);
- if(!view){canvas.hidden=true;svg.hidden=false;return;}
+ if(!view){canvas.hidden=true;return;}
  if(view.index!==index){
-  rankInsigniaClearMesh(view);
-  rankInsigniaModel(index,view);
+  rankInsigniaClearMesh(view);rankInsigniaModel(index,view);
   view.yaw=0;view.pitch=0;
  }
- canvas.hidden=false;svg.hidden=true;
+ canvas.hidden=false;
  canvas.setAttribute('aria-label','3D rank insignia: '+String(serverRank||'').slice(0,48));
  rankInsigniaRender();
 }

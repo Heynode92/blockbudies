@@ -164,3 +164,20 @@
  #lbroomlive .rml-slot .rml-seat-state{display:inline-flex;align-items:center}
  #lbroomlive .rml-slot-name{min-width:0}
 }
+
+/* Server-verified rank model occupies the native online Battle Report. */
+#drk .rbd-verified{
+ box-sizing:border-box;max-width:100%;min-height:89px;gap:12px;clip-path:none;
+ padding:6px 18px 6px 8px;border:1px solid #f3a154;border-left:3px solid #ffa943;
+ border-radius:4px;background:linear-gradient(110deg,#21364a,#102338);
+}
+#resultsRankMount{width:65px;height:76px;flex:0 0 65px;display:grid;place-items:center;overflow:hidden}
+#resultsRankMount canvas{display:block;width:65px;height:76px;object-fit:contain;touch-action:none;cursor:grab}
+#resultsRankMount canvas:active{cursor:grabbing}
+#resultsRankMount canvas[hidden]{display:none!important}
+#drk .rbd-verified b{font-size:clamp(18px,2vw,26px);line-height:1.15;overflow-wrap:anywhere}
+@media(max-width:420px){
+ #drk .rbd-verified{gap:7px;padding:5px}
+ #resultsRankMount,#resultsRankMount canvas{width:52px;height:62px;flex-basis:52px}
+}
+

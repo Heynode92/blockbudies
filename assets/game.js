@@ -3196,6 +3196,33 @@ function cnt(el,to,fmt,dur,dl){var t0=performance.now()+dl;el.textContent=fmt(0)
 // begin(tm): starts a match as team tm (0 = Police, 1 = Terrorist): hides menus, resets the world, spawns bots, starts the countdown.
 function begin(tm){MENU_BGM.leaveMenu();document.getElementById("tsel").style.display="none";lb.style.display="none";lob=false;document.body.classList.remove("lobby","over","dead");bombCleanup();reset();selectedGameMode=selM;selectedBombMapId=selM===1&&roomMatchConfig?bombMapId(roomMatchConfig.mapId):"lockdown";selectedTdmMapId=selM===0&&roomMatchConfig?tdmMapId(roomMatchConfig.mapId):"block-district";selectGameMap(isBombMode());startMatch(tm);ov.style.display="none";run=true;/* Keep cursor free for pre-round loadout selection. */}
 document.getElementById("tsP").onclick=function(){begin(0);};document.getElementById("tsT").onclick=function(){begin(1);};document.getElementById("tsX").onclick=function(){document.getElementById("tsel").style.display="none";};
+// Project only the authenticated backend rank and rank EXP in online Results.
+function resultsVerifiedRank(player){
+ if(!player||!rankInsigniaSpec(player.rankIndex))return false;
+ var pane=document.getElementById('drk'),badge=pane?.querySelector('.rbd');
+ if(!badge)return false;
+ if(!document.getElementById('resultsRankMount')){
+  badge.classList.add('rbd-verified');
+  badge.textContent='';
+  var mount=document.createElement('div');mount.id='resultsRankMount';
+  var info=document.createElement('div');
+  var caption=document.createElement('small');caption.textContent='VERIFIED RANK';
+  var label=document.createElement('b');label.id='resultsRankName';
+  info.append(caption,label);badge.append(mount,info);
+ }
+ document.getElementById('resultsRankName').textContent=String(player.rank||'—').slice(0,48).toUpperCase();
+ var current=player.currentRankHalfExp,required=player.nextRankHalfExp;
+ var capped=required===null;
+ var valid=Number.isSafeInteger(current)&&current>=0&&
+  Number.isSafeInteger(required)&&required>0;
+ var progress=capped?100:valid?Math.min(100,Math.max(0,current/required*100)):0;
+ document.getElementById('dxp').style.width=Math.round(progress)+'%';
+ document.getElementById('dnx').textContent=capped?'MAX RANK REACHED':
+  valid?homeFormatHalf(current)+' / '+homeFormatHalf(required)+' RANK EXP':'RANK EXP UNAVAILABLE';
+ rankInsigniaSet(player.rankIndex,player.rank);
+ rankInsigniaResultAttach();
+ return true;
+}
 // endMatch(): ends the match: stops the simulation, releases the mouse, shows the results screen (stars, scores, best score).
 function endMatch(){matchScoreboardDismiss();escHide();mt.over=true;mt.t=0;run=false;if(document.exitPointerLock)document.exitPointerLock();mouse.down=mouse.right=false;fireHeld=false;kn.innerHTML="";document.body.classList.remove("dead","bomb-spectator","loadout-active","loadout-cursor-hidden");document.body.classList.add("over");pl.dui=true;
   var $=function(i){return document.getElementById(i);},me=pl.tm,w=ts[me]>ts[1-me]?1:ts[me]<ts[1-me]?-1:0,st=pl.st,b=0,h2=document.querySelector("#dc h2"),ti=w>0?"VICTORY":w<0?"DEFEAT":"DRAW";
@@ -3204,12 +3231,24 @@ function endMatch(){matchScoreboardDismiss();escHide();mt.over=true;mt.t=0;run=f
   document.querySelector(".dtag").lastChild.nodeValue="MATCH OVER // "+(w>0?"YOUR TEAM WINS":w<0?"ENEMY TEAM WINS":"NO WINNER");
   $("dsub").textContent="POLICE "+ts[0]+"  \u2014  "+ts[1]+" TERRORIST"+(isBombMode()?" | BOMB MISSION":"");
   cnt($("dsc"),st.k,String,900,500);cnt($("dtm"),st.d,String,900,600);cnt($("dbs"),b,String,900,700);
-  var th=[0,5,10,16],nm=["Recruit","Private","Veteran","Legend"],ri=st.k<5?0:st.k<10?1:st.k<16?2:3,pr=ri<3?(st.k-th[ri])/(th[ri+1]-th[ri]):1;
-  $("drk").innerHTML='<div class="rbd"><div><small>RANK</small><b>'+nm[ri].toUpperCase()+'</b></div></div>'+(nb&&st.k>0?'<span class="nr">\u2605 NEW RECORD!</span>':'');
-  $("dxp").style.width="0";setTimeout(function(){$("dxp").style.width=Math.round(pr*100)+"%";},60);
-  $("dnx").textContent=ri<3?(th[ri+1]-st.k)+" KILLS TO "+nm[ri+1].toUpperCase():"MAX RANK REACHED";
+  var verified=typeof onlineResultsDisplayed!=='undefined'&&onlineResultsDisplayed;
+  if(verified){
+   $("drk").innerHTML='<div class="rbd"><div><small>RANK</small><b>VERIFYING</b></div></div>'+(nb&&st.k>0?'<span class="nr">\u2605 NEW RECORD!</span>':'');
+   $("dxp").style.width="0";$("dnx").textContent="AWAITING SERVER-VERIFIED RANK";
+  }else{
+   rankInsigniaResultDetach();
+   var th=[0,5,10,16],nm=["Recruit","Private","Veteran","Legend"],ri=st.k<5?0:st.k<10?1:st.k<16?2:3,pr=ri<3?(st.k-th[ri])/(th[ri+1]-th[ri]):1;
+   $("drk").innerHTML='<div class="rbd"><div><small>RANK</small><b>'+nm[ri].toUpperCase()+'</b></div></div>'+(nb&&st.k>0?'<span class="nr">\u2605 NEW RECORD!</span>':'');
+   $("dxp").style.width="0";setTimeout(function(){$("dxp").style.width=Math.round(pr*100)+"%";},60);
+   $("dnx").textContent=ri<3?(th[ri+1]-st.k)+" KILLS TO "+nm[ri+1].toUpperCase():"MAX RANK REACHED";
+  }
   $("sbd").innerHTML=ROS.slice().sort(function(a,c){return c.k-a.k||a.d-c.d;}).map(function(r){return '<div class="sbr'+(r===st?' me':'')+'" style="--c:'+(r.tm?'#ff8a65':'#4dabf7')+'"><span>'+r.name+(r===st?' (YOU)':'')+'</span><b>'+r.k+'</b><b>'+r.d+'</b></div>';}).join("");
-  $("dv").classList.add("show");}
+  $("dv").classList.add("show");
+  if(verified){
+   var state=typeof PB_ONLINE!=='undefined'?PB_ONLINE.state():null;
+   if(state?.authenticated&&state.registered)resultsVerifiedRank(state.player);
+  }
+}
 // again(): restarts a match on the same team.
 function again(){
   // The existing Enter-key shortcut must use the same server-authorized
@@ -3750,12 +3789,29 @@ function rankInsigniaModel(index,view){
  }
  if(spec.tier===0){
   if(spec.grade===1){
-   var disc=new T.Mesh(new T.CylinderGeometry(.23,.23,.07,20),M.silver);
-   disc.rotation.x=Math.PI/2;disc.position.set(0,0,.20);g.add(disc);
-   rankInsigniaExtrude(g,rankInsigniaPolygon([
-    [0,.18],[.06,.05],[.19,.04],[.09,-.04],[.13,-.17],
-    [0,-.09],[-.13,-.17],[-.09,-.04],[-.19,.04],[-.06,.05]
-   ]),M.highlight,.22,.026);
+   // Official server rank index 0: carved metallic skull.
+   var skull=new T.Shape();
+   skull.moveTo(-.27,-.045);
+   skull.bezierCurveTo(-.34,.09,-.31,.27,-.19,.36);
+   skull.bezierCurveTo(-.07,.46,.07,.46,.19,.36);
+   skull.bezierCurveTo(.31,.27,.34,.09,.27,-.045);
+   skull.quadraticCurveTo(.24,-.17,.15,-.19);
+   skull.lineTo(.15,-.34);
+   skull.quadraticCurveTo(0,-.39,-.15,-.34);
+   skull.lineTo(-.15,-.19);
+   skull.quadraticCurveTo(-.24,-.17,-.27,-.045);
+   skull.closePath();
+   for(var eyeX of [-.12,.12]){
+    var socket=new T.Path();
+    socket.absellipse(eyeX,.11,.072,.085,0,Math.PI*2,true,0);
+    skull.holes.push(socket);
+   }
+   var nose=new T.Path();
+   nose.moveTo(0,-.025);nose.lineTo(-.045,-.115);
+   nose.lineTo(.045,-.115);nose.closePath();skull.holes.push(nose);
+   rankInsigniaExtrude(g,skull,M.silver,.19,.085);
+   for(var tooth=-1.5;tooth<=1.5;tooth++)
+    rankInsigniaStrip(g,tooth*.073,-.292,.046,.088,.318,M.highlight);
   }else{
    var bars=spec.grade-1;
    for(var i=0;i<bars;i++){
@@ -3852,23 +3908,38 @@ function rankInsigniaInit(canvas){
   return null;
  }
 }
+// One shared WebGL model/canvas moves between Lobby and online Results.
+function rankInsigniaResultAttach(){
+ var canvas=document.getElementById('roomRankCanvas');
+ var mount=document.getElementById('resultsRankMount');
+ if(canvas&&mount){
+  if(canvas.parentElement!==mount)mount.appendChild(canvas);
+  rankInsigniaRender();
+ }
+}
+function rankInsigniaResultDetach(){
+ var canvas=document.getElementById('roomRankCanvas');
+ var host=document.getElementById('roomRankEmblem');
+ if(canvas&&host&&canvas.parentElement!==host){
+  host.appendChild(canvas);
+  rankInsigniaRender();
+ }
+}
 function rankInsigniaSet(index,serverRank){
- var frame=document.getElementById('roomRankEmblem');
- if(!frame)return;
- var canvas=document.getElementById('roomRankCanvas'),
-  svg=frame.querySelector('svg'),spec=rankInsigniaSpec(index);
- if(!spec){
-  rankInsigniaDispose();canvas.hidden=true;svg.hidden=false;
+ var canvas=document.getElementById('roomRankCanvas');
+ if(!canvas)return;
+ if(!rankInsigniaSpec(index)){
+  rankInsigniaResultDetach();
+  rankInsigniaDispose();canvas.hidden=true;
   canvas.removeAttribute('aria-label');return;
  }
  var view=rankInsignia3D||rankInsigniaInit(canvas);
- if(!view){canvas.hidden=true;svg.hidden=false;return;}
+ if(!view){canvas.hidden=true;return;}
  if(view.index!==index){
-  rankInsigniaClearMesh(view);
-  rankInsigniaModel(index,view);
+  rankInsigniaClearMesh(view);rankInsigniaModel(index,view);
   view.yaw=0;view.pitch=0;
  }
- canvas.hidden=false;svg.hidden=true;
+ canvas.hidden=false;
  canvas.setAttribute('aria-label','3D rank insignia: '+String(serverRank||'').slice(0,48));
  rankInsigniaRender();
 }
@@ -5471,6 +5542,7 @@ document.getElementById("mdm").onclick=function(){if(MODES[selM].lock){this.clas
 // End-of-match results return to the same Room Master lobby; deliberate ESC abandonment closes
 // the current local room and opens the Room List. Neither action returns to Home.
 function matchExitToLobby(destination){
+ rankInsigniaResultDetach();
  matchScoreboardDismiss();
  escHide();
  if(document.pointerLockElement&&document.exitPointerLock)document.exitPointerLock();
@@ -8462,7 +8534,10 @@ function onlineCheckVerifiedReward(matchId,attempt){
   retry.hidden=true;
   // Read after settlement so the vPBT header and player rank meter reflect
   // actual persisted progress, rather than an optimistic local increment.
-  void onlineApi.refreshProfile().catch(function(error){
+  void onlineApi.refreshProfile().then(function(state){
+   if(onlineRewardVisible(matchId)&&state?.authenticated&&state.registered)
+    resultsVerifiedRank(state.player);
+  }).catch(function(error){
    if(onlineRewardVisible(matchId))status.textContent='Reward confirmed · profile refresh pending';
   });
  }).catch(function(error){
@@ -9011,6 +9086,7 @@ if(onlineApi)onlineApi.setOnChange(function(state){
  var wasLogout=onlineWasAuthenticated&&!state.authenticated;
  onlineWasAuthenticated=state.authenticated;
  if(wasLogout){
+  rankInsigniaResultDetach();
   onlineResultsDisplayed=false;onlineRewardStop();
   document.getElementById('dv').classList.remove('show');
   document.body.classList.remove('over');
