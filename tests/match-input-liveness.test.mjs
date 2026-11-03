@@ -12,7 +12,7 @@ function extract(text,begin,end){
  return text.slice(from,to);
 }
 test('unverified inventory collection remains empty, but fixed match slots have valid canonical IDs',()=>{
- const code=extract(inventory,'function inventoryOwned(cat){','// No localStore ownership');
+ const code=extract(inventory,'function inventoryOwned(cat){','function inventoryLoad(){');
  const state={WP:[],INVENTORY_TABS:[
   {key:'main',kinds:['rifle']},{key:'secondary',kinds:['pistol']},
   {key:'mele',kinds:['knife']},{key:'explosive',kinds:['grenade']}],
@@ -49,5 +49,5 @@ test('completed match has bounded finalizer independent of render animation and 
  assert.match(bridge,/onlineFinalizeCompletedMatch\(completed\)/);
  assert.match(bridge,/clearTimeout\(onlineResultFallbackTimer\)/);
  assert.match(bridge,/await onlineLoadInventory\(\)\.catch\(onlineWarn\)/);
- assert.match(bridge,/if\(onlineActive&&!run\|\|!onlineActive\)/.source?.constructor===String?/^/ : /function onlineResetLive\(\)/);
+ assert.match(bridge,/function onlineResetLive\(\)/);
 });
