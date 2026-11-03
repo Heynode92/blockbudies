@@ -1,3 +1,8 @@
+## 2026-11-03 — Align frontend regression fixtures with the requested multiplayer UI
+- Replace stale test expectations for removed LOCAL/VS AI labels, obsolete hidden BOT summary and old READY/MASTER strings. Enforce instead the exact new presentation contract.
+- Add focused source-contract checks for real Three.js roster rank projection and 3D vPBT star, authoritative Training Results (including deadline failure), and server resetAt-based 429 popup.
+- No gameplay or production logic change.
+
 ## 2026-11-03 — Authenticated beginner Training Results and daily room limit feedback
 - Present a dedicated server-verified training result overlay (completed or timed out) before callsign registration. Combined-kill figures come from the authenticated training_result event; no invented EXP/vPBT, no unapproved retry policy. Returning accounts with verified completion see the completion result before registering.
 - When backend rejects a room create with ROOM_DAILY_CREATE_LIMIT, reuse the existing multiplayer modal and format the returned resetAt in the browser timezone. Preserve bounded backend resetAt/limit error metadata; frontend does not compute or enforce a parallel quota.

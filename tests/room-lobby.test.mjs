@@ -228,10 +228,10 @@ test('malformed stored rooms are ignored and option whitelists resist invalid va
 
 test('existing 5v5 engine stays authoritative, no fabricated maps or public players',()=>{
  const html=read('index.html');
- assert.match(html,/LOCAL · VS AI/);
+ assert.doesNotMatch(html,/LOCAL · VS AI/);
  assert.doesNotMatch(html,/NO ONLINE SERVER CONNECTED|POINTBLOCK ROOM SERVER · ROBINHOOD MAINNET/);
  assert.match(html,/id="roomCount" class="room-count-sr"/);
- assert.match(html,/1 PLAYER \+ 9 BOTS/);
+ assert.match(html,/UP TO 10 PLAYERS · REMAINING SLOTS FILLED BY BOTS/);
  const src=read('src/game/83-room-lobby.js');
  assert.match(src,/MODE_MAP_PREVIEWS\[mode\]/,'map labels depend on canonical existing previews');
  assert.match(src,/roomNormalize/);
@@ -301,7 +301,7 @@ test('Room Settings stays in the active lobby; saving commits via popup only',()
 
 test('live team counts and human-vs-BOT total derive from shared gameplay capacity',()=>{
  const {context,doc}=setup();call(context,'roomLobbyOpen()');call(context,'roomCreateLocal()');
- assert.equal(doc.getElementById('rmlBotSummary').textContent,'1 PLAYER + 9 BOTS ON START');
+ assert.equal(doc.getElementById('rmlBotSummary').textContent,'','Obsolete room title counter is no longer displayed');
  assert.equal(doc.getElementById('rmlPoliceSlots').children.length,call(context,'BOMB_RULES.teamSize'));
  assert.match(read('src/game/85-lobby-and-match.js'),/i<BOMB_RULES\.teamSize-\(t===tm\?1:0\)/);
 });

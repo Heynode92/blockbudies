@@ -48,7 +48,7 @@ test('nickname and rank come from separate authenticated backend fields; half-un
  assert.equal(get('homeProgressPanel').hidden,true);
 });
 test('room render still reads actual backend roomList; online browser does not claim local-only rooms',()=>{
- assert.match(bridge,/document\.getElementById\('roomBrowserModeLabel'\)\.textContent='ONLINE MATCHES · 5V5'/);
+ assert.match(bridge,/document\.getElementById\('roomBrowserModeLabel'\)\.textContent='MATCH ROOMS · 5V5'/);
  assert.match(bridge,/roomList\.forEach\(function\(r\)/);
  assert.doesNotMatch(part,/room-list-footer|roomBrowserStatusLabel/);
  assert.match(part,/id="roomCount" class="room-count-sr"/);

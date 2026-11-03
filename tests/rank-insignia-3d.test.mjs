@@ -51,3 +51,38 @@ test('Canonical legacy bundle includes actual rank model before home profile hoo
  assert.ok(i>0);
  assert.ok(bundle.indexOf(home,i)>i);
 });
+
+test('Verified roster rank models reuse the canonical 3D insignia generator',()=>{
+ const bridge=read('src/game/98-online-bridge.js');
+ const css=read('src/styles/04-lobby.css');
+ assert.match(bridge,/rankRosterPreview\(member\.rankIndex\)/);
+ assert.match(bridge,/rankIndex:Number\.isSafeInteger\(m\.rankIndex\)/);
+ assert.match(source,/function rankRosterPreview\(index\)/);
+ assert.match(source,/rankInsigniaModel\(index,view\)/);
+ assert.match(css,/#lbroomlive \.rml-rank-3d/);
+});
+test('vPBT star is a genuine extruded Three.js model, not a hardcoded letter',()=>{
+ assert.match(html,/id="homeVpbtStar"/);
+ assert.doesNotMatch(html,/home-vpbt-icon">V</);
+ assert.match(source,/function vpbtStarInit\(\)/);
+ assert.match(source,/new T\.ExtrudeGeometry\(shape/);
+});
+test('Training completion and timeout use server-verified Results before registration',()=>{
+ const bridge=read('src/game/98-online-bridge.js');
+ assert.match(html,/id="trainingResult"/);
+ assert.match(html,/id="trainingResultKills"/);
+ assert.match(bridge,/onlineTrainingFinished\(frame\.progress\)/);
+ assert.match(bridge,/function onlineDisplayTrainingResult\(progress\)/);
+ assert.match(bridge,/function onlineTrainingResultContinue\(\)/);
+ assert.match(bridge,/progress\.status==='COMPLETED'/);
+ assert.match(bridge,/TIMEOUT_POLICY_PENDING/);
+});
+test('Daily room create 429 modal uses server-provided resetAt and existing dialog',()=>{
+ const bridge=read('src/game/98-online-bridge.js');
+ const client=read('src/network/pointblock-client.js');
+ assert.match(bridge,/error\?\.code==='ROOM_DAILY_CREATE_LIMIT'/);
+ assert.match(bridge,/error\.resetAt/);
+ assert.match(bridge,/onlineRoomDialog\('DAILY ROOM LIMIT REACHED'/);
+ assert.match(client,/this\.resetAt/);
+ assert.match(client,/res\.status,data\)/);
+});

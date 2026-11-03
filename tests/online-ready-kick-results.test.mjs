@@ -10,10 +10,10 @@ function piece(start,end){
  assert.ok(a>=0&&b>a,'bridge section missing '+start);
  return bridge.slice(a,b);
 }
-test('Ready belongs exclusively to non-master humans and [READY] appears right of name',()=>{
+test('Ready belongs exclusively to non-master humans and READY appears right of name',()=>{
  const teams=piece('function onlineRoomTeams(){','function onlineLiveRoomDecorate(room)');
  assert.match(teams,/member\.ready\?'READY':'NOT READY'/);
- assert.match(teams,/member\.playerId===roomCurrent\.ownerId\?'MASTER'/);
+ assert.match(teams,/member\.playerId===roomCurrent\.ownerId\?'ROOM MASTER'/);
  assert.match(teams,/member&&master&&!mine&&roomOpen/);
  assert.match(teams,/document\.createElement\(member\?'div':'button'\)/);
  assert.match(bridge,/startControl\.textContent=room\.status==='ACTIVE'\?'REJOIN MATCH'/);

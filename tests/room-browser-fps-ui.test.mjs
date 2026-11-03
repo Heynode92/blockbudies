@@ -64,5 +64,5 @@ test('pre-match-only header and 3D preview never enter the actual combat HUD',()
  assert.match(live,/id="rmlpreview"/);
  assert.match(live,/id="rmlLogLines"/);
  assert.match(live,/PUBLIC CHAT/);
- assert.match(live,/PUBLIC MESSAGING COMING WITH ONLINE SERVICES/);
+ assert.match(live,/PUBLIC MESSAGING IS NOT AVAILABLE YET/);
 });
