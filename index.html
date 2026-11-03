@@ -312,9 +312,9 @@ html.pb-route-restoring #lb { visibility:hidden; }
   <section class="rml-info"><h3>ROOM INFORMATION</h3><div class="rml-info-line"><span>ROOM NAME</span><strong id="rmlRoomName"></strong></div>
    <div class="rml-map"><span>MAP</span><canvas id="rmlMapPreview" width="720" height="320" aria-label="Actual selected map preview"></canvas><strong id="rmlMapName"></strong><small id="rmlMapCaption"></small></div>
    <div class="rml-info-line"><span>GAME MODE</span><strong id="rmlGameMode"></strong></div><div class="rml-info-line"><span id="rmlGoalLabel"></span><strong id="rmlGoal"></strong></div>
-   <div class="rml-info-line"><span id="rmlTimeLabel"></span><strong id="rmlTime"></strong></div><div class="rml-info-line"><span>ROOM MASTER</span><strong class="rml-master">YOU ★</strong></div>
+   <div class="rml-info-line"><span id="rmlTimeLabel"></span><strong id="rmlTime"></strong></div><div class="rml-info-line"><span>ROOM MASTER</span><strong class="rml-master" id="rmlRoomMasterName">YOU ★</strong></div>
   </section>
-  <section class="rml-teams"><div class="rml-hint"><strong>CLICK ANY TEAM SLOT TO CHANGE SIDE</strong><span>YOU ARE THE ROOM MASTER</span></div>
+  <section class="rml-teams"><div class="rml-hint"><strong>CLICK ANY TEAM SLOT TO CHANGE SIDE</strong><span id="rmlRoomMasterHint">YOU ARE THE ROOM MASTER</span></div>
    <div class="rml-team-grid"><section class="rml-team police"><header><h3>POLICE</h3><span id="rmlPoliceCount"></span></header><div class="rml-slots" id="rmlPoliceSlots"></div></section>
    <section class="rml-team terrorists"><header><h3>TERRORISTS</h3><span id="rmlTerrorCount"></span></header><div class="rml-slots" id="rmlTerrorSlots"></div></section></div>
   </section>
@@ -394,9 +394,11 @@ html.pb-route-restoring #lb { visibility:hidden; }
   <div class="room-transition-center">
     <span class="room-transition-kicker">POINT BLOCK · MATCH DEPLOYMENT</span>
     <h2 id="roomStartPhase">CONNECTING TO SERVER</h2>
-    <div class="room-transition-progress"><span>LOADING MATCH</span><strong id="roomStartPercent">0%</strong></div>
-    <div class="room-transition-track"><i id="roomStartBar"></i></div>
-    <small>PREPARING YOUR BATTLEFIELD</small>
+  </div>
+  <div class="room-transition-footer">
+    <div class="room-transition-progress"><span>DEPLOYMENT READINESS</span><strong id="roomStartPercent">0%</strong></div>
+    <div class="room-transition-track" role="progressbar" aria-label="Deployment readiness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="roomStartBar"></i></div>
+    <small id="roomStartDetail">WAITING FOR GAME SERVER</small>
   </div>
 </div>
 <div id="ov"><div id="card"><h1>Point Block FPS</h1><div id="ovt"></div><button id="go">Start</button></div></div>
