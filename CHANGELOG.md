@@ -1,3 +1,9 @@
+## 2026-11-03 — Genuine 3D rank insignia for all 17 server-authorized levels
+- Replace the fixed decorative shield below the 3D operator with a programmatically modeled and lit Three.js rank emblem: thick beveled slate/bronze metal plates, raised silver bars/medallion, bronze chevrons, silver and gold top ranks. Unique visuals for all 17 existing BE rank indices.
+- Insignia selection is strictly the authenticated BE `rankIndex`, and accessible name uses BE `rank`. No duplicate rank-title table, EXP formula or wallet logic in FE; no BE rank progression or rewards modifications.
+- A single small lazily initialized renderer draws on rank changes and drag interaction only, with no continuous animation loop; meshes are disposed on rank switch and logout. Original SVG is retained only as GPU failure fallback.
+- Canvas fits the existing Lobby operator card at desktop/mobile widths. Add module to canonical parts manifest and generated bundle, plus 17-level regression tests.
+
 ## 2026-11-03 — Preserve Ready labels on narrow Room Lobby screens
 - Override legacy mobile rule hiding generic slot em elements so the new verified [READY] tag remains visible beside usernames at every supported viewport width. Cosmetic CSS only.
 

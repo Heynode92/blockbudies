@@ -107,13 +107,18 @@ function homeProfileRender(state){
  balance.textContent=player?homeFormatHalf(player.currentHalfVpbt):'—';
  panel.hidden=!player;
  headerChip.hidden=!player;
- if(!player)return;
+ if(!player){
+  rankInsigniaSet(null,null);
+  return;
+ }
  // Header is nickname only. Server rank and EXP live under the 3D operator
  // in the room browser, never in the shared Home/Room Master header.
  var username=String(player.username||'PLAYER').slice(0,12);
  document.getElementById('homeHeaderUsername').textContent=username;
  document.getElementById('homeRankCallsign').textContent=username;
  document.getElementById('homeRankName').textContent=String(player.rank||'—').slice(0,48);
+ // The Three.js insignia is a visual projection of the VERIFIED server rank.
+ rankInsigniaSet(player.rankIndex,player.rank);
  var earned=homeFormatHalf(player.currentRankHalfExp),required=player.nextRankHalfExp;
  var capped=required===null&&Number.isSafeInteger(player.rankIndex);
  document.getElementById('homeRankExp').textContent=capped?'MAX RANK':earned+' / '+homeFormatHalf(required);

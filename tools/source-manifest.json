@@ -49,6 +49,7 @@
     "src/game/79-camera-look.js",
     "src/game/80-input.js",
     "src/game/81-match-scoreboard.js",
+    "src/game/81-rank-insignia.js",
     "src/game/82-home-showcase.js",
     "src/game/83-room-lobby.js",
     "src/game/84-live-map-preview.js",
