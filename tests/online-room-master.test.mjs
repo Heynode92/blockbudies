@@ -13,7 +13,7 @@ const roomId='33333333-3333-4333-8333-333333333333';
 function fixture(status='ACTIVE',ownerId=playerId){
  const counts={patch:0,start:0,attach:0,decorations:0,warnings:[]};
  const button={disabled:false};
- let current={id:roomId,ownerId,status};
+ let current={id:roomId,ownerId,status,members:[{playerId,username:'RoomMaster',ready:true}]};
  const onlineApi={
   state:()=>({player:{id:playerId}}),
   getRoom:async()=>current,
@@ -22,6 +22,8 @@ function fixture(status='ACTIVE',ownerId=playerId){
  const ctx={
   onlineApi,onlineActive:false,onlineAttaching:false,roomCurrent:current,
   onlineAuth:()=>true,onlineIsMaster:()=>true,
+  onlineUnreadyMembers:room=>room.members.filter(m=>m.playerId!==room.ownerId&&!m.ready),
+  onlineShowWaitingPlayers:room=>counts.warnings.push('WAITING_FOR_READY:'+room.members.length),
   document:{getElementById:()=>button},
   onlineAdoptRoom:r=>{ctx.roomCurrent=r;return r},
   onlineLiveRoomDecorate:r=>{counts.decorations++;ctx.roomCurrent=r},
@@ -85,11 +87,11 @@ const wsSource=source.slice(functionStart,functionEnd)+'\n'+source.slice(attachS
  '\nthis.poll=onlineStartRoomPoll;this.attach=onlineAttachMatch;';
 test('polling ACTIVE status refreshes REJOIN UI and attempts server WS, not another START',async()=>{
  let timer,shown=0,attached=0;
- const room={id:roomId,ownerId:playerId,status:'ACTIVE'};
+ const room={id:roomId,ownerId:playerId,status:'ACTIVE',members:[{playerId,username:'RoomMaster',ready:true}]};
  const ctx={
   roomCurrent:{...room,status:'OPEN'},onlineActive:false,onlineAttaching:false,onlineRoomTimer:0,
   setInterval:fn=>{timer=fn;return 1},clearInterval:()=>{},
-  onlineApi:{getRoom:async()=>room,openLive:async()=>{attached++;}},
+  onlineApi:{state:()=>({player:{id:playerId}}),getRoom:async()=>room,openLive:async()=>{attached++;}},
   document:{getElementById:()=>({classList:{contains:()=>true},textContent:''})},
   onlineAuth:()=>true,onlineIsMaster:()=>true,
   onlineAdoptRoom:r=>{ctx.roomCurrent=r;return r},
@@ -142,4 +144,28 @@ test('a parsed backend ACTIVE Room Master room reaches realtime without invalid 
  assert.equal(wsCount,1);
  assert.equal(transitions,1);
  assert.equal(ctx.onlineActive,true);
+});
+
+test('Room Master START cannot pass through with another unready human',async()=>{
+ const f=fixture('OPEN');
+ f.setRoom({id:roomId,ownerId:playerId,status:'OPEN',members:[
+  {playerId,username:'RoomMaster',ready:true},
+  {playerId:anotherPlayerId,username:'Guest',ready:false}
+ ]});
+ await f.ctx.start();
+ assert.equal(f.counts.start,0);
+ assert.equal(f.counts.patch,0);
+ assert.equal(f.counts.attach,0);
+ assert.deepEqual(f.counts.warnings,['WAITING_FOR_READY:2']);
+});
+test('Room Master START succeeds once when all human guests are Ready',async()=>{
+ const f=fixture('OPEN');
+ f.setRoom({id:roomId,ownerId:playerId,status:'OPEN',members:[
+  {playerId,username:'RoomMaster',ready:true},
+  {playerId:anotherPlayerId,username:'Guest',ready:true}
+ ]});
+ await f.ctx.start();
+ assert.equal(f.counts.patch,1);
+ assert.equal(f.counts.start,1);
+ assert.equal(f.counts.attach,1);
 });

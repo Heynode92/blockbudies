@@ -1,3 +1,7 @@
+## 2026-11-03 — Update Room Master regression for authoritative READY state
+- Existing Start and polling fixtures now carry the authenticated owner membership and explicit Ready values.
+- New cases verify that unready humans block START, while all-ready humans permit exactly one match start; no runtime code change.
+
 ## 2026-11-03 — Ready, Kick and same-room EXIT GAME UX for authoritative online matches
 - Replace online Play Again / Back To Room in the native offline Battle Report with a single EXIT GAME button. EXIT GAME returns to the SAME authenticated room without invoking Leave, Abandon, or Start. Reward verification and results visuals are preserved until exit.
 - For non-master human members, the Room Lobby's existing large START button is now READY / READY · CANCEL; show [READY] at the right of their player names, and show MASTER separately for the owner.
