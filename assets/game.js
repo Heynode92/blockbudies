@@ -7731,6 +7731,13 @@ function onlineAdoptRoom(room) {
  else roomList=roomList.map(r=>r.id===parsed.id?parsed:r);
  return parsed;
 }
+// Projected room number is presentation-only. The original UUID and full
+// publicCode remain untouched for authenticated Join and Room Master actions.
+// BE publicCode format: PBT-<sequence>-DM/BM.
+function onlineRoomDisplayId(code){
+ var value=typeof code==='string'?/^PBT-(\d+)-(?:DM|BM)$/.exec(code):null;
+ return value?value[1]:'—';
+}
 function onlineRoomRender(){
  var list=document.getElementById('roomEntries');if(!list)return;
  // Never relabel actual backend rooms as offline local sessions.
@@ -7743,15 +7750,17 @@ function onlineRoomRender(){
  roomList.forEach(function(r){
   var row=document.createElement('div');row.className='room-entry';
   function cell(tag,value,cls){var el=document.createElement(tag);el.textContent=String(value);if(cls)el.className=cls;row.appendChild(el);return el}
-  cell('span',r.code||'—');cell('strong',r.name);
+  var idCell=cell('span',onlineRoomDisplayId(r.code),'room-id');
+  idCell.setAttribute('aria-label','Room ID '+idCell.textContent);
+  cell('strong',r.name,'room-name');
   var map=document.createElement('div');map.className='rm-map';
   var title=document.createElement('span'),mode=document.createElement('small');
   title.textContent=(roomMapsForMode(r.mode,r.mapId)||{}).name||'UNKNOWN';
   mode.textContent=r.mode===1?'BOMB MISSION':'DEATHMATCH';
   map.appendChild(title);map.appendChild(mode);row.appendChild(map);
-  cell('span',r.members.length+' / 10');
+  cell('span',r.members.length+' / 10','room-players');
   cell('span',r.status||'WAITING','rm-status');
-  var button=cell('button','JOIN');button.type='button';
+  var button=cell('button','JOIN','room-join');button.type='button';
   button.disabled=r.status!=='OPEN';
   button.addEventListener('click',()=>{void onlineSelectRoom(r.id)});
   list.appendChild(row);

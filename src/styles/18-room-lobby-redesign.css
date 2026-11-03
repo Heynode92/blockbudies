@@ -297,3 +297,61 @@
  #lbrooms .home-progress-track i{transition:none}
  #lbrooms .room-quick-nav button,#lbrooms #roomCreateOpen,#lbrooms #roomBack{transition:none}
 }
+
+/* Room Browser grid: the header and EACH live room use the exact same
+   six-column template. The BE publicCode is displayed as its numeric
+   sequence only; its join identity remains the original server UUID. */
+#lbrooms .room-cols,
+#lbrooms .room-entry{
+ box-sizing:border-box;
+ width:100%;
+ grid-template-columns:minmax(66px,.75fr) minmax(120px,1.9fr) minmax(155px,2.15fr) minmax(68px,.8fr) minmax(75px,.85fr) minmax(86px,.95fr);
+ column-gap:clamp(10px,1.25vw,19px);
+ align-items:center;
+ text-align:left;
+ padding-left:clamp(12px,1.3vw,20px);
+ padding-right:clamp(12px,1.3vw,20px);
+}
+#lbrooms .room-cols > *,
+#lbrooms .room-entry > *{min-width:0;max-width:100%;box-sizing:border-box}
+#lbrooms .room-cols{min-height:55px;font-size:12px;letter-spacing:.12em}
+#lbrooms .room-entry{min-height:75px;padding-top:12px;padding-bottom:12px}
+#lbrooms .room-entry .room-id{
+ white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+ font:900 clamp(14px,1.05vw,17px)/1 Rajdhani,"Trebuchet MS",sans-serif;
+ font-variant-numeric:tabular-nums;letter-spacing:.04em;color:#abd1f2;
+}
+#lbrooms .room-entry .room-name{
+ display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+ overflow-wrap:normal;font:900 clamp(15px,1.1vw,19px)/1.15 Rajdhani,"Trebuchet MS",sans-serif;
+}
+#lbrooms .room-entry .rm-map{min-width:0;gap:4px}
+#lbrooms .room-entry .rm-map span,
+#lbrooms .room-entry .rm-map small{
+ display:block;min-width:0;max-width:100%;
+ overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+#lbrooms .room-entry .rm-map span{font-weight:900;color:#ebf4ff}
+#lbrooms .room-entry .rm-map small{font-size:11px;letter-spacing:.03em}
+#lbrooms .room-entry .room-players{
+ font-variant-numeric:tabular-nums;white-space:nowrap;
+ font-weight:900;color:#e9f5ff;
+}
+#lbrooms .room-entry .rm-status{
+ display:inline-flex;gap:6px;align-items:center;justify-self:start;
+ white-space:nowrap;font-weight:900;letter-spacing:.04em;
+}
+#lbrooms .room-entry .room-join{
+ justify-self:end;width:100%;max-width:100px;min-height:42px;
+ padding:10px 12px;border:0;border-radius:9px;
+ background:linear-gradient(180deg,#ff9c38,#f67516);
+ color:#fff;font:900 15px Rajdhani,sans-serif;cursor:pointer;
+}
+#lbrooms .room-entry .room-join:hover:not(:disabled){filter:brightness(1.13)}
+#lbrooms .room-entry .room-join:disabled{cursor:not-allowed;opacity:.45}
+#lbrooms .room-entry .room-join:focus-visible{outline:2px solid #ffe2ac;outline-offset:2px}
+@media(max-width:760px){
+ /* On narrow screens the panel scrolls horizontally with the header/rows
+    together; room columns never overlap or wrap into different tracks. */
+ #lbrooms .room-cols,#lbrooms .room-entry{min-width:730px}
+}

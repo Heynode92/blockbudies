@@ -1,3 +1,9 @@
+## 2026-11-03 — Align Room Browser table and display numeric room IDs
+- Apply one six-column responsive CSS grid to both Available Rooms header and live room rows: numeric ID, room name, map/mode, player count, status and JOIN. Increase ID width, use tabular numerals, prevent wrapping and truncate long names instead of colliding with adjacent columns.
+- Display only the official BE room sequence from `PBT-00026-DM` / `PBT-00026-BM` as `00026`. Preserve the full BE public code and the original UUID in state and Join requests; no hardcoded room numbers.
+- Use a full-width, consistently aligned JOIN button. Maintain horizontal table scrolling on narrow screens; no modifications to auth, Room Master, gameplay, offline engine or backend.
+- Add render-level regression verifying displayed ID, exact six-cell order, original Join UUID and shared CSS tracks.
+
 ## 2026-11-03 — Correct legacy room UI assertion after footer removal
 - Verify that removed footer status copy is absent and screen-reader room count remains, without changing local 5v5 engine tests or runtime code.
 
