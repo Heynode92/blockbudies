@@ -302,14 +302,17 @@ body.lobby #gl{filter:brightness(.55) saturate(.8)}
 .room-transition.on{opacity:1}.room-transition.leaving{opacity:0}
 #roomStartMap{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(.8) saturate(.85)}
 .room-transition-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(3,9,19,.48),rgba(5,12,25,.7) 55%,rgba(2,8,18,.92))}
-.room-transition-center{position:relative;z-index:1;width:min(640px,86vw);text-align:center;display:flex;flex-direction:column;gap:14px}
+.room-transition-center{position:absolute;z-index:1;left:50%;top:40%;transform:translate(-50%,-50%);width:min(760px,88vw);text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px}
+.room-transition-footer{position:absolute;z-index:2;left:50%;bottom:clamp(26px,6vh,74px);transform:translateX(-50%);width:min(860px,calc(100vw - 44px));padding:20px clamp(16px,3vw,34px) 18px;background:rgba(4,13,28,.82);border:1px solid rgba(123,155,190,.4);box-shadow:0 14px 56px rgba(0,0,0,.52);backdrop-filter:blur(14px);display:flex;flex-direction:column;gap:10px}
+@media(max-height:580px){.room-transition-center{top:27%}.room-transition-footer{bottom:12px;padding:10px 16px}}
+@media(max-width:560px){.room-transition-center h2{font-size:32px}.room-transition-progress{font-size:12px!important}.room-transition-progress strong{font-size:25px!important}}
 .room-transition-kicker{font:900 12px Rajdhani,sans-serif;letter-spacing:.33em;color:#ff9c34}
 .room-transition-center h2{font:italic 900 clamp(36px,4.5vw,70px) Impact,"Arial Black",sans-serif;letter-spacing:.075em;margin:0;text-shadow:0 5px 14px #000}
 .room-transition-progress{display:flex;justify-content:space-between;align-items:baseline;gap:15px;font-size:15px;font-weight:900;letter-spacing:.15em}
 .room-transition-progress strong{font:italic 900 clamp(26px,3vw,42px) Impact,sans-serif;color:#ff9c35}
 .room-transition-track{height:15px;border:1px solid #527493;background:#0c1b31;overflow:hidden;box-shadow:0 0 17px #090f1d}
 .room-transition-track i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ff7017,#ffc16a);transition:width .22s ease-out}
-.room-transition-center small{font-size:12px;letter-spacing:.22em;color:#a9bfd7;font-weight:800}
+.room-transition-footer small{font-size:12px;letter-spacing:.22em;color:#a9bfd7;font-weight:800}
 @media(prefers-reduced-motion:reduce){.room-transition{transition:none}.room-transition-track i{transition:none}}
 
 
