@@ -85,7 +85,7 @@ function resultsVerifiedRank(player){
   badge.textContent='';
   var mount=document.createElement('div');mount.id='resultsRankMount';
   var info=document.createElement('div');
-  var caption=document.createElement('small');caption.textContent='VERIFIED RANK';
+  var caption=document.createElement('small');caption.textContent='YOUR RANK';
   var label=document.createElement('b');label.id='resultsRankName';
   info.append(caption,label);badge.append(mount,info);
  }
@@ -112,8 +112,8 @@ function endMatch(){matchScoreboardDismiss();escHide();mt.over=true;mt.t=0;run=f
   cnt($("dsc"),st.k,String,900,500);cnt($("dtm"),st.d,String,900,600);cnt($("dbs"),b,String,900,700);
   var verified=typeof onlineResultsDisplayed!=='undefined'&&onlineResultsDisplayed;
   if(verified){
-   $("drk").innerHTML='<div class="rbd"><div><small>RANK</small><b>VERIFYING</b></div></div>'+(nb&&st.k>0?'<span class="nr">\u2605 NEW RECORD!</span>':'');
-   $("dxp").style.width="0";$("dnx").textContent="AWAITING SERVER-VERIFIED RANK";
+   $("drk").innerHTML='<div class="rbd"><div><small>YOUR RANK</small><b>LOADING</b></div></div>'+(nb&&st.k>0?'<span class="nr">\u2605 NEW RECORD!</span>':'');
+   $("dxp").style.width="0";$("dnx").textContent="LOADING YOUR RANK";
   }else{
    rankInsigniaResultDetach();
    var th=[0,5,10,16],nm=["Recruit","Private","Veteran","Legend"],ri=st.k<5?0:st.k<10?1:st.k<16?2:3,pr=ri<3?(st.k-th[ri])/(th[ri+1]-th[ri]):1;
@@ -121,11 +121,13 @@ function endMatch(){matchScoreboardDismiss();escHide();mt.over=true;mt.t=0;run=f
    $("dxp").style.width="0";setTimeout(function(){$("dxp").style.width=Math.round(pr*100)+"%";},60);
    $("dnx").textContent=ri<3?(th[ri+1]-st.k)+" KILLS TO "+nm[ri+1].toUpperCase():"MAX RANK REACHED";
   }
-  $("sbd").innerHTML=ROS.slice().sort(function(a,c){return c.k-a.k||a.d-c.d;}).map(function(r){return '<div class="sbr'+(r===st?' me':'')+'" style="--c:'+(r.tm?'#ff8a65':'#4dabf7')+'"><span>'+r.name+(r===st?' (YOU)':'')+'</span><b>'+r.k+'</b><b>'+r.d+'</b></div>';}).join("");
+  if(verified)$("sbd").replaceChildren();
+  else $("sbd").innerHTML=ROS.slice().sort(function(a,c){return c.k-a.k||a.d-c.d;}).map(function(r){return '<div class="sbr'+(r===st?' me':'')+'" style="--c:'+(r.tm?'#ff8a65':'#4dabf7')+'"><span>'+r.name+(r===st?' (YOU)':'')+'</span><b>'+r.k+'</b><b>'+r.d+'</b></div>';}).join("");
   $("dv").classList.add("show");
   if(verified){
    var state=typeof PB_ONLINE!=='undefined'?PB_ONLINE.state():null;
    if(state?.authenticated&&state.registered)resultsVerifiedRank(state.player);
+   onlineRenderResultScoreboard(ROS,st);
   }
 }
 // again(): restarts a match on the same team.

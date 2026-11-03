@@ -953,6 +953,18 @@ function onlineApplyVerifiedExplosion(event){
   boomLab=WP[event.weaponId].n.toUpperCase();
  hsF=false;killNotify(boomN>2);
 }
+// Public scoreboard identity is attached to each real server row before the
+// existing Results overlay is rendered. No random/client-generated BOT names.
+function onlineScoreIdentity(entry,row){
+ var identity=onlinePublicActor(row.id),me=row.id===onlineUserId();
+ var own=onlineApi?.state().player;
+ var member=roomCurrent?.members?.find(m=>m.playerId===row.id);
+ var rank=identity.bot?0:me?own?.rankIndex:member?.rankIndex;
+ entry.id=row.id;
+ entry.name=identity.name;entry.bot=identity.bot;
+ entry.rankIndex=Number.isSafeInteger(rank)&&rank>=0&&rank<17?rank:null;
+ return entry;
+}
 // Match settlement is BE-owned. The ORIGINAL offline report is the renderer.
 function onlineAdoptFinalScore(game){
  if(!game||game.status!=='COMPLETED'||!Array.isArray(game.scoreboard))return false;
@@ -963,12 +975,8 @@ function onlineAdoptFinalScore(game){
   if(!row||typeof row.id!=='string'||!Number.isSafeInteger(row.kills)||
      !Number.isSafeInteger(row.deaths))return;
   var entry=row.id===me?pl.st:onlineScoreboard.get(row.id);
-  if(!entry){
-   var human=roomCurrent?.members?.find(function(x){return x.playerId===row.id});
-   entry={name:human?.username||'BOT',tm:row.team,k:0,d:0};
-  }
-  // Legacy endMatch() uses innerHTML; do not interpolate arbitrary usernames.
-  if(row.id!==me&&!/^[A-Za-z0-9_]{1,12}$/.test(entry.name))entry.name='PLAYER';
+  if(!entry)entry={name:'PLAYER',tm:row.team,k:0,d:0};
+  onlineScoreIdentity(entry,row);
   entry.tm=row.team;entry.k=row.kills;entry.d=row.deaths;
   if(row.id===me)team=row.team;
   rows.push(entry);
@@ -980,6 +988,42 @@ function onlineAdoptFinalScore(game){
 }
 // Results use the ORIGINAL offline Battle Report. Only the two numbers below
 // come from a persisted settlement, never a client-side award calculation.
+// Online Results use DOM/textContent instead of HTML interpolation; untrusted
+// player names never enter the innerHTML-based legacy offline scoreboard.
+function onlineRenderResultScoreboard(rows,selfStat){
+ var host=document.getElementById('sbd');if(!host)return;
+ host.replaceChildren();
+ var ordered=rows.slice().sort(function(a,b){return b.k-a.k||a.d-b.d});
+ ordered.forEach(function(entry,index){
+  var row=document.createElement('div');
+  row.className='sbr online-result-row'+(entry===selfStat?' me':'');
+  row.style.setProperty('--c',entry.tm?'#ff8a65':'#4dabf7');
+  var place=document.createElement('span');place.className='result-place';
+  place.textContent=String(index+1)+'.';
+  row.appendChild(place);
+  var rank=document.createElement('span');rank.className='result-rank';
+  var indexRank=entry.bot?0:entry.rankIndex;
+  var preview=Number.isSafeInteger(indexRank)&&typeof rankRosterPreview==='function'?
+   rankRosterPreview(indexRank):null;
+  if(preview){
+   var image=document.createElement('img');image.src=preview;
+   image.alt=entry.bot?'Trainee skull rank':'Player rank insignia';
+   image.draggable=false;rank.appendChild(image);
+  }else rank.textContent=entry.bot?'TRAINEE':'—';
+  row.appendChild(rank);
+  var identity=document.createElement('span');identity.className='result-identity';
+  var label=document.createElement('strong');label.textContent=
+   entry.bot?'BOT '+onlineCleanCallsign(entry.name,'BOT'):onlineCleanCallsign(entry.name,'PLAYER');
+  identity.appendChild(label);
+  var tag=document.createElement('small');
+  tag.textContent=entry===selfStat?'(YOU)':entry.bot?'(BOT)':'';
+  if(tag.textContent)identity.appendChild(tag);
+  row.appendChild(identity);
+  var kills=document.createElement('b');kills.textContent=String(entry.k);
+  var deaths=document.createElement('b');deaths.textContent=String(entry.d);
+  row.append(kills,deaths);host.appendChild(row);
+ });
+}
 function onlineRewardVisible(matchId){
  return onlineResultsDisplayed&&onlineRewardMatchId===matchId&&
   document.getElementById('dv').classList.contains('show');
@@ -994,7 +1038,7 @@ function onlineCheckVerifiedReward(matchId,attempt){
  var flag=document.getElementById('verifiedRewardFlag'),
   status=document.getElementById('verifiedRewardStatus'),
   retry=document.getElementById('verifiedRewardRetry');
- flag.textContent='VERIFYING';retry.hidden=true;
+ flag.textContent='CALCULATING';retry.hidden=true;
  void onlineApi.award(matchId).then(function(value){
   if(!onlineRewardVisible(matchId))return;
   // Backend balances and rewards are serialized nonnegative half units.
@@ -1003,8 +1047,8 @@ function onlineCheckVerifiedReward(matchId,attempt){
    throw Error('INVALID_MATCH_SETTLEMENT_RESPONSE');
   document.getElementById('verifiedExpAmount').textContent='+'+exp;
   document.getElementById('verifiedVpbtAmount').textContent='+'+vpbt;
-  flag.textContent='SETTLED';
-  status.textContent='EXP and vPBT credited by PointBlock server';
+  flag.textContent='AWARDED';
+  status.textContent='Rewards added to your account';
   retry.hidden=true;
   // Read after settlement so the vPBT header and player rank meter reflect
   // actual persisted progress, rather than an optimistic local increment.
@@ -1012,18 +1056,18 @@ function onlineCheckVerifiedReward(matchId,attempt){
    if(onlineRewardVisible(matchId)&&state?.authenticated&&state.registered)
     resultsVerifiedRank(state.player);
   }).catch(function(error){
-   if(onlineRewardVisible(matchId))status.textContent='Reward confirmed · profile refresh pending';
+   if(onlineRewardVisible(matchId))status.textContent='Rewards added. Updating your rank…';
   });
  }).catch(function(error){
   if(!onlineRewardVisible(matchId))return;
   if(error?.code==='MATCH_REWARD_NOT_FOUND'&&attempt<8){
    flag.textContent='PENDING';
-   status.textContent='Waiting for server settlement…';
+   status.textContent='Preparing your match rewards…';
    onlineRewardTimer=setTimeout(function(){onlineCheckVerifiedReward(matchId,attempt+1);},1250);
    return;
   }
   flag.textContent='PENDING';
-  status.textContent='Unable to verify rewards: '+String(error?.code||error?.message||'BACKEND_UNAVAILABLE').slice(0,48);
+  status.textContent='Rewards are taking longer than expected. Select RECHECK to try again.';
   retry.hidden=false;
  }).finally(function(){onlineRewardChecking=false;});
 }
@@ -1035,8 +1079,8 @@ function onlineShowVerifiedReward(matchId){
  section.hidden=false;
  document.getElementById('verifiedExpAmount').textContent='—';
  document.getElementById('verifiedVpbtAmount').textContent='—';
- document.getElementById('verifiedRewardStatus').textContent='Awaiting server settlement confirmation…';
- document.getElementById('verifiedRewardFlag').textContent='VERIFYING';
+ document.getElementById('verifiedRewardStatus').textContent='Calculating your match rewards…';
+ document.getElementById('verifiedRewardFlag').textContent='CALCULATING';
  document.getElementById('verifiedRewardRetry').hidden=true;
  onlineCheckVerifiedReward(matchId,0);
 }
@@ -1385,8 +1429,9 @@ function onlineApplyWorld(){
    var index=[...onlineActors.values()].filter(e=>e.tm===actor.team).length%5;
    var model=newBot(actor.team,index);
    model.id=actor.id;model.bot=!!actor.bot;
-   model.name=actor.bot?model.name:roomCurrent?.members?.find(m=>m.playerId===actor.id)?.username||'PLAYER';
-   if(!actor.bot)onlineLabelActor(model,model.name);
+   model.name=onlinePublicActor(actor.id).name;
+   // Authoritative public BOT names are stable even after visibility resets.
+   onlineLabelActor(model,model.name);
    model.st=onlineScoreboard.get(actor.id)||{name:model.name,tm:actor.team,k:0,d:0};
    placeBot(model);
    onlineActors.set(actor.id,{model,label:model.name,tm:actor.team});
@@ -1426,10 +1471,8 @@ function onlineApplyWorld(){
   game.scoreboard.forEach(function(row){
    if(!row||typeof row.id!=='string'||!Number.isSafeInteger(row.kills)||!Number.isSafeInteger(row.deaths))return;
    var entry=row.id===selfId?pl.st:onlineScoreboard.get(row.id);
-   if(!entry){
-    var human=roomCurrent?.members?.find(function(m){return m.playerId===row.id});
-    entry={name:human?.username||'BOT',tm:row.team,k:0,d:0};
-   }
+   if(!entry)entry={name:'PLAYER',tm:row.team,k:0,d:0};
+   onlineScoreIdentity(entry,row);
    entry.tm=row.team;entry.k=row.kills;entry.d=row.deaths;
    onlineScoreboard.set(row.id,entry);entries.push(entry);
    var model=onlineActors.get(row.id)?.model;

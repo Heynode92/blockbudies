@@ -1,3 +1,8 @@
+## 2026-11-04 — User-friendly Results reward placement and authentic BOT leaderboard
+- Battle Report moves real match EXP/vPBT earnings to the left beside the rank; replace technical settlement/verification copy with user-facing match rewards wording while retaining strict backend-only credit authority and pending/retry states.
+- Rank, position, username and K/D appear in one compact leaderboard row. Bots retain their authentic server-published Jack/Mike/Alex/Viper callsigns, show `BOT ALEX (BOT)`-style labels, and use the canonical 3D Trainee skull (rank index 0). Players use verified member rank indices and show (YOU) on their own row.
+- The online leaderboard is built only with DOM text nodes, not innerHTML interpolation; offline legacy Results remain untouched.
+
 ## 2026-11-04 — Canonical online muzzle anchor and regression updates
 - Remote muzzle flash and tracer originate at the same world-space tip of the existing weapon model, using the exact per-weapon MZ coordinate; local first-person shots use the existing viewmodel muzzle translated through the camera. Server-side shot vectors, collision and damage are unchanged.
 - Align two stale test assertions with the newly required always-visible public kill feed and authoritative death-state transition.
