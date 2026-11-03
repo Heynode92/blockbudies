@@ -181,3 +181,7 @@
  #resultsRankMount,#resultsRankMount canvas{width:52px;height:62px;flex-basis:52px}
 }
 
+
+/* Status and KICK always remain inside the existing occupied team row. */
+#lbroomlive .rml-slot .rml-kick-player{box-sizing:border-box;flex:0 0 auto;min-width:0;max-width:60px;margin:0;padding:5px 7px;border-radius:6px;white-space:nowrap;font-size:clamp(9px,.7vw,11px);line-height:1.1}
+#lbroomlive #rmlStart.room-cancel-action,#lbroomlive #rmlStart.room-cancel-action:hover{background:linear-gradient(110deg,#971b2d,#e14442);color:#fff}

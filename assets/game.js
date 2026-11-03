@@ -4176,7 +4176,7 @@ if(homePbtAdd&&homePbtNotice){
   homePbtNoticeTimer=setTimeout(function(){homePbtNotice.hidden=true;},3500);
  });
 }
-// Room Lobby: browser-local room master flow; no network rooms or invented pings.
+// Room Lobby: browser-room master flow; no network rooms or invented pings.
 // Uses existing mode maps, 5v5 bots, and canonical combat/plant/defuse systems.
 var ROOM_STORAGE_KEY="bbfps_local_rooms_v1";
 var ROOM_LIMITS=Object.freeze({kills:[20,30,50,75,100],minutes:[1,3,5,10,15],rounds:[3,5,7,9,12],roundMinutes:[1,2,3,4]});
@@ -4219,7 +4219,7 @@ function roomLiveOpen(room){
  if(!room)return;
  roomEditState(room);
  var map=roomMapsForMode(room.mode,room.mapId);
- roomText("rmlBotSummary","1 PLAYER + "+(BOMB_RULES.teamSize*2-1)+" BOTS ON START");
+ 
  roomText("rmlRoomName",room.name);roomText("rmlMapName",map?map.name:"UNAVAILABLE");roomText("rmlMapCaption",map?map.caption:"");
  roomText("rmlGameMode",room.mode===1?"BOMB MODE":"TEAM DEATH MATCH");
  roomText("rmlGoalLabel",room.mode===1?"MAX ROUNDS":"KILL LIMIT");
@@ -4532,7 +4532,7 @@ function roomFormData(){
 function roomRender(){
  var list=document.getElementById("roomEntries");list.replaceChildren();
  document.getElementById("roomEmpty").hidden=roomList.length>0;
- roomText("roomCount",roomList.length+" LOCAL ROOM"+(roomList.length===1?"":"S"));
+ roomText("roomCount",roomList.length+" ROOM"+(roomList.length===1?"":"S"));
  roomList.forEach(function(r){
   var row=document.createElement("div");row.className="room-entry";
   function cell(tag,text,className){var el=document.createElement(tag);el.textContent=text;if(className)el.className=className;row.appendChild(el);return el;}
@@ -4572,7 +4572,7 @@ function roomOpenSaved(id){
 }
 function roomCreateLocal(){
  var draft=roomFormData();if(!draft){roomSetMessage("Enter a room name before creating.");return;}
- if(roomList.length>=40){roomSetMessage("Maximum 40 saved local rooms. Close one first.");return;}
+ if(roomList.length>=40){roomSetMessage("Maximum 40 saved rooms. Close one first.");return;}
  var id=String(Date.now())+String(Math.floor(Math.random()*90000)+10000);
  var room=roomNormalize(Object.assign({id:id},draft));
  if(!room){roomSetMessage("Invalid room settings.");return;}
@@ -4595,7 +4595,7 @@ function roomCloseLocal(){
  roomStartAbort();
  if(!roomCurrent)return;
  roomList=roomList.filter(function(r){return r.id!==roomCurrent.id;});roomPersist();roomRender();
- roomEditState(null);roomMatchConfig=null;roomLog=[];roomSetMessage("Local room closed.");
+ roomEditState(null);roomMatchConfig=null;roomLog=[];roomSetMessage("Room closed.");
 }
 
 function roomStartMark(percent,label){
@@ -4783,7 +4783,7 @@ document.getElementById("roomQuickSettings").addEventListener("click",function()
  roomQuickNoticeTimer=setTimeout(function(){notice.hidden=true;},3200);
 });
 document.getElementById("roomBack").addEventListener("click",function(){if(roomCurrent)roomLiveOpen(roomCurrent);else lobP("lbs");});
-document.getElementById("roomRefresh").addEventListener("click",function(){roomLoad();roomRender();roomSetMessage("Local room list refreshed.");});
+document.getElementById("roomRefresh").addEventListener("click",function(){roomLoad();roomRender();roomSetMessage("Room list refreshed.");});
 document.getElementById("roomTdm").addEventListener("click",function(){roomModeSelect(0);});
 document.getElementById("roomBomb").addEventListener("click",function(){roomModeSelect(1);});
 document.getElementById("roomMap").addEventListener("change",function(){roomChooseMap(this.value);});
@@ -8001,8 +8001,8 @@ function onlineRoomDisplayId(code){
 function onlineRoomRender(){
  var list=document.getElementById('roomEntries');if(!list)return;
  // Never relabel actual backend rooms as offline local sessions.
- document.getElementById('roomBrowserModeLabel').textContent='ONLINE MATCHES · 5V5';
- document.getElementById('roomEmptyTitle').textContent='NO ONLINE ROOMS YET';
+ document.getElementById('roomBrowserModeLabel').textContent='MATCH ROOMS · 5V5';
+ document.getElementById('roomEmptyTitle').textContent='NO ROOMS AVAILABLE';
  document.getElementById('roomEmptyCopy').textContent='Create a room to start a server-verified match.';
  list.replaceChildren();
  document.getElementById('roomEmpty').hidden=roomList.length>0;
@@ -8167,8 +8167,7 @@ function onlineRoomTeams(){
 function onlineLiveRoomDecorate(room) {
  roomLiveOpen(room);
  var me=onlineOwnMember();
- roomText('rmlBotSummary',room.members.length+' PLAYER'+(room.members.length===1?'':'S')+
-  ' + '+(10-room.members.length)+' BOTS ON START');
+
  var mine=onlineIsMaster();
  document.getElementById('roomMasterActions').hidden=!mine;
  document.getElementById('roomMasterStatus').hidden=!mine;
@@ -8176,8 +8175,9 @@ function onlineLiveRoomDecorate(room) {
  startControl.hidden=!me||!['OPEN','ACTIVE'].includes(room.status);
  startControl.disabled=false;
  startControl.textContent=room.status==='ACTIVE'?'REJOIN MATCH':
-   mine?'START MATCH':me?.ready?'✓ READY · CANCEL':'READY';
- startControl.classList.toggle('room-ready-action',!mine&&room.status==='OPEN');
+   mine?'START MATCH':me?.ready?'CANCEL':'READY';
+ startControl.classList.toggle('room-ready-action',!mine&&room.status==='OPEN'&&!me?.ready);
+ startControl.classList.toggle('room-cancel-action',!mine&&room.status==='OPEN'&&!!me?.ready);
  document.getElementById('roomStart').disabled=!mine;
  // A Room Master still owns an ACTIVE room, but its rules are locked in.
  document.getElementById('rmlSettings').hidden=!mine||room.status!=='OPEN';
@@ -8253,6 +8253,13 @@ async function onlineSwitchTeam(team){
   onlineLiveRoomDecorate(onlineAdoptRoom(room));
   roomLiveLog('You joined '+(team?'Terrorist':'Police')+' team');
  }catch(error){onlineWarn(error)}
+}
+function onlineConfirmLeaveRoom(){
+ if(!onlineAuth()||!roomCurrent)return;
+ onlineRoomDialog('LEAVE ROOM?',
+  onlineIsMaster()?'Are you sure you want to leave? As Room Master, this will close the room for all players.':
+    'Are you sure you want to leave this room and return to the Room Browser?',
+  'YES','NO',onlineLeaveRoom);
 }
 async function onlineLeaveRoom(){
  if(!onlineAuth()||!roomCurrent)return;
@@ -9145,8 +9152,8 @@ onlineAction('roomCreate',onlineCreateRoom);
 onlineAction('roomRefresh',onlineRefreshRooms);
 onlineAction('roomSave',()=>onlineSaveRoom(false));
 onlineAction('roomModalSave',()=>onlineSaveRoom(true));
-onlineAction('roomClose',onlineLeaveRoom);
-onlineAction('rmlLeave',onlineLeaveRoom);
+onlineAction('roomClose',onlineConfirmLeaveRoom);
+onlineAction('rmlLeave',onlineConfirmLeaveRoom);
 onlineAction('roomStart',onlineMasterStart);
 onlineAction('rmlStart',onlineToggleReady);
 onlineAction('roomBack',()=>{if(roomCurrent)onlineLiveRoomDecorate(roomCurrent);else lobP('lbs')});

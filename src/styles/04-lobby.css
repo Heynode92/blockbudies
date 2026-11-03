@@ -280,7 +280,7 @@ body.lobby #gl{filter:brightness(.55) saturate(.8)}
 #lbroomlive .rml-slot.is-you{border:2px solid #ff982b;background:linear-gradient(100deg,#3d291f,#162b41)}
 .rml-slot-index{color:#96b0cb;width:16px;flex:none}.rml-slot-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rml-slot em{font-style:normal;font-size:10px;color:#ffb260;white-space:nowrap}
 .rml-log{padding:11px;display:flex;flex-direction:column;border-top:2px solid #ff8b2c}.rml-log h3{font-size:21px}
-.rml-log #rmlLogLines{min-height:0;flex:1;overflow-y:auto;color:#bfd1e6;font-weight:700;font-size:13px}.rml-log-line{margin:0 0 3px}.rml-log-line::before{content:"[LOCAL] ";color:#ff9f3a}
+.rml-log #rmlLogLines{min-height:0;flex:1;overflow-y:auto;color:#bfd1e6;font-weight:700;font-size:13px}.rml-log-line{margin:0 0 3px}.rml-log-line::before{content:"[ROOM] ";color:#ff9f3a}
 .rml-log footer{border-top:1px solid #2e4058;padding-top:6px;font-size:10px;color:#8399b2;letter-spacing:.13em}
 .rml-actions{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1.45fr;gap:10px;min-height:0}
 #lbroomlive .rml-actions button{font:900 clamp(13px,1.1vw,18px) Rajdhani,sans-serif;color:#ecf4ff;border:1px solid #45617d;background:#14273d;cursor:pointer}
@@ -464,3 +464,16 @@ body.lobby #gl{filter:brightness(.55) saturate(.8)}
 @media (prefers-reduced-motion:reduce) {
   #lbs .home-demo-screen .home-demo-vid { transition:none; }
 }
+
+/* Only the authenticated global header; all room content starts beneath it. */
+#lbroomlive.on{padding-top:calc(var(--bb-shared-header-height,86px) + 14px);overflow-y:auto}
+#lbroomlive .rml-layout{min-height:0}
+#lbroomlive .rml-team-grid{min-width:0;grid-template-columns:repeat(2,minmax(0,1fr))}
+#lbroomlive .rml-team,#lbroomlive .rml-slots{min-width:0;max-width:100%}
+#lbroomlive .rml-slot{box-sizing:border-box;min-width:0;max-width:100%;overflow:hidden;gap:6px;padding:4px 7px}
+#lbroomlive .rml-slot-index{flex:0 0 16px;width:16px}
+#lbroomlive .rml-slot-name{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:clamp(11px,.91vw,16px)}
+#lbroomlive .rml-slot .rml-seat-state{flex:0 0 auto;margin:0;white-space:nowrap;font:900 clamp(9px,.65vw,11px)/1.1 Rajdhani,sans-serif}
+#lbroomlive .rml-log-line::before{content:"[ROOM] "}
+@media(max-width:1200px){#lbroomlive .rml-team-grid{grid-template-columns:minmax(0,1fr)}#lbroomlive .rml-team{min-height:250px}}
+@media(max-width:680px){#lbroomlive .rml-team{min-height:215px}}

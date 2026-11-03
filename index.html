@@ -214,7 +214,7 @@ html.pb-route-restoring #lb { visibility:hidden; }
     </aside>
     <div class="room-browser-right">
     <section class="room-list-panel" aria-label="Available local rooms">
-      <div class="room-panel-head"><div><h3>AVAILABLE ROOMS</h3><small id="roomBrowserModeLabel">LOCAL MATCHES · VS AI</small><span id="roomCount" class="room-count-sr" role="status" aria-live="polite">0 ROOMS</span></div><button type="button" id="roomRefresh"><span aria-hidden="true">↻</span> REFRESH</button></div>
+      <div class="room-panel-head"><div><h3>AVAILABLE ROOMS</h3><small id="roomBrowserModeLabel">MATCH ROOMS · 5V5</small><span id="roomCount" class="room-count-sr" role="status" aria-live="polite">0 ROOMS</span></div><button type="button" id="roomRefresh"><span aria-hidden="true">↻</span> REFRESH</button></div>
       <div class="room-cols" aria-hidden="true"><span>ID</span><span>ROOM NAME</span><span>MAP / MODE</span><span>PLAYERS</span><span>STATUS</span><span></span></div>
       <div id="roomEntries" class="room-entries" aria-live="polite"></div>
       <div id="roomEmpty" class="room-empty">
@@ -228,7 +228,7 @@ html.pb-route-restoring #lb { visibility:hidden; }
           <path d="M146 27h28M146 130h28" stroke="#FFA043" stroke-width="2"/>
           <path d="M24 132h66m140 0h66" stroke="#FF902E" stroke-width="2"/>
         </svg>
-        <strong id="roomEmptyTitle">NO LOCAL ROOMS YET</strong>
+        <strong id="roomEmptyTitle">NO ROOMS AVAILABLE</strong>
         <span class="room-empty-separator" aria-hidden="true"></span>
         <p id="roomEmptyCopy">Create a room on the left to start a match against bots.</p>
       </div>
@@ -273,8 +273,8 @@ html.pb-route-restoring #lb { visibility:hidden; }
           <label class="room-field"><span>MAX ROUNDS</span><select id="roomRounds"><option value="3">3 ROUNDS</option><option value="5">5 ROUNDS</option><option value="7">7 ROUNDS</option><option value="9">9 ROUNDS</option><option value="12" selected>12 ROUNDS</option></select></label>
           <label class="room-field"><span>ROUND TIME</span><select id="roomRoundMinutes"><option value="1">1 MINUTE</option><option value="2" selected>2 MINUTES</option><option value="3">3 MINUTES</option><option value="4">4 MINUTES</option></select></label>
         </div>
-        <div class="room-fixed-size"><span>PLAYERS</span><b>5 VS 5</b><small>1 PLAYER + 9 BOTS · OFFLINE</small></div>
-          <div class="room-create-master-hint"><strong>★ ROOM MASTER</strong><span>YOU WILL CONTROL ROOM SETTINGS · LOCAL MATCH</span></div>
+        <div class="room-fixed-size"><span>PLAYERS</span><b>5 VS 5</b><small>UP TO 10 PLAYERS · REMAINING SLOTS FILLED BY BOTS</small></div>
+          <div class="room-create-master-hint"><strong>★ ROOM MASTER</strong><span>YOU CONTROL ROOM SETTINGS</span></div>
         <div id="roomMasterStatus" class="room-master-status" hidden><strong>★ ROOM MASTER</strong><span>YOU CONTROL THE ROOM SETTINGS</span></div>
         <p id="roomMessage" class="room-message" aria-live="polite"></p>
         </div>
@@ -288,8 +288,7 @@ html.pb-route-restoring #lb { visibility:hidden; }
   </div>
 </section>
 
-<section id="lbroomlive" class="lbp" data-shared-header aria-label="Active local room lobby">
- <header class="rml-top"><div class="rml-brand">POINT<br><b>BLOCK</b></div><div class="rml-heading"><h2>ROOM LOBBY</h2><p>PREPARE YOUR TEAM · LOCAL MATCH (VS AI)</p></div><span class="rml-local">LOCAL · VS AI <small id="rmlBotSummary"></small></span></header>
+<section id="lbroomlive" class="lbp" data-shared-header aria-label="Active room lobby">
  <div class="rml-layout">
   <aside class="rml-hero" aria-label="Your equipped 3D soldier and weapon">
    <header class="rml-hero-heading"><strong>YOUR SOLDIER</strong><small id="rmlWeaponClass"></small></header>
@@ -305,7 +304,7 @@ html.pb-route-restoring #lb { visibility:hidden; }
    <div class="rml-team-grid"><section class="rml-team police"><header><h3>POLICE</h3><span id="rmlPoliceCount"></span></header><div class="rml-slots" id="rmlPoliceSlots"></div></section>
    <section class="rml-team terrorists"><header><h3>TERRORISTS</h3><span id="rmlTerrorCount"></span></header><div class="rml-slots" id="rmlTerrorSlots"></div></section></div>
   </section>
-  <section class="rml-log"><header class="rml-public-chat-head"><h3>PUBLIC CHAT</h3><span>OFFLINE</span></header><div class="rml-chat-unavailable">CHAT SERVER NOT CONNECTED · PUBLIC MESSAGING COMING WITH ONLINE SERVICES</div><div id="rmlLogLines" class="rml-system-log" aria-live="polite"></div><div class="rml-chat-compose"><input type="text" placeholder="PUBLIC CHAT UNAVAILABLE" aria-label="Public chat server not connected" disabled><button type="button" disabled>SEND</button></div></section>
+  <section class="rml-log"><header class="rml-public-chat-head"><h3>PUBLIC CHAT</h3><span>UNAVAILABLE</span></header><div class="rml-chat-unavailable">PUBLIC MESSAGING IS NOT AVAILABLE YET</div><div id="rmlLogLines" class="rml-system-log" aria-live="polite"></div><div class="rml-chat-compose"><input type="text" placeholder="PUBLIC CHAT UNAVAILABLE" aria-label="Public chat server not connected" disabled><button type="button" disabled>SEND</button></div></section>
   <nav class="rml-actions" aria-label="Room Master actions"><button id="rmlSettings" type="button">⚙ ROOM SETTINGS</button><button id="rmlLeave" type="button">LEAVE ROOM</button><button id="rmlStart" type="button">▶ START MATCH</button></nav>
  </div>
 
@@ -345,7 +344,7 @@ html.pb-route-restoring #lb { visibility:hidden; }
        <div class="room-modal-field room-modal-select-field"><label for="roomModalRoundMinutes">ROUND TIME</label><select id="roomModalRoundMinutes" aria-label="Round time"></select></div>
       </section>
      </div>
-     <div class="room-modal-players"><span>PLAYERS</span><strong>5 VS 5</strong><small>1 PLAYER + 9 BOTS · OFFLINE</small></div>
+     <div class="room-modal-players"><span>PLAYERS</span><strong>5 VS 5</strong><small>UP TO 10 PLAYERS · REMAINING SLOTS FILLED BY BOTS</small></div>
      <div class="room-modal-master"><strong>★ ROOM MASTER</strong><small>CHANGES APPLY TO YOUR EXISTING ROOM WHEN SAVED</small></div>
      <div class="room-modal-note" id="roomModalHint">Unsaved changes will be discarded if you cancel. You stay in the Room Lobby.</div>
      <p id="roomModalError" role="alert" aria-live="polite"></p>

@@ -12,12 +12,12 @@ function piece(start,end){
 }
 test('Ready belongs exclusively to non-master humans and [READY] appears right of name',()=>{
  const teams=piece('function onlineRoomTeams(){','function onlineLiveRoomDecorate(room)');
- assert.match(teams,/member\.ready\?'\[READY\]':'NOT READY'/);
+ assert.match(teams,/member\.ready\?'READY':'NOT READY'/);
  assert.match(teams,/member\.playerId===roomCurrent\.ownerId\?'MASTER'/);
  assert.match(teams,/member&&master&&!mine&&roomOpen/);
  assert.match(teams,/document\.createElement\(member\?'div':'button'\)/);
  assert.match(bridge,/startControl\.textContent=room\.status==='ACTIVE'\?'REJOIN MATCH'/);
- assert.match(bridge,/me\?\.ready\?'✓ READY · CANCEL':'READY'/);
+ assert.match(bridge,/me\?\.ready\?'CANCEL':'READY'/);
  assert.match(bridge,/onlineAction\('rmlStart',onlineToggleReady\)/);
 });
 test('Master Start displays themed waiting popup, BE remains final Ready authority',()=>{
@@ -46,4 +46,13 @@ test('online result only EXIT GAME, returns to same room without new match',()=>
  assert.match(exit,/matchExitToLobby\('room'\)/);
  assert.match(exit,/onlineRecoverMembership\(\)/);
  assert.doesNotMatch(exit,/onlineMasterStart\(\)|leaveRoom\(|abandonRoom\(|startRoom\(/);
+});
+
+test('Leave confirmation and cancel state remain server-owned and styled',()=>{
+ assert.match(bridge,/function onlineConfirmLeaveRoom\(\)/);
+ assert.match(bridge,/'YES','NO',onlineLeaveRoom/);
+ assert.match(bridge,/onlineAction\('rmlLeave',onlineConfirmLeaveRoom\)/);
+ assert.match(bridge,/room-cancel-action/);
+ assert.doesNotMatch(html,/PREPARE YOUR TEAM · LOCAL MATCH|LOCAL · VS AI/);
+ assert.match(css,/#lbroomlive \.rml-slot \.rml-kick-player/);
 });

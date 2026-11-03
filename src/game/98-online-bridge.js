@@ -408,8 +408,8 @@ function onlineRoomDisplayId(code){
 function onlineRoomRender(){
  var list=document.getElementById('roomEntries');if(!list)return;
  // Never relabel actual backend rooms as offline local sessions.
- document.getElementById('roomBrowserModeLabel').textContent='ONLINE MATCHES · 5V5';
- document.getElementById('roomEmptyTitle').textContent='NO ONLINE ROOMS YET';
+ document.getElementById('roomBrowserModeLabel').textContent='MATCH ROOMS · 5V5';
+ document.getElementById('roomEmptyTitle').textContent='NO ROOMS AVAILABLE';
  document.getElementById('roomEmptyCopy').textContent='Create a room to start a server-verified match.';
  list.replaceChildren();
  document.getElementById('roomEmpty').hidden=roomList.length>0;
@@ -574,8 +574,7 @@ function onlineRoomTeams(){
 function onlineLiveRoomDecorate(room) {
  roomLiveOpen(room);
  var me=onlineOwnMember();
- roomText('rmlBotSummary',room.members.length+' PLAYER'+(room.members.length===1?'':'S')+
-  ' + '+(10-room.members.length)+' BOTS ON START');
+
  var mine=onlineIsMaster();
  document.getElementById('roomMasterActions').hidden=!mine;
  document.getElementById('roomMasterStatus').hidden=!mine;
@@ -583,8 +582,9 @@ function onlineLiveRoomDecorate(room) {
  startControl.hidden=!me||!['OPEN','ACTIVE'].includes(room.status);
  startControl.disabled=false;
  startControl.textContent=room.status==='ACTIVE'?'REJOIN MATCH':
-   mine?'START MATCH':me?.ready?'✓ READY · CANCEL':'READY';
- startControl.classList.toggle('room-ready-action',!mine&&room.status==='OPEN');
+   mine?'START MATCH':me?.ready?'CANCEL':'READY';
+ startControl.classList.toggle('room-ready-action',!mine&&room.status==='OPEN'&&!me?.ready);
+ startControl.classList.toggle('room-cancel-action',!mine&&room.status==='OPEN'&&!!me?.ready);
  document.getElementById('roomStart').disabled=!mine;
  // A Room Master still owns an ACTIVE room, but its rules are locked in.
  document.getElementById('rmlSettings').hidden=!mine||room.status!=='OPEN';
@@ -660,6 +660,13 @@ async function onlineSwitchTeam(team){
   onlineLiveRoomDecorate(onlineAdoptRoom(room));
   roomLiveLog('You joined '+(team?'Terrorist':'Police')+' team');
  }catch(error){onlineWarn(error)}
+}
+function onlineConfirmLeaveRoom(){
+ if(!onlineAuth()||!roomCurrent)return;
+ onlineRoomDialog('LEAVE ROOM?',
+  onlineIsMaster()?'Are you sure you want to leave? As Room Master, this will close the room for all players.':
+    'Are you sure you want to leave this room and return to the Room Browser?',
+  'YES','NO',onlineLeaveRoom);
 }
 async function onlineLeaveRoom(){
  if(!onlineAuth()||!roomCurrent)return;
@@ -1552,8 +1559,8 @@ onlineAction('roomCreate',onlineCreateRoom);
 onlineAction('roomRefresh',onlineRefreshRooms);
 onlineAction('roomSave',()=>onlineSaveRoom(false));
 onlineAction('roomModalSave',()=>onlineSaveRoom(true));
-onlineAction('roomClose',onlineLeaveRoom);
-onlineAction('rmlLeave',onlineLeaveRoom);
+onlineAction('roomClose',onlineConfirmLeaveRoom);
+onlineAction('rmlLeave',onlineConfirmLeaveRoom);
 onlineAction('roomStart',onlineMasterStart);
 onlineAction('rmlStart',onlineToggleReady);
 onlineAction('roomBack',()=>{if(roomCurrent)onlineLiveRoomDecorate(roomCurrent);else lobP('lbs')});

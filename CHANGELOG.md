@@ -1,3 +1,8 @@
+## 2026-11-03 — Room Lobby compact header, overflow fixes and authoritative leave confirmation
+- Remove obsolete second lobby masthead, visible local/offline/AI labels and [LOCAL] chat prefixes. Preserve underlying original gameplay module as compatibility code.
+- Keep team rows, status and KICK within the correct roster panel; stack teams on tighter widths. Show red CANCEL after Ready.
+- Reuse the existing PointBlock multiplayer dialog to confirm YES/NO before leaving or Room Master closure.
+
 ## 2026-11-03 — Synchronize rank test and original match exit ordering
 - Update the old geometry assertion to require Shape/Path instead of the removed star cylinder. Preserve the original scoreboard-dismiss-first contract, then restore the shared rank canvas on match exit. Regenerate the matching bundle.
 
