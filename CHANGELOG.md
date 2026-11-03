@@ -1,3 +1,6 @@
+## 2026-11-03 — Remove remaining user-facing local labels
+- Clean up room-browser accessibility names, legacy fallback room creation notice and optional network QA panel wording. Internal storage keys and offline-compatibility engine identifiers remain unchanged to preserve existing data and gameplay.
+
 ## 2026-11-03 — Align frontend regression fixtures with the requested multiplayer UI
 - Replace stale test expectations for removed LOCAL/VS AI labels, obsolete hidden BOT summary and old READY/MASTER strings. Enforce instead the exact new presentation contract.
 - Add focused source-contract checks for real Three.js roster rank projection and 3D vPBT star, authoritative Training Results (including deadline failure), and server resetAt-based 429 popup.

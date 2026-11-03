@@ -400,7 +400,7 @@ function roomCreateLocal(){
  if(!room){roomSetMessage("Invalid room settings.");return;}
  roomList.unshift(room);roomPersist();roomRender();roomSide=0;roomSeat=0;roomLog=[];
  roomLiveLog("Room created. You are Room Master.");roomLiveOpen(room);
- roomSetMessage("Room created locally. You are the Room Master.");
+ roomSetMessage("Room created. You are the Room Master.");
 }
 function roomSaveDraft(draft){
  if(!roomCurrent||!draft||!String(draft.name||"").trim()){roomSetMessage("Room name cannot be empty.");return null;}

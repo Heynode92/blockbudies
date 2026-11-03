@@ -49,7 +49,7 @@ function onlineMeasureFrame(now){
  }
  var frame=onlineP95(onlineFrameSamples),snapshot=onlineP95(onlineSnapshotSamples);
  var elapsed=onlineLastSnapshotAt?now-onlineLastSnapshotAt:0;
- onlinePerfPanel.textContent='POINTBLOCK · NETWORK QA (LOCAL)\n'+
+ onlinePerfPanel.textContent='POINTBLOCK · NETWORK QA (CLIENT)\n'+
   'Frame p95: '+frame.toFixed(1)+' ms · FPS ~'+(frame?Math.round(1000/frame):'—')+'\n'+
   'Snapshot p95: '+snapshot.toFixed(1)+' ms\n'+
   'Last snapshot: '+Math.round(elapsed)+' ms ago\n'+

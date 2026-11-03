@@ -4633,7 +4633,7 @@ function roomCreateLocal(){
  if(!room){roomSetMessage("Invalid room settings.");return;}
  roomList.unshift(room);roomPersist();roomRender();roomSide=0;roomSeat=0;roomLog=[];
  roomLiveLog("Room created. You are Room Master.");roomLiveOpen(room);
- roomSetMessage("Room created locally. You are the Room Master.");
+ roomSetMessage("Room created. You are the Room Master.");
 }
 function roomSaveDraft(draft){
  if(!roomCurrent||!draft||!String(draft.name||"").trim()){roomSetMessage("Room name cannot be empty.");return null;}
@@ -7697,7 +7697,7 @@ function onlineMeasureFrame(now){
  }
  var frame=onlineP95(onlineFrameSamples),snapshot=onlineP95(onlineSnapshotSamples);
  var elapsed=onlineLastSnapshotAt?now-onlineLastSnapshotAt:0;
- onlinePerfPanel.textContent='POINTBLOCK · NETWORK QA (LOCAL)\n'+
+ onlinePerfPanel.textContent='POINTBLOCK · NETWORK QA (CLIENT)\n'+
   'Frame p95: '+frame.toFixed(1)+' ms · FPS ~'+(frame?Math.round(1000/frame):'—')+'\n'+
   'Snapshot p95: '+snapshot.toFixed(1)+' ms\n'+
   'Last snapshot: '+Math.round(elapsed)+' ms ago\n'+
