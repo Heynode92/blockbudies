@@ -5,4 +5,7 @@ WEAPON_MODEL_BUILDERS[5]=function(g,a){
  a(bx(.15,.15,.15,0x4a5a2a,0,0,-.3),bx(.16,.03,.16,0x3a4620,0,.03,-.3),bx(.06,.05,.06,0x888e98,0,.1,-.3),bx(.04,.03,.14,0xaab0b9,0,.13,-.27),bx(.1,.02,.02,0xd4a017,.06,.1,-.36));
  // Animate the canonical pin and lever in place, without alternate assets.
  g.userData.grenadePin=g.children[3];g.userData.grenadeLever=g.children[4];
+ // Original mesh transforms are the single source for visual pose resets.
+ g.userData.grenadePinHome={position:g.userData.grenadePin.position.clone(),rotation:g.userData.grenadePin.rotation.clone()};
+ g.userData.grenadeLeverHome={rotation:g.userData.grenadeLever.rotation.clone()};
 };
