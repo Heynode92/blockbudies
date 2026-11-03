@@ -1,3 +1,9 @@
+## 2026-11-03 — Restore original offline BOT hit and ragdoll animations in online combat
+- Move the original bot hit wobble and blood into shared botDamageReaction() called by offline dmgE() and backend-confirmed online hit events. Only offline dmgE() changes local HP; online damage and kills remain BE-owned.
+- Extract the exact original dropped-gun and corpse creation from killE() into spawnBotDeathVisual(). Online KILL transfers an already authorized visible model to the same original dead[] ragdoll lifecycle, instead of using the player-only blockDeathPose and hiding it after 700 ms.
+- Run existing updDead(), helmet/gun drop, debris and blood-pool lifecycles once per online frame, without double-stepping effects. Do not recreate dead models from team snapshots or reveal unseen enemy positions.
+- Clean up orphan corpses/helmets on exit and assert the visible/unknown/duplicate kill cases.
+
 ## 2026-11-03 — Authenticated combat diagnostics for player shots
 - Extend opt-in `?pbNetQa=1` with separate counts of fire-input transmissions and BE-confirmed SHOT, HIT and WALL_HIT events plus received damage notifications.
 - Counts are observational only, update from the existing authenticated realtime stream, and never synthesize damage, bullets, victim IDs or other client authority.

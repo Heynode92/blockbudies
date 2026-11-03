@@ -30,7 +30,23 @@ var ck={n:0,hs:0},hsF=false,dead=[],inBoom=false,boomN=0,shakeT=0,AC=null,boomLa
 function resetKillStreak(){ck.n=0;ck.hs=0;}
 function registerPlayerKill(headshot){ck.n++;if(headshot)ck.hs++;}
 // dmgE(): applies damage d to bot e (knock direction kx,kz). Handles invulnerability, hit flash and calls killE() at 0 HP.
-function dmgE(e,d,kx,kz,ex,kind){if(e.inv>0||e.dead)return;if(isBombMode())bombInterruptPlant(e);d=defenseDamage(e,d,kind||"bullet-body");if(d>0)bloodHit(e.x,(e.y||0)+(kind==="head"?1.7:1.12),e.z,kx,kz,kind==="head");e.hp-=d;e.fl=.14;e.hs=Math.random()<.5?-1:1;e.hv=(e.hv||0)+Math.min(9,3+d*.5);var hm=Math.hypot(kx||0,kz||0);if(hm>.01){e.hdx=kx/hm;e.hdz=kz/hm;}if(e.hp<=0)killE(e,kx||0,kz||0,ex);}
+// Shared original knockback, blood, and hit wobble. A confirmed online HIT may
+// call this purely visual helper, but ONLY dmgE() changes HP or runs killE().
+function botDamageReaction(e,d,kx,kz,head,confirmed){
+  if(d>0||confirmed)bloodHit(e.x,(e.y||0)+(head?1.7:1.12),e.z,kx,kz,!!head);
+  e.fl=.14;e.hs=Math.random()<.5?-1:1;
+  e.hv=(e.hv||0)+Math.min(9,3+d*.5);
+  var hm=Math.hypot(kx||0,kz||0);
+  if(hm>.01){e.hdx=kx/hm;e.hdz=kz/hm;}
+}
+function dmgE(e,d,kx,kz,ex,kind){
+  if(e.inv>0||e.dead)return;
+  if(isBombMode())bombInterruptPlant(e);
+  d=defenseDamage(e,d,kind||"bullet-body");
+  botDamageReaction(e,d,kx,kz,kind==="head",false);
+  e.hp-=d;
+  if(e.hp<=0)killE(e,kx||0,kz||0,ex);
+}
 // hlms = flying helmets (popped by headshots). popHelm()/popPl() pop a bot/player helmet; updH() animates them.
 var hlms=[];
 function popHelm(e,vx,vz){var h=e.hm;if(!h||!e.helm)return;e.helm=false;h.updateMatrixWorld(true);
@@ -48,17 +64,24 @@ function updH(dt){for(var i=hlms.length-1;i>=0;i--){var h=hlms[i],m=h.m;h.t+=dt;
 // setHm(): shows/hides the helmet icon in the HUD (pop = play the pop animation).
 function setHm(pop){var e=document.getElementById("hmt");if(!e)return;e.className=pl.helm?"":"off";if(pop){e.classList.add("pop");setTimeout(function(){e.classList.remove("pop");},700);}}
 function popPl(){pl.helm=false;if(pm.hm)pm.hm.visible=false;var f=document.getElementById("hmfly");f.classList.remove("go");void f.offsetWidth;f.classList.add("go");setHm(true);toast("HELMET POPPED!");shakeT=Math.max(shakeT,.25);if(AC){tn(2600,1500,.1,"triangle",.12);tn(1700,800,.14,"square",.06,.03);}}
-// killE(): kills bot e: scoring, kill feed, ragdoll, gun drop, respawn timer. Credit goes to curK (the last damage dealer).
-function killE(e,kx,kz,ex){
-  var K=curK,pk=K===pl;kFeed(K,killW,hsF,e);if(e.mk)e.mk.visible=false;if(e.nm)e.nm.visible=false;
-  en.splice(en.indexOf(e),1);e.dead=true;e.st.d++;if(!isBombMode())rq.push({b:e,t:5});bombDrop(e);if(K){K.st.k++;if(!isBombMode())ts[K.tm]++;}
-  if(pk){score++;if(DM_RULES.crates)mkCrate(e.x,e.z,.45+gh(e.x,e.z,0),rci());starKill();}
+// Original visual-only ragdoll and dropped gun implementation, shared by offline
+// killE() and backend-confirmed online death events. Never edits scores/HP.
+function spawnBotDeathVisual(e,kx,kz,ex){
+  if(e.mk)e.mk.visible=false;if(e.nm)e.nm.visible=false;
   detachGun(e,kx,kz,ex);e.ms.forEach(function(m){m.emissive.setHex(0);});e.arms.forEach(function(q){q.rotation.set(0,0,0);q.scale.y=1;q.userData.fa.quaternion.set(0,0,0,1);});e.g.userData.gun.position.set(0,0,0);e.body.rotation.x=0;e.body.rotation.y=0;
   var m=Math.hypot(kx,kz);if(m<.01){kx=-Math.sin(e.g.rotation.y);kz=-Math.cos(e.g.rotation.y);m=1;}kx/=m;kz/=m;
   e.g.rotation.y=Math.atan2(-kx,-kz);
   var corpse={g:e.g,body:e.body,legs:e.legs,arms:e.arms,x:e.x,z:e.z,y:e.y||0,by:e.y||0,vx:kx*(ex?7:2.6),vz:kz*(ex?7:2.6),vy:ex?8:0,t:0,T:ex?.73:.55,flip:ex?1:0,w:0,land:false};
   corpse.bloodPool=bloodPoolSpawn(e.x,e.y||0,e.z,corpse);dead.push(corpse);
   spark(e.x,1.2,e.z,0xff6b6b,8,4,.1);
+  return corpse;
+}
+// killE(): kills bot e: scoring, kill feed, ragdoll, gun drop, respawn timer. Credit goes to curK (the last damage dealer).
+function killE(e,kx,kz,ex){
+  var K=curK,pk=K===pl;kFeed(K,killW,hsF,e);if(e.mk)e.mk.visible=false;if(e.nm)e.nm.visible=false;
+  en.splice(en.indexOf(e),1);e.dead=true;e.st.d++;if(!isBombMode())rq.push({b:e,t:5});bombDrop(e);if(K){K.st.k++;if(!isBombMode())ts[K.tm]++;}
+  if(pk){score++;if(DM_RULES.crates)mkCrate(e.x,e.z,.45+gh(e.x,e.z,0),rci());starKill();}
+  spawnBotDeathVisual(e,kx,kz,ex);
   if(pk){registerPlayerKill(hsF);
   if(inBoom)boomN++;else killNotify(false);}
 }

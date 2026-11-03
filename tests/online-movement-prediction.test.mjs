@@ -237,22 +237,28 @@ test('reconciliation cannot push a grounded camera beneath an original raised fl
  assert.equal(offset.y,0);
 });
 
-test('only authoritative visible kills create an original offline blood pool',()=>{
+test('a server-confirmed visible death transfers the exact model into original offline ragdoll ownership',()=>{
  const start=code.indexOf('function onlineConfirmedDeath('),end=code.indexOf('\nfunction onlineReactToImpact(',start);
  assert.ok(start>=0&&end>start);
- let pools=[],actors=new Map();
- const model={x:2,y:.9,z:3,tm:1,g:{visible:true}};
- const ctx={onlineActors:actors,pl:{tm:0},onlineUserId:()=>'me',
-  performance:{now:()=>1000},bloodPoolSpawn:(...args)=>pools.push(args)};
+ const corpses=[],actors=new Map(),en=[],model={x:2,y:.9,z:3,dead:false,g:{visible:true}};
+ const ctx={onlineActors:actors,en,pl:{x:0,z:0},onlineUserId:()=>'me',
+  spawnBotDeathVisual:(bot,dx,dz,ex)=>corpses.push({bot,dx,dz,ex})};
  runInNewContext(code.slice(start,end)+'\nthis.death=onlineConfirmedDeath;',ctx);
  ctx.death({actorId:'me',victimId:'target'});
- assert.equal(pools.length,0,'no actor may be materialized from a killfeed');
- actors.set('target',{model});
- ctx.death({actorId:'teammate',victimId:'target'});
- assert.deepEqual(pools[0],[2,.9,3,null],
-  'visible observers share original death FX regardless of who scored the kill');
+ assert.equal(corpses.length,0,'hidden or unknown actor never becomes a corpse');
+ actors.set('target',{model});en.push(model);
  ctx.death({actorId:'me',victimId:'target'});
- assert.equal(pools.length,1,'duplicate KILL messages must not spawn duplicate pools');
- assert.match(code,/bloodPoolUpdate\(dt\)/);
- assert.match(code,/bloodPoolClear\(\)/);
+ assert.equal(corpses.length,1);
+ assert.equal(corpses[0].bot,model);
+ assert.equal(model.dead,true);
+ assert.equal(actors.has('target'),false);
+ assert.equal(en.length,0);
+ ctx.death({actorId:'me',victimId:'target'});
+ assert.equal(corpses.length,1,'duplicate KILL events cannot create duplicate corpses');
+});
+test('online confirmed shots use the original damage wobble, not duplicated visual formulas',()=>{
+ assert.match(code,/botDamageReaction\(model,visualDamage,dx,dz,!!headshot,true\)/);
+ assert.match(code,/updDead\(dt\)/);
+ assert.doesNotMatch(code,/actor\.fellAt/);
+ assert.match(code,/if\(!actor\.alive\)return;/);
 });
