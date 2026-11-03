@@ -1,3 +1,6 @@
+## 2026-11-03 — Isolate 3D rank renderer in existing Home/Room profile fixtures
+- Home video and profile projection unit tests now supply the new renderer dependency as a stub and assert the exact trusted rank-index and logout calls. The independent rank-mesh test covers all 17 geometries; no changes to user-facing behavior.
+
 ## 2026-11-03 — Genuine 3D rank insignia for all 17 server-authorized levels
 - Replace the fixed decorative shield below the 3D operator with a programmatically modeled and lit Three.js rank emblem: thick beveled slate/bronze metal plates, raised silver bars/medallion, bronze chevrons, silver and gold top ranks. Unique visuals for all 17 existing BE rank indices.
 - Insignia selection is strictly the authenticated BE `rankIndex`, and accessible name uses BE `rank`. No duplicate rank-title table, EXP formula or wallet logic in FE; no BE rank progression or rewards modifications.

@@ -29,7 +29,10 @@ test('nickname and rank come from separate authenticated backend fields; half-un
   if(!elements.has(id))elements.set(id,{hidden:false,textContent:'',style:{},attrs:{},setAttribute(k,v){this.attrs[k]=v},querySelector(){return get('rank-meter')}});
   return elements.get(id);
  };
- const ctx={document:{getElementById:get},homeFormatHalf(v){return Number.isInteger(v)?String(v/2):typeof v==='string'?String(Number(v)/2):'—'},Number,String,Math};
+ const selected=[];
+ const ctx={document:{getElementById:get},
+  rankInsigniaSet:(index,label)=>selected.push([index,label]),
+  homeFormatHalf(v){return Number.isInteger(v)?String(v/2):typeof v==='string'?String(Number(v)/2):'—'},Number,String,Math};
  runInNewContext(profile.slice(start,end)+'\nthis.render=homeProfileRender;',ctx);
  ctx.render({authenticated:true,registered:true,player:{username:'FIFO',rank:'Corporal',rankIndex:3,
   currentRankHalfExp:76,nextRankHalfExp:800,currentHalfVpbt:'1712'}});
@@ -38,7 +41,9 @@ test('nickname and rank come from separate authenticated backend fields; half-un
  assert.equal(get('homeRankName').textContent,'Corporal');
  assert.equal(get('homeRankExp').textContent,'38 / 400');
  assert.equal(get('homeRankFill').style.width,'9.5%');
+ assert.deepEqual(selected,[[3,'Corporal']]);
  ctx.render({authenticated:false,registered:false,player:null});
+ assert.deepEqual(selected,[[3,'Corporal'],[null,null]]);
  assert.equal(get('homeIdentityChip').hidden,true);
  assert.equal(get('homeProgressPanel').hidden,true);
 });
