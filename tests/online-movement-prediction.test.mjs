@@ -308,7 +308,8 @@ test('match scoreboard cannot preempt the original confirmed ragdoll lifecycle',
  const begin=code.indexOf('function onlineFinalizeCompletedMatch(');
  const end=code.indexOf('\nfunction onlineReceiveFrame(',begin);
  assert.ok(begin>=0&&end>begin);
- assert.match(code,/onlineActive&&dead.length>0/);
+ assert.match(code,/if\(dead\.length>0\)/);
+ assert.match(code,/onlineResultFallbackTimer=setTimeout\(function\(\)/);
  assert.match(code,/onlinePendingMatchCompleted&&dead.length===0/);
  assert.match(code,/var wantsFire=!onlinePendingMatchCompleted&&!pl.dead/);
  assert.match(code,/mt.over=game.status==='COMPLETED'&&!onlineActive/);

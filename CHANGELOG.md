@@ -1,3 +1,7 @@
+## 2026-11-03 — Verify final results watchdog and original corpse wait
+- Expand the match-liveness regression to execute a synthetic authoritative `match_completed` event with a stalled visual corpse list, proving the results fallback fires within its bounded timeout. Adjust legacy assertion to the new explicit active-state guard.
+- Changes are test-only; existing gameplay and settlement implementation unchanged.
+
 ## 2026-11-03 — Hotfix online match input/render liveness and results after inventory-only change
 - Fix a fatal cross-feature regression: `inventoryOwned()` legitimately hides private collection data while session/loadout is loading, but gameplay HUD `slotUI()` was dereferencing `ammo[null].mag` for standard sidearm/melee/grenade slots. Keep all Inventory cards entitlement-gated while resolving fixed HUD slots from existing validated loadout state; invalid slots now render unavailable instead of crashing the RAF game loop. Guard weapon switch against null slot IDs.
 - Rehydrate inventory/loadout on registered session boot as well as Home START, so direct room/rejoin does not skip authentication's read-only loadout fetch. Match attachment is still allowed during temporary inventory API failures; BE remains authoritative.

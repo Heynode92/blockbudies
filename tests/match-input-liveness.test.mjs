@@ -51,3 +51,29 @@ test('completed match has bounded finalizer independent of render animation and 
  assert.match(bridge,/await onlineLoadInventory\(\)\.catch\(onlineWarn\)/);
  assert.match(bridge,/function onlineResetLive\(\)/);
 });
+
+test('verified match completion opens results after bounded corpse wait even if RAF stopped',()=>{
+ const start=bridge.indexOf(" if(frame.type==='match_completed'){");
+ const end=bridge.indexOf(" if(frame.type==='training_result')",start);
+ assert.ok(start>=0&&end>start);
+ const calls=[],timers=[],ctx={
+  onlineActive:true,dead:[{t:0}],onlinePendingMatchCompleted:null,
+  onlineResultFallbackTimer:null,
+  clearTimeout(){},
+  setTimeout(fn,ms){timers.push({fn,ms});return timers.length;},
+  onlineFinalizeCompletedMatch(frame){calls.push(frame.matchId);}
+ };
+ runInNewContext('function receipt(frame){'+bridge.slice(start,end)+'}\nthis.receipt=receipt;',ctx);
+ ctx.receipt({type:'match_completed',matchId:'trusted-match'});
+ assert.equal(calls.length,0,'preserve existing ragdoll animation first');
+ assert.equal(ctx.onlinePendingMatchCompleted.matchId,'trusted-match');
+ assert.equal(timers.length,1);
+ assert.equal(timers[0].ms,2200);
+ timers[0].fn();
+ assert.deepEqual(calls,['trusted-match'],'show verified result without waiting forever');
+ assert.equal(ctx.onlinePendingMatchCompleted,null);
+ ctx.receipt({type:'match_completed',matchId:'new-match'});
+ assert.equal(timers.length,2);
+ ctx.dead.length=0;timers[1].fn();
+ assert.deepEqual(calls,['trusted-match','new-match']);
+});
