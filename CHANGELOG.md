@@ -1,3 +1,6 @@
+## 2026-11-03 — Correct legacy room UI assertion after footer removal
+- Verify that removed footer status copy is absent and screen-reader room count remains, without changing local 5v5 engine tests or runtime code.
+
 ## 2026-11-03 — Remove Room Browser footer and prevent clipped empty-state/navigation
 - Delete the unnecessary bottom 'POINTBLOCK ROOM SERVER · ROBINHOOD MAINNET / 0 ONLINE ROOMS' strip from the Room Browser. Keep the existing room count available to assistive technology only and continue using the same BE/local room render handlers.
 - Resolve the actual flex layout problem: empty `roomEntries` no longer absorbs half the available space, the illustrated empty-state centers within remaining panel height, and the room action navigation cannot shrink.

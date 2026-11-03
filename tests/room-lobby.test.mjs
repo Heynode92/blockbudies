@@ -229,7 +229,8 @@ test('malformed stored rooms are ignored and option whitelists resist invalid va
 test('existing 5v5 engine stays authoritative, no fabricated maps or public players',()=>{
  const html=read('index.html');
  assert.match(html,/LOCAL · VS AI/);
- assert.match(html,/NO ONLINE SERVER CONNECTED/);
+ assert.doesNotMatch(html,/NO ONLINE SERVER CONNECTED|POINTBLOCK ROOM SERVER · ROBINHOOD MAINNET/);
+ assert.match(html,/id="roomCount" class="room-count-sr"/);
  assert.match(html,/1 PLAYER \+ 9 BOTS/);
  const src=read('src/game/83-room-lobby.js');
  assert.match(src,/MODE_MAP_PREVIEWS\[mode\]/,'map labels depend on canonical existing previews');
