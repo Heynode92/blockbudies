@@ -1,3 +1,6 @@
+## 2026-11-03 — Extend isolated online visual regression context
+- Existing VM regression for original muzzle/blood lifetime now includes offline impact-FX and toast state, matching the shared visual lifecycle without changing production gameplay.
+
 ## 2026-11-03 — Reuse exact original offline star, kill feed, and transient FX lifecycle
 - Make original starKill() support silent snapshot rehydration; online code calls that same function instead of constructing its own star DOM.
 - Route authorized online KILL events to original kFeed() with BE weapon identity and headshot flag, without creating any hidden actor or location.
