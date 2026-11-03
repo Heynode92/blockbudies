@@ -982,19 +982,37 @@ async function onlineMasterStart(){
  }catch(error){onlineWarn(error)}
  finally{startControl.disabled=false}
 }
+// Percentage counts only verified milestones, not fake elapsed-time loading.
+function onlineRenderVerifiedReadiness(){
+ if(!onlineActive||onlineTraining||!roomStartFlow.active)return;
+ var flow=roomStartFlow,total=onlineLoadParticipants.total,
+     known=Number.isSafeInteger(total)&&total>0&&total<=10;
+ var ready=known?Math.max(0,Math.min(total,onlineLoadParticipants.ready)):0;
+ var socketReady=!!onlineApi?.state().connected;
+ var finished=(socketReady?1:0)+(flow.mapReady?1:0)+(onlineClientSceneReady?1:0)+
+   ready+(onlineServerPhase==='LIVE'?1:0);
+ // The denominator is the observable protocol milestones plus each human.
+ var percent=known?Math.floor(100*finished/(total+4)):0;
+ if(onlineServerPhase!=='LIVE')percent=Math.min(percent,99);
+ var label=onlineServerPhase==='LIVE'?'SERVER AUTHORIZED · DEPLOYING':
+   onlineServerPhase==='COUNTDOWN'?'ALL PLAYERS CONNECTED · MATCH STARTING':
+   onlineClientSceneReady?'WAITING FOR ALL PLAYERS':'CONNECTING TO SERVER';
+ roomStartMark(percent,label);
+ document.getElementById('roomStartDetail').textContent=known?
+   ready+' / '+total+' PLAYERS VERIFIED BY SERVER':
+   'WAITING FOR SERVER PLAYER STATUS';
+}
 function onlineMatchLoadingStatus(frame){
  if(!onlineActive||!frame||frame.matchId!==onlineMatchId)return;
  if(!['CONNECTING','COUNTDOWN','LIVE'].includes(frame.phase))return;
  onlineServerPhase=frame.phase;
- onlineLoadParticipants={ready:Number.isSafeInteger(frame.ready)?frame.ready:0,
-  total:Number.isSafeInteger(frame.total)?frame.total:0};
+ // match_live omits the counts; do not overwrite authenticated loading totals.
+ onlineLoadParticipants={ready:Number.isSafeInteger(frame.ready)?frame.ready:onlineLoadParticipants.ready,
+  total:Number.isSafeInteger(frame.total)?frame.total:onlineLoadParticipants.total};
+ onlineRenderVerifiedReadiness();
  var flow=roomStartFlow;
- if(!flow.active||flow.phase!=='server-wait')return;
- var total=Math.max(1,onlineLoadParticipants.total),ready=Math.min(total,onlineLoadParticipants.ready);
- if(frame.phase==='CONNECTING')roomStartMark(65+Math.floor(28*ready/total),
-  'CONNECTING TO SERVER · '+ready+'/'+total+' PLAYERS READY');
- else if(frame.phase==='COUNTDOWN')roomStartMark(96,'ALL PLAYERS CONNECTED · MATCH STARTING');
- else onlineCompleteServerLoading(flow.token);
+ if(flow.active&&flow.phase==='server-wait'&&frame.phase==='LIVE')
+  onlineCompleteServerLoading(flow.token);
 }
 function onlineCompleteServerLoading(token){
  var flow=roomStartFlow;
@@ -1003,6 +1021,7 @@ function onlineCompleteServerLoading(token){
  flow.phase='preparing';
  flow.loadoutSeconds=0; // No second loadout lock after the server GO signal.
  roomStartMark(100,'DEPLOYMENT COMPLETE');
+ document.getElementById('roomStartDetail').textContent='LIVE MATCH AUTHORIZED BY SERVER';
  roomStartReveal(token);
 }
 function onlineBeginTransition(room){
