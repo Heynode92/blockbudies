@@ -89,6 +89,7 @@
     "src/styles/14-room-browser.css",
     "src/styles/15-room-master-settings.css",
     "src/styles/16-match-scoreboard.css",
-    "src/styles/17-online.css"
+    "src/styles/17-online.css",
+    "src/styles/18-room-lobby-redesign.css"
   ]
 }

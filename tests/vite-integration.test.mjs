@@ -31,8 +31,8 @@ test('All existing game parts compile in original order; no gameplay files dropp
  assert.equal(code, expected);
  assert.ok(files.has(resolve(root,'tools/source-manifest.json')));
 });
-test('All 17 CSS files block first paint from HTML head in original cascade order', () => {
- assert.equal(manifest.styles.length,17);
+test('All 18 CSS files block first paint from HTML head in original cascade order', () => {
+ assert.equal(manifest.styles.length,18);
  const links=[...html.matchAll(/<link rel="stylesheet" href="\.\/(src\/styles\/[^"]+\.css)">/g)]
   .map(match=>match[1]);
  assert.deepEqual(links,manifest.styles);
@@ -100,7 +100,7 @@ test('Hold-TAB K/D scoreboard is built from authoritative in-game statistics', (
  const lobby=read('src/game/85-lobby-and-match.js');
  assert.equal(manifest.parts[manifest.parts.indexOf('src/game/80-input.js')+1],'src/game/81-match-scoreboard.js');
  assert.ok(manifest.styles.includes('src/styles/16-match-scoreboard.css'));
- assert.equal(manifest.styles.at(-1),'src/styles/17-online.css');
+ assert.equal(manifest.styles.at(-1),'src/styles/18-room-lobby-redesign.css');
  for(const id of ['matchScoreboard','matchScoreboardPoliceRows','matchScoreboardTerroristRows','matchScoreboardPoliceKills','matchScoreboardTerroristDeaths'])
    assert.ok(html.includes('id="'+id+'"'),id);
  assert.match(css,/#matchScoreboard\[hidden\]\{display:none!important\}/);

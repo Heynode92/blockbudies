@@ -1,3 +1,8 @@
+## 2026-11-03 — Register redesign stylesheet in canonical Vite CSS manifest
+- Add the Room Browser visual stylesheet as the final stylesheet in `tools/source-manifest.json` and assert exact blocking-link order in Vite integration tests.
+- Fix the isolated lobby header regression to select the matching header closing tag, not an earlier unrelated HUD header in the document.
+- No gameplay or room state changes.
+
 ## 2026-11-03 — Redesign Room Browser using verified operator username and distinct rank progression
 - Recreate the reference PointBlock tactical lobby layout in CSS: highlighted real 3D operator, layered blue/orange panels, server-room list, crisp empty-state HUD icon, glowing actions and mobile-responsive layout. The actual Inventory-owned Three.js canvas and Room Master/create/refresh/quick-nav handlers remain unchanged.
 - Move the existing backend-bound rank and EXP component from the shared header to a dedicated card BELOW the real operator model, with separately labeled USERNAME (e.g. FIFO) and RANK (e.g. Corporal) and the original current-rank EXP progress bar. Never concatenate username and rank into a fictional grade.

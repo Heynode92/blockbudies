@@ -8,7 +8,8 @@ const profile=read('src/game/82-home-showcase.js');
 const bridge=read('src/game/98-online-bridge.js');
 const part=html.slice(html.indexOf('<section id="lbrooms"'),html.indexOf('<section id="lbroomlive"'));
 test('header contains ONLY nickname; rank/EXP exists only under actual 3D lobby operator',()=>{
- const header=html.slice(html.indexOf('<header id="gameLobbyHeader"'),html.indexOf('</header>'));
+ const start=html.indexOf('<header id="gameLobbyHeader"');
+ const header=html.slice(start,html.indexOf('</header>',start));
  assert.match(header,/id="homeHeaderUsername"/);
  for(const id of ['homeProgressPanel','homeRankName','homeRankExp','homeRankFill'])
   assert.doesNotMatch(header,new RegExp('id="'+id+'"'),'rank and EXP must not be in shared header');
