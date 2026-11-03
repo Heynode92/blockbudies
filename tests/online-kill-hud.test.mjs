@@ -8,7 +8,8 @@ assert.ok(begin>=0&&end>begin);
 const adapter=source.slice(begin,end);
 function harness(){
  const stars=[],notices=[],c={onlineSeenKillIds:new Set(),onlineActive:true,run:true,lob:false,
-  score:0,ck:{n:0,hs:0},hsF:false,onlineLastAuthTick:0,pl:{st:{k:0,d:0}},
+  score:0,ck:{n:0,hs:0},hsF:false,onlineLastAuthTick:0,
+  onlinePendingKillTick:-1,onlinePendingKillTotal:null,pl:{st:{k:0,d:0}},
   onlineUserId(){return 'me';},STAR:'<svg/>',stnEl:{textContent:''},
   document:{createElement(){return {}}}};
  c.starsEl={querySelectorAll(){return stars},insertBefore(el){stars.push(el)}};
@@ -41,7 +42,7 @@ test('snapshot rehydrates old stars without animation or invented kill',()=>{
  assert.equal(c.score,3);assert.equal(h.animations,0);assert.equal(notices.length,0);
 });
 test('bridge binds BE K/D, life streak and death reset',()=>{
- assert.match(source,/onlineSyncKillDisplay\(privateState\.kills,false\)/);
+ assert.match(source,/onlineSyncKillDisplay\(kills,false\)/);
  assert.match(source,/ck\.n=privateState\.streak/);
  assert.match(source,/!self\.alive&&onlinePrevAlive\)\{resetKillStreak\(\)/);
  assert.match(source,/onlineSeenKillIds\.clear\(\)/);

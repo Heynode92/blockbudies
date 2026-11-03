@@ -1,3 +1,7 @@
+## 2026-11-03 — Keep offline Enter shortcut under Room Master online authority
+- The original results Enter-key shortcut now activates the exact existing Play Again button during online results, reusing the authenticated Room Master action instead of starting an offline local simulation.
+- Update focused regression harness to model the newly server-owned kill total and pending event tick; no gameplay rule changes.
+
 ## 2026-11-03 — Restore offline Battle Report, medals and realtime end-of-match recovery
 - Render server-verified multiplayer results through the ORIGINAL offline endMatch() Victory/Defeat, rank, best kills, K/D and 5v5 scoreboard; remove the replacement online result modal.
 - Original Play Again/Back To Room buttons remain; online replay must use authorized Room Master start, never local begin().

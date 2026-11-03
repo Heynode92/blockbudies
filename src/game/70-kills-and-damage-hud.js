@@ -90,7 +90,14 @@ function endMatch(){matchScoreboardDismiss();escHide();mt.over=true;mt.t=0;run=f
   $("sbd").innerHTML=ROS.slice().sort(function(a,c){return c.k-a.k||a.d-c.d;}).map(function(r){return '<div class="sbr'+(r===st?' me':'')+'" style="--c:'+(r.tm?'#ff8a65':'#4dabf7')+'"><span>'+r.name+(r===st?' (YOU)':'')+'</span><b>'+r.k+'</b><b>'+r.d+'</b></div>';}).join("");
   $("dv").classList.add("show");}
 // again(): restarts a match on the same team.
-function again(){document.getElementById("dv").classList.remove("show");begin(pl.tm);}
+function again(){
+  // The existing Enter-key shortcut must use the same server-authorized
+  // Play Again button as a mouse click when showing online results.
+  if(typeof onlineResultsDisplayed!=="undefined"&&onlineResultsDisplayed){
+    document.getElementById("dgo").click();return;
+  }
+  document.getElementById("dv").classList.remove("show");begin(pl.tm);
+}
 document.getElementById("dgo").onclick=again;
 // setW(): hard-sets the current weapon to i with full ammo (no ammo saving). For normal switching use swW().
 function setW(i){pl.w=i;pl.mag=WP[i].mag;pl.res=WP[i].res;pl.rl=0;}
