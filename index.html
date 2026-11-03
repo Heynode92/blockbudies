@@ -217,7 +217,7 @@ html.pb-route-restoring #lb { visibility:hidden; }
     </aside>
     <div class="room-browser-right">
     <section class="room-list-panel" aria-label="Available local rooms">
-      <div class="room-panel-head"><div><h3>AVAILABLE ROOMS</h3><small id="roomBrowserModeLabel">LOCAL MATCHES · VS AI</small></div><button type="button" id="roomRefresh"><span aria-hidden="true">↻</span> REFRESH</button></div>
+      <div class="room-panel-head"><div><h3>AVAILABLE ROOMS</h3><small id="roomBrowserModeLabel">LOCAL MATCHES · VS AI</small><span id="roomCount" class="room-count-sr" role="status" aria-live="polite">0 ROOMS</span></div><button type="button" id="roomRefresh"><span aria-hidden="true">↻</span> REFRESH</button></div>
       <div class="room-cols" aria-hidden="true"><span>ID</span><span>ROOM NAME</span><span>MAP / MODE</span><span>PLAYERS</span><span>STATUS</span><span></span></div>
       <div id="roomEntries" class="room-entries" aria-live="polite"></div>
       <div id="roomEmpty" class="room-empty">
@@ -235,7 +235,6 @@ html.pb-route-restoring #lb { visibility:hidden; }
         <span class="room-empty-separator" aria-hidden="true"></span>
         <p id="roomEmptyCopy">Create a room on the left to start a match against bots.</p>
       </div>
-      <footer class="room-list-footer"><span id="roomBrowserStatusLabel">LOCAL ROOMS ONLY · NO ONLINE SERVER CONNECTED</span><strong id="roomCount">0 ROOMS</strong></footer>
     </section>
       <nav class="room-quick-nav" aria-label="Room lobby navigation">
         <button id="roomQuickInventory" type="button" aria-label="Open inventory">

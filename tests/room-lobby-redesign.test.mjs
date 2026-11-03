@@ -45,11 +45,23 @@ test('nickname and rank come from separate authenticated backend fields; half-un
 test('room render still reads actual backend roomList; online browser does not claim local-only rooms',()=>{
  assert.match(bridge,/document\.getElementById\('roomBrowserModeLabel'\)\.textContent='ONLINE MATCHES · 5V5'/);
  assert.match(bridge,/roomList\.forEach\(function\(r\)/);
- assert.match(part,/id="roomBrowserStatusLabel"/);
+ assert.doesNotMatch(part,/room-list-footer|roomBrowserStatusLabel/);
+ assert.match(part,/id="roomCount" class="room-count-sr"/);
  for(const id of ['roomCreateOpen','roomRefresh','roomQuickInventory','roomQuickShop','roomQuickSettings'])
   assert.match(part,new RegExp('id="'+id+'"'));
  assert.match(css,/#lbrooms \.room-identity-card/);
  assert.match(css,/#lbrooms \.room-browser-preview/);
  assert.match(css,/#lbrooms \.room-list-panel/);
  assert.doesNotMatch(css,/url\(|data:image|background-image:/i);
+});
+
+test('empty room list cannot push the room buttons offscreen or clip its own message',()=>{
+ assert.match(css,/#lbrooms\.on\{[\s\S]*?overflow-x:hidden;overflow-y:auto/);
+ assert.match(css,/#lbrooms \.room-grid\{[\s\S]*?min-height:max\(590px/);
+ assert.match(css,/#lbrooms \.room-entries:empty\{[\s\S]*?flex:0 0 0/);
+ assert.match(css,/#lbrooms \.room-quick-nav\{[\s\S]*?flex:0 0 auto/);
+ assert.match(css,/#lbrooms \.room-empty\{[\s\S]*?justify-content:center/);
+ assert.doesNotMatch(bridge,/roomBrowserStatusLabel/);
+ for(const id of ['roomQuickInventory','roomQuickShop','roomQuickSettings'])
+  assert.match(part,new RegExp('id="'+id+'"'));
 });

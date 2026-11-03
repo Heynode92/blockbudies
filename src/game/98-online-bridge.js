@@ -400,7 +400,6 @@ function onlineRoomRender(){
  var list=document.getElementById('roomEntries');if(!list)return;
  // Never relabel actual backend rooms as offline local sessions.
  document.getElementById('roomBrowserModeLabel').textContent='ONLINE MATCHES · 5V5';
- document.getElementById('roomBrowserStatusLabel').textContent='POINTBLOCK ROOM SERVER · ROBINHOOD MAINNET';
  document.getElementById('roomEmptyTitle').textContent='NO ONLINE ROOMS YET';
  document.getElementById('roomEmptyCopy').textContent='Create a room to start a server-verified match.';
  list.replaceChildren();

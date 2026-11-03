@@ -1,3 +1,9 @@
+## 2026-11-03 — Remove Room Browser footer and prevent clipped empty-state/navigation
+- Delete the unnecessary bottom 'POINTBLOCK ROOM SERVER · ROBINHOOD MAINNET / 0 ONLINE ROOMS' strip from the Room Browser. Keep the existing room count available to assistive technology only and continue using the same BE/local room render handlers.
+- Resolve the actual flex layout problem: empty `roomEntries` no longer absorbs half the available space, the illustrated empty-state centers within remaining panel height, and the room action navigation cannot shrink.
+- Replace desktop `overflow:hidden` with contained vertical scrolling plus a viewport-aware minimum grid height, so shorter windows show the entire lobby and bottom actions rather than clipping them.
+- No changes to 3D rendering, combat, map, Room Master permissions or server state.
+
 ## 2026-11-03 — Update canonical parity guard for Room Browser CSS
 - The project now has 18 ordered stylesheets, including the dedicated Room Browser redesign. Update legacy parity count to match the manifest; keep exact ordered links and source tests unchanged.
 - Test-only change.
