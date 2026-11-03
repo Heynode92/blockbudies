@@ -26,7 +26,7 @@ test('All 17 authorised rank indices have distinct mesh specifications',()=>{
 });
 test('Real Three.js relief meshes, metallic lighting and drag, not static badge art',()=>{
  for(const p of ['ExtrudeGeometry','MeshStandardMaterial','WebGLRenderer',
-  'BoxGeometry','CylinderGeometry','OrthographicCamera','DirectionalLight'])
+  'BoxGeometry','Shape','Path','OrthographicCamera','DirectionalLight'])
   assert.ok(source.includes('T.'+p),p);
  assert.match(source,/powerPreference:'low-power'/);
  assert.match(source,/rankInsigniaDispose\(\)/);

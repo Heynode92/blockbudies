@@ -1,3 +1,6 @@
+## 2026-11-03 — Synchronize rank test and original match exit ordering
+- Update the old geometry assertion to require Shape/Path instead of the removed star cylinder. Preserve the original scoreboard-dismiss-first contract, then restore the shared rank canvas on match exit. Regenerate the matching bundle.
+
 ## 2026-11-03 — Fix 3D rank overlap and show BE rank in online Results
 - Remove the obsolete decorative SVG badge from Room Browser and clip the existing Three.js rank canvas to its own identity-card slot.
 - Rank index 0 (backend 'Trainner') is now a true extruded 3D skull, with eye/nose cutouts and raised teeth, rather than a star. The other 16 rank designs are unchanged.
