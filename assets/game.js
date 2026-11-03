@@ -9643,6 +9643,7 @@ onlineAction('tsT',onlineStartGate);
 async function onlineExitResultsToRoom(){
  if(onlineReturnToRoomBusy)return;
  onlineReturnToRoomBusy=true;
+ var coverOpenedAt=performance.now();
  var expectedRoomId=roomCurrent?.id,overlay=document.getElementById('roomTransition');
  roomStartCaptureMap(); // Reuse the current real Three.js map frame.
  roomStartMark(0,'CONNECTING TO SERVER');
@@ -9656,6 +9657,9 @@ async function onlineExitResultsToRoom(){
   roomStartMark(100,'ROOM CONNECTION VERIFIED');
   document.getElementById('roomStartDetail').textContent='ROOM MASTER AND PLAYERS SYNCED WITH SERVER';
   // The bar reaches 100 ONLY after authenticated membership recovery.
+  // Give the real transition time to paint even when localhost responds in
+  // less than one browser frame; this NEVER advances the readiness percentage.
+  await new Promise(resolve=>setTimeout(resolve,Math.max(0,450-(performance.now()-coverOpenedAt))));
   onlineResultsDisplayed=false;onlineRewardStop();
   var reward=document.getElementById('verifiedReward');if(reward)reward.hidden=true;
   document.getElementById('dmn').hidden=false;
