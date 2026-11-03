@@ -1,3 +1,9 @@
+## 2026-11-03 — Redesign Room Browser using verified operator username and distinct rank progression
+- Recreate the reference PointBlock tactical lobby layout in CSS: highlighted real 3D operator, layered blue/orange panels, server-room list, crisp empty-state HUD icon, glowing actions and mobile-responsive layout. The actual Inventory-owned Three.js canvas and Room Master/create/refresh/quick-nav handlers remain unchanged.
+- Move the existing backend-bound rank and EXP component from the shared header to a dedicated card BELOW the real operator model, with separately labeled USERNAME (e.g. FIFO) and RANK (e.g. Corporal) and the original current-rank EXP progress bar. Never concatenate username and rank into a fictional grade.
+- Shared header shows only authenticated username (without EXP/rank), vPBT, PBT and wallet. On logout both username chip and protected operator rank card are hidden.
+- Room Browser labels switch to true online wording when the BE room list is used; no fake rooms or local-match counts. Add source/DOM and authenticated-state regression checks. No changes to combat, BOT AI, match rewards, wallet security or server rank policy.
+
 ## 2026-11-03 — Verify final results watchdog and original corpse wait
 - Expand the match-liveness regression to execute a synthetic authoritative `match_completed` event with a stalled visual corpse list, proving the results fallback fires within its bounded timeout. Adjust legacy assertion to the new explicit active-state guard.
 - Changes are test-only; existing gameplay and settlement implementation unchanged.

@@ -47,6 +47,7 @@ html.pb-route-restoring #lb { visibility:hidden; }
 <link rel="stylesheet" href="./src/styles/15-room-master-settings.css">
 <link rel="stylesheet" href="./src/styles/16-match-scoreboard.css">
 <link rel="stylesheet" href="./src/styles/17-online.css">
+<link rel="stylesheet" href="./src/styles/18-room-lobby-redesign.css">
 </head>
 <body class="lobby">
 <div id="hud">
@@ -109,11 +110,9 @@ html.pb-route-restoring #lb { visibility:hidden; }
     <div class="home-wordmark" aria-label="Point Block"><span class="home-brand-point">POINT</span><span class="home-brand-block">BLOCK</span></div>
     <div class="home-meta" aria-label="FPS, 5 versus 5 Police versus Terrorist"><span>FPS</span><i aria-hidden="true"></i><span>5V5</span><i aria-hidden="true"></i><span>POLICE VS TERRORIST</span></div>
   </div>
-  <div class="home-top-actions" aria-label="Player rank, vPBT balance, PBT and wallet">
-    <section id="homeProgressPanel" class="home-progress-panel" aria-label="Verified player rank and EXP" hidden>
-      <div class="home-progress-head"><small id="homeRankCallsign">PLAYER</small><strong id="homeRankName">—</strong></div>
-      <div class="home-progress-foot"><span>RANK EXP</span><b id="homeRankExp">—</b></div>
-      <div class="home-progress-track" role="progressbar" aria-label="Current rank EXP" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="homeRankFill"></i></div>
+  <div class="home-top-actions" aria-label="Player nickname, vPBT balance, PBT and wallet">
+    <section id="homeIdentityChip" class="home-identity-chip" aria-label="Authenticated player nickname" hidden>
+      <span>OPERATOR</span><strong id="homeHeaderUsername">—</strong>
     </section>
     <div class="home-vpbt" aria-label="Server-verified virtual PBT balance"><span class="home-vpbt-icon">V</span><span class="home-vpbt-amount"><small>vPBT</small><strong id="homeVpbtBalance">—</strong></span></div>
     <div class="home-pbt-wrap">
@@ -190,8 +189,27 @@ html.pb-route-restoring #lb { visibility:hidden; }
     <aside class="room-operator-panel" aria-label="3D Police operator">
       <div class="room-operator-head"><span>YOUR OPERATOR</span><small>POLICE · EQUIPPED LOADOUT</small></div>
       <div id="roomBrowserPreview" class="ivpreview room-browser-preview" aria-label="Real interactive 3D Police character holding equipped weapon">
+        <div class="room-preview-orbit" aria-hidden="true"><i></i><i></i><i></i></div>
         <span>DRAG TO TURN</span>
       </div>
+      <section id="homeProgressPanel" class="room-identity-card home-progress-panel" aria-label="Authenticated nickname, server rank and current rank EXP" hidden>
+        <div class="room-rank-insignia" aria-hidden="true">
+          <svg viewBox="0 0 64 76" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M32 3 59 15v40L32 72 5 55V15L32 3Z" fill="#0A1B32" stroke="#FF9834" stroke-width="2.5"/>
+            <path d="m11 27 21-11 21 11-21 11-21-11Z" fill="#FFB956"/>
+            <path d="m11 42 21-11 21 11-21 11-21-11Z" fill="#FFC86B"/>
+          </svg>
+        </div>
+        <div class="room-identity-details">
+          <div class="home-progress-head">
+            <div class="room-identity-user"><small>USERNAME</small><strong id="homeRankCallsign">—</strong></div>
+            <span class="room-identity-divider" aria-hidden="true"></span>
+            <div class="room-identity-rank"><small>RANK</small><strong id="homeRankName">—</strong></div>
+          </div>
+          <div class="home-progress-foot"><span>RANK EXP</span><b id="homeRankExp">—</b></div>
+          <div class="home-progress-track" role="progressbar" aria-label="Current rank EXP" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="homeRankFill"></i></div>
+        </div>
+      </section>
       <footer class="room-operator-actions">
         <button type="button" id="roomCreateOpen" class="room-open-create">＋ CREATE ROOM</button>
         <button id="roomBack" class="room-back" type="button">‹ BACK</button>
@@ -199,11 +217,25 @@ html.pb-route-restoring #lb { visibility:hidden; }
     </aside>
     <div class="room-browser-right">
     <section class="room-list-panel" aria-label="Available local rooms">
-      <div class="room-panel-head"><div><h3>AVAILABLE ROOMS</h3><small>LOCAL MATCHES · VS AI</small></div><button type="button" id="roomRefresh">↻ REFRESH</button></div>
+      <div class="room-panel-head"><div><h3>AVAILABLE ROOMS</h3><small id="roomBrowserModeLabel">LOCAL MATCHES · VS AI</small></div><button type="button" id="roomRefresh"><span aria-hidden="true">↻</span> REFRESH</button></div>
       <div class="room-cols" aria-hidden="true"><span>ID</span><span>ROOM NAME</span><span>MAP / MODE</span><span>PLAYERS</span><span>STATUS</span><span></span></div>
       <div id="roomEntries" class="room-entries" aria-live="polite"></div>
-      <div id="roomEmpty" class="room-empty"><strong>NO LOCAL ROOMS YET</strong><p>Create a room on the left to start a match against bots.</p></div>
-      <footer class="room-list-footer"><span>LOCAL ROOMS ONLY · NO ONLINE SERVER CONNECTED</span><strong id="roomCount">0 ROOMS</strong></footer>
+      <div id="roomEmpty" class="room-empty">
+        <svg class="room-empty-art" viewBox="0 0 320 148" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M40 46h109v77H40zM171 46h109v77H171z" fill="#10243C" stroke="#376184" stroke-width="2"/>
+          <path d="M59 67h65m-65 13h48m84-13h66m-66 13h48" stroke="#3C668B" stroke-width="6" stroke-linecap="round"/>
+          <path d="M104 30h112v100H104z" fill="#152E4B" stroke="#79A5D2" stroke-width="2"/>
+          <path d="M160 44v53m-27-27h54" stroke="#D6EBFF" stroke-width="3"/>
+          <circle cx="160" cy="70" r="17" stroke="#C7E6FF" stroke-width="3"/>
+          <path d="M120 110h80" stroke="#406B91" stroke-width="6" stroke-linecap="round"/>
+          <path d="M146 27h28M146 130h28" stroke="#FFA043" stroke-width="2"/>
+          <path d="M24 132h66m140 0h66" stroke="#FF902E" stroke-width="2"/>
+        </svg>
+        <strong id="roomEmptyTitle">NO LOCAL ROOMS YET</strong>
+        <span class="room-empty-separator" aria-hidden="true"></span>
+        <p id="roomEmptyCopy">Create a room on the left to start a match against bots.</p>
+      </div>
+      <footer class="room-list-footer"><span id="roomBrowserStatusLabel">LOCAL ROOMS ONLY · NO ONLINE SERVER CONNECTED</span><strong id="roomCount">0 ROOMS</strong></footer>
     </section>
       <nav class="room-quick-nav" aria-label="Room lobby navigation">
         <button id="roomQuickInventory" type="button" aria-label="Open inventory">

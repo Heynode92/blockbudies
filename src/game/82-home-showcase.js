@@ -103,10 +103,16 @@ function homeFormatHalf(value){
 function homeProfileRender(state){
  var player=state?.authenticated&&state.registered?state.player:null;
  var panel=document.getElementById('homeProgressPanel'),balance=document.getElementById('homeVpbtBalance');
+ var headerChip=document.getElementById('homeIdentityChip');
  balance.textContent=player?homeFormatHalf(player.currentHalfVpbt):'—';
  panel.hidden=!player;
+ headerChip.hidden=!player;
  if(!player)return;
- document.getElementById('homeRankCallsign').textContent=String(player.username||'PLAYER').slice(0,12);
+ // Header is nickname only. Server rank and EXP live under the 3D operator
+ // in the room browser, never in the shared Home/Room Master header.
+ var username=String(player.username||'PLAYER').slice(0,12);
+ document.getElementById('homeHeaderUsername').textContent=username;
+ document.getElementById('homeRankCallsign').textContent=username;
  document.getElementById('homeRankName').textContent=String(player.rank||'—').slice(0,48);
  var earned=homeFormatHalf(player.currentRankHalfExp),required=player.nextRankHalfExp;
  var capped=required===null&&Number.isSafeInteger(player.rankIndex);

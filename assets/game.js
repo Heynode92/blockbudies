@@ -3796,10 +3796,16 @@ function homeFormatHalf(value){
 function homeProfileRender(state){
  var player=state?.authenticated&&state.registered?state.player:null;
  var panel=document.getElementById('homeProgressPanel'),balance=document.getElementById('homeVpbtBalance');
+ var headerChip=document.getElementById('homeIdentityChip');
  balance.textContent=player?homeFormatHalf(player.currentHalfVpbt):'—';
  panel.hidden=!player;
+ headerChip.hidden=!player;
  if(!player)return;
- document.getElementById('homeRankCallsign').textContent=String(player.username||'PLAYER').slice(0,12);
+ // Header is nickname only. Server rank and EXP live under the 3D operator
+ // in the room browser, never in the shared Home/Room Master header.
+ var username=String(player.username||'PLAYER').slice(0,12);
+ document.getElementById('homeHeaderUsername').textContent=username;
+ document.getElementById('homeRankCallsign').textContent=username;
  document.getElementById('homeRankName').textContent=String(player.rank||'—').slice(0,48);
  var earned=homeFormatHalf(player.currentRankHalfExp),required=player.nextRankHalfExp;
  var capped=required===null&&Number.isSafeInteger(player.rankIndex);
@@ -7727,6 +7733,11 @@ function onlineAdoptRoom(room) {
 }
 function onlineRoomRender(){
  var list=document.getElementById('roomEntries');if(!list)return;
+ // Never relabel actual backend rooms as offline local sessions.
+ document.getElementById('roomBrowserModeLabel').textContent='ONLINE MATCHES · 5V5';
+ document.getElementById('roomBrowserStatusLabel').textContent='POINTBLOCK ROOM SERVER · ROBINHOOD MAINNET';
+ document.getElementById('roomEmptyTitle').textContent='NO ONLINE ROOMS YET';
+ document.getElementById('roomEmptyCopy').textContent='Create a room to start a server-verified match.';
  list.replaceChildren();
  document.getElementById('roomEmpty').hidden=roomList.length>0;
  roomText('roomCount',roomList.length+' ONLINE ROOM'+(roomList.length===1?'':'S'));
