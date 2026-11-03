@@ -809,6 +809,7 @@ function onlineResetLive(){
  onlineCombatQa={fireInputs:0,confirmedShots:0,confirmedHits:0,wallImpacts:0,damageTaken:0,lastEvent:'NONE'};
  onlineActive=false;onlineTraining=false;onlineCurrentId=null;onlineMatchId=null;
  onlineWorld=null;onlineGame=null;
+ document.getElementById('dv').classList.remove('online-results');
  pl.kb='';pl.rsT=0;pl.rt=0;pl.dt=0;
  if(pl.bloodPool){bloodPoolRemove(pl.bloodPool);pl.bloodPool=null;}
  document.body.classList.remove('dead','bomb-spectator');
@@ -1143,6 +1144,7 @@ function onlineFinalizeCompletedMatch(frame){
  onlineResetLive();
  if(roomCurrent)roomCurrent={...roomCurrent,status:'OPEN'};
  onlineResultsDisplayed=true;
+ document.getElementById('dv').classList.add('online-results');
  endMatch(); // ORIGINAL offline Victory/Defeat, stats, rank, best score and scoreboard.
  // Results are not a rematch controller: one EXIT GAME returns to this
  // same registered room, preserving the BE membership and room owner.

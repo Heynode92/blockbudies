@@ -106,3 +106,16 @@ test('Outside a match TAB does not interfere with ordinary browser focus navigat
   h.context.roomStartFlow.active=false;h.context.mt.over=true;
   assert.equal(key(h).prevented,false);
 });
+
+
+test('authenticated TAB scoreboard mounts official 3D rank before each player name',()=>{
+ const scoreboard=read('src/game/81-match-scoreboard.js');
+ const model=read('src/game/81-rank-insignia.js');
+ const css=read('src/styles/16-match-scoreboard.css');
+ assert.match(scoreboard,/rankBadge\.className="match-sb-rank-badge"/);
+ assert.match(scoreboard,/rankRosterPreview\(rankIndex\)/);
+ assert.match(scoreboard,/name\.appendChild\(rankBadge\)/);
+ assert.match(scoreboard,/stat\.bot\?0:stat\.rankIndex/);
+ assert.match(model,/if\(!source\)source=rankInsigniaInit\(badgeCanvas\)/);
+ assert.match(css,/#matchScoreboard \.match-sb-rank-badge/);
+});

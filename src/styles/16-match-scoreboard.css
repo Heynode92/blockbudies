@@ -104,3 +104,22 @@ body.lobby #matchScoreboard,.over #matchScoreboard,.game-menu-open #matchScorebo
  #matchScoreboard .match-sb-columns{min-height:29px}
  #matchScoreboard .match-sb-total{min-height:38px}
 }
+
+
+/* Authenticated ranks sit immediately LEFT of player names, including BOT Trainee. */
+#matchScoreboard .match-sb-name{min-width:0;gap:8px}
+#matchScoreboard .match-sb-rank-badge{
+ display:grid;place-items:center;flex:0 0 28px;
+ width:28px;height:34px;overflow:hidden;
+ font:800 10px Rajdhani,sans-serif;color:#aac0d5;
+}
+#matchScoreboard .match-sb-rank-badge img{
+ display:block;width:27px;height:32px;object-fit:contain;
+ filter:drop-shadow(0 1px 3px #000a);
+}
+#matchScoreboard .match-sb-name-text{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:730px){
+ #matchScoreboard .match-sb-rank-badge{flex-basis:23px;width:23px;height:28px}
+ #matchScoreboard .match-sb-rank-badge img{width:22px;height:27px}
+ #matchScoreboard .match-sb-name{gap:4px}
+}

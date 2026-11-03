@@ -219,6 +219,12 @@ function rankRosterPreview(index){
  if(!rankInsigniaSpec(index))return null;
  if(rankRosterPreviewCache.has(index))return rankRosterPreviewCache.get(index);
  var source=rankInsignia3D;
+ if(!source){
+  // TAB can be opened before the account badge has ever been mounted.
+  // Initialize the SAME canonical rank model, never use static/fake art.
+  var badgeCanvas=document.getElementById('roomRankCanvas');
+  if(badgeCanvas)source=rankInsigniaInit(badgeCanvas);
+ }
  if(!source)return null;
  var canvas=document.createElement('canvas');canvas.width=54;canvas.height=64;
  var renderer=null,view=null;

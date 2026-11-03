@@ -1,3 +1,8 @@
+## 2026-11-04 — Responsive Battle Report and rank badges in live TAB scoreboard
+- Recompose online-only Battle Report rows as a compact five-column scoreboard (placement, true Three.js badge, callsign, kills, deaths), keeping BOT skull rank, YOUR highlight, and EXP/vPBT beside the large rank card. Restore dedicated headers, prevent flex rules from stretching every badge/name or wrapping BOT labels across lines.
+- The held-TAB 5v5 scoreboard now includes backend-owned player rank or BOT Trainee before the name; the same canonical 3D rank preview initializes safely even when the lobby rank view was never mounted. Offline scoreboard behavior stays unchanged.
+- Styles are scoped to online Results or existing TAB widgets and preserve the original steel-blue/orange PointBlock theme.
+
 ## 2026-11-04 — Restore offline corpse fall and authoritative online grenade FX
 - Animate dead online player via original blockDeathPose() and its .6-second fall timeline, with the existing player blood pool. Reset the visual pose/pool when the server respawns the actor; never grant local life/damage.
 - Reuse the original mkGren() model and updG() arc/bounce/fuse for server-issued grenade throws. Tag network grenades as visual-only so original offline boom() cannot be called by online renderer.

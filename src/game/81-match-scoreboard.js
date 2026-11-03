@@ -35,6 +35,19 @@ function matchScoreboardRenderTeam(team){
     var row=document.createElement("div"),name=document.createElement("span");
     row.className="match-sb-row"+(stat===pl.st?" is-you":"");
     name.className="match-sb-name";
+    if(typeof onlineActive!=='undefined'&&onlineActive){
+      var rankIndex=stat.bot?0:stat.rankIndex;
+      var rankBadge=document.createElement("span");
+      rankBadge.className="match-sb-rank-badge";
+      var preview=typeof rankRosterPreview==='function'&&Number.isSafeInteger(rankIndex)?
+        rankRosterPreview(rankIndex):null;
+      if(preview){
+        var image=document.createElement("img");
+        image.src=preview;image.alt=stat.bot?"Trainee rank":"Player rank insignia";
+        image.draggable=false;rankBadge.appendChild(image);
+      }else{rankBadge.textContent="—";rankBadge.classList.add("unavailable");}
+      name.appendChild(rankBadge);
+    }
     name.appendChild(matchScoreboardCreateCell("span","match-sb-name-text",stat.name));
     if(stat===pl.st)name.appendChild(matchScoreboardCreateCell("span","match-sb-you","YOU"));
     row.appendChild(matchScoreboardCreateCell("span","match-sb-rank",index+1));
