@@ -9,6 +9,7 @@ const end=source.indexOf('\nfunction onlineBeginTransition(',begin);
 assert.ok(begin>=0&&end>begin,'the actual Room Master START handler is present');
 const runSource=source.slice(begin,end)+'\nthis.start=onlineMasterStart;';
 const playerId='11111111-1111-4111-8111-111111111111';
+const anotherPlayerId='22222222-2222-4222-8222-222222222222';
 const roomId='33333333-3333-4333-8333-333333333333';
 function fixture(status='ACTIVE',ownerId=playerId){
  const counts={patch:0,start:0,attach:0,decorations:0,warnings:[]};
