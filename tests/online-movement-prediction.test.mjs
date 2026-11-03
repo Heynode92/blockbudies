@@ -301,3 +301,14 @@ test('original offline BOT corpse falls, stays on the ground, and cleans itself 
  assert.ok(removed.includes(model.g));
  assert.equal(pools[0].removed,true);
 });
+
+test('match scoreboard cannot preempt the original confirmed ragdoll lifecycle',()=>{
+ const begin=code.indexOf('function onlineFinalizeCompletedMatch(');
+ const end=code.indexOf('\nfunction onlineReceiveFrame(',begin);
+ assert.ok(begin>=0&&end>begin);
+ assert.match(code,/onlineActive&&dead.length>0/);
+ assert.match(code,/onlinePendingMatchCompleted&&dead.length===0/);
+ assert.match(code,/var wantsFire=!onlinePendingMatchCompleted&&!pl.dead/);
+ assert.match(code,/mt.over=game.status==='COMPLETED'&&!onlineActive/);
+ assert.match(code,/onlineFinalizeCompletedMatch\(completed\)/);
+});

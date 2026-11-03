@@ -1,3 +1,8 @@
+## 2026-11-03 — Preserve final confirmed BOT ragdoll before match scoreboard
+- Defer the frontend result overlay only while the existing original offline `dead[]` ragdoll lifecycle remains active. Completed match and winner are still authoritative backend data; no client-constructed results, HP or clocks.
+- While a completed result is pending, do not send more fire inputs or emit local shooting cues. Reuse the original corpse cleanup as the transition condition instead of hardcoding another animation duration.
+- Keep returning all members to the same room after results, with the Room Master and settings preserved.
+
 ## 2026-11-03 — Restore original offline BOT hit and ragdoll animations in online combat
 - Move the original bot hit wobble and blood into shared botDamageReaction() called by offline dmgE() and backend-confirmed online hit events. Only offline dmgE() changes local HP; online damage and kills remain BE-owned.
 - Extract the exact original dropped-gun and corpse creation from killE() into spawnBotDeathVisual(). Online KILL transfers an already authorized visible model to the same original dead[] ragdoll lifecycle, instead of using the player-only blockDeathPose and hiding it after 700 ms.
