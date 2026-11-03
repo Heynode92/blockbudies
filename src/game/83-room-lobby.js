@@ -421,8 +421,10 @@ function roomCloseLocal(){
 }
 
 function roomStartMark(percent,label){
- document.getElementById("roomStartPercent").textContent=percent+"%";
- document.getElementById("roomStartBar").style.width=percent+"%";
+ var value=Number.isFinite(percent)?Math.max(0,Math.min(100,Math.floor(percent))):0;
+ document.getElementById("roomStartPercent").textContent=value+"%";
+ document.getElementById("roomStartBar").style.width=value+"%";
+ document.querySelector(".room-transition-track").setAttribute("aria-valuenow",String(value));
  document.getElementById("roomStartPhase").textContent=label;
 }
 function roomStartAbort(){
@@ -442,7 +444,10 @@ function roomStartCaptureMap(){
  var sw=source.width,sh=source.height,ratio=dest.width/dest.height,
      cw=Math.min(sw,sh*ratio),ch=Math.min(sh,sw/ratio);
  ctx.drawImage(source,(sw-cw)/2,(sh-ch)/2,cw,ch,0,0,dest.width,dest.height);
+ var firstReady=!roomStartFlow.mapReady;
  roomStartFlow.mapReady=true;
+ if(firstReady&&typeof onlineRenderVerifiedReadiness==='function'&&onlineActive&&!onlineTraining)
+  onlineRenderVerifiedReadiness();
  return true;
 }
 function roomStartCountdown(now,token){
@@ -458,8 +463,9 @@ function roomStartLoading(token){
  MENU_BGM.leaveMenu(); // Smooth 1.4s fade while the 3D map loading cover is visible.
  var overlay=document.getElementById("roomTransition");
  overlay.hidden=false;overlay.classList.remove("leaving");
- roomStartMark(typeof onlineActive!=="undefined"&&onlineActive?15:0,
-  typeof onlineActive!=="undefined"&&onlineActive?"CONNECTING TO SERVER":"CAPTURING 3D MAP");
+ if(typeof onlineActive!=="undefined"&&onlineActive&&!onlineTraining){
+  roomStartMark(0,"CONNECTING TO SERVER");onlineRenderVerifiedReadiness();
+ }else roomStartMark(0,"CAPTURING 3D MAP");
  flow.raf=requestAnimationFrame(function(){
   if(!flow.active||token!==flow.token)return;
   overlay.classList.add("on");
@@ -468,9 +474,12 @@ function roomStartLoading(token){
 }
 function roomStartLoadingCover(token,openedAt){
  var flow=roomStartFlow;if(!flow.active||token!==flow.token||flow.phase!=="loading")return;
- if(flow.mapReady&&document.getElementById("roomStartPercent").textContent===(typeof onlineActive!=="undefined"&&onlineActive?"15%":"0%"))
-  roomStartMark(typeof onlineActive!=="undefined"&&onlineActive?38:25,
-    typeof onlineActive!=="undefined"&&onlineActive?"BATTLEFIELD LOADED":"3D MAP READY");
+ if(flow.mapReady){
+  if(typeof onlineActive!=="undefined"&&onlineActive&&!onlineTraining)
+   onlineRenderVerifiedReadiness();
+  else if(document.getElementById("roomStartPercent").textContent==="0%")
+   roomStartMark(25,"3D MAP READY");
+ }
  var elapsed=performance.now()-openedAt;
  if(!flow.mapReady&&elapsed>5500){roomStartAbort();roomLiveLog("3D map is not ready. Try again.");return;}
  if(!flow.mapReady||elapsed<500){
@@ -483,15 +492,18 @@ function roomStartPrepareGame(token){
  var flow=roomStartFlow;if(!flow.active||token!==flow.token||flow.phase!=="loading")return;
  var room=flow.config;
  if(!roomCurrent||roomCurrent.id!==room.id){roomStartAbort();return;}
- flow.phase="preparing";roomStartMark(50,
-  typeof onlineActive!=="undefined"&&onlineActive?"LOADING GAME ASSETS":"PREPARING MATCH");
+ flow.phase="preparing";
+ if(typeof onlineActive!=="undefined"&&onlineActive&&!onlineTraining)
+  onlineRenderVerifiedReadiness();
+ else roomStartMark(50,"PREPARING MATCH");
  try{
   // Existing engine builds actual map, 5v5 BOTs and equipped weapon behind an opaque cover.
   roomMatchConfig=Object.assign({},room);selM=room.mode;begin(flow.team);
   flow.loadoutSeconds=mt.cd; // Preserve the original per-mode weapon selection duration.
   mt.cd=0;run=false;document.getElementById("rsp").textContent="";
-  roomStartMark(typeof onlineActive!=="undefined"&&onlineActive?60:85,
-    typeof onlineActive!=="undefined"&&onlineActive?"PREPARING BATTLEFIELD":"INITIALIZING GAMEPLAY");
+  if(typeof onlineActive!=="undefined"&&onlineActive&&!onlineTraining)
+   onlineRenderVerifiedReadiness();
+  else roomStartMark(85,"INITIALIZING GAMEPLAY");
  }catch(err){
   run=false;lob=true;lb.style.display="flex";document.body.classList.add("lobby");
   lobP("lbroomlive");roomStartAbort();roomSetMessage("Match could not start. Please retry.");
@@ -502,6 +514,7 @@ function roomStartPrepareGame(token){
  // are required before backend may tick a BOT or start the match timer.
  if(typeof onlineActive!=="undefined"&&onlineActive&&!onlineTraining){
   flow.phase="server-wait";
+  onlineRenderVerifiedReadiness();
   flow.raf=requestAnimationFrame(function(){
    if(!flow.active||token!==flow.token)return;
    flow.raf=requestAnimationFrame(function(){
@@ -511,6 +524,7 @@ function roomStartPrepareGame(token){
      roomStartAbort();onlineWarn('MATCH_CONNECTION_LOST');return;
     }
     onlineClientSceneReady=true;
+    onlineRenderVerifiedReadiness();
     onlineMatchLoadingStatus({matchId:onlineMatchId,phase:onlineServerPhase,
       ready:onlineLoadParticipants.ready,total:onlineLoadParticipants.total});
    });
