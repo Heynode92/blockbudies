@@ -1054,8 +1054,14 @@ function onlineCheckVerifiedReward(matchId,attempt){
   // Read after settlement so the vPBT header and player rank meter reflect
   // actual persisted progress, rather than an optimistic local increment.
   void onlineApi.refreshProfile().then(function(state){
-   if(onlineRewardVisible(matchId)&&state?.authenticated&&state.registered)
+   if(onlineRewardVisible(matchId)&&state?.authenticated&&state.registered){
     resultsVerifiedRank(state.player);
+    // The rank badge beside YOU must also reflect any rank-up just earned.
+    if(pl.st&&Number.isSafeInteger(state.player.rankIndex)){
+     pl.st.rankIndex=state.player.rankIndex;
+     onlineRenderResultScoreboard(ROS,pl.st);
+    }
+   }
   }).catch(function(error){
    if(onlineRewardVisible(matchId))status.textContent='Rewards added. Updating your rank…';
   });
@@ -1284,12 +1290,12 @@ function onlineDisplayTrainingResult(progress){
  var target=Number.isSafeInteger(progress.targetKills)?progress.targetKills:null;
  document.getElementById('trainingResultTitle').textContent=won?'TRAINING COMPLETE':'TRAINING INCOMPLETE';
  document.getElementById('trainingResultDescription').textContent=won?
-  'Training verified by the PointBlock match server. Your callsign registration is now unlocked.':
-  'The verified training session ended before the required combined kills. Registration remains locked.';
+  'Training complete! You can now register your PointBlock callsign.':
+  'Training ended before the required team kills. You cannot register yet.';
  document.getElementById('trainingResultKills').textContent=kills!==null&&target!==null?
   kills+' / '+target:won?'VERIFIED':'NOT COMPLETED';
  document.getElementById('trainingResultStatus').textContent=won?
-  'SERVER VERIFIED · ELIGIBLE TO REGISTER':'SERVER VERIFIED · REGISTRATION LOCKED';
+  'TRAINING PASSED · READY TO REGISTER':'TRAINING INCOMPLETE · REGISTRATION LOCKED';
  document.getElementById('trainingResultContinue').textContent=won?
   'CONTINUE · REGISTER CALLSIGN':'BACK TO HOME';
  document.getElementById('trainingResult').hidden=false;
@@ -1310,7 +1316,7 @@ function onlineTrainingResultContinue(){
  run=false;lob=true;lb.style.display='flex';lobP('lbs');
  if(result!=='COMPLETED')return;
  onlineDialog('REGISTER CALLSIGN',
-  'Training verified. Enter a unique callsign (1–12 letters, numbers or underscore).',
+  'Training complete! Enter a unique callsign (1–12 letters, numbers or underscore).',
   'REGISTER',async name=>{
    await onlineApi.register(name);
    await onlineApi.refreshProfile();

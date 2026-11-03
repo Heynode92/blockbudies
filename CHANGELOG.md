@@ -1,3 +1,7 @@
+## 2026-11-04 — Keep personal Results badge synchronized after rank-up
+- Refresh the player's rank badge in the numbered leaderboard when match settlement changes the authenticated player rank; keep EXP/vPBT awards exclusively backend-sourced.
+- Remove remaining technical verification language from visible Training Results; preserve successful versus incomplete registration eligibility without inventing a reward or retry policy.
+
 ## 2026-11-04 — Protect killer caption across death-event reorder and align regression coverage
 - Preserve the public KILL event's killer name if it arrives before the Death Match death snapshot; clear the label on verified respawn or live-session reset.
 - Extend network tests to check that public BOT/human names survive fog-of-war without creating hidden actor meshes, and that Results rows retain real user rank plus rank-0 BOT data.
