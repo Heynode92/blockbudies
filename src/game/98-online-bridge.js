@@ -719,6 +719,12 @@ function onlineLiveRoomDecorate(room) {
  var me=onlineOwnMember();
 
  var mine=onlineIsMaster();
+ var masterMember=room.members.find(m=>m.playerId===room.ownerId);
+ var masterName=masterMember?.username||'UNKNOWN PLAYER';
+ document.getElementById('rmlRoomMasterName').textContent=masterName+(mine?' (YOU) ★':' ★');
+ document.getElementById('rmlRoomMasterHint').textContent=
+   mine?'YOU ARE THE ROOM MASTER':'ROOM MASTER · '+masterName;
+ roomText('roomPanelSub',mine?'YOU ARE ROOM MASTER':'ROOM MASTER · '+masterName);
  document.getElementById('roomMasterActions').hidden=!mine;
  document.getElementById('roomMasterStatus').hidden=!mine;
  var startControl=document.getElementById('rmlStart');
