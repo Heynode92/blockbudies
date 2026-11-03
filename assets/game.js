@@ -7146,7 +7146,7 @@ var onlineSelfTarget=null,onlineLastWinner=undefined,onlineMuzzleTime=0;
 var onlinePendingMatchCompleted=null;
 var onlinePendingWeapon=null,onlinePendingWeaponAt=0,onlineHitMarker=null,onlineHitUntil=0;
 var onlineShotTracers=[];
-var onlineScoreboard=new Map();
+var onlineScoreboard=new Map(),onlineSeenKillIds=new Set();
 // Local display-only movement, never an authoritative position or damage claim.
 var onlinePredSteps=[],onlineCorrection={x:0,y:0,z:0},onlineHasPrediction=false;
 var onlineLastAuthTick=-1,onlineLastAck=0,onlineLastAccepted=0;
@@ -7690,7 +7690,7 @@ function onlineResetLive(){
  onlineFrameSamples.length=0;onlineSnapshotSamples.length=0;onlineCorrectionSize=0;
  if(onlinePerfPanel){onlinePerfPanel.remove();onlinePerfPanel=null;}
  onlineAimInitialized=false;onlineTrainingProgressValue=null;onlinePrevAlive=true;
- onlineSelfTarget=null;onlineLastWinner=undefined;onlineMuzzleTime=0;onlineScoreboard.clear();
+ onlineSelfTarget=null;onlineLastWinner=undefined;onlineMuzzleTime=0;onlineScoreboard.clear();onlineSeenKillIds.clear();
  onlinePendingWeapon=null;onlinePendingWeaponAt=0;onlineHitUntil=0;
  if(onlineHitMarker){onlineHitMarker.remove();onlineHitMarker=null;}
  for(const fx of mzf)S.remove(fx.m);mzf.length=0;
@@ -7799,6 +7799,46 @@ function onlineBeginTransition(room){
 function onlineUserId(){
  return onlineTraining?onlineMeId:onlineApi?.state().player?.id;
 }
+// Use server-owned K/D and streak to drive the ORIGINAL offline cosmetic HUD.
+function onlineRestoreKillStars(kills){
+ starsReset();
+ for(var i=0;i<Math.min(8,kills);i++){
+  var star=document.createElement('div');star.className='st';star.innerHTML=STAR;
+  starsEl.insertBefore(star,stnEl);
+ }
+ stnEl.textContent=kills?'\u00d7'+kills:'';
+}
+function onlineSyncKillDisplay(kills,animate){
+ if(!Number.isSafeInteger(kills)||kills<0)return;
+ var previous=score,target=Math.min(8,kills);
+ if(animate&&kills===previous+1){
+  if(starsEl.querySelectorAll('.st').length!==Math.min(8,previous))
+   onlineRestoreKillStars(previous);
+  score=kills;starKill();return;
+ }
+ score=kills;
+ if(starsEl.querySelectorAll('.st').length!==target||
+    stnEl.textContent!==(kills?'\u00d7'+kills:''))
+  onlineRestoreKillStars(kills);
+}
+function onlineApplyVerifiedKill(event){
+ if(!event||typeof event.id!=='string'||onlineSeenKillIds.has(event.id))return;
+ onlineSeenKillIds.add(event.id);
+ if(onlineSeenKillIds.size>128)
+  onlineSeenKillIds.delete(onlineSeenKillIds.values().next().value);
+ // No effects for loading, repeated or stale events. A fresh trusted
+ // private snapshot will restore previous kill totals without celebrations.
+ if(!onlineActive||!run||lob||event.actorId!==onlineUserId()||!pl.st||
+    (Number.isSafeInteger(event.tick)&&event.tick<=onlineLastAuthTick))return;
+ var next=Math.max(score,pl.st.k)+1;
+ pl.st.k=next;onlineSyncKillDisplay(next,true);
+ var streak=Number.isSafeInteger(event.streak)&&event.streak>0?event.streak:1;
+ if(streak<=1)ck.hs=0;
+ ck.n=streak;
+ if(event.headshot)ck.hs++;
+ hsF=!!event.headshot;
+ try{killNotify(false)}finally{hsF=false;}
+}
 // Match settlement is BE-owned. UI transition waits only for an existing,
 // server-confirmed corpse to finish the ORIGINAL offline ragdoll lifetime.
 function onlineFinalizeCompletedMatch(frame){
@@ -7901,6 +7941,7 @@ function onlineReceiveFrame(frame){
    var actor=onlineActors.get(event.actorId)?.label||'PLAYER';
    var victim=onlineActors.get(event.victimId)?.label||'PLAYER';
    onlineConfirmedDeath(event);
+   onlineApplyVerifiedKill(event);
    roomLiveLog(actor+' ELIMINATED '+victim);
   }
   return;
@@ -8034,6 +8075,7 @@ function onlineApplyWorld(){
   onlineReconcileSelf(self,world.privateState,fresh);
   onlineSelfTarget={x:self.x,y:self.y,z:self.z};
   pl.dead=!self.alive;
+  if(!self.alive&&onlinePrevAlive){resetKillStreak();kn.innerHTML='';}
   var privateState=world.privateState;
   pl.hp=privateState?.hp??self.hp??pl.hp;
   pl.vest=privateState?.vest??self.vest??pl.vest;
@@ -8041,7 +8083,14 @@ function onlineApplyWorld(){
   if(typeof privateState?.helmet==='boolean')pl.helm=privateState.helmet;
   else if(typeof self.helmet==='boolean')pl.helm=self.helmet;
   onlineWeaponSnapshot(self,privateState,fresh);
-  if(pl.st&&privateState){pl.st.k=privateState.kills;pl.st.d=privateState.deaths;}
+  if(pl.st&&privateState){
+   pl.st.k=privateState.kills;pl.st.d=privateState.deaths;
+   onlineSyncKillDisplay(privateState.kills,false);
+   if(Number.isSafeInteger(privateState.streak)&&privateState.streak>=0){
+    if(privateState.streak===0&&ck.n!==0){ck.hs=0;kn.innerHTML='';}
+    ck.n=privateState.streak;
+   }
+  }
   if(self.alive&&(!onlineAimInitialized||!onlinePrevAlive)){
    pl.face=self.yaw;onlineAimInitialized=true;
   }

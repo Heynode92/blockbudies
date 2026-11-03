@@ -1,3 +1,9 @@
+## 2026-11-03 — Synchronize online KILL counter, offline stars and medal effects
+- Connect BE-verified KILL events to the existing offline starKill() and killNotify() and the top-left score, while preserving the TAB scoreboard as the same authoritative per-player K/D.
+- Restore persistent star icons silently from private server snapshots on reconnect; do not fabricate kills or repeat prior celebrations.
+- Sync server-owned per-life streak for Double/Triple/Chain effects, clear on death/respawn/round reset, and deduplicate event IDs.
+- Add focused regression tests. Offline gameplay, BOT AI, weapon/damage formulas and rewards remain unchanged.
+
 ## 2026-11-03 — Preserve final confirmed BOT ragdoll before match scoreboard
 - Defer the frontend result overlay only while the existing original offline `dead[]` ragdoll lifecycle remains active. Completed match and winner are still authoritative backend data; no client-constructed results, HP or clocks.
 - While a completed result is pending, do not send more fire inputs or emit local shooting cues. Reuse the original corpse cleanup as the transition condition instead of hardcoding another animation duration.

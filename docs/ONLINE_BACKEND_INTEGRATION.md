@@ -105,3 +105,12 @@ No PBT onchain checkout is enabled; contract/address/prices/finality have not
 been approved. Do not silently invent them. Do not publish this client or
 the BE to multiple live instances until server room fencing and deployment
 safety have been established.
+
+## BE-verified kill HUD parity (2026-11-03)
+
+The online TAB scoreboard, top-left Kills counter, and star icons all track
+server-confirmed personal K/D. Only authenticated personal KILL events animate
+the original offline starKill() and killNotify() graphics. The recipient-private
+`streak` value preserves current-life Double/Triple/Chain semantics and resets
+on death/respawn/new round. Snapshot rehydration restores counts without
+replaying old kill celebrations. Training also receives personal KILL events.
