@@ -70,7 +70,7 @@ addEventListener("pagehide",function(){BACKGROUND_SIM.ticker.dispose();});
     if(lob&&mapPreviewSceneBomb){var an=performance.now()/7500,cam=bombMapInfo(selectedBombMapId).preview;if(cam){C.position.set(cam.x+Math.sin(an)*2,cam.y,cam.z+Math.cos(an)*2);C.lookAt(cam.lookX,cam.lookY,cam.lookZ);ft=cam.fov;}else{C.position.set(25+Math.sin(an)*1.6,2.25,5+Math.cos(an)*1.6);C.lookAt(25+Math.sin(an+0.8)*12,2.1,5+Math.cos(an+0.8)*12);ft=72;}}
     else if(lob&&selM===0&&tdmMapId(selectedTdmMapId)==="block-labs"){var cc=tdmMapInfo(selectedTdmMapId).preview;C.position.set(cc.x+Math.sin(la)*.8,cc.y,cc.z+Math.cos(la)*.8);C.lookAt(cc.lookX,cc.lookY,cc.lookZ);ft=cc.fov;}
      else{C.position.set(Math.sin(la)*34,13,Math.cos(la)*34);C.lookAt(0,2,0);ft=62;}
-  }else if(pl.dead&&onlineActive){
+  }else if(pl.dead&&onlineActive&&isBombMode()){
     ft=62;
     var target=onlineWorld&&onlineWorld.actors.find(function(a){return a.id===onlineWorld.observerId;});
     var follow=target||pl,ang=(target?target.yaw:pl.face)+.65;

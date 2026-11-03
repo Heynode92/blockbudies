@@ -1,3 +1,7 @@
+## 2026-11-04 — Fix online respawn NaN / restore DM drone and public kill-feed names
+- Show the original third-person Death Match drone camera and death-state UI during the server-issued five-second respawn window. Mirror the authenticated private respawnRemaining and interpolate only for display; the server controls actual spawn.
+- Resolve kill-feed identity from authenticated public scoreboard and room membership, even when the shooter or victim 3D mesh has been redacted by fog-of-war. Call the original kFeed for every verified kill with sanitized callsigns and no position leakage.
+
 ## 2026-11-03 — Align roster stacking with parent room grid breakpoints
 - Team roster panels stack only when the parent room layout also switches to auto-height rows (1130px), preventing two five-slot teams from overflowing a fixed-height desktop track between 1131px and 1200px.
 

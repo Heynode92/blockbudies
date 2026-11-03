@@ -43,7 +43,7 @@
 .kfr .wp svg{display:block;width:60px;height:25px;fill:#fff;filter:drop-shadow(0 1px 1px rgba(0,0,0,.85))}
 .kfr .hsi svg{display:block;width:16px;height:16px}
 .touch #kfd{top:calc(env(safe-area-inset-top,0px) + 60px)}.touch .kfr{font-size:14px}.touch .kfr .wp svg{width:48px;height:20px}
-.lobby #kfd,.dead #kfd{display:none}
+.lobby #kfd{display:none}
 #kf{position:fixed;inset:0;pointer-events:none;opacity:0;z-index:4}
 #kf.kfl{animation:kfl .55s ease-out}
 #kf.dk{background:radial-gradient(circle at 50% 38%,rgba(255,212,59,.45),transparent 62%)}

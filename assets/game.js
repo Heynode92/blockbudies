@@ -7665,6 +7665,23 @@ var onlinePendingKillTick=-1,onlinePendingKillTotal=null;
 var onlinePendingWeapon=null,onlinePendingWeaponAt=0,onlineHitMarker=null,onlineHitUntil=0;
 var onlineShotTracers=[];
 var onlineScoreboard=new Map(),onlineSeenKillIds=new Set();
+// Public identity metadata only, independent of actor visibility/coordinates.
+function onlineCleanCallsign(value,fallback){
+ return typeof value==='string'&&/^[A-Za-z0-9_]{1,12}$/.test(value)?value:fallback;
+}
+function onlinePublicActor(id){
+ if(id===onlineUserId())return {name:onlineCleanCallsign(onlineApi?.state().player?.username,'You'),tm:pl.tm,bot:false};
+ var member=roomCurrent?.members?.find(m=>m.playerId===id);
+ var score=onlineGame?.scoreboard?.find(a=>a.id===id);
+ var cached=onlineScoreboard.get(id),model=onlineActors.get(id)?.model;
+ var isBot=typeof score?.botName==='string'||(typeof id==='string'&&id.startsWith('BOT-'));
+ var name=isBot?onlineCleanCallsign(score?.botName,onlineCleanCallsign(cached?.name,'BOT')):
+  onlineCleanCallsign(member?.username,onlineCleanCallsign(cached?.name,onlineCleanCallsign(model?.name,'PLAYER')));
+ var team=score?.team===0||score?.team===1?score.team:
+  member?.team===0||member?.team===1?member.team:
+  cached?.tm===0||cached?.tm===1?cached.tm:0;
+ return {name:name,tm:team,bot:isBot};
+}
 // Local display-only movement, never an authoritative position or damage claim.
 var onlinePredSteps=[],onlineCorrection={x:0,y:0,z:0},onlineHasPrediction=false;
 var onlineLastAuthTick=-1,onlineLastAck=0,onlineLastAccepted=0;
@@ -8755,15 +8772,16 @@ function onlineReceiveFrame(frame){
   if(event?.kind==='MATCH_END')onlineLastWinner=event.winner;
   if(event?.kind==='EXPLOSION_RESULT')onlineApplyVerifiedExplosion(event);
   if(event?.kind==='KILL'&&onlineActive){
-   var attacker=event.actorId===onlineUserId()?pl:onlineActors.get(event.actorId)?.model;
-   var eliminated=event.victimId===onlineUserId()?pl:onlineActors.get(event.victimId)?.model;
-   var actor=attacker?.name||'PLAYER',victim=eliminated?.name||'PLAYER';
-   // Reuse canonical offline kFeed() for previously authorized actors.
-   // Do not create a hidden enemy model/location solely for a kill feed.
-   if(eliminated)kFeed(attacker||null,event.weaponId,!!event.headshot,eliminated);
+   // Both names are public match-roster identities. Never depend on the
+   // transient 3D actor mesh, which may already be redacted by fog-of-war.
+   var actor=onlinePublicActor(event.actorId),victim=onlinePublicActor(event.victimId);
+   var killer=event.actorId===onlineUserId()?pl:actor;
+   var target=event.victimId===onlineUserId()?pl:victim;
+   kFeed(killer,Number.isInteger(event.weaponId)?event.weaponId:1,!!event.headshot,target);
+   if(event.victimId===onlineUserId())pl.kb=actor.name;
    onlineConfirmedDeath(event);
    onlineApplyVerifiedKill(event);
-   roomLiveLog(actor+' ELIMINATED '+victim);
+   roomLiveLog(actor.name+' ELIMINATED '+victim.name);
   }
   return;
  }
@@ -8943,9 +8961,23 @@ function onlineApplyWorld(){
   pl.tm=self.team;
   onlineReconcileSelf(self,world.privateState,fresh);
   onlineSelfTarget={x:self.x,y:self.y,z:self.z};
+  var wasAlive=onlinePrevAlive,privateState=world.privateState;
   pl.dead=!self.alive;
-  if(!self.alive&&onlinePrevAlive){resetKillStreak();kn.innerHTML='';}
-  var privateState=world.privateState;
+  if(!self.alive&&wasAlive){
+   resetKillStreak();kn.innerHTML='';pl.rt=0;pl.rsT=0;pl.kb='';
+   mouse.down=mouse.right=false;fireHeld=false;
+   document.body.classList.toggle('dead',!isBombMode());
+   document.body.classList.toggle('bomb-spectator',isBombMode());
+   if(pm?.g){pm.g.visible=true;pm.g.position.set(pl.x,pl.y||0,pl.z);}
+  }else if(self.alive&&!wasAlive){
+   pl.rsT=0;pl.rt=0;pl.kb='';
+   document.body.classList.remove('dead','bomb-spectator');
+   if(pm?.g)pm.g.visible=false;
+  }
+  if(!self.alive&&fresh){
+   pl.rsT=Number.isFinite(privateState?.respawnRemaining)?
+     Math.max(0,privateState.respawnRemaining):0;
+  }
   pl.hp=privateState?.hp??self.hp??pl.hp;
   pl.vest=privateState?.vest??self.vest??pl.vest;
   if(Number.isFinite(privateState?.spawnShieldRemaining))pl.inv=Math.max(0,privateState.spawnShieldRemaining);
@@ -9146,6 +9178,10 @@ function onlineVisualUpdate(dt){
   }
  }
  onlineApplyWorld();
+ // Countdown may only interpolate the server's authenticated respawnRemaining.
+ // Never invoke the offline respawn function in an online match.
+ if(pl.dead&&!isBombMode())
+  pl.rsT=Math.max(0,(Number.isFinite(pl.rsT)?pl.rsT:0)-Math.max(0,dt));
  // First-person camera responds immediately on every render frame; it never
  // waits for a 10 Hz server snapshot to permit movement.
  if(!pl.dead&&onlineHasPrediction&&now-onlineLastSnapshotAt<600){
@@ -9367,7 +9403,7 @@ addEventListener("pagehide",function(){BACKGROUND_SIM.ticker.dispose();});
     if(lob&&mapPreviewSceneBomb){var an=performance.now()/7500,cam=bombMapInfo(selectedBombMapId).preview;if(cam){C.position.set(cam.x+Math.sin(an)*2,cam.y,cam.z+Math.cos(an)*2);C.lookAt(cam.lookX,cam.lookY,cam.lookZ);ft=cam.fov;}else{C.position.set(25+Math.sin(an)*1.6,2.25,5+Math.cos(an)*1.6);C.lookAt(25+Math.sin(an+0.8)*12,2.1,5+Math.cos(an+0.8)*12);ft=72;}}
     else if(lob&&selM===0&&tdmMapId(selectedTdmMapId)==="block-labs"){var cc=tdmMapInfo(selectedTdmMapId).preview;C.position.set(cc.x+Math.sin(la)*.8,cc.y,cc.z+Math.cos(la)*.8);C.lookAt(cc.lookX,cc.lookY,cc.lookZ);ft=cc.fov;}
      else{C.position.set(Math.sin(la)*34,13,Math.cos(la)*34);C.lookAt(0,2,0);ft=62;}
-  }else if(pl.dead&&onlineActive){
+  }else if(pl.dead&&onlineActive&&isBombMode()){
     ft=62;
     var target=onlineWorld&&onlineWorld.actors.find(function(a){return a.id===onlineWorld.observerId;});
     var follow=target||pl,ang=(target?target.yaw:pl.face)+.65;
