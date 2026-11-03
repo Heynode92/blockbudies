@@ -1,3 +1,8 @@
+## 2026-11-04 — Server-verified room loading and master handoff copy
+- Online match transition opens the existing 3D map cover on authenticated WS attach; real map capture and actual game engine/scene initialization precede a single client_ready acknowledgement. The backend decides when all human clients are connected, runs its countdown and emits match_live. Only then may loading reach 100% or the player enter gameplay; BOTs cannot get a head start.
+- Move loading rail near bottom, preserve original orange/steel-blue FPS aesthetic, and replace technical phase labels with friendly English. Legacy offline loading stays untouched.
+- Room Master leave confirmation now explains actual transactional successor behavior, not outdated room closure.
+
 ## 2026-11-04 — Restore visible second grenade in online first-person viewmodel
 - Root cause: authorised throw set pl.ghide=0.65 but onlineVisualUpdate never decremented it, unlike the offline update() loop. The selected grenade model therefore remained hidden permanently even when server ammo HUD showed 1/2.
 - Decrement the same visual-only timer every online render frame and reset it on session teardown. Original first-person 3D grenade and throw animation reappear after the normal .65-second handoff; do not invent new grenade counts or client-side ammo.

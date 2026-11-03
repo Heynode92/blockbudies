@@ -3,6 +3,7 @@
 // The original rendering, UI transitions, map art and viewmodels are preserved.
 var onlineApi=typeof PB_ONLINE!=='undefined'?PB_ONLINE:null;
 var onlineActive=false,onlineTraining=false,onlineCurrentId=null,onlineMatchId=null;
+var onlineServerPhase='CONNECTING',onlineClientSceneReady=false,onlineLoadParticipants={ready:0,total:0};
 var onlineWorld=null,onlineGame=null,onlineActors=new Map(),onlineSeq=0,onlineSendAt=0,onlineMeId=null;
 var onlineLobbyTimer=0,onlineRoomOpening=false,onlineRoomTimer=0,onlineRouteToken=0,onlineAttaching=false;
 var onlineTeamNotice=null,onlineInputId=0,onlineVisualLoaded=false;
@@ -771,7 +772,7 @@ async function onlineSwitchTeam(team){
 function onlineConfirmLeaveRoom(){
  if(!onlineAuth()||!roomCurrent)return;
  onlineRoomDialog('LEAVE ROOM?',
-  onlineIsMaster()?'Are you sure you want to leave? As Room Master, this will close the room for all players.':
+  onlineIsMaster()?'Are you sure you want to leave? Room Master will pass to the next player. If no one remains, this room will close.':
     'Are you sure you want to leave this room and return to the Room Browser?',
   'YES','NO',onlineLeaveRoom);
 }
@@ -816,6 +817,7 @@ function onlineResetLive(){
  onlineCombatQa={fireInputs:0,confirmedShots:0,confirmedHits:0,wallImpacts:0,damageTaken:0,lastEvent:'NONE'};
  onlineActive=false;onlineTraining=false;onlineCurrentId=null;onlineMatchId=null;
  onlineWorld=null;onlineGame=null;
+ onlineServerPhase='CONNECTING';onlineClientSceneReady=false;onlineLoadParticipants={ready:0,total:0};
  document.getElementById('dv').classList.remove('online-results');
  pl.kb='';pl.rsT=0;pl.rt=0;pl.dt=0;pl.ghide=0;
  if(pl.bloodPool){bloodPoolRemove(pl.bloodPool);pl.bloodPool=null;}
@@ -929,6 +931,29 @@ async function onlineMasterStart(){
  }catch(error){onlineWarn(error)}
  finally{startControl.disabled=false}
 }
+function onlineMatchLoadingStatus(frame){
+ if(!onlineActive||!frame||frame.matchId!==onlineMatchId)return;
+ if(!['CONNECTING','COUNTDOWN','LIVE'].includes(frame.phase))return;
+ onlineServerPhase=frame.phase;
+ onlineLoadParticipants={ready:Number.isSafeInteger(frame.ready)?frame.ready:0,
+  total:Number.isSafeInteger(frame.total)?frame.total:0};
+ var flow=roomStartFlow;
+ if(!flow.active||flow.phase!=='server-wait')return;
+ var total=Math.max(1,onlineLoadParticipants.total),ready=Math.min(total,onlineLoadParticipants.ready);
+ if(frame.phase==='CONNECTING')roomStartMark(65+Math.floor(28*ready/total),
+  'CONNECTING TO SERVER · '+ready+'/'+total+' PLAYERS READY');
+ else if(frame.phase==='COUNTDOWN')roomStartMark(96,'ALL PLAYERS CONNECTED · MATCH STARTING');
+ else onlineCompleteServerLoading(flow.token);
+}
+function onlineCompleteServerLoading(token){
+ var flow=roomStartFlow;
+ if(!onlineActive||!flow.active||flow.token!==token||flow.phase!=='server-wait'||
+    !onlineClientSceneReady||onlineServerPhase!=='LIVE')return;
+ flow.phase='preparing';
+ flow.loadoutSeconds=0; // No second loadout lock after the server GO signal.
+ roomStartMark(100,'DEPLOYMENT COMPLETE');
+ roomStartReveal(token);
+}
 function onlineBeginTransition(room){
  onlineResultsDisplayed=false;
  var flow=roomStartFlow;
@@ -937,13 +962,12 @@ function onlineBeginTransition(room){
  selM=room.mode;selectedGameMode=room.mode;
  modePreviewSelect(selM);
  if(flow.active)roomStartAbort();
- flow.active=true;flow.phase='countdown';flow.token++;
- flow.team=roomSide;flow.config={...room};
- flow.deadline=performance.now()+ROOM_START_COUNTDOWN*1000;
- document.getElementById('roomPrestartNumber').textContent=String(ROOM_START_COUNTDOWN);
- document.getElementById('roomPrestart').hidden=false;
- var token=flow.token;
- flow.raf=requestAnimationFrame(function(now){roomStartCountdown(now,token)});
+ flow.active=true;flow.phase='loading';flow.token++;
+ flow.team=roomSide;flow.config={...room};flow.mapReady=false;flow.loadoutSeconds=0;
+ onlineClientSceneReady=false;
+ document.getElementById('roomPrestart').hidden=true;
+ // Only server states advance beyond map/renderer initialization.
+ roomStartLoading(flow.token);
 }
 function onlineUserId(){
  return onlineTraining?onlineMeId:onlineApi?.state().player?.id;
@@ -1160,6 +1184,12 @@ function onlineFinalizeCompletedMatch(frame){
  onlineShowVerifiedReward(matchId);
 }
 function onlineReceiveFrame(frame){
+ if(frame.type==='match_loading'){
+  onlineMatchLoadingStatus(frame);return;
+ }
+ if(frame.type==='match_live'){
+  onlineMatchLoadingStatus({...frame,phase:'LIVE'});return;
+ }
  if(frame.type==='lobby_snapshot'){
   if(roomCurrent&&frame.roomId===roomCurrent.id)void onlineApi.getRoom(roomCurrent.id)
    .then(r=>onlineLiveRoomDecorate(onlineAdoptRoom(r))).catch(onlineWarn);
@@ -1168,7 +1198,10 @@ function onlineReceiveFrame(frame){
  if(frame.type==='match_ready'||frame.type==='training_ready'||
     frame.type==='match_snapshot'||frame.type==='training_snapshot'){
   // Rejoined masters recover the same matchId from the authoritative WS handshake.
-  if(frame.type==='match_ready'&&typeof frame.matchId==='string')onlineMatchId=frame.matchId;
+  if(frame.type==='match_ready'&&typeof frame.matchId==='string'){
+   onlineMatchId=frame.matchId;
+   if(frame.loading?.phase)onlineServerPhase=frame.loading.phase;
+  }
   if(frame.world&&Number.isSafeInteger(frame.world.serverTick)){
    // Drop out-of-order authoritative world snapshots. Snapshot telemetry is opt-in.
    if(onlineWorld&&frame.world.matchId===onlineWorld.matchId&&

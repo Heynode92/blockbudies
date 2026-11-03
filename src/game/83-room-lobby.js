@@ -458,7 +458,8 @@ function roomStartLoading(token){
  MENU_BGM.leaveMenu(); // Smooth 1.4s fade while the 3D map loading cover is visible.
  var overlay=document.getElementById("roomTransition");
  overlay.hidden=false;overlay.classList.remove("leaving");
- roomStartMark(0,"CAPTURING 3D MAP");
+ roomStartMark(typeof onlineActive!=="undefined"&&onlineActive?15:0,
+  typeof onlineActive!=="undefined"&&onlineActive?"CONNECTING TO SERVER":"CAPTURING 3D MAP");
  flow.raf=requestAnimationFrame(function(){
   if(!flow.active||token!==flow.token)return;
   overlay.classList.add("on");
@@ -467,7 +468,8 @@ function roomStartLoading(token){
 }
 function roomStartLoadingCover(token,openedAt){
  var flow=roomStartFlow;if(!flow.active||token!==flow.token||flow.phase!=="loading")return;
- if(flow.mapReady&&document.getElementById("roomStartPercent").textContent==="0%")roomStartMark(25,"3D MAP READY");
+ if(flow.mapReady&&document.getElementById("roomStartPercent").textContent===(onlineActive?"15%":"0%"))
+  roomStartMark(onlineActive?38:25,onlineActive?"BATTLEFIELD LOADED":"3D MAP READY");
  var elapsed=performance.now()-openedAt;
  if(!flow.mapReady&&elapsed>5500){roomStartAbort();roomLiveLog("3D map is not ready. Try again.");return;}
  if(!flow.mapReady||elapsed<500){
@@ -480,17 +482,36 @@ function roomStartPrepareGame(token){
  var flow=roomStartFlow;if(!flow.active||token!==flow.token||flow.phase!=="loading")return;
  var room=flow.config;
  if(!roomCurrent||roomCurrent.id!==room.id){roomStartAbort();return;}
- flow.phase="preparing";roomStartMark(50,"PREPARING MATCH");
+ flow.phase="preparing";roomStartMark(50,onlineActive?"LOADING GAME ASSETS":"PREPARING MATCH");
  try{
   // Existing engine builds actual map, 5v5 BOTs and equipped weapon behind an opaque cover.
   roomMatchConfig=Object.assign({},room);selM=room.mode;begin(flow.team);
   flow.loadoutSeconds=mt.cd; // Preserve the original per-mode weapon selection duration.
   mt.cd=0;run=false;document.getElementById("rsp").textContent="";
-  roomStartMark(85,"INITIALIZING GAMEPLAY");
+  roomStartMark(onlineActive?60:85,onlineActive?"PREPARING BATTLEFIELD":"INITIALIZING GAMEPLAY");
  }catch(err){
   run=false;lob=true;lb.style.display="flex";document.body.classList.add("lobby");
   lobP("lbroomlive");roomStartAbort();roomSetMessage("Match could not start. Please retry.");
   if(typeof console!=="undefined")console.error("Room launch failed",err);
+  return;
+ }
+ // Online: a real rendered world + authenticated WebSocket acknowledgement
+ // are required before backend may tick a BOT or start the match timer.
+ if(typeof onlineActive!=="undefined"&&onlineActive&&!onlineTraining){
+  flow.phase="server-wait";
+  flow.raf=requestAnimationFrame(function(){
+   if(!flow.active||token!==flow.token)return;
+   flow.raf=requestAnimationFrame(function(){
+    if(!flow.active||token!==flow.token)return;
+    flow.raf=0;
+    if(!onlineApi?.live?.send({type:'client_ready',matchId:onlineMatchId})){
+     roomStartAbort();onlineWarn('MATCH_CONNECTION_LOST');return;
+    }
+    onlineClientSceneReady=true;
+    onlineMatchLoadingStatus({matchId:onlineMatchId,phase:onlineServerPhase,
+      ready:onlineLoadParticipants.ready,total:onlineLoadParticipants.total});
+   });
+  });
   return;
  }
  // Let the render loop draw gameplay frames but never simulate the match until fade finishes.
