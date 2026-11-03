@@ -1,3 +1,9 @@
+## 2026-11-03 — Show live vPBT and server rank/EXP in shared lobby header; themed SIWE gate
+- Add a separate verified vPBT balance beside the unchanged future PBT placeholder, and display registered callsign, official rank and current/required EXP with policy-supplied next-rank threshold on Home and room headers.
+- Preserve half-unit precision using BigInt-only formatting and show a placeholder until authenticated server data exists; do not invent token balances, rank points or credentials.
+- Add a PointBlock-themed, accessible wallet-signature dialog for protected Home/Inventory entry with the genuine existing EIP-1193/SIWE flow. Shop and Leaderboard remain unaffected.
+- Responsive header and focused regression cases; no damage, BOT, match score or wallet transaction changes.
+
 ## 2026-11-03 — Extend isolated online visual regression context
 - Existing VM regression for original muzzle/blood lifetime now includes offline impact-FX and toast state, matching the shared visual lifecycle without changing production gameplay.
 

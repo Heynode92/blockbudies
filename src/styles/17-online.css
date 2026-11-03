@@ -10,3 +10,82 @@
 
 #verifiedReward[hidden]{display:none}
 #verifiedReward.point-online-result-reward{margin:12px 0 4px;text-align:center;color:#c9e1f3;font:700 13px Rajdhani,Arial,sans-serif;letter-spacing:.08em}
+
+/* UI additions reuse the existing PointBlock steel-blue/orange tactical palette. */
+#gameLobbyHeader .home-progress-panel[hidden],.wallet-gate-overlay[hidden]{display:none!important}
+#gameLobbyHeader .home-progress-panel{box-sizing:border-box;flex:0 1 205px;min-width:154px;
+ max-width:225px;height:54px;padding:6px 10px 7px;border:1px solid #345676;border-left:3px solid #ff9135;
+ border-radius:4px;background:linear-gradient(115deg,#13253d,#081522);color:#eaf4ff}
+#gameLobbyHeader .home-progress-head{display:flex;align-items:baseline;gap:7px;white-space:nowrap;min-width:0}
+#gameLobbyHeader .home-progress-head small{color:#f9a75b;font:800 10px Rajdhani,sans-serif;max-width:83px;overflow:hidden;text-overflow:ellipsis}
+#gameLobbyHeader .home-progress-head strong{color:#fff;font:900 12px Rajdhani,sans-serif;overflow:hidden;text-overflow:ellipsis;min-width:0}
+#gameLobbyHeader .home-progress-foot{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:3px}
+#gameLobbyHeader .home-progress-foot span{font:800 9px Rajdhani,sans-serif;letter-spacing:.1em;color:#8eb9dd}
+#gameLobbyHeader .home-progress-foot b{font:800 10px Rajdhani,sans-serif;color:#f6f8fc;white-space:nowrap}
+#gameLobbyHeader .home-progress-track{height:4px;margin-top:3px;border-radius:4px;overflow:hidden;background:#34465c}
+#gameLobbyHeader .home-progress-track i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ed721d,#ffd16e);transition:width .3s ease-out}
+#gameLobbyHeader .home-vpbt{display:flex;align-items:center;gap:8px;box-sizing:border-box;min-width:120px;height:43px;
+ padding:4px 10px;border:1px solid #3b6a67;border-radius:5px;background:rgba(10,41,41,.8)}
+#gameLobbyHeader .home-vpbt-icon{display:grid;place-items:center;width:27px;height:27px;flex:none;border-radius:50%;
+ color:#063c31;background:linear-gradient(135deg,#73f1ce,#25a88f);font:900 16px Impact,sans-serif}
+#gameLobbyHeader .home-vpbt-amount{display:flex;min-width:0;flex-direction:column;gap:3px}
+#gameLobbyHeader .home-vpbt-amount small{color:#89d8c0;font:900 10px Rajdhani,sans-serif;letter-spacing:.1em}
+#gameLobbyHeader .home-vpbt-amount strong{color:#edfff9;font:900 15px Rajdhani,sans-serif;white-space:nowrap;font-variant-numeric:tabular-nums}
+.wallet-gate-overlay{position:fixed;z-index:85;inset:0;display:grid;place-items:center;padding:16px;
+ box-sizing:border-box;background:rgba(2,8,18,.78);backdrop-filter:blur(7px)}
+.wallet-gate-card{box-sizing:border-box;position:relative;width:min(470px,100%);padding:27px 30px 28px;
+ border:1px solid #42627e;border-top:3px solid #ff912c;color:#e8f2ff;text-align:left;
+ background:linear-gradient(150deg,#162c44,#091728 72%);box-shadow:0 26px 70px #000b;
+ font-family:Rajdhani,'Trebuchet MS',sans-serif}
+.wallet-gate-card::after{content:"";position:absolute;right:0;bottom:0;width:28px;height:28px;border-right:3px solid #ff922b;border-bottom:3px solid #ff922b;pointer-events:none}
+.wallet-gate-kicker{font:900 12px Rajdhani,sans-serif;letter-spacing:.17em;color:#ffb264}
+.wallet-gate-icon{color:#ffd68d;margin-right:6px}
+.wallet-gate-card h2{font:italic 900 clamp(29px,7vw,42px)/1.05 Impact,'Arial Black',sans-serif;letter-spacing:.05em;margin:18px 0 8px}
+.wallet-gate-card p{font:600 15px/1.45 Rajdhani,sans-serif;color:#b5cde4;margin:0 0 20px}
+.wallet-gate-network{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:12px 13px;
+ border:1px solid #335575;background:rgba(8,20,34,.85)}
+.wallet-gate-pulse{width:7px;height:7px;border-radius:50%;background:#39d7a1;box-shadow:0 0 10px #38d39e}
+.wallet-gate-network b{font:900 12px Rajdhani,sans-serif;letter-spacing:.1em;color:#cdeaf7}
+.wallet-gate-network small{font:700 10px Rajdhani,sans-serif;letter-spacing:.08em;color:#95b5cc}
+.wallet-gate-card .wallet-gate-error{color:#ffbbad;font-size:12px;font-weight:800;margin:10px 0 0}
+.wallet-gate-card .wallet-gate-error[hidden]{display:none}
+.wallet-gate-actions{display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:22px}
+.wallet-gate-actions button{min-height:44px;cursor:pointer;border:1px solid #53708a;
+ padding:8px 19px;color:#e2ecf7;background:#1a3048;font:900 13px Rajdhani,sans-serif;letter-spacing:.12em}
+.wallet-gate-actions #walletGateConnect{background:linear-gradient(100deg,#e56415,#ff9c3d);color:#fff;border-color:#ffb67b}
+.wallet-gate-actions button:focus-visible{outline:2px solid #ffd58b;outline-offset:2px}
+.wallet-gate-actions button:disabled{opacity:.55;cursor:wait}
+.wallet-gate-close{position:absolute;right:12px;top:9px;border:0;background:none;color:#8fb0c9;
+ font:900 28px Rajdhani,sans-serif;cursor:pointer}
+@media(max-width:1500px){
+ #gameLobbyHeader .home-global-brand .home-meta{display:none}
+ #gameLobbyHeader .home-pbt{min-width:135px}
+ #gameLobbyHeader .home-top-actions{gap:8px}
+}
+@media(max-width:900px){
+ #lb{--bb-shared-header-height:142px}
+ #lbs.on{padding-top:160px}
+ #gameLobbyHeader{height:var(--bb-shared-header-height);align-content:space-around}
+ #gameLobbyHeader .home-top-actions{width:100%;justify-content:flex-end}
+ #gameLobbyHeader .home-progress-panel{height:44px;padding:4px 7px 5px;flex:0 1 170px}
+ #gameLobbyHeader .home-progress-track{margin-top:2px}
+ #gameLobbyHeader .home-vpbt,#gameLobbyHeader .home-pbt,#gameLobbyHeader #homeWalletConnect{height:40px}
+}
+@media(max-width:600px){
+ #lb{--bb-shared-header-height:190px}
+ #lbs.on{padding-top:202px}
+ #gameLobbyHeader{height:var(--bb-shared-header-height);align-content:flex-start}
+ #gameLobbyHeader .home-top-actions{flex-wrap:wrap;justify-content:center;gap:7px;margin-top:0}
+ #gameLobbyHeader .home-progress-panel{flex:1 1 100%;max-width:none;height:46px}
+ #gameLobbyHeader .home-vpbt{min-width:90px;flex:1}
+ #gameLobbyHeader .home-pbt{min-width:110px;flex:1}
+ #gameLobbyHeader #homeWalletConnect{width:130px;flex:0 0 130px}
+}
+@media(max-width:420px){
+ #lb{--bb-shared-header-height:220px}
+ #lbs.on{padding-top:230px}
+ #gameLobbyHeader .home-top-actions{justify-content:space-between}
+ #gameLobbyHeader .home-vpbt,#gameLobbyHeader .home-pbt{flex:1 1 42%}
+ #gameLobbyHeader #homeWalletConnect{width:100%;flex:1 1 100%}
+}
+@media(prefers-reduced-motion:reduce){#gameLobbyHeader .home-progress-track i{transition:none}}

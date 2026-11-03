@@ -3762,9 +3762,34 @@ function homeShowcaseSync(){
 document.addEventListener("visibilitychange",homeShowcaseSync);
 homeDemoUpdateLabel("deathmatch");
 homeShowcaseSync();
-// Authentication is completed by backend SIWE signature verification, not wallet connect.
+// Wallet identity is the backend SIWE session, never an unsigned provider account.
 var homeWalletButton=document.getElementById("homeWalletConnect"),
-    homeWalletAccount=null,homeWalletLabel=document.getElementById("homeWalletLabel");
+ homeWalletAccount=null,homeWalletLabel=document.getElementById("homeWalletLabel");
+function homeFormatHalf(value){
+ if((typeof value!=='string'&&!Number.isSafeInteger(value))||
+    !/^[0-9]+$/.test(String(value)))return '—';
+ var half=BigInt(value),integer=(half/2n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,',');
+ return integer+(half%2n?'.5':'');
+}
+function homeProfileRender(state){
+ var player=state?.authenticated&&state.registered?state.player:null;
+ var panel=document.getElementById('homeProgressPanel'),balance=document.getElementById('homeVpbtBalance');
+ balance.textContent=player?homeFormatHalf(player.currentHalfVpbt):'—';
+ panel.hidden=!player;
+ if(!player)return;
+ document.getElementById('homeRankCallsign').textContent=String(player.username||'PLAYER').slice(0,12);
+ document.getElementById('homeRankName').textContent=String(player.rank||'—').slice(0,48);
+ var earned=homeFormatHalf(player.currentRankHalfExp),required=player.nextRankHalfExp;
+ var capped=required===null&&Number.isSafeInteger(player.rankIndex);
+ document.getElementById('homeRankExp').textContent=capped?'MAX RANK':earned+' / '+homeFormatHalf(required);
+ var safe=Number.isSafeInteger(player.currentRankHalfExp)&&player.currentRankHalfExp>=0&&
+   Number.isSafeInteger(required)&&required>0;
+ var progress=safe?Math.min(100,Math.max(0,player.currentRankHalfExp/required*100)):capped?100:0;
+ document.getElementById('homeRankFill').style.width=progress+'%';
+ var meter=panel.querySelector('.home-progress-track');
+ meter.setAttribute('aria-valuenow',String(Math.round(progress)));
+ meter.setAttribute('aria-valuetext',capped?'MAX RANK':earned+' of '+homeFormatHalf(required)+' EXP');
+}
 function homeWalletRender(){
  var state=typeof PB_ONLINE!=="undefined"?PB_ONLINE.state():{configured:false,authenticated:false,address:null};
  homeWalletAccount=state.authenticated?state.address:null;
@@ -3773,15 +3798,78 @@ function homeWalletRender(){
  homeWalletButton.classList.toggle("connected",!!homeWalletAccount);
  homeWalletButton.setAttribute("aria-label",homeWalletAccount?
   "Authenticated Robinhood Mainnet wallet "+homeWalletAccount:"Connect wallet and sign in");
+ homeProfileRender(state);
 }
-homeWalletButton.addEventListener("click",function(){
- if(typeof PB_ONLINE==="undefined"){homeWalletLabel.textContent="BACKEND REQUIRED";return;}
- if(PB_ONLINE.state().authenticated){PB_ONLINE.logout().finally(homeWalletRender);return;}
- homeWalletButton.disabled=true;homeWalletLabel.textContent="SIGN IN…";
- PB_ONLINE.connectWallet().then(homeWalletRender).catch(function(err){
-  homeWalletLabel.textContent=err&&err.code||"SIGN IN FAILED";
+async function homeWalletSignIn(){
+ if(typeof PB_ONLINE==='undefined')throw Error('BACKEND_REQUIRED');
+ if(PB_ONLINE.state().authenticated)return PB_ONLINE.state();
+ homeWalletButton.disabled=true;homeWalletLabel.textContent='SIGN IN…';
+ try{
+  await PB_ONLINE.connectWallet();
+  homeWalletRender();
+  return PB_ONLINE.state();
+ }catch(error){
+  homeWalletLabel.textContent=error?.code||'SIGN IN FAILED';
   setTimeout(homeWalletRender,3500);
- }).finally(function(){homeWalletButton.disabled=false;});
+  throw error;
+ }finally{homeWalletButton.disabled=false;}
+}
+homeWalletButton.addEventListener('click',function(){
+ if(typeof PB_ONLINE==='undefined'){homeWalletLabel.textContent='BACKEND REQUIRED';return;}
+ if(PB_ONLINE.state().authenticated){PB_ONLINE.logout().finally(homeWalletRender);return;}
+ void homeWalletSignIn().catch(function(){});
+});
+// Shared PointBlock-themed modal. Home START and Inventory require an authenticated
+// SIWE account. Shop/Leaderboard remain navigable without this gate.
+var homeGateIntent='inventory',homeGateOverlay=document.getElementById('walletGateOverlay');
+function homeAuthGateClose(){
+ homeGateOverlay.hidden=true;
+ document.getElementById('walletGateError').hidden=true;
+ document.getElementById('walletGateConnect').disabled=false;
+}
+function homeAuthGateOpen(intent){
+ homeGateIntent=intent==='match'?'match':'inventory';
+ var state=typeof PB_ONLINE!=='undefined'?PB_ONLINE.state():null;
+ var enrolled=!!state?.authenticated&&!!state.registered;
+ if(enrolled){
+  homeAuthGateClose();
+  if(homeGateIntent==='inventory')inventoryOpen();
+  else void onlineStartGate();
+  return;
+ }
+ var registered=!!state?.authenticated;
+ document.getElementById('walletGateTitle').textContent=registered?'TRAINING REQUIRED':'CONNECT YOUR WALLET';
+ document.getElementById('walletGateText').textContent=registered?
+  'Finish verified training and register your callsign before entering your Inventory.':
+  homeGateIntent==='inventory'?
+   'Authenticate your wallet to access the weapons owned by your player account.':
+   'Sign in with your wallet to access verified matches and your player progression.';
+ document.getElementById('walletGateConnect').textContent=registered?'START TRAINING':'CONNECT & SIGN IN';
+ document.getElementById('walletGateError').hidden=true;
+ homeGateOverlay.hidden=false;
+ document.getElementById('walletGateConnect').focus();
+}
+document.getElementById('walletGateClose').addEventListener('click',homeAuthGateClose);
+document.getElementById('walletGateCancel').addEventListener('click',homeAuthGateClose);
+homeGateOverlay.addEventListener('click',function(event){if(event.target===homeGateOverlay)homeAuthGateClose();});
+addEventListener('keydown',function(event){
+ if(event.key==='Escape'&&!homeGateOverlay.hidden){event.preventDefault();event.stopImmediatePropagation();homeAuthGateClose();}
+},true);
+document.getElementById('walletGateConnect').addEventListener('click',async function(){
+ if(typeof PB_ONLINE==='undefined'){document.getElementById('walletGateError').textContent='BACKEND REQUIRED';document.getElementById('walletGateError').hidden=false;return;}
+ var button=this,errorBox=document.getElementById('walletGateError');
+ button.disabled=true;errorBox.hidden=true;
+ try{
+  var state=PB_ONLINE.state();
+  if(!state.authenticated)state=await homeWalletSignIn();
+  if(!state.registered){homeAuthGateOpen(homeGateIntent);return;}
+  var target=homeGateIntent;homeAuthGateClose();
+  if(target==='inventory')inventoryOpen();
+  else await onlineStartGate();
+ }catch(error){
+  errorBox.textContent=String(error?.code||'WALLET_SIGN_IN_FAILED').slice(0,96).replace(/_/g,' ');
+  errorBox.hidden=false;
+ }finally{button.disabled=false;}
 });
 homeWalletRender();
 // PBT is a visual placeholder until the token system has an audited contract and trusted balance source.
