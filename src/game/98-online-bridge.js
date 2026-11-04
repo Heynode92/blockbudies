@@ -80,6 +80,7 @@ var onlineTeamNotice=null,onlineInputId=0,onlineVisualLoaded=false;
 var onlineReconnectTimer=0,onlineReconnectStarted=0,onlineReconnecting=false;
 var onlineAimInitialized=false,onlineTrainingProgressValue=null,onlinePrevAlive=true;
 var onlineSelfTarget=null,onlineLastWinner=undefined,onlineMuzzleTime=0;
+var onlineGunplayMismatchWarned=false;
 var onlinePendingMatchCompleted=null,onlineResultsDisplayed=false,onlineReturnToRoomBusy=false;
 var onlineResultFallbackTimer=null;
 var ONLINE_MATCH_END_TIMING=Object.freeze({pauseMs:2000,announcementMs:2000});
@@ -599,8 +600,9 @@ function onlineShotTracer(frame,muzzle){
    frame.projectileSpeed:(w.spd||180),
   duration=Math.min(.15,Math.max(.075,24/speed));
  mesh.rotation.order='YXZ';mesh.rotation.set(-pitch,angle,0);
- if(muzzle&&[muzzle.x,muzzle.y,muzzle.z].every(Number.isFinite))mesh.position.copy(muzzle);
- else mesh.position.set(frame.x,frame.y,frame.z);
+ // Trajectory must begin at the server-confirmed spawn point, never the
+ // cosmetically predicted first-person viewmodel muzzle.
+ mesh.position.set(frame.x,frame.y,frame.z);
  S.add(mesh);
  onlineShotTracers.push({m:mesh,vx:Math.sin(angle)*Math.cos(pitch)*speed,
   vy:Math.sin(pitch)*speed,vz:Math.cos(angle)*Math.cos(pitch)*speed,t:duration});
@@ -1063,7 +1065,7 @@ function onlineResetLive(){
  onlineLastFrameAt=0;onlineLastSnapshotAt=0;onlineLastSnapshotTick=-1;onlineRemoteDelay=150;
  onlineFrameSamples.length=0;onlineSnapshotSamples.length=0;onlineCorrectionSize=0;
  if(onlinePerfPanel){onlinePerfPanel.remove();onlinePerfPanel=null;}
- onlineAimInitialized=false;onlineTrainingProgressValue=null;onlinePrevAlive=true;
+ onlineAimInitialized=false;onlineTrainingProgressValue=null;onlinePrevAlive=true;onlineGunplayMismatchWarned=false;
  onlineSelfTarget=null;onlineLastWinner=undefined;onlineMuzzleTime=0;onlineScoreboard.clear();onlineSeenKillIds.clear();
  onlinePendingKillTick=-1;onlinePendingKillTotal=null;onlineLastStallCheckAt=0;
  onlinePendingWeapon=null;onlinePendingWeaponAt=0;onlineHitUntil=0;
@@ -1525,6 +1527,10 @@ function onlineReceiveFrame(frame){
   onlineGrenadeExplosion(frame);return;
  }
  if(frame.type==='combat_shot'){
+  if(frame.weaponId!==4&&frame.weaponId!==5&&frame.ballisticRevision!==GUNPLAY_REVISION){
+   if(!onlineGunplayMismatchWarned){onlineGunplayMismatchWarned=true;onlineWarn('BALLISTIC_VERSION_MISMATCH');}
+   return;
+  }
   if(!onlineActive)return;
   if(frame.actorId===onlineUserId()){
    onlineCombatQa.confirmedShots++;
@@ -1546,7 +1552,7 @@ function onlineReceiveFrame(frame){
     bot.knifeAttackUntil=performance.now()+420;
     bot.knifeAttackAlt=frame.altFire===true;
    }
-   if(bot.weapon!==4&&bot.weapon!==5){
+   if(bot.weapon!==4&&bot.weapon!==5&&(!Number.isInteger(frame.pelletIndex)||frame.pelletIndex===0)){
     var muzzle=onlineShotMuzzle(frame);
     if(muzzle)enemyShotFx(bot,muzzle.x,muzzle.y,muzzle.z);
    }
@@ -1961,7 +1967,12 @@ function onlineVisualUpdate(dt){
  }
  if(!wantsFire)onlineGrenadeCancelUntilRelease=false;
  onlineGrenadeChargeUI();
- var acceptedFire=wantsFire&&!onlineGrenadeCancelUntilRelease;
+ var gunplayCompatible=onlineGame?.ballisticRevision===GUNPLAY_REVISION;
+ if(onlineGame&&!gunplayCompatible&&!onlineGunplayMismatchWarned){
+  onlineGunplayMismatchWarned=true;
+  onlineWarn('BALLISTIC_VERSION_MISMATCH — UPDATE FE AND BE TOGETHER');
+ }
+ var acceptedFire=wantsFire&&!onlineGrenadeCancelUntilRelease&&gunplayCompatible;
  if(acceptedFire&&pl.w!==5&&pl.mag>0&&now-onlineMuzzleTime>Math.max(75,(WP[pl.w]?.cd||.14)*1000)){
   // Cosmetic prediction only: server decides shot legitimacy, ammo, hit and damage.
   onlineMuzzleTime=now;
