@@ -39,10 +39,10 @@ function botDamageReaction(e,d,kx,kz,head,confirmed){
   var hm=Math.hypot(kx||0,kz||0);
   if(hm>.01){e.hdx=kx/hm;e.hdz=kz/hm;}
 }
-function dmgE(e,d,kx,kz,ex,kind){
+function dmgE(e,d,kx,kz,ex,kind,weaponId){
   if(e.inv>0||e.dead)return;
   if(isBombMode())bombInterruptPlant(e);
-  d=defenseDamage(e,d,kind||"bullet-body");
+  d=defenseDamage(e,d,kind||"bullet-body",weaponId);
   botDamageReaction(e,d,kx,kz,kind==="head",false);
   e.hp-=d;
   if(e.hp<=0)killE(e,kx||0,kz||0,ex);
