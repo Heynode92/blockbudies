@@ -61,56 +61,54 @@ test("Projectile range remains a hard cap and non-bullet weapons do not fall off
  assert.match(read("src/game/45-combat.js"),/life:w\.life/);
  assert.match(read("src/game/45-combat.js"),/fo:w\.rangeModifier\?\[w\.rangeModifier,w\.rangeUnit\]:null/);
 });
-test("Impact uses falloff before headshot multiplier, helmet protects first bonus and vest remains 20%",()=>{
+test("Falloff still precedes helmet/headshot and the permanent body defense",()=>{
  const c=setup(),hits=[];
- c.pl={helm:true,vest:50};
+ c.pl={helm:true};
  c.popPl=()=>{c.pl.helm=false;};
  c.popHelm=e=>{e.helm=false;};
- c.hurt=(damage)=>hits.push(damage);
- c.dmgE=(e,damage)=>hits.push(damage);
+ c.hurt=(damage,...rest)=>hits.push({damage,rest});
+ c.dmgE=(e,damage,...rest)=>hits.push({damage,rest});
  runInNewContext(impact,c);
  const w=c.WP[9],shot={dmg:w.dmg,fo:[w.rangeModifier,w.rangeUnit],sx:0,sz:0,
    wid:9,by:{tm:0},vx:1,vz:0,m:{position:{x:60,z:0}}};
- const target={helm:true,vest:50};
+ const target={helm:true};
  c.projectileHitCharacter(shot,target,true);
- near(hits.at(-1),w.dmg*Math.pow(.98,3),"helmet headshot");
+ near(hits.at(-1).damage,w.dmg*Math.pow(.98,3),"helmeted headshot");
  c.projectileHitCharacter(shot,target,true);
- near(hits.at(-1),w.dmg*Math.pow(.98,3)*3,"unhelmeted headshot");
- assert.equal(target.vest,50);
+ near(hits.at(-1).damage,w.dmg*Math.pow(.98,3)*3,"unhelmeted headshot");
  c.projectileHitCharacter(shot,target,false);
- const body=hits.at(-1),defender={vest:50};
- near(c.defenseDamage(defender,body,"bullet-body"),body*.8,"vest reduction");
+ const rawBody=hits.at(-1).damage;
+ near(c.defenseDamage({},rawBody,"bullet-body",shot.wid),rawBody*.7,"30% body reduction");
+ assert.equal(hits.at(-1).rest.at(-1),shot.wid,"weapon identity is available to the reducer");
  assert.equal(c.DEFENSE_RULES.headshotMultiplier,3);
- assert.equal(c.DEFENSE_RULES.bodyReduction,.2);
+ assert.equal(c.DEFENSE_RULES.bodyReduction,.30);
+ assert.equal(c.DEFENSE_RULES.pumpShotgunBodyReduction,.20);
 });
-test("Body/head bullets-to-kill at 5 and 60 units respect vest durability and helmets",()=>{
+test("Body/head shots to eliminate 100 HP follow passive defense with fixed original falloff",()=>{
  const c=setup();
- function shots(id,d,head,armor,helmet){
+ function shots(id,d,head,helmet){
   const w=c.WP[id];if(d>w.range)return null;
-  const pellet=raw(w,d,c);let hp=100,vest=armor?50:0,helm=helmet,n=0;
+  const pellet=raw(w,d,c);let hp=c.DEFENSE_RULES.maxHp,helm=helmet,n=0;
   while(hp>0&&n<200){
    n++;
    for(let p=0;p<w.pel;p++){
-    let dmg=pellet;if(head){if(helm)helm=false;else dmg=c.defenseHeadshotDamage(dmg);}
-    const actor={vest};
-    hp-=c.defenseDamage(actor,dmg,head?"head":"bullet-body");
-    vest=actor.vest;if(hp<=0)break;
+    let dmg=pellet;
+    if(head){if(helm)helm=false;else dmg=c.defenseHeadshotDamage(dmg);}
+    hp-=c.defenseDamage({},dmg,head?"head":"bullet-body",id);
+    if(hp<=0)break;
    }
   }
   return n;
  }
- // [weapon ID, distance, body naked, body vest, head naked, head helmet]
- for(const [id,d,body,vest,head,helm] of [
-  [1,5,4,4,2,2],[1,60,4,5,2,2],
-  [9,5,3,4,1,2],[9,60,3,4,1,2],
-  [6,5,5,7,2,3],[6,60,9,11,3,4],
-  [0,5,4,5,2,2],[0,60,null,null,null,null]
- ]){
-  assert.equal(shots(id,d,false,false,false),body,"body "+id+"/"+d);
-  assert.equal(shots(id,d,false,true,false),vest,"vest "+id+"/"+d);
-  assert.equal(shots(id,d,true,false,false),head,"head "+id+"/"+d);
-  assert.equal(shots(id,d,true,true,true),helm,"helmet "+id+"/"+d);
+ for(const [id,nearRange,farRange] of [[1,5,60],[9,5,60],[6,5,60],[10,5,60],[11,5,60],[2,5,60],[8,5,60]]){
+  assert.ok(shots(id,nearRange,false,false)>=1);
+  assert.ok(shots(id,farRange,false,false)>=shots(id,nearRange,false,false),
+    "body TTK cannot improve with range for "+id);
+  assert.ok(shots(id,farRange,true,true)>=shots(id,farRange,true,false),
+    "helmet must not make headshot TTK faster for "+id);
  }
+ assert.equal(shots(2,5,false,false),1,"pump Shotgun five close-range torso pellets remain lethal");
+ assert.equal(shots(0,60,false,false),null,"legal maximum range unchanged");
 });
 test("Compiled browser runtime matches the new ordered weapon source",()=>{
  const parts=m.parts.filter(p=>p.startsWith("src/game/weapon/"));
