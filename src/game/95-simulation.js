@@ -25,6 +25,7 @@ function update(dt){
   if(!pl.dead&&!(isBombMode()&&pl.bAction)&&(keys.Space||jumpHeld)&&pl.y<=gy+.001)pl.vy=9;
   pl.vy-=28*dt;pl.y+=pl.vy*dt;gy=gh(pl.x,pl.z,py);
   if(pl.y<=gy){pl.y=gy;pl.vy=0;}
+  pl.gunplaySpeed=Math.hypot(pl.x-oldStepX,pl.z-oldStepZ)/Math.max(.001,dt);
   footstepAdvance(pl,Math.hypot(pl.x-oldStepX,pl.z-oldStepZ),!pl.dead&&pl.vy===0,false,true,wS);
   if(pl.vy===0&&Math.abs(pl.y-camY)<1.2)camY+=(pl.y-camY)*Math.min(1,dt*16);else camY=pl.y;
   var rk=pl.dead?0:1;pl.face-=ST.r.x*2.4*dt*rk;pl.pitch=Math.max(-1.2,Math.min(1.2,pl.pitch-ST.r.y*1.6*dt*rk));
