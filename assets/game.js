@@ -2279,9 +2279,56 @@ function cy(r1,r2,l,c,x,y,z){var m=new T.Mesh(new T.CylinderGeometry(r1,r2,l,12)
 // mkGun(i): builds the 3D model of weapon id i (see WEAPON IDS in the header). Barrel points to -z.
 // Dual Kriss (7) = two Kriss models: right one at x=0, left one at x=-0.52.
 // The AWP (8) stores its bolt handle in group.userData.bolt so animHands() can move it during the bolt cycle.
+// Derive the firing socket from the front-most actual mesh face. All coordinates
+// are gun-local, not guessed screen/world positions or legacy MZ offsets.
+// The socket is attached to the model, so any parent recoil/ADS/IK animation
+// automatically moves it with the barrel. Each Kriss has an independent socket.
+function gunGeometryMuzzleSocket(g){
+ g.updateWorldMatrix(true,true);
+ var fromWorld=new T.Matrix4().copy(g.matrixWorld).invert(),best=null;
+ g.traverse(function(mesh){
+  if(!mesh.isMesh||!mesh.geometry)return;
+  var geo=mesh.geometry;
+  if(!geo.boundingBox)geo.computeBoundingBox();
+  var box=geo.boundingBox;
+  if(!box)return;
+  var m=new T.Matrix4().multiplyMatrices(fromWorld,mesh.matrixWorld),tipZ=Infinity,
+      front=[],corner=new T.Vector3();
+  for(var ix=0;ix<2;ix++)for(var iy=0;iy<2;iy++)for(var iz=0;iz<2;iz++){
+   corner.set(ix?box.max.x:box.min.x,iy?box.max.y:box.min.y,
+    iz?box.max.z:box.min.z).applyMatrix4(m);
+   if(corner.z<tipZ-1e-6){tipZ=corner.z;front=[corner.clone()];}
+   else if(Math.abs(corner.z-tipZ)<1e-6)front.push(corner.clone());
+  }
+  if(front.length&&(!best||tipZ<best.z-1e-6)){
+   var center=new T.Vector3();
+   front.forEach(function(p){center.add(p);});
+   center.multiplyScalar(1/front.length);
+   best={x:center.x,y:center.y,z:tipZ};
+  }
+ });
+ if(!best)throw Error('Weapon has no muzzle-capable geometry');
+ var socket=new T.Object3D();
+ socket.name='pointblock-projectile-muzzle';
+ socket.position.set(best.x,best.y,best.z);
+ g.add(socket);
+ return socket;
+}
+function weaponMuzzleSocket(model,left){
+ if(!model)return null;
+ var sockets=model.userData.muzzleSockets;
+ return sockets?(left?sockets[1]:sockets[0]):model.userData.muzzleSocket||null;
+}
 function mkGun(i){var g=new T.Group(),a=function(){for(var k=0;k<arguments.length;k++)g.add(arguments[k]);};
   var build=WEAPON_MODEL_BUILDERS[i];if(!build)throw Error("Unknown weapon model "+i);
-  build(g,a);return g;}
+  build(g,a);
+  if(i===7){
+   g.userData.muzzleSockets=g.children.map(function(child){
+    return child.userData&&child.userData.muzzleSocket;
+   }).filter(Boolean);
+   if(g.userData.muzzleSockets.length!==2)throw Error('Dual Kriss muzzle sockets missing');
+  }else if(i!==4&&i!==5)g.userData.muzzleSocket=gunGeometryMuzzleSocket(g);
+  return g;}
 // hold = the first-person gun group (child of VS). guns[i] = model of weapon i; only guns[pl.w] is visible (set in loop()).
 // mflash/mflash2 = muzzle flash spheres (mflash2 is the LEFT gun flash for Dual Kriss at x=-0.52).
 var hold=new T.Group(),guns=WEAPON_PROFILES.map(function(p,i){return mkGun(i);});guns[3].scale.setScalar(.8);guns.forEach(function(g){hold.add(g);});
@@ -2655,54 +2702,68 @@ function toast(t){var e=document.getElementById("toast");e.textContent=t;e.style
 //  Player bullets start at the visible muzzle (hold.position + MZ) and are aimed at the crosshair distance D.
 //  Dual Kriss: shotSide flips each shot (0 = right gun, 1 = left gun at x-0.52) and the bullet spawns from that gun.
 //  Tracers are only visible for every 3rd bullet of rapid-fire weapons (performance); collision still happens for all bullets.
+// Transform the actual animated first-person barrel endpoint through BOTH
+// cameras. VS/VC projects the gun; C projects the world. Plainly applying
+// C.quaternion to a VS coordinate would be incorrect under ADS field-of-view.
+function offlineGunMuzzleWorld(o,id,left,face){
+ if(o===pl){
+  var local=weaponMuzzleSocket(guns[id],left);
+  if(!local)throw Error('Missing visible firing muzzle socket');
+  var view=local.getWorldPosition(new T.Vector3());
+  VC.updateMatrixWorld(true);
+  var ndc=view.clone().project(VC);
+  C.updateWorldMatrix(true,false);
+  var ray=new T.Vector3(ndc.x,ndc.y,.5).unproject(C)
+    .sub(C.position).normalize();
+  return C.position.clone().addScaledVector(ray,view.length());
+ }
+ var rg=o.g?.userData?.rg,socket=weaponMuzzleSocket(rg,left);
+ if(!socket)throw Error('Missing BOT firing muzzle socket');
+ // The BOT is simulated BEFORE the next frame's visual animation update.
+ o.g.position.set(o.x,o.y||0,o.z);o.g.rotation.y=face;
+ return socket.getWorldPosition(new T.Vector3());
+}
 function fire(o,face,w,own,adv){
  if(!w.pel)return;
  if(typeof botSoundEmit==='function')botSoundEmit(o,'gunshot');
- var weaponId=WP.indexOf(w),D=w.snp?90:w.dual?45:20;
+ var weaponId=WP.indexOf(w);
  if(!o.gunplayStates)o.gunplayStates=new Map();
  var state=o.gunplayStates.get(weaponId);
  if(!state){state=freshGunplayState();o.gunplayStates.set(weaponId,state);}
- // Recoil progresses once per trigger, not once per shotgun pellet.
  var shot=gunplayShot(weaponId,state,tt,{
   ads:own==='p'?adsT:0,speed:Math.max(0,o.gunplaySpeed||0),
   crouch:!!o.crouch,grounded:own==='p'?pl.vy===0:o.vy===0||o.vy===undefined
  },Math.random);
- var shotgun=w.pel>1&&w.stats&&w.stats.kind==='shotgun';
- var barrelPitch=(own==='p'?pl.pitch:(Number.isFinite(o.aimShotPitch)?o.aimShotPitch:0))+shot.pitch;
- var barrelYaw=face+shot.yaw;
+ var shotgun=w.pel>1&&w.stats&&w.stats.kind==='shotgun',
+  sightPitch=(own==='p'?pl.pitch:(Number.isFinite(o.aimShotPitch)?o.aimShotPitch:0))+shot.pitch,
+  sightYaw=face+shot.yaw,
+  eye=new T.Vector3(o.x,(o.y||0)+(own==='p'?1.5:1.4),o.z),
+  aimRange=Math.max(24,Math.min(80,w.spd*w.life)),side=w.dual?(shotSide=shotSide?0:1)===1:false,
+  muzzle=offlineGunMuzzleWorld(o,weaponId,side,face);
  for(var i=0;i<w.pel;i++){
   var pellet=shotgun?shotgunPelletSpread(i,w.pel):null,
-    pelletSpread=shotgun?w.spr*(own==='p'?(1-.23*adsT):1):0,
-    a=barrelYaw+(pellet?pellet[0]*pelletSpread:0),g=tracer(own,w.rk);
-  var mx0,my0,mz0,lx=0;
-  if(own==='p'){
-   if(w.dual)shotSide=shotSide?0:1;
-   lx=hold.position.x-(w.dual&&shotSide?.52:0);
-   var dd=-(hold.position.z+MZ[pl.w]);
-   mx0=o.x+Math.sin(face)*dd-Math.cos(face)*lx;
-   mz0=o.z+Math.cos(face)*dd+Math.sin(face)*lx;
-   my0=1.5+(o.y||0)+hold.position.y+.02;
-   a+=Math.atan(lx/D);
-  }else{
-   mx0=o.x+Math.sin(face)*1.1+Math.cos(face)*.05;
-   mz0=o.z+Math.cos(face)*1.1-Math.sin(face)*.05;
-   my0=1.07+(o.y||0)-.3*(o.crA||0);
-  }
-  var pitchAngle=own==='p'?
-   Math.atan2(1.5+(o.y||0)+D*Math.tan(barrelPitch)-my0,D):barrelPitch;
-  if(pellet)pitchAngle+=pellet[1]*pelletSpread;
-  pitchAngle=Math.max(-1.48,Math.min(1.48,pitchAngle));
-  var horizontal=Math.cos(pitchAngle),velocityX=Math.sin(a)*horizontal*w.spd,
-    velocityY=Math.sin(pitchAngle)*w.spd,velocityZ=Math.cos(a)*horizontal*w.spd;
+   spread=shotgun?w.spr*(own==='p'?(1-.23*adsT):1):0,
+   ay=sightYaw+(pellet?pellet[0]*spread:0),
+   ap=Math.max(-1.48,Math.min(1.48,sightPitch+(pellet?pellet[1]*spread:0))),
+   target=eye.clone().add(new T.Vector3(Math.sin(ay)*Math.cos(ap),
+    Math.sin(ap),Math.cos(ay)*Math.cos(ap)).multiplyScalar(aimRange)),
+   travel=target.sub(muzzle).normalize(),g=tracer(own,w.rk),
+   mx0=muzzle.x,my0=muzzle.y,mz0=muzzle.z;
   o.tc=(o.tc||0)+1;
   g.visible=!!(w.rk||w.pel>1||w.snp||o.tc%3===1);
-  g.rotation.order='YXZ';g.rotation.set(-pitchAngle,a,0);
-  if(Math.abs(mx0)>=A||Math.abs(mz0)>=A||sweepObs(o.x,my0,o.z,mx0,my0,mz0)||
-    sweepLT(o.x,my0,o.z,mx0,my0,mz0)||obsAt(mx0,mz0,my0)){mx0=o.x;mz0=o.z;}
+  g.quaternion.setFromUnitVectors(new T.Vector3(0,0,1),travel);
+  if(Math.abs(mx0)>=A||Math.abs(mz0)>=A||
+    sweepObs(eye.x,eye.y,eye.z,mx0,my0,mz0)||
+    sweepLT(eye.x,eye.y,eye.z,mx0,my0,mz0)||
+    obsAt(mx0,mz0,my0)){
+    // The barrel is obstructed by real solid collision: never spawn a
+    // projectile behind a wall just because the gun render pokes through it.
+    mx0=eye.x;my0=eye.y;mz0=eye.z;
+  }
   g.position.set(mx0,my0,mz0);S.add(g);
-  bl.push({m:g,vx:velocityX,vy:velocityY,vz:velocityZ,
-    life:w.life,ad:adv||0,dmg:w.dmg,own:own,tm:o.tm,by:o,rk:w.rk,
-    sx:o.x,sz:o.z,wid:weaponId,fo:w.rangeModifier?[w.rangeModifier,w.rangeUnit]:null});
+  bl.push({m:g,vx:travel.x*w.spd,vy:travel.y*w.spd,vz:travel.z*w.spd,
+   life:w.life,ad:adv||0,dmg:w.dmg,own:own,tm:o.tm,by:o,rk:w.rk,
+   sx:o.x,sz:o.z,wid:weaponId,fo:w.rangeModifier?[w.rangeModifier,w.rangeUnit]:null});
   if(typeof botQaEnabled!=='undefined'&&botQaEnabled)botQaShot(o,w,own,bl[bl.length-1]);
   if(own==='e'&&i===0)enemyShotFx(o,mx0,my0,mz0);
   if(w.rk&&own==='p')smoke(mx0,my0,mz0,6,1.4,.3,1.3,.25,0);
@@ -8326,7 +8387,7 @@ function onlineTickEffects(dt){
  }
  for(var n=onlineShotTracers.length-1;n>=0;n--){
   var beam=onlineShotTracers[n];beam.t-=dt;
-  if(beam.t<=0){S.remove(beam.m);onlineShotTracers.splice(n,1);continue;}
+  if(beam.t<=0){beam.scene.remove(beam.m);onlineShotTracers.splice(n,1);continue;}
   beam.m.position.x+=beam.vx*dt;beam.m.position.y+=beam.vy*dt;
   beam.m.position.z+=beam.vz*dt;
  }
@@ -8442,41 +8503,64 @@ function onlineGrenadeExplosion(frame){
 // Muzzle origin is computed from the real canonical gun model, not the actor
 // center. The backend remains authoritative over trajectory, speed and hits.
 function onlineShotMuzzle(frame){
- var z=Number.isInteger(frame.weaponId)?MZ[frame.weaponId]:null;
- if(!Number.isFinite(z))return null;
+ if(!Number.isInteger(frame.weaponId)||frame.weaponId<0||frame.weaponId>=guns.length)return null;
+ var left=frame.weaponId===7&&(frame.shotIndex%2===1);
  if(frame.actorId===onlineUserId()){
-  if(pl.dead)return null;
-  mflash.position.set(0,.02,z);mflash.updateWorldMatrix(true,false);
-  var viewTip=mflash.getWorldPosition(new T.Vector3());
-  C.updateWorldMatrix(true,false);
-  return viewTip.applyQuaternion(C.quaternion).add(C.position);
+  if(pl.dead||pl.w!==frame.weaponId)return null;
+  // This is a VS-space position, NOT a world-space point: the first-person
+  // weapon is rendered by VC in a separate scene with its own projection.
+  var localSocket=weaponMuzzleSocket(guns[frame.weaponId],left);
+  if(!localSocket)return null;
+  return localSocket.getWorldPosition(new T.Vector3());
  }
- var model=onlineActors.get(frame.actorId)?.model;
- var gun=model?.g?.userData?.rg;
- if(!gun||model.dead||!model.g.visible)return null;
- gun.updateWorldMatrix(true,false);
- return gun.localToWorld(new T.Vector3(0,0,z));
+ var actor=onlineActors.get(frame.actorId)?.model,gun=actor?.g?.userData?.rg;
+ if(!gun||actor.dead||!actor.g.visible)return null;
+ var socket=weaponMuzzleSocket(gun,left);
+ return socket?socket.getWorldPosition(new T.Vector3()):null;
 }
 function onlineShotTracer(frame,muzzle){
  if(![frame.x,frame.y,frame.z,frame.yaw,frame.pitch].every(Number.isFinite))return;
  if(!Number.isInteger(frame.weaponId)||frame.weaponId<0||frame.weaponId>=WP.length)return;
  var w=WP[frame.weaponId];
  if(w.melee||w.gr)return;
- if(onlineShotTracers.length>=40){var oldest=onlineShotTracers.shift();S.remove(oldest.m);}
- var own=frame.actorId===onlineUserId()?'p':'e',mesh=tracer(own,false);
- // Actual speed is sent with the authorized server shot. It influences only
- // the cosmetic mesh, never client collision or hit registration.
+ var self=frame.actorId===onlineUserId();
+ if(self&&!muzzle)return; // Do not invent a muzzle for an outdated weapon pose.
+ if(onlineShotTracers.length>=40){
+  var oldest=onlineShotTracers.shift();
+  oldest.scene.remove(oldest.m);
+ }
+ var own=self?'p':'e',mesh=tracer(own,false);
  var angle=frame.yaw,pitch=frame.pitch,
   speed=Number.isFinite(frame.projectileSpeed)&&frame.projectileSpeed>0&&frame.projectileSpeed<=1000?
-   frame.projectileSpeed:(w.spd||180),
-  duration=Math.min(.15,Math.max(.075,24/speed));
- mesh.rotation.order='YXZ';mesh.rotation.set(-pitch,angle,0);
- // Trajectory must begin at the server-confirmed spawn point, never the
- // cosmetically predicted first-person viewmodel muzzle.
- mesh.position.set(frame.x,frame.y,frame.z);
- S.add(mesh);
- onlineShotTracers.push({m:mesh,vx:Math.sin(angle)*Math.cos(pitch)*speed,
-  vy:Math.sin(pitch)*speed,vz:Math.cos(angle)*Math.cos(pitch)*speed,t:duration});
+   frame.projectileSpeed:(w.spd||180);
+ var direction=new T.Vector3(Math.sin(angle)*Math.cos(pitch),
+  Math.sin(pitch),Math.cos(angle)*Math.cos(pitch));
+ var scene=S,velocity=direction.clone().multiplyScalar(speed),
+  duration=Math.min(.15,Math.max(.075,24/speed)),origin=muzzle||
+   new T.Vector3(frame.x,frame.y,frame.z);
+ if(self){
+  // The projectile still travels through the authoritative WORLD engine.
+  // Project that verified ballistic ray into VC so the short FIRST-PERSON
+  // streak originates on the actual moving gun barrel, not the world camera.
+  // Rendering this short piece inside VS does not award hits or fake damage.
+  C.updateWorldMatrix(true,false);
+  VC.updateProjectionMatrix();
+  var worldTarget=new T.Vector3(frame.x,frame.y,frame.z)
+    .addScaledVector(direction,80).project(C);
+  if(![worldTarget.x,worldTarget.y].every(Number.isFinite))return;
+  var viewTarget=new T.Vector3(worldTarget.x,worldTarget.y,.99).unproject(VC);
+  direction.copy(viewTarget.sub(origin)).normalize();
+  velocity.copy(direction).multiplyScalar(Math.min(18,Math.max(6,speed/14)));
+  duration=Math.min(.17,Math.max(.07,2/velocity.length()));
+  scene=VS;
+ }
+ // tracer() is centered on its 1.1-unit streak; offset by half its length
+ // so the BACK END of the visible streak touches the actual muzzle socket.
+ mesh.position.copy(origin).addScaledVector(direction,.55);
+ mesh.quaternion.setFromUnitVectors(new T.Vector3(0,0,1),direction);
+ scene.add(mesh);
+ onlineShotTracers.push({m:mesh,scene:scene,vx:velocity.x,
+  vy:velocity.y,vz:velocity.z,t:duration});
 }
 function onlineWarn(error) {
  var code=typeof error==='string'?error:error&&error.code||'BACKEND_UNAVAILABLE';
@@ -8946,7 +9030,7 @@ function onlineResetLive(){
  for(const dropped of dg)S.remove(dropped.m);dg.length=0;
  for(const corpse of dead){if(corpse.bloodPool)bloodPoolRemove(corpse.bloodPool);S.remove(corpse.g);}dead.length=0;
  for(const helmet of hlms)S.remove(helmet.m);hlms.length=0;
- for(const tracer of onlineShotTracers)S.remove(tracer.m);onlineShotTracers.length=0;
+ for(const tracer of onlineShotTracers)tracer.scene.remove(tracer.m);onlineShotTracers.length=0;
  for(const grenade of grs)if(grenade.serverVisual)S.remove(grenade.m);
  for(var gi=grs.length-1;gi>=0;gi--)if(grs[gi].serverVisual)grs.splice(gi,1);
  onlineSeenGrenadeBlasts.clear();
@@ -10147,6 +10231,8 @@ addEventListener("pagehide",function(){BACKGROUND_SIM.ticker.dispose();});
   }else if(pl.dead&&isBombMode()){ft=SPECTATOR_CAMERA.fieldOfView;bombSpectatorCamera(dt);}else if(pl.dead){pl.rt+=dt;var u=Math.min(pl.rt,3.5),an=pl.face+2.4+pl.rt*.5,rd=3+u*1.1,hh=2.2+u*1.5;ft=62;C.position.set(Math.max(-A,Math.min(A,pl.x+Math.sin(an)*rd)),hh+pl.y,Math.max(-A,Math.min(A,pl.z+Math.cos(an)*rd)));C.lookAt(pl.x,.3+pl.y,pl.z);}
   else{var cb=mvAmt*wtT*(1-.75*adsT)*(pl.vy===0?1:0)*(1+.35*sprT),bY=-cb*.022*(.5-.5*Math.cos(2*bobP)),tr=cs.s*(1-.4*adsT),ta=tr*tr,nt=performance.now()/1000,sj=sh+ta*.06,ads2=1-.4*adsT,pp=pl.pitch+cs.k*(1-.35*adsT)+snz(nt,1)*ta*.05,fy=pl.face+cs.y*ads2+snz(nt,2)*ta*.05;C.position.set(pl.x+snz(nt,3)*sj,1.5+camY+bY+snz(nt,4)*sj-(isBombMode()&&pl.bAction?.55:0),pl.z+snz(nt,5)*sj);C.lookAt(pl.x+Math.sin(fy)*Math.cos(pp),1.5+camY+bY+Math.sin(pp)-(isBombMode()&&pl.bAction?.55:0),pl.z+Math.cos(fy)*Math.cos(pp));C.rotateZ(cs.r*ads2+snz(nt,6)*ta*.06+Math.sin(bobP)*.004*cb);}
   if(Math.abs(C.fov-ft)>.02){C.fov=ft;C.updateProjectionMatrix();}
-  kick*=Math.max(0,1-dt*14);flashT-=dt;var dl=pl.w===7;mflash.visible=flashT>0&&run&&!(dl&&shotSide);mflash2.visible=flashT>0&&run&&dl&&!!shotSide;var suppressedFlash=!!(GS[SFXI[pl.w]]&&GS[SFXI[pl.w]].suppressed);mflash.scale.setScalar((suppressedFlash?.17:.7)+Math.random()*(suppressedFlash?.12:.8));mflash2.scale.setScalar(.7+Math.random()*.8);mflash.position.set(0,.02,MZ[pl.w]);mflash2.position.set(-.52,.02,MZ[pl.w]);animHands();guns.forEach(function(g,i){g.visible=i===pl.w&&!(i===5&&pl.ghide>0);});sun.position.set(pl.x+14,30,pl.z+10);sun.target.position.set(pl.x,0,pl.z);sun.target.updateMatrixWorld();
+  kick*=Math.max(0,1-dt*14);flashT-=dt;var dl=pl.w===7;mflash.visible=flashT>0&&run&&!(dl&&shotSide);mflash2.visible=flashT>0&&run&&dl&&!!shotSide;var suppressedFlash=!!(GS[SFXI[pl.w]]&&GS[SFXI[pl.w]].suppressed);mflash.scale.setScalar((suppressedFlash?.17:.7)+Math.random()*(suppressedFlash?.12:.8));mflash2.scale.setScalar(.7+Math.random()*.8);animHands();var rightMuzzle=weaponMuzzleSocket(guns[pl.w],false),leftMuzzle=weaponMuzzleSocket(guns[pl.w],true);
+  if(rightMuzzle){mflash.position.copy(hold.worldToLocal(rightMuzzle.getWorldPosition(new T.Vector3())));}
+  if(leftMuzzle){mflash2.position.copy(hold.worldToLocal(leftMuzzle.getWorldPosition(new T.Vector3())));}guns.forEach(function(g,i){g.visible=i===pl.w&&!(i===5&&pl.ghide>0);});sun.position.set(pl.x+14,30,pl.z+10);sun.target.position.set(pl.x,0,pl.z);sun.target.updateMatrixWorld();
   footstepUpdateListener();updSky(dt);R.clear();R.render(S,C);modePreviewDraw(now);if(!pl.dead&&!lob&&!mt.over){R.clearDepth();R.render(VS,VC);}if(botQaEnabled)botQaFrame(qaDeltaMs,performance.now()-qaFrameStart,run&&!lob&&!mt.over);requestAnimationFrame(loop);})(last);
 })();
