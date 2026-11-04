@@ -13,6 +13,10 @@ on:
       - 'index.html'
       - 'vite.config.mjs'
       - '.github/workflows/vite.yml'
+      - '.github/workflows/bot-ai-m0.yml'
+      - '.github/workflows/bot-ai-m7-browser.yml'
+      - '.github/workflows/online-frontend-build.yml'
+      - '.github/workflows/pointblock-gunplay-windows.yml'
   pull_request:
     paths:
       - 'src/**'
@@ -24,6 +28,10 @@ on:
       - 'index.html'
       - 'vite.config.mjs'
       - '.github/workflows/vite.yml'
+      - '.github/workflows/bot-ai-m0.yml'
+      - '.github/workflows/bot-ai-m7-browser.yml'
+      - '.github/workflows/online-frontend-build.yml'
+      - '.github/workflows/pointblock-gunplay-windows.yml'
 
 permissions:
   contents: read
