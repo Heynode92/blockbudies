@@ -374,8 +374,18 @@ function onlineHitConfirm(headshot){
 function onlineAnimateRemoteActor(record,sample,dt){
  var bot=record.model,oldX=Number.isFinite(bot.x)?bot.x:sample.x,
      oldZ=Number.isFinite(bot.z)?bot.z:sample.z;
- var moved=Math.min(.5,Math.hypot(sample.x-oldX,sample.z-oldZ)),
-     pace=Math.min(1,moved/Math.max(.016,dt)/2.2);
+ // Reuse the EXACT original offline gait phase per traveled world unit.
+ // A 10Hz snapshot jump is not 1 render frame of running: bound each
+ // animated step by this actor's immutable weapon-rated movement speed,
+ // then smooth the limb blend. Rendering NEVER modifies server movement.
+ var travelled=Math.hypot(sample.x-oldX,sample.z-oldZ),
+     weaponRating=WP[bot.weapon]?.moveMult??1,
+     allowedStep=MOVEMENT_RULES.baseSpeed*weaponRating*Math.max(.016,dt),
+     moved=Math.min(travelled,allowedStep),
+     targetPace=Math.min(1,moved/Math.max(.016,dt)/2.2);
+ bot.walkPace=(bot.walkPace||0)+
+   (targetPace-(bot.walkPace||0))*(1-Math.exp(-(targetPace>bot.walkPace?7:11)*dt));
+ var pace=bot.walkPace;
  bot.x=sample.x;bot.y=sample.y;bot.z=sample.z;
  bot.g.position.set(sample.x,sample.y,sample.z);bot.g.rotation.y=sample.yaw;
  bot.wp=(bot.wp||0)+moved*2.4;
