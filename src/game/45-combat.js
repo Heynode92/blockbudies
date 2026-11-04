@@ -60,54 +60,68 @@ function toast(t){var e=document.getElementById("toast");e.textContent=t;e.style
 //  Player bullets start at the visible muzzle (hold.position + MZ) and are aimed at the crosshair distance D.
 //  Dual Kriss: shotSide flips each shot (0 = right gun, 1 = left gun at x-0.52) and the bullet spawns from that gun.
 //  Tracers are only visible for every 3rd bullet of rapid-fire weapons (performance); collision still happens for all bullets.
+// Transform the actual animated first-person barrel endpoint through BOTH
+// cameras. VS/VC projects the gun; C projects the world. Plainly applying
+// C.quaternion to a VS coordinate would be incorrect under ADS field-of-view.
+function offlineGunMuzzleWorld(o,id,left,face){
+ if(o===pl){
+  var local=weaponMuzzleSocket(guns[id],left);
+  if(!local)throw Error('Missing visible firing muzzle socket');
+  var view=local.getWorldPosition(new T.Vector3());
+  VC.updateMatrixWorld(true);
+  var ndc=view.clone().project(VC);
+  C.updateWorldMatrix(true,false);
+  var ray=new T.Vector3(ndc.x,ndc.y,.5).unproject(C)
+    .sub(C.position).normalize();
+  return C.position.clone().addScaledVector(ray,view.length());
+ }
+ var rg=o.g?.userData?.rg,socket=weaponMuzzleSocket(rg,left);
+ if(!socket)throw Error('Missing BOT firing muzzle socket');
+ // The BOT is simulated BEFORE the next frame's visual animation update.
+ o.g.position.set(o.x,o.y||0,o.z);o.g.rotation.y=face;
+ return socket.getWorldPosition(new T.Vector3());
+}
 function fire(o,face,w,own,adv){
  if(!w.pel)return;
  if(typeof botSoundEmit==='function')botSoundEmit(o,'gunshot');
- var weaponId=WP.indexOf(w),D=w.snp?90:w.dual?45:20;
+ var weaponId=WP.indexOf(w);
  if(!o.gunplayStates)o.gunplayStates=new Map();
  var state=o.gunplayStates.get(weaponId);
  if(!state){state=freshGunplayState();o.gunplayStates.set(weaponId,state);}
- // Recoil progresses once per trigger, not once per shotgun pellet.
  var shot=gunplayShot(weaponId,state,tt,{
   ads:own==='p'?adsT:0,speed:Math.max(0,o.gunplaySpeed||0),
   crouch:!!o.crouch,grounded:own==='p'?pl.vy===0:o.vy===0||o.vy===undefined
  },Math.random);
- var shotgun=w.pel>1&&w.stats&&w.stats.kind==='shotgun';
- var barrelPitch=(own==='p'?pl.pitch:(Number.isFinite(o.aimShotPitch)?o.aimShotPitch:0))+shot.pitch;
- var barrelYaw=face+shot.yaw;
+ var shotgun=w.pel>1&&w.stats&&w.stats.kind==='shotgun',
+  sightPitch=(own==='p'?pl.pitch:(Number.isFinite(o.aimShotPitch)?o.aimShotPitch:0))+shot.pitch,
+  sightYaw=face+shot.yaw,
+  eye=new T.Vector3(o.x,(o.y||0)+(own==='p'?1.5:1.4),o.z),
+  aimRange=Math.max(24,Math.min(80,w.spd*w.life)),side=w.dual?(shotSide=shotSide?0:1)===1:false,
+  muzzle=offlineGunMuzzleWorld(o,weaponId,side,face);
  for(var i=0;i<w.pel;i++){
   var pellet=shotgun?shotgunPelletSpread(i,w.pel):null,
-    pelletSpread=shotgun?w.spr*(own==='p'?(1-.23*adsT):1):0,
-    a=barrelYaw+(pellet?pellet[0]*pelletSpread:0),g=tracer(own,w.rk);
-  var mx0,my0,mz0,lx=0;
-  if(own==='p'){
-   if(w.dual)shotSide=shotSide?0:1;
-   lx=hold.position.x-(w.dual&&shotSide?.52:0);
-   var dd=-(hold.position.z+MZ[pl.w]);
-   mx0=o.x+Math.sin(face)*dd-Math.cos(face)*lx;
-   mz0=o.z+Math.cos(face)*dd+Math.sin(face)*lx;
-   my0=1.5+(o.y||0)+hold.position.y+.02;
-   a+=Math.atan(lx/D);
-  }else{
-   mx0=o.x+Math.sin(face)*1.1+Math.cos(face)*.05;
-   mz0=o.z+Math.cos(face)*1.1-Math.sin(face)*.05;
-   my0=1.07+(o.y||0)-.3*(o.crA||0);
-  }
-  var pitchAngle=own==='p'?
-   Math.atan2(1.5+(o.y||0)+D*Math.tan(barrelPitch)-my0,D):barrelPitch;
-  if(pellet)pitchAngle+=pellet[1]*pelletSpread;
-  pitchAngle=Math.max(-1.48,Math.min(1.48,pitchAngle));
-  var horizontal=Math.cos(pitchAngle),velocityX=Math.sin(a)*horizontal*w.spd,
-    velocityY=Math.sin(pitchAngle)*w.spd,velocityZ=Math.cos(a)*horizontal*w.spd;
+   spread=shotgun?w.spr*(own==='p'?(1-.23*adsT):1):0,
+   ay=sightYaw+(pellet?pellet[0]*spread:0),
+   ap=Math.max(-1.48,Math.min(1.48,sightPitch+(pellet?pellet[1]*spread:0))),
+   target=eye.clone().add(new T.Vector3(Math.sin(ay)*Math.cos(ap),
+    Math.sin(ap),Math.cos(ay)*Math.cos(ap)).multiplyScalar(aimRange)),
+   travel=target.sub(muzzle).normalize(),g=tracer(own,w.rk),
+   mx0=muzzle.x,my0=muzzle.y,mz0=muzzle.z;
   o.tc=(o.tc||0)+1;
   g.visible=!!(w.rk||w.pel>1||w.snp||o.tc%3===1);
-  g.rotation.order='YXZ';g.rotation.set(-pitchAngle,a,0);
-  if(Math.abs(mx0)>=A||Math.abs(mz0)>=A||sweepObs(o.x,my0,o.z,mx0,my0,mz0)||
-    sweepLT(o.x,my0,o.z,mx0,my0,mz0)||obsAt(mx0,mz0,my0)){mx0=o.x;mz0=o.z;}
+  g.quaternion.setFromUnitVectors(new T.Vector3(0,0,1),travel);
+  if(Math.abs(mx0)>=A||Math.abs(mz0)>=A||
+    sweepObs(eye.x,eye.y,eye.z,mx0,my0,mz0)||
+    sweepLT(eye.x,eye.y,eye.z,mx0,my0,mz0)||
+    obsAt(mx0,mz0,my0)){
+    // The barrel is obstructed by real solid collision: never spawn a
+    // projectile behind a wall just because the gun render pokes through it.
+    mx0=eye.x;my0=eye.y;mz0=eye.z;
+  }
   g.position.set(mx0,my0,mz0);S.add(g);
-  bl.push({m:g,vx:velocityX,vy:velocityY,vz:velocityZ,
-    life:w.life,ad:adv||0,dmg:w.dmg,own:own,tm:o.tm,by:o,rk:w.rk,
-    sx:o.x,sz:o.z,wid:weaponId,fo:w.rangeModifier?[w.rangeModifier,w.rangeUnit]:null});
+  bl.push({m:g,vx:travel.x*w.spd,vy:travel.y*w.spd,vz:travel.z*w.spd,
+   life:w.life,ad:adv||0,dmg:w.dmg,own:own,tm:o.tm,by:o,rk:w.rk,
+   sx:o.x,sz:o.z,wid:weaponId,fo:w.rangeModifier?[w.rangeModifier,w.rangeUnit]:null});
   if(typeof botQaEnabled!=='undefined'&&botQaEnabled)botQaShot(o,w,own,bl[bl.length-1]);
   if(own==='e'&&i===0)enemyShotFx(o,mx0,my0,mz0);
   if(w.rk&&own==='p')smoke(mx0,my0,mz0,6,1.4,.3,1.3,.25,0);
