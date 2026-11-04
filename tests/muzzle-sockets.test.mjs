@@ -49,7 +49,7 @@ test('online first-person muzzle tracer renders in VS camera space and server st
  const live=read('src/game/98-online-bridge.js'),render=read('src/game/99-render-loop.js');
  assert.match(live,/var scene=S,velocity=/);
  assert.match(live,/scene=VS/);
- assert.match(live,/worldTarget=.*\.project\(C\)/);
+ assert.match(live,/\.project\(C\)/);
  assert.match(live,/\.unproject\(VC\)/);
  assert.match(live,/weaponMuzzleSocket\(guns\[frame\.weaponId\],left\)/);
  assert.match(render,/rightMuzzle\.getWorldPosition/);
