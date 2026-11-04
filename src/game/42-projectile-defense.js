@@ -9,7 +9,7 @@ function projectileHitCharacter(b,target,head){
     }else damage=defenseHeadshotDamage(damage);
   }
   curK=source;killW=b.wid>=0?b.wid:1;hsF=!!head;
-  if(target===pl)hurt(damage,b.sx,b.sz,head?'head':'bullet-body');
-  else dmgE(target,damage,b.vx,b.vz,0,head?'head':'bullet-body');
+  if(target===pl)hurt(damage,b.sx,b.sz,head?'head':'bullet-body',b.wid);
+  else dmgE(target,damage,b.vx,b.vz,0,head?'head':'bullet-body',b.wid);
   hsF=false;
 }
