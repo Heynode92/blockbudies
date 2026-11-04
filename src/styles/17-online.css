@@ -1,3 +1,12 @@
+/* Server-authorized winner announcement. Typography comes from the existing
+   PointBlock display-face token; neither the name nor font is injected by JS. */
+.match-winner-banner[hidden]{display:none!important}
+.match-winner-banner{position:fixed;inset:0;z-index:120;pointer-events:none;display:grid;place-items:center;background:linear-gradient(90deg,rgba(3,8,17,.76),rgba(3,8,17,.6),rgba(3,8,17,.76));color:#eef6ff;text-align:center}
+.match-winner-banner strong{display:block;padding:20px 30px;font-family:var(--pb-display-font);font-size:clamp(42px,9vw,112px);font-weight:900;line-height:1.1;letter-spacing:.09em;text-transform:uppercase;text-shadow:0 6px 0 #000,0 0 36px currentColor}
+.match-winner-banner.is-police strong{color:#a7d9ff}
+.match-winner-banner.is-terror strong{color:#ffad91}
+.match-winner-banner.is-draw strong{color:#fff2c4}
+@media(prefers-reduced-motion:no-preference){.match-winner-banner strong{animation:pb-match-announcement .35s ease-out both}@keyframes pb-match-announcement{from{opacity:0;transform:scale(.86)}to{opacity:1;transform:scale(1)}}}
 /* Backend-gated registration. */
 .point-online-dialog{position:fixed;z-index:20000;inset:0;display:grid;place-items:center;background:rgba(8,12,20,.88);padding:20px}
 .point-online-dialog-panel{width:min(420px,100%);display:grid;gap:14px;padding:28px;border:1px solid #36485d;border-radius:12px;background:#151e2b;color:#f5f7fb;box-shadow:0 24px 80px #0009;font-family:inherit}
