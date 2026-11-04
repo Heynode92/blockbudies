@@ -26,33 +26,52 @@ function setup() {
   ctx.dmgE=(...args)=>ctx.impactCalls.push(['bot',...args]);
   return ctx;
 }
-test('every spawn gets 100 HP, 50 vest and a helmet for both teams',()=>{
-  const ctx=setup(),a={},b={};ctx.defenseSpawn(a);ctx.defenseSpawn(b);
-  for(const actor of [a,b])assert.deepEqual([actor.hp,actor.vest,actor.helm],[100,50,true]);
+test('every actor spawns with 100 HP, helmet and no consumable armor',()=>{
+  const c=setup(),human={},bot={};c.defenseSpawn(human);c.defenseSpawn(bot);
+  for(const actor of [human,bot]){
+    assert.deepEqual([actor.hp,actor.helm],[100,true]);
+    assert.equal(Object.hasOwn(actor,'vest'),false);
+  }
 });
-test('body vest absorbs exactly 20 percent while durability remains',()=>{
-  const ctx=setup(),a={vest:50};
-  assert.ok(Math.abs(ctx.defenseDamage(a,33,'bullet-body')-26.4)<1e-9);
-  assert.ok(Math.abs(a.vest-43.4)<1e-9);
+test('every ordinary body bullet gets permanent 30 percent mitigation',()=>{
+  const c=setup(),human={},bot={};
+  for(const actor of [human,bot])for(let i=0;i<4;i++){
+    assert.equal(c.defenseDamage(actor,40,'bullet-body',9),28);
+    assert.equal(Object.hasOwn(actor,'vest'),false);
+  }
+  assert.equal(c.DEFENSE_RULES.bodyReduction,.30);
 });
-test('vest depletion does not discard or over-reduce damage',()=>{
-  const ctx=setup(),a={vest:2};assert.equal(ctx.defenseDamage(a,50,'bullet-body'),48);
-  assert.equal(a.vest,0);assert.equal(ctx.defenseDamage(a,33,'bullet-body'),33);
+test('pump Shotgun alone penetrates passive defense with five close-range pellets',()=>{
+  const c=setup(),pump=c.WEAPON_PROFILES.find(w=>w.kind==='shotgun'&&w.pump===true);
+  assert.ok(pump);assert.equal(pump.damage,168);
+  const pumpId=c.WEAPON_PROFILES.indexOf(pump),raw=pump.damage/c.WP[pumpId].pel;
+  assert.equal(c.WP[pumpId].pel,6);
+  assert.equal(c.DEFENSE_RULES.pumpShotgunBodyReduction,.20);
+  assert.ok(Math.abs(c.defenseDamage({},raw,'bullet-body',pumpId)-raw*.8)<1e-9);
+  for(const range of [0,5]){
+    let hp=100;
+    for(let p=0;p<5;p++)hp-=c.defenseDamage({},raw*Math.pow(.7,range/20),'bullet-body',pumpId);
+    assert.ok(hp<=0,'five valid torso pellets must eliminate 100 HP at '+range);
+  }
+  const saigaId=c.WEAPON_PROFILES.findIndex(w=>w.kind==='shotgun'&&!w.pump);
+  assert.ok(saigaId>=0);
+  assert.ok(Math.abs(c.defenseDamage({},40,'bullet-body',saigaId)-28)<1e-9);
 });
-test('head, knife and explosive damage ignore the vest',()=>{
-  const ctx=setup(),a={vest:50};
-  for(const kind of ['head','melee','explosive'])assert.equal(ctx.defenseDamage(a,40,kind),40);
-  assert.equal(a.vest,50);assert.equal(ctx.defenseHeadshotDamage(33),99);
+test('head, knife, RPG splash and explosive damage bypass passive bullet defense',()=>{
+  const c=setup(),actor={};
+  for(const kind of ['head','melee','explosion'])assert.equal(c.defenseDamage(actor,40,kind,2),40);
+  assert.equal(c.defenseHeadshotDamage(33),99);
 });
-test('impact resolves human and AI with the same headshot and vest classification',()=>{
-  const ctx=setup(),shot={dmg:33,fo:null,vx:1,vz:0,sx:0,sz:0,wid:1,by:{tm:1},m:{position:{x:1,z:1}}};
-  const bot={helm:true,vest:50},pl={helm:true,vest:50};ctx.pl=pl;
-  ctx.projectileHitCharacter(shot,bot,true);ctx.projectileHitCharacter(shot,pl,true);
+test('impact preserves identical human/BOT headshot classification and weapon context',()=>{
+  const c=setup(),shot={dmg:33,fo:null,vx:1,vz:0,sx:0,sz:0,wid:1,by:{tm:1},m:{position:{x:1,z:1}}};
+  const bot={helm:true},pl={helm:true};c.pl=pl;
+  c.projectileHitCharacter(shot,bot,true);c.projectileHitCharacter(shot,pl,true);
   assert.equal(bot.helm,false);assert.equal(pl.helm,false);
-  assert.equal(ctx.impactCalls[0][2],33);assert.equal(ctx.impactCalls[1][1],33);
-  ctx.projectileHitCharacter(shot,bot,true);ctx.projectileHitCharacter(shot,pl,true);
-  assert.equal(ctx.impactCalls[2][2],99);assert.equal(ctx.impactCalls[3][1],99);
-  assert.equal(ctx.impactCalls[2].at(-1),'head');assert.equal(ctx.impactCalls[3].at(-1),'head');
+  assert.equal(c.impactCalls[0][2],33);assert.equal(c.impactCalls[1][1],33);
+  c.projectileHitCharacter(shot,bot,true);c.projectileHitCharacter(shot,pl,true);
+  assert.equal(c.impactCalls[2][2],99);assert.equal(c.impactCalls[3][1],99);
+  assert.equal(c.impactCalls[2].at(-2),'head');assert.equal(c.impactCalls[3].at(-2),'head');
+  assert.equal(c.impactCalls[2].at(-1),1);assert.equal(c.impactCalls[3].at(-1),1);
 });
 test('bot loadout is drawn from shared WP with finite ammo and a sidearm',()=>{
   const ctx=setup();ctx.Math=Object.create(Math);ctx.Math.random=()=>.2;
@@ -90,7 +109,10 @@ test('bot melee chase activated only when primary and pistol stocks are depleted
   const ctx=setup(),e={primary:1,ammo:{1:{mag:0,res:0},0:{mag:0,res:0}}};
   assert.equal(ctx.botNeedsMelee(e),true);e.ammo[0].res=1;assert.equal(ctx.botNeedsMelee(e),false);
 });
-test('player HUD shows armor without changing the existing HP indicator',()=>{
-  const html=src('index.html');assert.match(html,/id="hpt"/);assert.match(html,/id="vestHud"/);
-  const hud=src('src/game/96-hud-and-radar.js');assert.match(hud,/Math.ceil\(pl.vest\)/);
+test('player HUD retains HP and helmet but hides retired VEST durability',()=>{
+  const html=src('index.html');assert.match(html,/id="hpt"/);assert.match(html,/id="hmt"/);
+  assert.doesNotMatch(html,/id="vestHud"/);
+  const hud=src('src/game/96-hud-and-radar.js');assert.match(hud,/Math.ceil\(hp\)/);
+  assert.doesNotMatch(hud,/pl\.vest|vestHud/);
+  const bridge=src('src/game/98-online-bridge.js');assert.doesNotMatch(bridge,/pl\.vest/);
 });

@@ -1830,7 +1830,6 @@ function onlineApplyWorld(){
   if(fresh&&self.alive)
    onlineGrenadeServerCharge=privateState?.grenadeCharge??null;
   pl.hp=privateState?.hp??self.hp??pl.hp;
-  pl.vest=privateState?.vest??self.vest??pl.vest;
   if(Number.isFinite(privateState?.spawnShieldRemaining))pl.inv=Math.max(0,privateState.spawnShieldRemaining);
   if(typeof privateState?.helmet==='boolean')pl.helm=privateState.helmet;
   else if(typeof self.helmet==='boolean')pl.helm=self.helmet;

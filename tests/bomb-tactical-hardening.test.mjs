@@ -102,7 +102,7 @@ test('real bot damage handler cancels planting and enforces recovery before retr
   ctx.killE=()=>{throw new Error('unexpected bot death');};
   runInNewContext(audio.slice(begin,end),ctx);
   ctx.dmgE(terror,15,0,0,0);
-  assert.equal(terror.hp,85);assert.equal(terror.bAction,null);
+  assert.ok(Math.abs(terror.hp-(ctx.DEFENSE_RULES.maxHp-15*(1-ctx.DEFENSE_RULES.bodyReduction)))<1e-9);assert.equal(terror.bAction,null);
   ctx.bombAct(terror,.5,true);assert.equal(terror.bAction,null);
   ctx.tt+=ctx.BOMB_RULES.plantHitRecoverySeconds;
   ctx.bombAct(terror,.1,true);assert.equal(terror.bAction.t,.1);
@@ -117,7 +117,7 @@ test('real human damage handler cancels planting while preserving normal HP loss
   ctx.die=()=>{throw new Error('unexpected player death');};ctx.hdHit=()=>{};
   runInNewContext(fn,ctx);
   ctx.hurt(11);
-  assert.equal(pl.hp,89);assert.equal(pl.bAction,null);
+  assert.ok(Math.abs(pl.hp-(ctx.DEFENSE_RULES.maxHp-11*(1-ctx.DEFENSE_RULES.bodyReduction)))<1e-9);assert.equal(pl.bAction,null);
   ctx.bombAct(pl,.1,true);assert.equal(pl.bAction,null);
 });
 test('original Team Deathmatch movement, gun stats and controls remain untouched',()=>{
