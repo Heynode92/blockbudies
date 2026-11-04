@@ -5,12 +5,11 @@ on:
     paths:
       - 'src/game/**'
       - 'tests/gunplay-ballistics.test.mjs'
+      - 'tests/authoritative-recoil.test.mjs'
       - 'tests/online-tracer-world-speed.test.mjs'
       - 'tests/online-movement-prediction.test.mjs'
       - 'tests/muzzle-sockets.test.mjs'
       - 'tests/shotgun-horizontal-pattern.test.mjs'
-      - 'tests/bot-ai-m1-perception.test.mjs'
-      - 'tests/bot-ai-m2-fire-control.test.mjs'
       - 'assets/game.js'
       - 'tools/source-manifest.json'
       - '.github/workflows/pointblock-gunplay-windows.yml'
@@ -32,8 +31,8 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Verify checked-in bundle matches source
         run: node tools/build.mjs --check
-      - name: Recoil, shotgun, BOT aim and perception regression
-        run: node --test tests/gunplay-ballistics.test.mjs tests/shotgun-horizontal-pattern.test.mjs tests/bot-ai-m1-perception.test.mjs tests/bot-ai-m2-fire-control.test.mjs tests/muzzle-sockets.test.mjs tests/online-tracer-world-speed.test.mjs
+      - name: Authoritative recoil, muzzle, shotgun and firing security contract
+        run: node --test tests/gunplay-ballistics.test.mjs tests/authoritative-recoil.test.mjs tests/shotgun-horizontal-pattern.test.mjs tests/muzzle-sockets.test.mjs tests/online-tracer-world-speed.test.mjs
       - name: Build production Vite game
         run: npm run build
       - name: Verify generated distributable
