@@ -93,7 +93,7 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
     var steering=botMoveSteer(e,recovery[0],recovery[1],sp,dt,holdMovement);
     mvx=steering[0];mvz=steering[1];
     f=(t&&e.lok)?e.aimYaw:(mvx||mvz)?Math.atan2(mvx,mvz):e.g.rotation.y;
-    e.x+=mvx*sp*dt;e.z+=mvz*sp*dt;resolve(e,.55);
+    moveWithSolidCollision(e,mvx*sp*dt,mvz*sp*dt,.55);
     var dm=Math.hypot(e.x-ox,e.z-oz);
     footstepAdvance(e,dm,!cdn&&dm>.002,sp>4.4,false);
     if(typeof botQaEnabled!=='undefined'&&botQaEnabled)botQaMove(wantedMovement,dm,sp,dt);
@@ -119,7 +119,7 @@ function botsUpdOld(dt){var i,cdn=mt.cd>0;
     if(t&&!t.dead&&!(t===pl&&pl.dead)){dx=t.x-e.x;dz=t.z-e.z;d=Math.hypot(dx,dz)||1;f=Math.atan2(dx,dz);mv=d>14?1:d<7?-.5:0;e.bt=(e.bt||0)-dt;if(e.bt<=0){e.bt=.7+Math.random()*1.4;e.sd=[-1,0,1][(Math.random()*3)|0];}st=(e.sd||0)*.9;}
     else{t=null;dx=e.wx-e.x;dz=e.wz-e.z;d=Math.hypot(dx,dz)||1;f=Math.atan2(dx,dz);mv=d>2?1:0;}
     if(cdn)mv=st=0;
-    e.x+=(dx/d*mv+(dz/d)*st)*sp*dt;e.z+=(dz/d*mv-(dx/d)*st)*sp*dt;resolve(e,.55);
+    moveWithSolidCollision(e,(dx/d*mv+(dz/d)*st)*sp*dt,(dz/d*mv-(dx/d)*st)*sp*dt,.55);
     var dm=Math.hypot(e.x-ox,e.z-oz);
     if((mv||st)&&dm<sp*dt*.3){e.stk+=dt;if(e.stk>.6){e.stk=0;e.sd=Math.random()<.5?-1:1;e.bt=1;e.wx=e.x+(Math.random()-.5)*30;e.wz=e.z+(Math.random()-.5)*30;}}else e.stk=0;
     e.g.rotation.y=f;e.cd-=dt;
