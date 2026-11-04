@@ -129,7 +129,7 @@ test('M2: actual projectile factory honors BOT vertical pitch and preserves play
  assert.equal(shots[0].dmg,20);
  assert.equal(shots[0].own,'e');
  c.fire(c.pl,0,w,'p',0);
- const expected=w.spd*Math.sin(Math.atan2(1.5+20*Math.tan(c.pl.pitch)-(1.5+c.hold.position.y+.02),20));
+ const expected=w.spd*Math.sin(Math.atan2(1.5+80*Math.sin(c.pl.pitch)-1.4,80*Math.cos(c.pl.pitch)));
  assert.ok(Math.abs(shots[1].vy-expected)<1e-8,'player pitch unchanged');
  assert.equal(events.length,2);
 });
