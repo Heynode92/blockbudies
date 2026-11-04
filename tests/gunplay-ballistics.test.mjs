@@ -51,7 +51,8 @@ test('Control, H.Recoil and ADS make real independent angular differences',()=>{
 test('pointblock bullet visuals use certified trajectory, never camera-only muzzle direction',()=>{
  const live=read('src/game/98-online-bridge.js');
  assert.match(live,/ballisticRevision===GUNPLAY_REVISION/);
- assert.match(live,/mesh\.position\.set\(frame\.x,frame\.y,frame\.z\)/);
+ assert.match(live,/scene=VS/);
+ assert.match(live,/weaponMuzzleSocket\(guns\[frame\.weaponId\],left\)/);
  const serverData=['weaponId','pelletIndex','ballisticRevision'];
  for(const key of serverData)assert.match(live,new RegExp(key==='ballisticRevision'?'frame\\.ballisticRevision':key));
 });
