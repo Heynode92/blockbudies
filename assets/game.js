@@ -2196,6 +2196,56 @@ function weaponProfile(p,id){var t=WEAPON_TUNING[p.kind],pel=t.pellets||1;
   return w;
 }
 var WP=WEAPON_PROFILES.map(weaponProfile);
+
+// Keep these exact equations in backend src/matches/engine/gunplay.ts.
+// Original deterministic whole-weapon recoil, bloom and movement/ADS accuracy.
+var GUNPLAY_REVISION='pointblock-gunplay-2026-11-04-v1';
+var GUNPLAY_ARCHETYPES={
+ pistol:{vertical:.8,horizontal:.8,bloom:.7,recovery:5.8},
+ rifle:{vertical:1,horizontal:1,bloom:1,recovery:4.5},
+ shotgun:{vertical:1.8,horizontal:1.15,bloom:.65,recovery:3.5},
+ rocket:{vertical:1.4,horizontal:.6,bloom:.25,recovery:4},
+ knife:{vertical:0,horizontal:0,bloom:0,recovery:6},
+ grenade:{vertical:0,horizontal:0,bloom:0,recovery:6},
+ smg:{vertical:.82,horizontal:1.18,bloom:1.15,recovery:5},
+ dual:{vertical:.76,horizontal:1.27,bloom:1.3,recovery:4.9},
+ sniper:{vertical:2,horizontal:.7,bloom:.2,recovery:4}
+};
+function freshGunplayState(){return {shots:0,yaw:0,pitch:0,bloom:0,lastShotAt:-Infinity};}
+function gunplayClamp(v,lo,hi){return Math.min(hi,Math.max(lo,v));}
+function gunplayShot(weaponId,state,time,conditions,random){
+ if(!Number.isFinite(time)||!Number.isFinite(conditions.ads)||!Number.isFinite(conditions.speed)||
+   conditions.speed<0||conditions.ads<0||conditions.ads>1)throw new RangeError('Invalid gunplay inputs');
+ var p=WEAPON_PROFILES[weaponId],w=WP[weaponId],arch=GUNPLAY_ARCHETYPES[p.kind];
+ if(p.kind==='knife'||p.kind==='grenade')throw new RangeError('Non-projectile weapon');
+ var control=gunplayClamp(p.control===null?0:p.control,0,100)/100,
+   vert=gunplayClamp(p.vRecoil===null?0:p.vRecoil,0,100)/100,
+   horz=gunplayClamp(p.hRecoil===null?0:p.hRecoil,0,100)/100;
+ var gap=time-state.lastShotAt;
+ var interrupted=Number.isFinite(gap)&&gap>Math.max(.18,w.cd*1.35);
+ if(interrupted){
+  var fade=Math.exp(-Math.max(0,gap-w.cd)*arch.recovery*(.75+.5*control));
+  state.pitch*=fade;state.yaw*=fade;state.bloom*=fade;
+  state.shots=Math.floor(state.shots*fade);
+ }
+ var index=state.shots,ads=conditions.ads,move=gunplayClamp(conditions.speed/5,0,1);
+ var locomotion=(1+.9*move)*(conditions.crouch?.78:1)*(conditions.grounded?1:3.25);
+ var optics=p.kind==='sniper'?(3-2.82*ads):(1-.30*ads);
+ var base=Math.max(.0006,w.spr*(p.kind==='shotgun'?.022:.16));
+ var inaccuracy=gunplayClamp((base+state.bloom)*locomotion*optics,.0002,.12);
+ var radius=Math.sqrt(gunplayClamp(random(),0,.999999))*inaccuracy,
+   angle=gunplayClamp(random(),0,.999999)*Math.PI*2;
+ var yaw=state.yaw+Math.cos(angle)*radius,pitch=state.pitch+Math.sin(angle)*radius;
+ var verticalKick=.0030*vert*arch.vertical*(1+Math.min(index,16)*.035)*(1-.07*ads);
+ var horizontalStep=.0031*horz*arch.horizontal*
+   (.74*Math.sin((index+1)*.43+arch.vertical)+.26*Math.sin((index+1)*.17));
+ state.pitch=gunplayClamp(state.pitch+verticalKick,0,.18);
+ state.yaw=gunplayClamp(state.yaw+horizontalStep,-.15,.15);
+ state.bloom=gunplayClamp(state.bloom+(.00016+.00042*(1-control))*arch.bloom,0,.038);
+ state.shots=Math.min(150,index+1);
+ state.lastShotAt=time;
+ return {yaw:yaw,pitch:pitch,index:index,inaccuracy:inaccuracy};
+}
 // Fixed 2D pellet spread inspired by CS:GO's learnable shotgun concept.
 // Golden-angle disk distributes pellets near/around the crosshair; no RNG,
 // fixed weapon IDs, extra projectile system or copies of Valve's pattern data.
@@ -2606,25 +2656,57 @@ function toast(t){var e=document.getElementById("toast");e.textContent=t;e.style
 //  Dual Kriss: shotSide flips each shot (0 = right gun, 1 = left gun at x-0.52) and the bullet spawns from that gun.
 //  Tracers are only visible for every 3rd bullet of rapid-fire weapons (performance); collision still happens for all bullets.
 function fire(o,face,w,own,adv){
-  if(typeof botSoundEmit==='function')botSoundEmit(o,'gunshot');
-  var D=w.snp?90:w.dual?45:20,
-      patternedShotgun=w.pel>1&&w.stats&&w.stats.kind==="shotgun";
-  for(var i=0;i<w.pel;i++){
-    // Fixed shotgun pattern on both axes; other weapons keep their original RNG.
-    var pelletOffset=patternedShotgun?shotgunPelletSpread(i,w.pel):null,
-        spreadScale=own==="p"?(w.snp?1-adsT:1-.65*adsT):1,
-        yawOffset=patternedShotgun?pelletOffset[0]:(Math.random()-.5)*2,
-        a=face+yawOffset*w.spr*spreadScale,g=tracer(own,w.rk);
-    var mx0,my0,mz0;if(own==="p"){if(w.dual)shotSide=shotSide?0:1;var lx=hold.position.x-(w.dual&&shotSide?.52:0),dd=-(hold.position.z+MZ[pl.w]);mx0=o.x+Math.sin(face)*dd-Math.cos(face)*lx;mz0=o.z+Math.cos(face)*dd+Math.sin(face)*lx;my0=1.5+(o.y||0)+hold.position.y+.02;a+=Math.atan(lx/D);}else{var ey=face;mx0=o.x+Math.sin(ey)*1.1+Math.cos(ey)*.05;mz0=o.z+Math.cos(ey)*1.1-Math.sin(ey)*.05;my0=1.07+(o.y||0)-.3*(o.crA||0);}
-    var vy0=own==="p"?w.spd*(1.5+(o.y||0)+D*Math.tan(pl.pitch)-my0)/D:
-      (Number.isFinite(o.aimShotPitch)?w.spd*Math.tan(o.aimShotPitch):0);
-    // Add elevation only to shotgun pellets, on top of the existing
-    // player muzzle-to-crosshair pitch or bot's original flat trajectory.
-    if(patternedShotgun)vy0+=w.spd*Math.tan(pelletOffset[1]*w.spr*spreadScale);
-    o.tc=(o.tc||0)+1;g.visible=!!(w.rk||w.pel>1||w.snp||o.tc%3===1);g.rotation.order="YXZ";g.rotation.set(-Math.atan2(vy0,w.spd||1),a,0);if(Math.abs(mx0)>=A||Math.abs(mz0)>=A||sweepObs(o.x,my0,o.z,mx0,my0,mz0)||sweepLT(o.x,my0,o.z,mx0,my0,mz0)||obsAt(mx0,mz0,my0)){mx0=o.x;mz0=o.z;}
-    g.position.set(mx0,my0,mz0);S.add(g);
-    var ad=adv||0;
-    bl.push({m:g,vx:Math.sin(a)*w.spd,vy:vy0,vz:Math.cos(a)*w.spd,life:w.life,ad:ad,dmg:w.dmg,own:own,tm:o.tm,by:o,rk:w.rk,sx:o.x,sz:o.z,wid:WP.indexOf(w),fo:w.rangeModifier?[w.rangeModifier,w.rangeUnit]:null});if(typeof botQaEnabled!=='undefined'&&botQaEnabled)botQaShot(o,w,own,bl[bl.length-1]);if(own==="e"&&i===0)enemyShotFx(o,mx0,my0,mz0);if(w.rk&&own==="p")smoke(mx0,my0,mz0,6,1.4,.3,1.3,.25,0);}
+ if(!w.pel)return;
+ if(typeof botSoundEmit==='function')botSoundEmit(o,'gunshot');
+ var weaponId=WP.indexOf(w),D=w.snp?90:w.dual?45:20;
+ if(!o.gunplayStates)o.gunplayStates=new Map();
+ var state=o.gunplayStates.get(weaponId);
+ if(!state){state=freshGunplayState();o.gunplayStates.set(weaponId,state);}
+ // Recoil progresses once per trigger, not once per shotgun pellet.
+ var shot=gunplayShot(weaponId,state,tt,{
+  ads:own==='p'?adsT:0,speed:Math.max(0,o.gunplaySpeed||0),
+  crouch:!!o.crouch,grounded:own==='p'?pl.vy===0:o.vy===0||o.vy===undefined
+ },Math.random);
+ var shotgun=w.pel>1&&w.stats&&w.stats.kind==='shotgun';
+ var barrelPitch=(own==='p'?pl.pitch:(Number.isFinite(o.aimShotPitch)?o.aimShotPitch:0))+shot.pitch;
+ var barrelYaw=face+shot.yaw;
+ for(var i=0;i<w.pel;i++){
+  var pellet=shotgun?shotgunPelletSpread(i,w.pel):null,
+    pelletSpread=shotgun?w.spr*(own==='p'?(1-.23*adsT):1):0,
+    a=barrelYaw+(pellet?pellet[0]*pelletSpread:0),g=tracer(own,w.rk);
+  var mx0,my0,mz0,lx=0;
+  if(own==='p'){
+   if(w.dual)shotSide=shotSide?0:1;
+   lx=hold.position.x-(w.dual&&shotSide?.52:0);
+   var dd=-(hold.position.z+MZ[pl.w]);
+   mx0=o.x+Math.sin(face)*dd-Math.cos(face)*lx;
+   mz0=o.z+Math.cos(face)*dd+Math.sin(face)*lx;
+   my0=1.5+(o.y||0)+hold.position.y+.02;
+   a+=Math.atan(lx/D);
+  }else{
+   mx0=o.x+Math.sin(face)*1.1+Math.cos(face)*.05;
+   mz0=o.z+Math.cos(face)*1.1-Math.sin(face)*.05;
+   my0=1.07+(o.y||0)-.3*(o.crA||0);
+  }
+  var pitchAngle=own==='p'?
+   Math.atan2(1.5+(o.y||0)+D*Math.tan(barrelPitch)-my0,D):barrelPitch;
+  if(pellet)pitchAngle+=pellet[1]*pelletSpread;
+  pitchAngle=Math.max(-1.48,Math.min(1.48,pitchAngle));
+  var horizontal=Math.cos(pitchAngle),velocityX=Math.sin(a)*horizontal*w.spd,
+    velocityY=Math.sin(pitchAngle)*w.spd,velocityZ=Math.cos(a)*horizontal*w.spd;
+  o.tc=(o.tc||0)+1;
+  g.visible=!!(w.rk||w.pel>1||w.snp||o.tc%3===1);
+  g.rotation.order='YXZ';g.rotation.set(-pitchAngle,a,0);
+  if(Math.abs(mx0)>=A||Math.abs(mz0)>=A||sweepObs(o.x,my0,o.z,mx0,my0,mz0)||
+    sweepLT(o.x,my0,o.z,mx0,my0,mz0)||obsAt(mx0,mz0,my0)){mx0=o.x;mz0=o.z;}
+  g.position.set(mx0,my0,mz0);S.add(g);
+  bl.push({m:g,vx:velocityX,vy:velocityY,vz:velocityZ,
+    life:w.life,ad:adv||0,dmg:w.dmg,own:own,tm:o.tm,by:o,rk:w.rk,
+    sx:o.x,sz:o.z,wid:weaponId,fo:w.rangeModifier?[w.rangeModifier,w.rangeUnit]:null});
+  if(typeof botQaEnabled!=='undefined'&&botQaEnabled)botQaShot(o,w,own,bl[bl.length-1]);
+  if(own==='e'&&i===0)enemyShotFx(o,mx0,my0,mz0);
+  if(w.rk&&own==='p')smoke(mx0,my0,mz0,6,1.4,.3,1.3,.25,0);
+ }
 }
 // boom(): explosion (rocket or grenade) at (x,z): splash damage with line-of-sight check, scorch decal, particles, camera shake. lab = kill-feed label.
 function boom(x,z,dmg,lab,by,shooter){var attacker=shooter||pl;curK=attacker;boomLab=lab||"RPG";killW=boomLab==="GRENADE"?5:3;if((by===undefined||by<1.1)&&Math.abs(x)<A&&Math.abs(z)<A)gDecal(TXS,x,z,3.2+Math.random()*.6);
@@ -5804,14 +5886,14 @@ function newBot(tm,i){var b=terro(tm);b.tm=tm;b.idx=i;b.name=BN[tm][i];b.ph=Math
   var cv=document.createElement("canvas");cv.width=256;cv.height=64;var cx=cv.getContext("2d"),nt=b.name.toUpperCase();cx.font='700 40px Rajdhani,"Trebuchet MS",sans-serif';cx.textAlign="center";cx.textBaseline="middle";cx.lineWidth=7;cx.strokeStyle="rgba(0,0,0,.85)";cx.strokeText(nt,128,34);cx.fillStyle=tm?"#ff8a65":"#74c0fc";cx.fillText(nt,128,34);
   var sp=new T.Sprite(new T.SpriteMaterial({map:new T.CanvasTexture(cv),depthTest:false,transparent:true,fog:false}));sp.scale.set(3,.75,1);sp.position.set(0,2.75,0);sp.renderOrder=1000;sp.visible=tm===pl.tm;b.g.add(sp);b.nm=sp;return b;}
 // placeBot(b): (re)spawns bot b at a spawn point with full HP and short invulnerability.
-function placeBot(b){var s=spawnPt(b.tm);b.stepTrail=0;b.stepIndex=0;b.x=s[0];b.z=s[1];b.y=0;defenseSpawn(b);if(b.hm)b.hm.visible=true;b.inv=2;b.cd=1+Math.random();b.dead=false;b.tg=null;b.bn=0;b.wx=b.x;b.wz=b.z;b.stk=0;b.lastSeen=null;b.coverGoal=null;b.coverExpires=0;b.coverHoldUntil=0;b.smartRetreat=false;if(typeof botMoveReset==='function')botMoveReset(b);if(typeof botSquadReset==='function')botSquadReset(b);if(typeof bombM5Reset==='function')bombM5Reset(b);if(typeof botTdmReset==='function')botTdmReset(b);b.siteChoice=undefined;b.g.rotation.y=bombMapSpawnYaw(b.tm,b.x,b.z);botInitialLoadout(b);en.push(b);}
+function placeBot(b){b.gunplayStates=new Map();b.gunplaySpeed=0;var s=spawnPt(b.tm);b.stepTrail=0;b.stepIndex=0;b.x=s[0];b.z=s[1];b.y=0;defenseSpawn(b);if(b.hm)b.hm.visible=true;b.inv=2;b.cd=1+Math.random();b.dead=false;b.tg=null;b.bn=0;b.wx=b.x;b.wz=b.z;b.stk=0;b.lastSeen=null;b.coverGoal=null;b.coverExpires=0;b.coverHoldUntil=0;b.smartRetreat=false;if(typeof botMoveReset==='function')botMoveReset(b);if(typeof botSquadReset==='function')botSquadReset(b);if(typeof bombM5Reset==='function')bombM5Reset(b);if(typeof botTdmReset==='function')botTdmReset(b);b.siteChoice=undefined;b.g.rotation.y=bombMapSpawnYaw(b.tm,b.x,b.z);botInitialLoadout(b);en.push(b);}
 // startMatch(tm): sets up scores, timer (60 s) and the countdown, spawns the player and 4+5 bots, resets weapons to the chosen primary.
 function startMatch(tm){inventoryForNewMatch();starsReset();SPH=[[],[]];var s=spawnPt(tm);pl.tm=tm;pl.x=s[0];pl.z=s[1];pl.face=bombMapSpawnYaw(tm,pl.x,pl.z);pl.inv=2;ts=[0,0];rq=[];mt={t:roomMatchSeconds(),cd:5,over:false};pl.prim=favPrim;pl.w=favPrim;pl.mag=WP[favPrim].mag;pl.res=WP[favPrim].res;scopeOn=false;ROS=[];pl.st={name:"You",tm:tm,k:0,d:0};ROS.push(pl.st);
   S.remove(pm.g);pm=mkPm(tm);pm.g.visible=false;[armR,armL].forEach(function(ar){ar.children[0].material.color.setHex(tm?0x4b5320:0x1c4a8a);ar.children[1].material.color.setHex(tm?0x23272b:0x142a52);});
   [0,1].forEach(function(t){for(var i=0;i<BOMB_RULES.teamSize-(t===tm?1:0);i++){var b=newBot(t,i);b.st={name:b.name,tm:t,k:0,d:0};ROS.push(b.st);placeBot(b);}});
   if(isBombMode())bombStartMatch();loadoutPrepareRound();toast("YOU ARE "+(tm?"TERRORIST":"POLICE"));}
 // respawnPl(): respawns the player after the 5 s death timer with full ammo and spawn shield.
-function respawnPl(){bloodPoolRemove(pl.bloodPool);pl.bloodPool=null;pl.stepTrail=0;pl.stepIndex=0;var s=spawnPt(pl.tm);pl.dead=false;pl.dt=pl.rt=pl.rl=pl.cd=pl.sw=pl.stab=pl.thr=0;pl.pend=pl.sth=false;pl.ghide=0;defenseSpawn(pl);pl.x=s[0];pl.z=s[1];pl.y=pl.vy=0;pl.face=bombMapSpawnYaw(pl.tm,pl.x,pl.z);pl.pitch=0;pl.inv=2;pl.prim=favPrim;
+function respawnPl(){bloodPoolRemove(pl.bloodPool);pl.bloodPool=null;pl.gunplayStates=new Map();pl.gunplaySpeed=0;pl.stepTrail=0;pl.stepIndex=0;var s=spawnPt(pl.tm);pl.dead=false;pl.dt=pl.rt=pl.rl=pl.cd=pl.sw=pl.stab=pl.thr=0;pl.pend=pl.sth=false;pl.ghide=0;defenseSpawn(pl);pl.x=s[0];pl.z=s[1];pl.y=pl.vy=0;pl.face=bombMapSpawnYaw(pl.tm,pl.x,pl.z);pl.pitch=0;pl.inv=2;pl.prim=favPrim;
   pl.ammo={};WP.forEach(function(w,i){pl.ammo[i]={mag:w.mag,res:w.res};});pl.w=favPrim;pl.mag=WP[favPrim].mag;pl.res=WP[favPrim].res;pl.slot=0;camY=0;scopeOn=false;resetPm();setHm();document.body.classList.remove("dead");toast("RESPAWNED");}
 // tmUpd(): updates the top HUD (timer, scores, respawn text, spawn-shield text).
 function tmUpd(){var g=function(i){return document.getElementById(i);},r=g("rsp");g("imm").style.display=(pl.inv>0&&!pl.dead&&!mt.over)?"block":"none";var sp0=g("tp"),sq0=g("tq");if(sp0.textContent!=ts[0]){sp0.textContent=ts[0];sp0.classList.remove("pop");void sp0.offsetWidth;sp0.classList.add("pop");}if(sq0.textContent!=ts[1]){sq0.textContent=ts[1];sq0.classList.remove("pop");void sq0.offsetWidth;sq0.classList.add("pop");}g("tt").textContent=mmss(Math.max(0,Math.ceil(mt.t)));g("tbf").style.width=Math.max(0,Math.min(100,mt.t/(isBombMode()?(bombMatch&&bombMatch.state==="planted"?BOMB_RULES.fuseSeconds:roomRoundSeconds()):roomMatchSeconds())*100))+"%";g("tm").classList.toggle("lo",mt.t<=10&&mt.cd<=0&&!mt.over);g("tmP").classList.toggle("you",pl.tm===0);g("tmT").classList.toggle("you",pl.tm===1);
@@ -7332,6 +7414,7 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
     f=(t&&e.lok)?e.aimYaw:(mvx||mvz)?Math.atan2(mvx,mvz):e.g.rotation.y;
     moveWithSolidCollision(e,mvx*sp*dt,mvz*sp*dt,.55);
     var dm=Math.hypot(e.x-ox,e.z-oz);
+    e.gunplaySpeed=dm/Math.max(.001,dt);
     footstepAdvance(e,dm,!cdn&&dm>.002,sp>4.4,false);
     if(typeof botQaEnabled!=='undefined'&&botQaEnabled)botQaMove(wantedMovement,dm,sp,dt);
     botMoveTrack(e,ox,oz,dt,sp,wantedMovement,combat);
@@ -7605,6 +7688,7 @@ function update(dt){
   if(!pl.dead&&!(isBombMode()&&pl.bAction)&&(keys.Space||jumpHeld)&&pl.y<=gy+.001)pl.vy=9;
   pl.vy-=28*dt;pl.y+=pl.vy*dt;gy=gh(pl.x,pl.z,py);
   if(pl.y<=gy){pl.y=gy;pl.vy=0;}
+  pl.gunplaySpeed=Math.hypot(pl.x-oldStepX,pl.z-oldStepZ)/Math.max(.001,dt);
   footstepAdvance(pl,Math.hypot(pl.x-oldStepX,pl.z-oldStepZ),!pl.dead&&pl.vy===0,false,true,wS);
   if(pl.vy===0&&Math.abs(pl.y-camY)<1.2)camY+=(pl.y-camY)*Math.min(1,dt*16);else camY=pl.y;
   var rk=pl.dead?0:1;pl.face-=ST.r.x*2.4*dt*rk;pl.pitch=Math.max(-1.2,Math.min(1.2,pl.pitch-ST.r.y*1.6*dt*rk));
@@ -7867,6 +7951,7 @@ var onlineTeamNotice=null,onlineInputId=0,onlineVisualLoaded=false;
 var onlineReconnectTimer=0,onlineReconnectStarted=0,onlineReconnecting=false;
 var onlineAimInitialized=false,onlineTrainingProgressValue=null,onlinePrevAlive=true;
 var onlineSelfTarget=null,onlineLastWinner=undefined,onlineMuzzleTime=0;
+var onlineGunplayMismatchWarned=false;
 var onlinePendingMatchCompleted=null,onlineResultsDisplayed=false,onlineReturnToRoomBusy=false;
 var onlineResultFallbackTimer=null;
 var ONLINE_MATCH_END_TIMING=Object.freeze({pauseMs:2000,announcementMs:2000});
@@ -8386,8 +8471,9 @@ function onlineShotTracer(frame,muzzle){
    frame.projectileSpeed:(w.spd||180),
   duration=Math.min(.15,Math.max(.075,24/speed));
  mesh.rotation.order='YXZ';mesh.rotation.set(-pitch,angle,0);
- if(muzzle&&[muzzle.x,muzzle.y,muzzle.z].every(Number.isFinite))mesh.position.copy(muzzle);
- else mesh.position.set(frame.x,frame.y,frame.z);
+ // Trajectory must begin at the server-confirmed spawn point, never the
+ // cosmetically predicted first-person viewmodel muzzle.
+ mesh.position.set(frame.x,frame.y,frame.z);
  S.add(mesh);
  onlineShotTracers.push({m:mesh,vx:Math.sin(angle)*Math.cos(pitch)*speed,
   vy:Math.sin(pitch)*speed,vz:Math.cos(angle)*Math.cos(pitch)*speed,t:duration});
@@ -8850,7 +8936,7 @@ function onlineResetLive(){
  onlineLastFrameAt=0;onlineLastSnapshotAt=0;onlineLastSnapshotTick=-1;onlineRemoteDelay=150;
  onlineFrameSamples.length=0;onlineSnapshotSamples.length=0;onlineCorrectionSize=0;
  if(onlinePerfPanel){onlinePerfPanel.remove();onlinePerfPanel=null;}
- onlineAimInitialized=false;onlineTrainingProgressValue=null;onlinePrevAlive=true;
+ onlineAimInitialized=false;onlineTrainingProgressValue=null;onlinePrevAlive=true;onlineGunplayMismatchWarned=false;
  onlineSelfTarget=null;onlineLastWinner=undefined;onlineMuzzleTime=0;onlineScoreboard.clear();onlineSeenKillIds.clear();
  onlinePendingKillTick=-1;onlinePendingKillTotal=null;onlineLastStallCheckAt=0;
  onlinePendingWeapon=null;onlinePendingWeaponAt=0;onlineHitUntil=0;
@@ -9312,6 +9398,10 @@ function onlineReceiveFrame(frame){
   onlineGrenadeExplosion(frame);return;
  }
  if(frame.type==='combat_shot'){
+  if(frame.weaponId!==4&&frame.weaponId!==5&&frame.ballisticRevision!==GUNPLAY_REVISION){
+   if(!onlineGunplayMismatchWarned){onlineGunplayMismatchWarned=true;onlineWarn('BALLISTIC_VERSION_MISMATCH');}
+   return;
+  }
   if(!onlineActive)return;
   if(frame.actorId===onlineUserId()){
    onlineCombatQa.confirmedShots++;
@@ -9333,7 +9423,7 @@ function onlineReceiveFrame(frame){
     bot.knifeAttackUntil=performance.now()+420;
     bot.knifeAttackAlt=frame.altFire===true;
    }
-   if(bot.weapon!==4&&bot.weapon!==5){
+   if(bot.weapon!==4&&bot.weapon!==5&&(!Number.isInteger(frame.pelletIndex)||frame.pelletIndex===0)){
     var muzzle=onlineShotMuzzle(frame);
     if(muzzle)enemyShotFx(bot,muzzle.x,muzzle.y,muzzle.z);
    }
@@ -9748,7 +9838,12 @@ function onlineVisualUpdate(dt){
  }
  if(!wantsFire)onlineGrenadeCancelUntilRelease=false;
  onlineGrenadeChargeUI();
- var acceptedFire=wantsFire&&!onlineGrenadeCancelUntilRelease;
+ var gunplayCompatible=onlineGame?.ballisticRevision===GUNPLAY_REVISION;
+ if(onlineGame&&!gunplayCompatible&&!onlineGunplayMismatchWarned){
+  onlineGunplayMismatchWarned=true;
+  onlineWarn('BALLISTIC_VERSION_MISMATCH — UPDATE FE AND BE TOGETHER');
+ }
+ var acceptedFire=wantsFire&&!onlineGrenadeCancelUntilRelease&&gunplayCompatible;
  if(acceptedFire&&pl.w!==5&&pl.mag>0&&now-onlineMuzzleTime>Math.max(75,(WP[pl.w]?.cd||.14)*1000)){
   // Cosmetic prediction only: server decides shot legitimacy, ammo, hit and damage.
   onlineMuzzleTime=now;

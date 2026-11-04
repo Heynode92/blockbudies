@@ -26,6 +26,8 @@ jobs:
           node-version: '22'
       - name: Install pinned dependencies
         run: npm install --no-audit --no-fund
+      - name: Focused and full JavaScript regression tests
+        run: npm test
       - name: Compile production frontend
         run: npm run build
       - name: Inspect distributable

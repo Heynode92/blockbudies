@@ -110,3 +110,8 @@ CS:GO/CS2 uses 500 CS units per modifier interval. POINT BLOCK has a much smalle
 The existing `src/game/weapon/21-shotgun-spread-pattern.js` now computes deterministic golden-angle offsets in **both yaw and elevation** for each pellet, derived from the canonical pellet count. Both Shotgun ID 2 and Saiga-12 ID 18 fire six pellets from the same muzzle per volley. This is a radial pattern inspired by Valve's CS:GO learnable shotgun system, not an exact reproduction of its coordinates.
 
 The original `w.spr` half-cone and ADS reduction apply to both axes, with one pellet near the center for reliable crosshair feel. Vertical velocity keeps the original aim pitch and muzzle-to-crosshair correction as its baseline. Non-shotguns retain their old random spread. See `tests/shotgun-horizontal-pattern.test.mjs` (retained filename for compatibility, now fully testing 2D).
+
+
+## Unified ballistic gunplay v1 — 2026-11-04 (branch candidate)
+
+Immutable 19 weapon ratings drive predictable per-shot vertical and horizontal recoil, Control-based bloom, recovery, movement accuracy and ADS. The exact corresponding authoritative implementation is `src/matches/engine/gunplay.ts` in the backend under revision `pointblock-gunplay-2026-11-04-v1`. Only the backend computes real projectile angles, collisions, impacts and damage online. The FE uses confirmed shot angles, including each pellet, to render tracers. An incompatible ballistic revision disables the new FE's firing input. Scope models, weapon damage, ammo, collision, maps, rewards and IDs are preserved. Windows CI, FE/BE revision pairing and actual browser 5v5 playtest remain explicit release gates.
