@@ -109,8 +109,8 @@ function footstepPlay(actor,local,sprint){
   src.start(t);src.stop(t+.195);
  }catch(e){} // Audio failure must never interrupt movement or bot AI.
 }
-function footstepAdvance(actor,dist,grounded,sprint,local){
- if(!actor||actor.dead||!run||lob||mt.over||mt.cd>0||!grounded||!Number.isFinite(dist)||dist>2.6){
+function footstepAdvance(actor,dist,grounded,sprint,local,sneaking){
+ if(!actor||actor.dead||!run||lob||mt.over||mt.cd>0||!grounded||sneaking===true||!Number.isFinite(dist)||dist>2.6){
   if(actor)actor.stepTrail=0;
   return;
  }
