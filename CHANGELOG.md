@@ -1,3 +1,9 @@
+## 2026-11-04 — Server-verified match winner interstitial and offline gait parity
+- On authoritative `match_completed`, hold the battlefield two seconds, display POLICE WIN / TERORIS WIN / DRAW for exactly two seconds, then open the original Results overlay. Preserve the sequence across completed-match socket closure and fallback recovery; duplicate completion frames cannot show results twice.
+- Use existing CSS-defined PointBlock typography via the centralized `--pb-display-font`, no JavaScript-set fonts or user-supplied result markup.
+- Make remote walk animation advance with the exact source-pinned offline `distance*2.4` gait, bounded by per-weapon movement rating and smoothly blended so 10Hz snapshot spikes don't look like sprinting. This does not change actual actor movement, damage, or hit detection.
+- New focused tests cover result ordering, server winner, and offline gait reference. No frontend dependency or database changes.
+
 ## 2026-11-04 — Fix ACTIVE room leave conflicts and failed match handshake crash
 - Eliminate the runtime TypeError caused by writing connection errors into nonexistent `rmlBotSummary`. Failed room realtime-ticket / WS attachment now preserves server-owned membership and shows a real status dialog with the original failure code and REJOIN MATCH action label.
 - READY refreshes the authoritative room before deciding between non-master ready, master start or already-ACTIVE match rejoin. Request/409 errors are caught and membership is recovered rather than surfacing an unhandled promise rejection.
