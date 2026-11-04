@@ -82,6 +82,47 @@ var onlineAimInitialized=false,onlineTrainingProgressValue=null,onlinePrevAlive=
 var onlineSelfTarget=null,onlineLastWinner=undefined,onlineMuzzleTime=0;
 var onlinePendingMatchCompleted=null,onlineResultsDisplayed=false,onlineReturnToRoomBusy=false;
 var onlineResultFallbackTimer=null;
+var ONLINE_MATCH_END_TIMING=Object.freeze({pauseMs:2000,announcementMs:2000});
+function onlineShowMatchWinnerBanner(frame){
+ var banner=document.getElementById('matchWinnerBanner'),
+     title=document.getElementById('matchWinnerText');
+ if(!banner||!title)return;
+ // Only backend-authoritative final results are allowed to name the victor.
+ var winner=frame.winner;
+ if(winner!==0&&winner!==1){
+  var score=isBombMode()?frame.game?.rounds:frame.game?.teamKills;
+  if(winner!==null&&Array.isArray(score)&&score.length===2)
+   winner=score[0]===score[1]?null:score[0]>score[1]?0:1;
+ }
+ title.textContent=winner===0?'POLICE WIN':winner===1?'TERORIS WIN':'DRAW';
+ banner.classList.toggle('is-police',winner===0);
+ banner.classList.toggle('is-terror',winner===1);
+ banner.classList.toggle('is-draw',winner!==0&&winner!==1);
+ banner.hidden=false;
+}
+function onlineHideMatchWinnerBanner(){
+ var banner=document.getElementById('matchWinnerBanner');
+ if(!banner)return;
+ banner.hidden=true;
+ banner.classList.remove('is-police','is-terror','is-draw');
+}
+function onlineQueueCompletedMatch(frame){
+ if(!onlineActive||onlineTraining||onlinePendingMatchCompleted||
+    frame?.matchId!==onlineMatchId||frame.game?.status!=='COMPLETED')return;
+ onlinePendingMatchCompleted=frame;
+ // 2 seconds of frozen battlefield, then 2 seconds of victory display.
+ // Results are shown only after both phases, never based on client kill claims.
+ clearTimeout(onlineResultFallbackTimer);
+ onlineResultFallbackTimer=setTimeout(function(){
+  if(!onlineActive||onlinePendingMatchCompleted!==frame)return;
+  onlineShowMatchWinnerBanner(frame);
+  onlineResultFallbackTimer=setTimeout(function(){
+   if(!onlineActive||onlinePendingMatchCompleted!==frame)return;
+   onlinePendingMatchCompleted=null;
+   onlineFinalizeCompletedMatch(frame);
+  },ONLINE_MATCH_END_TIMING.announcementMs);
+ },ONLINE_MATCH_END_TIMING.pauseMs);
+}
 var onlineRewardMatchId=null,onlineRewardTimer=null,onlineRewardChecking=false;
 var onlineStallChecking=false,onlineLastStallCheckAt=0;
 var onlinePendingKillTick=-1,onlinePendingKillTotal=null;
@@ -993,6 +1034,7 @@ function onlineStartRoomPoll() {
 }
 function onlineResetLive(){
  clearTimeout(onlineResultFallbackTimer);onlineResultFallbackTimer=null;
+ onlineHideMatchWinnerBanner();
  onlinePendingMatchCompleted=null;
  onlineCombatQa={fireInputs:0,confirmedShots:0,confirmedHits:0,wallImpacts:0,damageTaken:0,lastEvent:'NONE'};
  onlineActive=false;onlineTraining=false;onlineCurrentId=null;onlineMatchId=null;
@@ -1525,18 +1567,7 @@ function onlineReceiveFrame(frame){
   onlineResetLive();matchExitToLobby('room');onlineWarn(frame.code||'SERVER_MATCH_FAILURE');return;
  }
  if(frame.type==='match_completed'){
-  if(!onlineActive)return;
-  if(dead.length>0){
-   // Prefer the original offline corpse animation. It must NEVER hold the
-   // verified result hostage if the 3-D loop stalls or a model is retained.
-   onlinePendingMatchCompleted=frame;
-   clearTimeout(onlineResultFallbackTimer);
-   onlineResultFallbackTimer=setTimeout(function(){
-    if(!onlineActive||onlinePendingMatchCompleted?.matchId!==frame.matchId)return;
-    var completed=onlinePendingMatchCompleted;onlinePendingMatchCompleted=null;
-    onlineFinalizeCompletedMatch(completed);
-   },2200);
-  }else onlineFinalizeCompletedMatch(frame);
+  onlineQueueCompletedMatch(frame);
   return;
  }
  if(frame.type==='training_result'){
@@ -1951,7 +1982,7 @@ function onlineVisualUpdate(dt){
   pl.rsT=Math.max(0,(Number.isFinite(pl.rsT)?pl.rsT:0)-Math.max(0,dt));
  // First-person camera responds immediately on every render frame; it never
  // waits for a 10 Hz server snapshot to permit movement.
- if(!pl.dead&&onlineHasPrediction&&now-onlineLastSnapshotAt<600){
+ if(!onlinePendingMatchCompleted&&!pl.dead&&onlineHasPrediction&&now-onlineLastSnapshotAt<600){
   var prediction={seq:onlineSeq,moveX:x,moveZ:z,yaw:pl.face,ads:!!ads,
    sprint:sprint,jump:jump,crouch:crouch,weaponId:pl.w,dt:Math.max(0,Math.min(dt,.05))};
   onlinePredictStep(pl,prediction,prediction.dt);
@@ -1984,12 +2015,8 @@ function onlineVisualUpdate(dt){
   blockDeathPose(pm,pl.dt);
  }
  onlineTickEffects(dt);
- if(onlinePendingMatchCompleted&&dead.length===0){
-  var completed=onlinePendingMatchCompleted;
-  onlinePendingMatchCompleted=null;
-  onlineFinalizeCompletedMatch(completed);
-  return;
- }
+ // Results are released by the two-stage server-confirmed end sequence,
+ // never by an empty corpse list or an arbitrary render frame.
  if(typeof hud==='function')hud();
  if(typeof hdUpd==='function')hdUpd(dt);
  if(typeof kfUpd==='function')kfUpd(dt);
