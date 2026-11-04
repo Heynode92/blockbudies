@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
+import * as THREE from 'three';
 
 const root=new URL('../',import.meta.url);
 const read=p=>readFileSync(new URL(p,root),'utf8');
@@ -136,12 +137,13 @@ test('M1: real bullet dispatch emits one sound cue per trigger, not per pellet',
  const events=[],bl=[];
  const weapon={pel:6,spr:.01,spd:100,life:1,dmg:20,
    stats:{kind:'shotgun'},rangeModifier:.7,rangeUnit:20};
- const c={Math,A:60,tt:0,pl:{},WP:[weapon],bl,shotSide:0,
+ const c={Math,T:THREE,A:60,tt:0,pl:{},WP:[weapon],bl,shotSide:0,
+   offlineGunMuzzleWorld(){return new THREE.Vector3(0,1.4,0);},
    botSoundEmit(e,kind){events.push({actor:e,kind});},
    shotgunPelletSpread(i){return[i/100,0];},
    freshGunplayState(){return {shots:0,yaw:0,pitch:0,bloom:0,lastShotAt:-Infinity};},
    gunplayShot(){return {yaw:0,pitch:0,index:0,inaccuracy:0};},
-   tracer(){return{visible:false,rotation:{order:'',set(){}},
+   tracer(){return{visible:false,quaternion:{setFromUnitVectors(){}},rotation:{order:'',set(){}},
      position:{set(){}},};},
    S:{add(){}},enemyShotFx(){},sweepObs(){return false;},
    sweepLT(){return false;},obsAt(){return false;}};
