@@ -4,14 +4,30 @@ on:
   push:
     branches: [main]
     paths:
-      - 'src/**'
-      - 'tools/source-manifest.json'
+      - 'src/network/**'
+      - 'src/game/98-online-bridge.js'
+      - 'src/game/83-room-lobby.js'
+      - 'src/styles/17-online.css'
       - 'tools/vite-game-plugin.mjs'
+      - 'tests/vite-integration.test.mjs'
       - 'package.json'
+      - 'package-lock.json'
       - 'vite.config.mjs'
       - 'index.html'
       - '.github/workflows/online-frontend-build.yml'
   pull_request:
+    paths:
+      - 'src/network/**'
+      - 'src/game/98-online-bridge.js'
+      - 'src/game/83-room-lobby.js'
+      - 'src/styles/17-online.css'
+      - 'tools/vite-game-plugin.mjs'
+      - 'tests/vite-integration.test.mjs'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vite.config.mjs'
+      - 'index.html'
+      - '.github/workflows/online-frontend-build.yml'
 
 permissions:
   contents: read
@@ -26,8 +42,8 @@ jobs:
           node-version: '22'
       - name: Install pinned dependencies
         run: npm install --no-audit --no-fund
-      - name: Focused and full JavaScript regression tests
-        run: npm test
+      - name: Network/Vite integration only (active CI runs in vite.yml)
+        run: npm run test:integration
       - name: Compile production frontend
         run: npm run build
       - name: Inspect distributable

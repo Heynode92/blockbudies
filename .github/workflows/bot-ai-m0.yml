@@ -1,10 +1,7 @@
 # Developer-only verification; playable POINT BLOCK remains direct-open/offline.
 name: BOT AI M0 regression
+# Historical M0–M7 certification: never on routine push/PR.
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
 permissions:

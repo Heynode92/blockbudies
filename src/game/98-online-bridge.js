@@ -577,6 +577,7 @@ function onlineShotMuzzle(frame){
   if(pl.dead||pl.w!==frame.weaponId)return null;
   // This is a VS-space position, NOT a world-space point: the first-person
   // weapon is rendered by VC in a separate scene with its own projection.
+  syncWeaponBarrelPoseImmediate();
   var localSocket=weaponMuzzleSocket(guns[frame.weaponId],left);
   if(!localSocket)return null;
   return localSocket.getWorldPosition(new T.Vector3());
@@ -1080,6 +1081,7 @@ function onlineResetLive(){
  onlinePendingMatchCompleted=null;
  onlineCombatQa={fireInputs:0,confirmedShots:0,confirmedHits:0,wallImpacts:0,damageTaken:0,lastEvent:'NONE'};
  onlineActive=false;onlineTraining=false;onlineCurrentId=null;onlineMatchId=null;
+ pl.ballisticBarrelYaw=pl.ballisticBarrelPitch=0;pl.ballisticBarrelWeapon=null;pl.ballisticBarrelIdle=null;
  onlineWorld=null;onlineGame=null;
  onlineServerPhase='CONNECTING';onlineClientSceneReady=false;onlineLoadParticipants={ready:0,total:0};
  document.getElementById('dv').classList.remove('online-results');
@@ -1562,7 +1564,25 @@ function onlineReceiveFrame(frame){
    return;
   }
   if(!onlineActive)return;
-  if(frame.actorId===onlineUserId()){
+  // Authoritative deterministic recoil is received with each actual SHOT,
+ // never inferred from camera shake, local fire prediction or client input.
+ if(frame.weaponId!==4&&frame.weaponId!==5&&
+   (!Number.isInteger(frame.pelletIndex)||frame.pelletIndex===0)&&
+   Number.isFinite(frame.barrelYaw)&&Number.isFinite(frame.barrelPitch)){
+  var visualActor=frame.actorId===onlineUserId()?pl:onlineActors.get(frame.actorId)?.model;
+  if(visualActor){
+   visualActor.ballisticBarrelYaw=frame.barrelYaw;
+   visualActor.ballisticBarrelPitch=frame.barrelPitch;
+   visualActor.ballisticBarrelIdle=0;
+   visualActor.ballisticBarrelWeapon=frame.weaponId;
+   if(visualActor!==pl&&visualActor.g?.userData?.rg){
+    var barrelGun=visualActor.g.userData.rg;
+    barrelGun.rotation.order='YXZ';
+    barrelGun.rotation.set(frame.barrelPitch,Math.PI+frame.barrelYaw,0);
+   }
+  }
+ }
+ if(frame.actorId===onlineUserId()){
    onlineCombatQa.confirmedShots++;
    onlineCombatQa.lastEvent='SHOT';
   }
@@ -1577,6 +1597,11 @@ function onlineReceiveFrame(frame){
    var bot=remote.model;bot.rc=1;
    if(Number.isInteger(frame.weaponId)&&frame.weaponId>=0&&frame.weaponId<WP.length){
     botVisualWeapon(bot,frame.weaponId);bot.weapon=frame.weaponId;
+    if(Number.isFinite(frame.barrelYaw)&&Number.isFinite(frame.barrelPitch)&&bot.g?.userData?.rg){
+     var updatedGun=bot.g.userData.rg;
+     updatedGun.rotation.order='YXZ';
+     updatedGun.rotation.set(frame.barrelPitch,Math.PI+frame.barrelYaw,0);
+    }
    }
    if(bot.weapon===4){
     bot.knifeAttackUntil=performance.now()+420;
@@ -1957,8 +1982,26 @@ function onlineWatchSnapshots(now){
   }
  }).catch(onlineWarn).finally(function(){onlineStallChecking=false;});
 }
+// Consistent interruption recovery for cosmetic gun body/hands, never physics.
+function onlineRecoverBarrel(actor,dt){
+ if(!Number.isFinite(actor.ballisticBarrelIdle))return;
+ actor.ballisticBarrelIdle+=dt;
+ var id=actor.ballisticBarrelWeapon,w=WP[id],p=WEAPON_PROFILES[id];
+ if(!w||!p)return;
+ if(actor.ballisticBarrelIdle<=Math.max(.18,w.cd*1.35))return;
+ var control=Math.max(0,Math.min(1,(p.control||0)/100)),
+  arch=GUNPLAY_ARCHETYPES[p.kind],fade=Math.exp(-arch.recovery*(.75+.5*control)*dt);
+ actor.ballisticBarrelYaw*=fade;actor.ballisticBarrelPitch*=fade;
+ if(actor!==pl&&actor.g?.userData?.rg){
+  var gun=actor.g.userData.rg;
+  gun.rotation.order='YXZ';
+  gun.rotation.set(actor.ballisticBarrelPitch,Math.PI+actor.ballisticBarrelYaw,0);
+ }
+}
 function onlineVisualUpdate(dt){
  if(!onlineActive||!run||lob)return;
+ onlineRecoverBarrel(pl,dt);
+ for(var visualRecord of onlineActors.values())onlineRecoverBarrel(visualRecord.model,dt);
  var now=performance.now();onlineMeasureFrame(now);onlineWatchSnapshots(now);
  tt+=dt;sndN=0;
  pl.sw=Math.max(0,(pl.sw||0)-dt);

@@ -23,7 +23,7 @@ function harness(){
   onlineCorrectionSize:0,onlinePrevAlive:true,
   weaponMovementSpeed:(weaponId,sprint,ads)=>{
    assert.equal(weaponId,9);
-   return speed*(1+.15*sprint)*(1-.38*ads);
+   return speed*(1-.15*sprint)*(1-.38*ads);
   },
   resolve:()=>{},
  };
@@ -43,7 +43,7 @@ test('movement yaw, diagonal normalization and crouch sprint restriction preserv
  const {pl,api}=harness();
  const input={...forward,yaw:Math.PI/2,sprint:true,crouch:true};
  api.step(pl,input,.05);
- assert.ok(Math.abs(pl.x-speed*.05)<.000001);
+ assert.ok(Math.abs(pl.x-speed*.85*.05)<.000001,'SHIFT stealth is 15% slower, not faster');
  assert.ok(Math.abs(pl.z)<.000001);
  const diagonal={...input,yaw:0,moveX:Math.SQRT1_2,moveZ:-Math.SQRT1_2,crouch:false};
  api.step(pl,diagonal,.05);
@@ -119,7 +119,7 @@ test('online particle lifecycle removes muzzle flash and blood instead of leavin
  const ctx={Math,mzf:[{m:flash,t:.04}],
   sk:[{m:blood,t:0,l:.05,vx:0,vy:0,vz:0,sz:.06,blood:true}],
   bloodActive:1,fx:[],toastT:0,onlineShotTracers:[],S:{remove:m=>removed.push(m)},
-  updCl:()=>{},updDead:()=>{},updSm:()=>{},bloodPoolUpdate:()=>{}};
+  updG:()=>{},grs:[],updCl:()=>{},updDead:()=>{},updSm:()=>{},bloodPoolUpdate:()=>{}};
  runInNewContext(code.slice(start,end)+'\nthis.tick=onlineTickEffects;',ctx);
  ctx.tick(.06);
  assert.equal(ctx.mzf.length,0);
@@ -323,10 +323,11 @@ test('match scoreboard cannot preempt the original confirmed ragdoll lifecycle',
  const begin=code.indexOf('function onlineFinalizeCompletedMatch(');
  const end=code.indexOf('\nfunction onlineReceiveFrame(',begin);
  assert.ok(begin>=0&&end>begin);
- assert.match(code,/if\(dead\.length>0\)/);
+ assert.match(code,/spawnBotDeathVisual\(model,dx,dz,0\)/);
  assert.match(code,/onlineResultFallbackTimer=setTimeout\(function\(\)/);
- assert.match(code,/onlinePendingMatchCompleted&&dead.length===0/);
+ assert.match(code,/ONLINE_MATCH_END_TIMING\.pauseMs/);
+ assert.match(code,/ONLINE_MATCH_END_TIMING\.announcementMs/);
  assert.match(code,/var wantsFire=!onlinePendingMatchCompleted&&!pl.dead/);
  assert.match(code,/mt.over=game.status==='COMPLETED'&&!onlineActive/);
- assert.match(code,/onlineFinalizeCompletedMatch\(completed\)/);
+ assert.match(code,/onlineFinalizeCompletedMatch\(frame\)/);
 });

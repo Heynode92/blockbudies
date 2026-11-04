@@ -8,7 +8,7 @@ const all=manifest.parts.filter(p=>p.startsWith('src/game/weapon/')&&!p.endsWith
 const still={ads:0,speed:0,crouch:false,grounded:true},fixed=()=>.5;
 function ctx(){const c=vm.createContext({Math});vm.runInContext(all,c);return c;}
 test('nineteen original weapon ratings drive the canonical ballistic revision',()=>{
- const c=ctx();assert.equal(c.GUNPLAY_REVISION,'pointblock-gunplay-2026-11-04-v2-muzzle');
+ const c=ctx();assert.equal(c.GUNPLAY_REVISION,'pointblock-gunplay-2026-11-04-v3-barrel');
  assert.equal(c.WP.length,19);
  for(let i=0;i<19;i++){
   const w=c.WP[i],state=c.freshGunplayState();

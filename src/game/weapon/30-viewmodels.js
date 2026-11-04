@@ -124,6 +124,14 @@ function xp(w){var r=[0,0,0,0,0,0],u,p,s,q,b,f;
   return r;}
 // lp(): smoothstep interpolation between 3D points a and b (t is clamped to 0..1).
 function lp(a,b,t){t=Math.max(0,Math.min(1,t));t=t*t*(3-2*t);return[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];}
+function syncWeaponBarrelPoseImmediate(){
+ var pitch=pl.ballisticBarrelWeapon===pl.w?pl.ballisticBarrelPitch||0:0;
+ var yaw=pl.ballisticBarrelWeapon===pl.w?pl.ballisticBarrelYaw||0:0;
+ hold.rotation.x+=pitch-(pl.renderedBarrelPitch||0);
+ hold.rotation.y-=yaw-(pl.renderedBarrelYaw||0);
+ pl.renderedBarrelPitch=pitch;pl.renderedBarrelYaw=yaw;
+ hold.updateWorldMatrix(true,true);
+}
 // animHands(): called every frame from loop(). Positions the gun (`hold`), hands and arms for: idle bob, walking, sprint,
 // aim-down-sights, recoil kick, reload animation (progress t = 1 - pl.rl / reload time), and the AWP bolt-action cycle (pl.bolt).
 function animHands(){
@@ -164,7 +172,15 @@ function animHands(){
   var X=xp(w);
   var a=canAds(w)?adsT*adsT*(3-2*adsT):0,sp=0,sneak=sprT*(1-a),bb=bm*(1-.85*a)*(1-.3*sneak)*(1+.5*wtT),AA=AP[w]||AP[0];
   hold.position.set((.26+sw*.012*bb+X[0]-.09*sp)*(1-a)+AA[0]*a,(-.17-tilt*.12-Math.abs(sw)*.02*bb+idle*.004+X[1]-.07*sp)*(1-a)+AA[1]*a,(-.5+kick*(1-.5*a)+tilt*.06+X[2]+.03*sp)*(1-a)+AA[2]*a);
-  hold.rotation.set((kick*.6+tilt*.45+idle*.004+X[3])*(1-.8*a)-.42*sp,(tilt*.3+X[4])*(1-a)+.55*sp,(-tilt*.35+sw*.012*bb+X[5])*(1-a)+.18*sp);
+  // All gun and hand children share the same deterministic ballistic axis.
+  // Camera shake/kick is secondary only; no extra recoil rotation is invented.
+  var poseCurrent=pl.ballisticBarrelWeapon===w,
+      barrelPitch=poseCurrent&&Number.isFinite(pl.ballisticBarrelPitch)?pl.ballisticBarrelPitch:0,
+      barrelYaw=poseCurrent&&Number.isFinite(pl.ballisticBarrelYaw)?pl.ballisticBarrelYaw:0;
+  hold.rotation.set((tilt*.45+idle*.004+X[3])*(1-.8*a)-.42*sp+barrelPitch,
+    (tilt*.3+X[4])*(1-a)+.55*sp-barrelYaw,
+    (-tilt*.35+sw*.012*bb+X[5])*(1-a)+.18*sp);
+  pl.renderedBarrelPitch=barrelPitch;pl.renderedBarrelYaw=barrelYaw;
   var boltGun=WP[w]&&WP[w].snp?guns[w]:null,bh8=boltGun&&boltGun.userData.bolt;
   if(bh8){var bo=pl.rl<=0?(pl.bolt||0):0;
     if(bo>0){var bp=1-bo/BOLT_T,hg=0,pu=0,lf=0;

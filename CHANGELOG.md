@@ -1,3 +1,10 @@
+## 2026-11-04 — Authoritative barrel H/V recoil and historical BOT CI preservation
+- Ballistic contract `pointblock-gunplay-2026-11-04-v3-barrel` preserves all 19 weapon IDs and ratings. Every server-shot publishes deterministic `barrelYaw`/`barrelPitch` alongside the final server-authoritative projectile velocity and muzzle origin; frontend uses these fields to rotate the existing first-person gun plus hands and third-person firearm, not to calculate damage.
+- The physical server muzzle now rotates about the real third-person gun mount before spawn collision; ADS does not cancel recoil, and shotgun pellets remain separate from whole-weapon recoil. Tracers remain short, thin, full-speed and tied to certified ballistic data; no new laser effects.
+- New `tests/authoritative-recoil.test.mjs` uses controlled non-production V/H ratings and numerical checks for true angular difference, K2 3D mesh socket movement and manual compensation. `npm run test:ci` runs a curated active set; `npm test` / `npm run test:full` remain explicit manual full regression options.
+- BOT AI M0–M7 are **completed historical milestones**. `bot-ai-m0.yml` and `bot-ai-m7-browser.yml` are **manual workflow_dispatch only**, with original archived suites/evidence retained. `vite.yml`, `online-frontend-build.yml` and `pointblock-gunplay-windows.yml` no longer trigger archived BOT certification indirectly. This does not retroactively delete GitHub Actions history.
+- Existing unrelated baseline test failures remain documented separately. Source/CI validation is NOT equivalent to a live two-browser 5v5 gameplay certification.
+
 ## 2026-11-04 — Server-verified match winner interstitial and offline gait parity
 - On authoritative `match_completed`, hold the battlefield two seconds, display POLICE WIN / TERORIS WIN / DRAW for exactly two seconds, then open the original Results overlay. Preserve the sequence across completed-match socket closure and fallback recovery; duplicate completion frames cannot show results twice.
 - Use existing CSS-defined PointBlock typography via the centralized `--pb-display-font`, no JavaScript-set fonts or user-supplied result markup.

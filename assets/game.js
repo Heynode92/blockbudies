@@ -2199,7 +2199,7 @@ var WP=WEAPON_PROFILES.map(weaponProfile);
 
 // Keep these exact equations in backend src/matches/engine/gunplay.ts.
 // Original deterministic whole-weapon recoil, bloom and movement/ADS accuracy.
-var GUNPLAY_REVISION='pointblock-gunplay-2026-11-04-v2-muzzle';
+var GUNPLAY_REVISION='pointblock-gunplay-2026-11-04-v3-barrel';
 var GUNPLAY_ARCHETYPES={
  pistol:{vertical:.8,horizontal:.8,bloom:.7,recovery:5.8},
  rifle:{vertical:1,horizontal:1,bloom:1,recovery:4.5},
@@ -2214,9 +2214,13 @@ var GUNPLAY_ARCHETYPES={
 function freshGunplayState(){return {shots:0,yaw:0,pitch:0,bloom:0,lastShotAt:-Infinity};}
 function gunplayClamp(v,lo,hi){return Math.min(hi,Math.max(lo,v));}
 function gunplayShot(weaponId,state,time,conditions,random){
+ return gunplayShotRated(WEAPON_PROFILES[weaponId],WP[weaponId],state,time,conditions,random);
+}
+// Independent numeric recoil fixtures only: production ratings remain immutable.
+function gunplayShotRated(p,w,state,time,conditions,random){
  if(!Number.isFinite(time)||!Number.isFinite(conditions.ads)||!Number.isFinite(conditions.speed)||
    conditions.speed<0||conditions.ads<0||conditions.ads>1)throw new RangeError('Invalid gunplay inputs');
- var p=WEAPON_PROFILES[weaponId],w=WP[weaponId],arch=GUNPLAY_ARCHETYPES[p.kind];
+ var arch=GUNPLAY_ARCHETYPES[p.kind];
  if(p.kind==='knife'||p.kind==='grenade')throw new RangeError('Non-projectile weapon');
  var control=gunplayClamp(p.control===null?0:p.control,0,100)/100,
    vert=gunplayClamp(p.vRecoil===null?0:p.vRecoil,0,100)/100,
@@ -2235,7 +2239,8 @@ function gunplayShot(weaponId,state,time,conditions,random){
  var inaccuracy=gunplayClamp((base+state.bloom)*locomotion*optics,.0002,.12);
  var radius=Math.sqrt(gunplayClamp(random(),0,.999999))*inaccuracy,
    angle=gunplayClamp(random(),0,.999999)*Math.PI*2;
- var yaw=state.yaw+Math.cos(angle)*radius,pitch=state.pitch+Math.sin(angle)*radius;
+ var barrelYaw=state.yaw,barrelPitch=state.pitch;
+ var yaw=barrelYaw+Math.cos(angle)*radius,pitch=barrelPitch+Math.sin(angle)*radius;
  var verticalKick=.0030*vert*arch.vertical*(1+Math.min(index,16)*.035)*(1-.07*ads);
  var horizontalStep=.0031*horz*arch.horizontal*
    (.74*Math.sin((index+1)*.43+arch.vertical)+.26*Math.sin((index+1)*.17));
@@ -2244,7 +2249,7 @@ function gunplayShot(weaponId,state,time,conditions,random){
  state.bloom=gunplayClamp(state.bloom+(.00016+.00042*(1-control))*arch.bloom,0,.038);
  state.shots=Math.min(150,index+1);
  state.lastShotAt=time;
- return {yaw:yaw,pitch:pitch,index:index,inaccuracy:inaccuracy};
+ return {yaw:yaw,pitch:pitch,index:index,inaccuracy:inaccuracy,barrelYaw:barrelYaw,barrelPitch:barrelPitch};
 }
 // Fixed 2D pellet spread inspired by CS:GO's learnable shotgun concept.
 // Golden-angle disk distributes pellets near/around the crosshair; no RNG,
@@ -2381,6 +2386,14 @@ function xp(w){var r=[0,0,0,0,0,0],u,p,s,q,b,f;
   return r;}
 // lp(): smoothstep interpolation between 3D points a and b (t is clamped to 0..1).
 function lp(a,b,t){t=Math.max(0,Math.min(1,t));t=t*t*(3-2*t);return[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];}
+function syncWeaponBarrelPoseImmediate(){
+ var pitch=pl.ballisticBarrelWeapon===pl.w?pl.ballisticBarrelPitch||0:0;
+ var yaw=pl.ballisticBarrelWeapon===pl.w?pl.ballisticBarrelYaw||0:0;
+ hold.rotation.x+=pitch-(pl.renderedBarrelPitch||0);
+ hold.rotation.y-=yaw-(pl.renderedBarrelYaw||0);
+ pl.renderedBarrelPitch=pitch;pl.renderedBarrelYaw=yaw;
+ hold.updateWorldMatrix(true,true);
+}
 // animHands(): called every frame from loop(). Positions the gun (`hold`), hands and arms for: idle bob, walking, sprint,
 // aim-down-sights, recoil kick, reload animation (progress t = 1 - pl.rl / reload time), and the AWP bolt-action cycle (pl.bolt).
 function animHands(){
@@ -2421,7 +2434,15 @@ function animHands(){
   var X=xp(w);
   var a=canAds(w)?adsT*adsT*(3-2*adsT):0,sp=0,sneak=sprT*(1-a),bb=bm*(1-.85*a)*(1-.3*sneak)*(1+.5*wtT),AA=AP[w]||AP[0];
   hold.position.set((.26+sw*.012*bb+X[0]-.09*sp)*(1-a)+AA[0]*a,(-.17-tilt*.12-Math.abs(sw)*.02*bb+idle*.004+X[1]-.07*sp)*(1-a)+AA[1]*a,(-.5+kick*(1-.5*a)+tilt*.06+X[2]+.03*sp)*(1-a)+AA[2]*a);
-  hold.rotation.set((kick*.6+tilt*.45+idle*.004+X[3])*(1-.8*a)-.42*sp,(tilt*.3+X[4])*(1-a)+.55*sp,(-tilt*.35+sw*.012*bb+X[5])*(1-a)+.18*sp);
+  // All gun and hand children share the same deterministic ballistic axis.
+  // Camera shake/kick is secondary only; no extra recoil rotation is invented.
+  var poseCurrent=pl.ballisticBarrelWeapon===w,
+      barrelPitch=poseCurrent&&Number.isFinite(pl.ballisticBarrelPitch)?pl.ballisticBarrelPitch:0,
+      barrelYaw=poseCurrent&&Number.isFinite(pl.ballisticBarrelYaw)?pl.ballisticBarrelYaw:0;
+  hold.rotation.set((tilt*.45+idle*.004+X[3])*(1-.8*a)-.42*sp+barrelPitch,
+    (tilt*.3+X[4])*(1-a)+.55*sp-barrelYaw,
+    (-tilt*.35+sw*.012*bb+X[5])*(1-a)+.18*sp);
+  pl.renderedBarrelPitch=barrelPitch;pl.renderedBarrelYaw=barrelYaw;
   var boltGun=WP[w]&&WP[w].snp?guns[w]:null,bh8=boltGun&&boltGun.userData.bolt;
   if(bh8){var bo=pl.rl<=0?(pl.bolt||0):0;
     if(bo>0){var bp=1-bo/BOLT_T,hg=0,pu=0,lf=0;
@@ -2734,6 +2755,15 @@ function fire(o,face,w,own,adv){
   ads:own==='p'?adsT:0,speed:Math.max(0,o.gunplaySpeed||0),
   crouch:!!o.crouch,grounded:own==='p'?pl.vy===0:o.vy===0||o.vy===undefined
  },Math.random);
+ // Canonical predictable barrel pose drives the actual gun mesh and hands,
+ // not a second visual-only recoil accumulator.
+ o.ballisticBarrelYaw=shot.barrelYaw;o.ballisticBarrelPitch=shot.barrelPitch;o.ballisticBarrelWeapon=weaponId;
+ if(own==='p')syncWeaponBarrelPoseImmediate();
+ if(own!=='p'&&o.g?.userData?.rg){
+  var meshGun=o.g.userData.rg;
+  meshGun.rotation.order='YXZ';
+  meshGun.rotation.set(shot.barrelPitch,Math.PI+shot.barrelYaw,0);
+ }
  var shotgun=w.pel>1&&w.stats&&w.stats.kind==='shotgun',
   sightPitch=(own==='p'?pl.pitch:(Number.isFinite(o.aimShotPitch)?o.aimShotPitch:0))+shot.pitch,
   sightYaw=face+shot.yaw,
@@ -5954,7 +5984,7 @@ function startMatch(tm){inventoryForNewMatch();starsReset();SPH=[[],[]];var s=sp
   [0,1].forEach(function(t){for(var i=0;i<BOMB_RULES.teamSize-(t===tm?1:0);i++){var b=newBot(t,i);b.st={name:b.name,tm:t,k:0,d:0};ROS.push(b.st);placeBot(b);}});
   if(isBombMode())bombStartMatch();loadoutPrepareRound();toast("YOU ARE "+(tm?"TERRORIST":"POLICE"));}
 // respawnPl(): respawns the player after the 5 s death timer with full ammo and spawn shield.
-function respawnPl(){bloodPoolRemove(pl.bloodPool);pl.bloodPool=null;pl.gunplayStates=new Map();pl.gunplaySpeed=0;pl.stepTrail=0;pl.stepIndex=0;var s=spawnPt(pl.tm);pl.dead=false;pl.dt=pl.rt=pl.rl=pl.cd=pl.sw=pl.stab=pl.thr=0;pl.pend=pl.sth=false;pl.ghide=0;defenseSpawn(pl);pl.x=s[0];pl.z=s[1];pl.y=pl.vy=0;pl.face=bombMapSpawnYaw(pl.tm,pl.x,pl.z);pl.pitch=0;pl.inv=2;pl.prim=favPrim;
+function respawnPl(){bloodPoolRemove(pl.bloodPool);pl.bloodPool=null;pl.gunplayStates=new Map();pl.gunplaySpeed=0;pl.ballisticBarrelYaw=pl.ballisticBarrelPitch=0;pl.ballisticBarrelWeapon=null;pl.stepTrail=0;pl.stepIndex=0;var s=spawnPt(pl.tm);pl.dead=false;pl.dt=pl.rt=pl.rl=pl.cd=pl.sw=pl.stab=pl.thr=0;pl.pend=pl.sth=false;pl.ghide=0;defenseSpawn(pl);pl.x=s[0];pl.z=s[1];pl.y=pl.vy=0;pl.face=bombMapSpawnYaw(pl.tm,pl.x,pl.z);pl.pitch=0;pl.inv=2;pl.prim=favPrim;
   pl.ammo={};WP.forEach(function(w,i){pl.ammo[i]={mag:w.mag,res:w.res};});pl.w=favPrim;pl.mag=WP[favPrim].mag;pl.res=WP[favPrim].res;pl.slot=0;camY=0;scopeOn=false;resetPm();setHm();document.body.classList.remove("dead");toast("RESPAWNED");}
 // tmUpd(): updates the top HUD (timer, scores, respawn text, spawn-shield text).
 function tmUpd(){var g=function(i){return document.getElementById(i);},r=g("rsp");g("imm").style.display=(pl.inv>0&&!pl.dead&&!mt.over)?"block":"none";var sp0=g("tp"),sq0=g("tq");if(sp0.textContent!=ts[0]){sp0.textContent=ts[0];sp0.classList.remove("pop");void sp0.offsetWidth;sp0.classList.add("pop");}if(sq0.textContent!=ts[1]){sq0.textContent=ts[1];sq0.classList.remove("pop");void sq0.offsetWidth;sq0.classList.add("pop");}g("tt").textContent=mmss(Math.max(0,Math.ceil(mt.t)));g("tbf").style.width=Math.max(0,Math.min(100,mt.t/(isBombMode()?(bombMatch&&bombMatch.state==="planted"?BOMB_RULES.fuseSeconds:roomRoundSeconds()):roomMatchSeconds())*100))+"%";g("tm").classList.toggle("lo",mt.t<=10&&mt.cd<=0&&!mt.over);g("tmP").classList.toggle("you",pl.tm===0);g("tmT").classList.toggle("you",pl.tm===1);
@@ -8509,6 +8539,7 @@ function onlineShotMuzzle(frame){
   if(pl.dead||pl.w!==frame.weaponId)return null;
   // This is a VS-space position, NOT a world-space point: the first-person
   // weapon is rendered by VC in a separate scene with its own projection.
+  syncWeaponBarrelPoseImmediate();
   var localSocket=weaponMuzzleSocket(guns[frame.weaponId],left);
   if(!localSocket)return null;
   return localSocket.getWorldPosition(new T.Vector3());
@@ -9012,6 +9043,7 @@ function onlineResetLive(){
  onlinePendingMatchCompleted=null;
  onlineCombatQa={fireInputs:0,confirmedShots:0,confirmedHits:0,wallImpacts:0,damageTaken:0,lastEvent:'NONE'};
  onlineActive=false;onlineTraining=false;onlineCurrentId=null;onlineMatchId=null;
+ pl.ballisticBarrelYaw=pl.ballisticBarrelPitch=0;pl.ballisticBarrelWeapon=null;pl.ballisticBarrelIdle=null;
  onlineWorld=null;onlineGame=null;
  onlineServerPhase='CONNECTING';onlineClientSceneReady=false;onlineLoadParticipants={ready:0,total:0};
  document.getElementById('dv').classList.remove('online-results');
@@ -9494,7 +9526,25 @@ function onlineReceiveFrame(frame){
    return;
   }
   if(!onlineActive)return;
-  if(frame.actorId===onlineUserId()){
+  // Authoritative deterministic recoil is received with each actual SHOT,
+ // never inferred from camera shake, local fire prediction or client input.
+ if(frame.weaponId!==4&&frame.weaponId!==5&&
+   (!Number.isInteger(frame.pelletIndex)||frame.pelletIndex===0)&&
+   Number.isFinite(frame.barrelYaw)&&Number.isFinite(frame.barrelPitch)){
+  var visualActor=frame.actorId===onlineUserId()?pl:onlineActors.get(frame.actorId)?.model;
+  if(visualActor){
+   visualActor.ballisticBarrelYaw=frame.barrelYaw;
+   visualActor.ballisticBarrelPitch=frame.barrelPitch;
+   visualActor.ballisticBarrelIdle=0;
+   visualActor.ballisticBarrelWeapon=frame.weaponId;
+   if(visualActor!==pl&&visualActor.g?.userData?.rg){
+    var barrelGun=visualActor.g.userData.rg;
+    barrelGun.rotation.order='YXZ';
+    barrelGun.rotation.set(frame.barrelPitch,Math.PI+frame.barrelYaw,0);
+   }
+  }
+ }
+ if(frame.actorId===onlineUserId()){
    onlineCombatQa.confirmedShots++;
    onlineCombatQa.lastEvent='SHOT';
   }
@@ -9509,6 +9559,11 @@ function onlineReceiveFrame(frame){
    var bot=remote.model;bot.rc=1;
    if(Number.isInteger(frame.weaponId)&&frame.weaponId>=0&&frame.weaponId<WP.length){
     botVisualWeapon(bot,frame.weaponId);bot.weapon=frame.weaponId;
+    if(Number.isFinite(frame.barrelYaw)&&Number.isFinite(frame.barrelPitch)&&bot.g?.userData?.rg){
+     var updatedGun=bot.g.userData.rg;
+     updatedGun.rotation.order='YXZ';
+     updatedGun.rotation.set(frame.barrelPitch,Math.PI+frame.barrelYaw,0);
+    }
    }
    if(bot.weapon===4){
     bot.knifeAttackUntil=performance.now()+420;
@@ -9889,8 +9944,26 @@ function onlineWatchSnapshots(now){
   }
  }).catch(onlineWarn).finally(function(){onlineStallChecking=false;});
 }
+// Consistent interruption recovery for cosmetic gun body/hands, never physics.
+function onlineRecoverBarrel(actor,dt){
+ if(!Number.isFinite(actor.ballisticBarrelIdle))return;
+ actor.ballisticBarrelIdle+=dt;
+ var id=actor.ballisticBarrelWeapon,w=WP[id],p=WEAPON_PROFILES[id];
+ if(!w||!p)return;
+ if(actor.ballisticBarrelIdle<=Math.max(.18,w.cd*1.35))return;
+ var control=Math.max(0,Math.min(1,(p.control||0)/100)),
+  arch=GUNPLAY_ARCHETYPES[p.kind],fade=Math.exp(-arch.recovery*(.75+.5*control)*dt);
+ actor.ballisticBarrelYaw*=fade;actor.ballisticBarrelPitch*=fade;
+ if(actor!==pl&&actor.g?.userData?.rg){
+  var gun=actor.g.userData.rg;
+  gun.rotation.order='YXZ';
+  gun.rotation.set(actor.ballisticBarrelPitch,Math.PI+actor.ballisticBarrelYaw,0);
+ }
+}
 function onlineVisualUpdate(dt){
  if(!onlineActive||!run||lob)return;
+ onlineRecoverBarrel(pl,dt);
+ for(var visualRecord of onlineActors.values())onlineRecoverBarrel(visualRecord.model,dt);
  var now=performance.now();onlineMeasureFrame(now);onlineWatchSnapshots(now);
  tt+=dt;sndN=0;
  pl.sw=Math.max(0,(pl.sw||0)-dt);

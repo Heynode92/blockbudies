@@ -43,8 +43,10 @@ test('online result only EXIT GAME, returns to same room without new match',()=>
  assert.match(finalizer,/document\.getElementById\('dgo'\)\.textContent='EXIT GAME'/);
  assert.match(finalizer,/document\.getElementById\('dmn'\)\.hidden=true/);
  const exit=piece("onlineAction('dgo',async()=>{","onlineAction('dmn',()=>{");
- assert.match(exit,/matchExitToLobby\('room'\)/);
- assert.match(exit,/onlineRecoverMembership\(\)/);
+ assert.match(exit,/await onlineExitResultsToRoom\(\)/);
+ const helper=piece('function onlineExitResultsToRoom(){',"onlineAction('dgo',async()=>{");
+ assert.match(helper,/await onlineRecoverMembership\(\)/);
+ assert.match(helper,/matchExitToLobby\('room'\)/);
  assert.doesNotMatch(exit,/onlineMasterStart\(\)|leaveRoom\(|abandonRoom\(|startRoom\(/);
 });
 

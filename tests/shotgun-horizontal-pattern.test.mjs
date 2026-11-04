@@ -13,6 +13,7 @@ function volley({id=2,ads=0,owner='p',rand=.5,pitch=0}={}){
  const bullets=[],math=Object.create(Math);math.random=()=>rand;
  const env={Math:math,T:THREE,tt:0,pl:{w:id,pitch,vy:0},adsT:ads,
   offlineGunMuzzleWorld(){return new THREE.Vector3(0,1.4,0);},
+  syncWeaponBarrelPoseImmediate(){},
   hold:{position:{x:0,y:-.6,z:-.6}},MZ:Array(19).fill(-.9),shotSide:0,A:80,bl:bullets,
   S:{add(){}},botSoundEmit(){},enemyShotFx(){},smoke(){},
   tracer(){return{quaternion:{setFromUnitVectors(){}},rotation:{set(){}},position:{set(x,y,z){Object.assign(this,{x,y,z});}}}},

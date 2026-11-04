@@ -37,7 +37,7 @@ var WP=WEAPON_PROFILES.map(weaponProfile);
 
 // Keep these exact equations in backend src/matches/engine/gunplay.ts.
 // Original deterministic whole-weapon recoil, bloom and movement/ADS accuracy.
-var GUNPLAY_REVISION='pointblock-gunplay-2026-11-04-v2-muzzle';
+var GUNPLAY_REVISION='pointblock-gunplay-2026-11-04-v3-barrel';
 var GUNPLAY_ARCHETYPES={
  pistol:{vertical:.8,horizontal:.8,bloom:.7,recovery:5.8},
  rifle:{vertical:1,horizontal:1,bloom:1,recovery:4.5},
@@ -52,9 +52,13 @@ var GUNPLAY_ARCHETYPES={
 function freshGunplayState(){return {shots:0,yaw:0,pitch:0,bloom:0,lastShotAt:-Infinity};}
 function gunplayClamp(v,lo,hi){return Math.min(hi,Math.max(lo,v));}
 function gunplayShot(weaponId,state,time,conditions,random){
+ return gunplayShotRated(WEAPON_PROFILES[weaponId],WP[weaponId],state,time,conditions,random);
+}
+// Independent numeric recoil fixtures only: production ratings remain immutable.
+function gunplayShotRated(p,w,state,time,conditions,random){
  if(!Number.isFinite(time)||!Number.isFinite(conditions.ads)||!Number.isFinite(conditions.speed)||
    conditions.speed<0||conditions.ads<0||conditions.ads>1)throw new RangeError('Invalid gunplay inputs');
- var p=WEAPON_PROFILES[weaponId],w=WP[weaponId],arch=GUNPLAY_ARCHETYPES[p.kind];
+ var arch=GUNPLAY_ARCHETYPES[p.kind];
  if(p.kind==='knife'||p.kind==='grenade')throw new RangeError('Non-projectile weapon');
  var control=gunplayClamp(p.control===null?0:p.control,0,100)/100,
    vert=gunplayClamp(p.vRecoil===null?0:p.vRecoil,0,100)/100,
@@ -73,7 +77,8 @@ function gunplayShot(weaponId,state,time,conditions,random){
  var inaccuracy=gunplayClamp((base+state.bloom)*locomotion*optics,.0002,.12);
  var radius=Math.sqrt(gunplayClamp(random(),0,.999999))*inaccuracy,
    angle=gunplayClamp(random(),0,.999999)*Math.PI*2;
- var yaw=state.yaw+Math.cos(angle)*radius,pitch=state.pitch+Math.sin(angle)*radius;
+ var barrelYaw=state.yaw,barrelPitch=state.pitch;
+ var yaw=barrelYaw+Math.cos(angle)*radius,pitch=barrelPitch+Math.sin(angle)*radius;
  var verticalKick=.0030*vert*arch.vertical*(1+Math.min(index,16)*.035)*(1-.07*ads);
  var horizontalStep=.0031*horz*arch.horizontal*
    (.74*Math.sin((index+1)*.43+arch.vertical)+.26*Math.sin((index+1)*.17));
@@ -82,5 +87,5 @@ function gunplayShot(weaponId,state,time,conditions,random){
  state.bloom=gunplayClamp(state.bloom+(.00016+.00042*(1-control))*arch.bloom,0,.038);
  state.shots=Math.min(150,index+1);
  state.lastShotAt=time;
- return {yaw:yaw,pitch:pitch,index:index,inaccuracy:inaccuracy};
+ return {yaw:yaw,pitch:pitch,index:index,inaccuracy:inaccuracy,barrelYaw:barrelYaw,barrelPitch:barrelPitch};
 }
