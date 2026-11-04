@@ -129,6 +129,8 @@ var onlineStallChecking=false,onlineLastStallCheckAt=0;
 var onlinePendingKillTick=-1,onlinePendingKillTotal=null;
 var onlinePendingWeapon=null,onlinePendingWeaponAt=0,onlineHitMarker=null,onlineHitUntil=0;
 var onlineShotTracers=[],onlineSeenGrenadeBlasts=new Set();
+// Client-side *presentation-only* recoil forecast; never used for authority.
+var onlinePredictedBarrelStates=new Map();
 var onlineScoreboard=new Map(),onlineSeenKillIds=new Set();
 // Public identity metadata only, independent of actor visibility/coordinates.
 function onlineCleanCallsign(value,fallback){
@@ -1082,6 +1084,7 @@ function onlineResetLive(){
  onlineCombatQa={fireInputs:0,confirmedShots:0,confirmedHits:0,wallImpacts:0,damageTaken:0,lastEvent:'NONE'};
  onlineActive=false;onlineTraining=false;onlineCurrentId=null;onlineMatchId=null;
  pl.ballisticBarrelYaw=pl.ballisticBarrelPitch=0;pl.ballisticBarrelWeapon=null;pl.ballisticBarrelIdle=null;
+ onlinePredictedBarrelStates.clear();
  onlineWorld=null;onlineGame=null;
  onlineServerPhase='CONNECTING';onlineClientSceneReady=false;onlineLoadParticipants={ready:0,total:0};
  document.getElementById('dv').classList.remove('online-results');
@@ -1982,6 +1985,21 @@ function onlineWatchSnapshots(now){
   }
  }).catch(onlineWarn).finally(function(){onlineStallChecking=false;});
 }
+// Animate the real, rated H/V law on the VERY FIRST local trigger without
+// waiting for network RTT. Server SHOT always replaces this cosmetic forecast.
+// Only server metadata supplies physical bullet yaw, muzzle, collision and damage.
+function onlinePredictVisibleBarrel(weaponId,now,ads){
+ if(!Number.isInteger(weaponId)||!WP[weaponId]||WP[weaponId].melee||WP[weaponId].gr)return;
+ var state=onlinePredictedBarrelStates.get(weaponId);
+ if(!state){state=freshGunplayState();onlinePredictedBarrelStates.set(weaponId,state);}
+ var shot=gunplayShot(weaponId,state,now/1000,{
+  ads:ads?1:0,speed:Math.max(0,pl.gunplaySpeed||0),
+  crouch:!!(keys.ControlLeft||keys.ControlRight),grounded:pl.vy===0
+ },function(){return 0;});
+ pl.ballisticBarrelYaw=shot.barrelYaw;pl.ballisticBarrelPitch=shot.barrelPitch;
+ pl.ballisticBarrelWeapon=weaponId;pl.ballisticBarrelIdle=0;
+ syncWeaponBarrelPoseImmediate();
+}
 // Consistent interruption recovery for cosmetic gun body/hands, never physics.
 function onlineRecoverBarrel(actor,dt){
  if(!Number.isFinite(actor.ballisticBarrelIdle))return;
@@ -2053,6 +2071,7 @@ function onlineVisualUpdate(dt){
   else if(pl.w===5)pl.thr=.5;
   else{
    flashT=.035;kick=Math.min(.26,kick+(WP[pl.w]?.viewKick||.018));
+   onlinePredictVisibleBarrel(pl.w,now,ads);
    camShot(pl.w);gunSfx(GS[SFXI[pl.w]],1);
    if(pl.w!==8)ejectShell(pl.w,1);
    if(WP[pl.w]?.pump){pl.pump=WP[pl.w].pumpDuration;pl.pumpEjected=false;}
