@@ -3,7 +3,27 @@ name: PointBlock Vite CI
 on:
   push:
     branches: [main]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'assets/game.js'
+      - 'tools/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'index.html'
+      - 'vite.config.mjs'
+      - '.github/workflows/vite.yml'
   pull_request:
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'assets/game.js'
+      - 'tools/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'index.html'
+      - 'vite.config.mjs'
+      - '.github/workflows/vite.yml'
 
 permissions:
   contents: read
@@ -22,7 +42,7 @@ jobs:
       - name: Install pinned Vite and Three.js
         run: npm install --no-audit --no-fund
       - name: Regression tests and legacy bundle parity
-        run: npm test
+        run: npm run test:ci
       - name: Production build
         run: npm run build
       - name: Validate production artifacts
