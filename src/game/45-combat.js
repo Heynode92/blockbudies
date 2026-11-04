@@ -92,6 +92,14 @@ function fire(o,face,w,own,adv){
   ads:own==='p'?adsT:0,speed:Math.max(0,o.gunplaySpeed||0),
   crouch:!!o.crouch,grounded:own==='p'?pl.vy===0:o.vy===0||o.vy===undefined
  },Math.random);
+ // Canonical predictable barrel pose drives the actual gun mesh and hands,
+ // not a second visual-only recoil accumulator.
+ o.ballisticBarrelYaw=shot.barrelYaw;o.ballisticBarrelPitch=shot.barrelPitch;
+ if(own!=='p'&&o.g?.userData?.rg){
+  var meshGun=o.g.userData.rg;
+  meshGun.rotation.order='YXZ';
+  meshGun.rotation.set(shot.barrelPitch,Math.PI+shot.barrelYaw,0);
+ }
  var shotgun=w.pel>1&&w.stats&&w.stats.kind==='shotgun',
   sightPitch=(own==='p'?pl.pitch:(Number.isFinite(o.aimShotPitch)?o.aimShotPitch:0))+shot.pitch,
   sightYaw=face+shot.yaw,
