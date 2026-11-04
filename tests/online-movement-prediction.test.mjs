@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
+import * as THREE from 'three';
 
 const code=readFileSync(new URL('../src/game/98-online-bridge.js',import.meta.url),'utf8');
 const start=code.indexOf('function onlinePositionBlocked(');
@@ -134,7 +135,8 @@ test('network hit reactions remain server-driven, visible-only and short lived',
  assert.match(code,/botDamageReaction\(model,visualDamage,dx,dz,!!headshot,true\)/);
  assert.match(code,/flash\(bot,dt\)/);
  assert.match(code,/onlineTickEffects\(dt\)/);
- assert.match(code,/gun.localToWorld\(new T.Vector3\(0,0,z\)\)/);
+ assert.match(code,/weaponMuzzleSocket\(gun,left\)/);
+ assert.match(code,/socket.getWorldPosition\(new T.Vector3\(\)\)/);
 });
 
 test('trusted server wall impacts and projectile tracers reach original FE visual effects',()=>{
@@ -164,23 +166,30 @@ test('a server-owned wall hit invokes the original offline wall damage and groun
  ctx.paint({x:NaN,y:1,z:3,nx:1,ny:0,nz:0});
  assert.equal(seen.length,2,'invalid impact payload cannot draw anything');
 });
-test('server-confirmed projectile draws a short-lived visual tracer without simulated damage',()=>{
+test('server-confirmed projectile starts at physical gun socket in native viewmodel scene',()=>{
  const start=code.indexOf('function onlineShotTracer('),end=code.indexOf('\nfunction onlineWarn(',start);
  assert.ok(start>=0&&end>start);
- const added=[],ctx={Math,Number,WP:Array.from({length:19},()=>({spd:180})),
-   onlineShotTracers:[],onlineUserId:()=> 'me',
-   tracer:()=>({rotation:{order:'',set:()=>{}},position:{set:()=>{}}}),
-   S:{add:m=>added.push(m),remove:()=>{}}};
- runInNewContext(code.slice(start,end)+'\nthis.draw=onlineShotTracer;',ctx);
- ctx.draw({actorId:'me',weaponId:9,x:0,y:1.4,z:0,yaw:0,pitch:0});
- assert.equal(ctx.onlineShotTracers.length,1);
- assert.equal(added.length,1);
- assert.ok(ctx.onlineShotTracers[0].t>=.075&&ctx.onlineShotTracers[0].t<=.15);
- assert.equal(ctx.onlineShotTracers[0].vz,180);
- ctx.draw({actorId:'me',weaponId:9,x:0,y:1.4,z:0,yaw:0,pitch:0,projectileSpeed:420});
- assert.equal(ctx.onlineShotTracers[1].vz,420,'BE projectile speed drives only cosmetic movement');
- ctx.draw({actorId:'me',weaponId:9,x:NaN,y:0,z:0,yaw:0,pitch:0});
- assert.equal(ctx.onlineShotTracers.length,2);
+ const S=new THREE.Scene(),VS=new THREE.Scene(),
+   C=new THREE.PerspectiveCamera(70,1,.1,430),VC=new THREE.PerspectiveCamera(70,1,.1,10);
+ C.position.set(0,1.4,0);C.lookAt(0,1.4,1);
+ const state={Math,Number,T:THREE,WP:Array.from({length:19},()=>({spd:180})),
+  onlineShotTracers:[],onlineUserId:()=> 'me',S,VS,C,VC,
+  tracer:()=>new THREE.Group()};
+ runInNewContext(code.slice(start,end)+'\nthis.draw=onlineShotTracer;',state);
+ const gunTip=new THREE.Vector3(.3,-.2,-1.8);
+ state.draw({actorId:'me',weaponId:9,x:0,y:1.05,z:1.3,yaw:0,pitch:0},gunTip);
+ assert.equal(state.onlineShotTracers.length,1);
+ const visual=state.onlineShotTracers[0];
+ assert.equal(visual.scene,VS,'first-person tracer MUST render with first-person VC camera');
+ assert.equal(visual.m.parent,VS);
+ assert.ok(visual.m.position.distanceTo(gunTip)<1.2);
+ assert.ok(visual.t>0&&visual.t<=.17);
+ state.draw({actorId:'remote',weaponId:9,x:0,y:1.05,z:1.3,yaw:0,pitch:0,
+  projectileSpeed:420},new THREE.Vector3(0,1.05,1.3));
+ assert.equal(state.onlineShotTracers[1].scene,S,'remote shots must stay in world');
+ assert.equal(state.onlineShotTracers[1].vz,420);
+ state.draw({actorId:'me',weaponId:9,x:NaN,y:0,z:0,yaw:0,pitch:0},gunTip);
+ assert.equal(state.onlineShotTracers.length,2,'untrusted invalid shots never render');
 });
 
 test('online prediction uses original OB wall collider; cannot tunnel through a wall',()=>{

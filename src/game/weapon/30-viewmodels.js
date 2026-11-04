@@ -22,9 +22,56 @@ function cy(r1,r2,l,c,x,y,z){var m=new T.Mesh(new T.CylinderGeometry(r1,r2,l,12)
 // mkGun(i): builds the 3D model of weapon id i (see WEAPON IDS in the header). Barrel points to -z.
 // Dual Kriss (7) = two Kriss models: right one at x=0, left one at x=-0.52.
 // The AWP (8) stores its bolt handle in group.userData.bolt so animHands() can move it during the bolt cycle.
+// Derive the firing socket from the front-most actual mesh face. All coordinates
+// are gun-local, not guessed screen/world positions or legacy MZ offsets.
+// The socket is attached to the model, so any parent recoil/ADS/IK animation
+// automatically moves it with the barrel. Each Kriss has an independent socket.
+function gunGeometryMuzzleSocket(g){
+ g.updateWorldMatrix(true,true);
+ var fromWorld=new T.Matrix4().copy(g.matrixWorld).invert(),best=null;
+ g.traverse(function(mesh){
+  if(!mesh.isMesh||!mesh.geometry)return;
+  var geo=mesh.geometry;
+  if(!geo.boundingBox)geo.computeBoundingBox();
+  var box=geo.boundingBox;
+  if(!box)return;
+  var m=new T.Matrix4().multiplyMatrices(fromWorld,mesh.matrixWorld),tipZ=Infinity,
+      front=[],corner=new T.Vector3();
+  for(var ix=0;ix<2;ix++)for(var iy=0;iy<2;iy++)for(var iz=0;iz<2;iz++){
+   corner.set(ix?box.max.x:box.min.x,iy?box.max.y:box.min.y,
+    iz?box.max.z:box.min.z).applyMatrix4(m);
+   if(corner.z<tipZ-1e-6){tipZ=corner.z;front=[corner.clone()];}
+   else if(Math.abs(corner.z-tipZ)<1e-6)front.push(corner.clone());
+  }
+  if(front.length&&(!best||tipZ<best.z-1e-6)){
+   var center=new T.Vector3();
+   front.forEach(function(p){center.add(p);});
+   center.multiplyScalar(1/front.length);
+   best={x:center.x,y:center.y,z:tipZ};
+  }
+ });
+ if(!best)throw Error('Weapon has no muzzle-capable geometry');
+ var socket=new T.Object3D();
+ socket.name='pointblock-projectile-muzzle';
+ socket.position.set(best.x,best.y,best.z);
+ g.add(socket);
+ return socket;
+}
+function weaponMuzzleSocket(model,left){
+ if(!model)return null;
+ var sockets=model.userData.muzzleSockets;
+ return sockets?(left?sockets[1]:sockets[0]):model.userData.muzzleSocket||null;
+}
 function mkGun(i){var g=new T.Group(),a=function(){for(var k=0;k<arguments.length;k++)g.add(arguments[k]);};
   var build=WEAPON_MODEL_BUILDERS[i];if(!build)throw Error("Unknown weapon model "+i);
-  build(g,a);return g;}
+  build(g,a);
+  if(i===7){
+   g.userData.muzzleSockets=g.children.map(function(child){
+    return child.userData&&child.userData.muzzleSocket;
+   }).filter(Boolean);
+   if(g.userData.muzzleSockets.length!==2)throw Error('Dual Kriss muzzle sockets missing');
+  }else if(i!==4&&i!==5)g.userData.muzzleSocket=gunGeometryMuzzleSocket(g);
+  return g;}
 // hold = the first-person gun group (child of VS). guns[i] = model of weapon i; only guns[pl.w] is visible (set in loop()).
 // mflash/mflash2 = muzzle flash spheres (mflash2 is the LEFT gun flash for Dual Kriss at x=-0.52).
 var hold=new T.Group(),guns=WEAPON_PROFILES.map(function(p,i){return mkGun(i);});guns[3].scale.setScalar(.8);guns.forEach(function(g){hold.add(g);});

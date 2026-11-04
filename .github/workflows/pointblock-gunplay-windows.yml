@@ -30,7 +30,7 @@ jobs:
       - name: Verify checked-in bundle matches source
         run: node tools/build.mjs --check
       - name: Recoil, shotgun, BOT aim and perception regression
-        run: node --test tests/gunplay-ballistics.test.mjs tests/shotgun-horizontal-pattern.test.mjs tests/bot-ai-m1-perception.test.mjs tests/bot-ai-m2-fire-control.test.mjs
+        run: node --test tests/gunplay-ballistics.test.mjs tests/shotgun-horizontal-pattern.test.mjs tests/bot-ai-m1-perception.test.mjs tests/bot-ai-m2-fire-control.test.mjs tests/muzzle-sockets.test.mjs
       - name: Build production Vite game
         run: npm run build
       - name: Verify generated distributable

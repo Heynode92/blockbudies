@@ -37,7 +37,7 @@ var WP=WEAPON_PROFILES.map(weaponProfile);
 
 // Keep these exact equations in backend src/matches/engine/gunplay.ts.
 // Original deterministic whole-weapon recoil, bloom and movement/ADS accuracy.
-var GUNPLAY_REVISION='pointblock-gunplay-2026-11-04-v1';
+var GUNPLAY_REVISION='pointblock-gunplay-2026-11-04-v2-muzzle';
 var GUNPLAY_ARCHETYPES={
  pistol:{vertical:.8,horizontal:.8,bloom:.7,recovery:5.8},
  rifle:{vertical:1,horizontal:1,bloom:1,recovery:4.5},

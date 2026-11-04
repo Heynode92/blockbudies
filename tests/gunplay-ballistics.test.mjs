@@ -8,7 +8,7 @@ const all=manifest.parts.filter(p=>p.startsWith('src/game/weapon/')&&!p.endsWith
 const still={ads:0,speed:0,crouch:false,grounded:true},fixed=()=>.5;
 function ctx(){const c=vm.createContext({Math});vm.runInContext(all,c);return c;}
 test('nineteen original weapon ratings drive the canonical ballistic revision',()=>{
- const c=ctx();assert.equal(c.GUNPLAY_REVISION,'pointblock-gunplay-2026-11-04-v1');
+ const c=ctx();assert.equal(c.GUNPLAY_REVISION,'pointblock-gunplay-2026-11-04-v2-muzzle');
  assert.equal(c.WP.length,19);
  for(let i=0;i<19;i++){
   const w=c.WP[i],state=c.freshGunplayState();
@@ -51,7 +51,8 @@ test('Control, H.Recoil and ADS make real independent angular differences',()=>{
 test('pointblock bullet visuals use certified trajectory, never camera-only muzzle direction',()=>{
  const live=read('src/game/98-online-bridge.js');
  assert.match(live,/ballisticRevision===GUNPLAY_REVISION/);
- assert.match(live,/mesh\.position\.set\(frame\.x,frame\.y,frame\.z\)/);
+ assert.match(live,/scene=VS/);
+ assert.match(live,/weaponMuzzleSocket\(guns\[frame\.weaponId\],left\)/);
  const serverData=['weaponId','pelletIndex','ballisticRevision'];
  for(const key of serverData)assert.match(live,new RegExp(key==='ballisticRevision'?'frame\\.ballisticRevision':key));
 });
