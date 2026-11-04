@@ -52,7 +52,8 @@ test('pointblock bullet visuals use certified trajectory, never camera-only muzz
  const live=read('src/game/98-online-bridge.js');
  assert.match(live,/ballisticRevision===GUNPLAY_REVISION/);
  assert.match(live,/S\.add\(mesh\)/);
- assert.match(live,/mesh\.position\.set\(frame\.x,frame\.y,frame\.z\)/);
+ assert.match(live,/mesh\.position\.copy\(origin\)/);
+ assert.match(live,/realOrigin=new T\.Vector3\(frame\.x,frame\.y,frame\.z\)/);
  assert.doesNotMatch(live,/speed\/14/);
  assert.match(live,/weaponMuzzleSocket\(guns\[frame\.weaponId\],left\)/);
  const serverData=['weaponId','pelletIndex','ballisticRevision'];
