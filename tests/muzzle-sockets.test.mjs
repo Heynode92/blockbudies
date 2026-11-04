@@ -55,3 +55,26 @@ test('online first-person muzzle tracer renders in VS camera space and server st
  assert.match(render,/rightMuzzle\.getWorldPosition/);
  assert.doesNotMatch(live,/mesh\.position\.set\(frame\.x,frame\.y,frame\.z\)/);
 });
+
+test('all model-derived barrel tips match the independent authoritative backend muzzle fixture',()=>{
+ // These are measured ends of actual Three.js barrel meshes, mirrored in
+ // backend weapon-muzzle.ts. Any geometry change must update both repos.
+ const expected=[
+  [0,.01,-.64],[0,.02,-1.15],[0,.03,-1],[0,.03,-1.34],
+  null,null,[0,.03,-.895],[0,.03,-.895],[0,.025,-1.58],
+  [0,.005,-1.32],[0,.018,-1.0425],[0,.025,-1.01],
+  [0,.013,-1.4025],[0,.005,-1.53],[0,.005,-1.025],
+  [0,-.006,-1.6485],[0,-.009,-1.4985],[0,0,-2.4475],
+  [0,-.008,-1.545]
+ ];
+ const c=models();
+ for(let id=0;id<expected.length;id++){
+  const g=c.mkGun(id),socket=c.weaponMuzzleSocket(g,false);
+  if(!expected[id]){assert.equal(socket,null);continue;}
+  g.updateWorldMatrix(true,true);
+  const point=socket.getWorldPosition(new THREE.Vector3());
+  for(const [j,k] of ['x','y','z'].entries())assert.ok(
+   Math.abs(point[k]-expected[id][j])<1e-4,
+   'barrel '+id+' '+k+' changed relative to authoritative model fixture: '+point[k]);
+ }
+});
