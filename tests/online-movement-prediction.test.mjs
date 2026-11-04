@@ -23,7 +23,7 @@ function harness(){
   onlineCorrectionSize:0,onlinePrevAlive:true,
   weaponMovementSpeed:(weaponId,sprint,ads)=>{
    assert.equal(weaponId,9);
-   return speed*(1+.15*sprint)*(1-.38*ads);
+   return speed*(1-.15*sprint)*(1-.38*ads);
   },
   resolve:()=>{},
  };
