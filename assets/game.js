@@ -1632,20 +1632,24 @@ function blockDeathPose(model,elapsed){
  model.arms[0].rotation.z=-1.1*ds;model.arms[1].rotation.z=1.1*ds;
  model.legs[0].rotation.z=-.3*ds;model.legs[1].rotation.z=.3*ds;
 }
-// Common damage rules for human and AI characters. Armor is restored on every spawn/round.
-var DEFENSE_RULES=Object.freeze({maxHp:100,vestMax:50,bodyReduction:.20,headshotMultiplier:3});
-function defenseSpawn(actor){actor.hp=DEFENSE_RULES.maxHp;actor.vest=DEFENSE_RULES.vestMax;actor.helm=true;}
-// Vest only mitigates body bullet damage. Damage absorbed consumes equal durability.
-// If the vest runs out mid-hit, any leftover damage lands at full strength.
-function defenseDamage(actor,raw,kind){
-  var damage=Math.max(0,Number.isFinite(raw)?raw:0);
-  if(kind==='bullet-body'&&actor.vest>0){
-    var absorbed=Math.min(actor.vest,damage*DEFENSE_RULES.bodyReduction);
-    actor.vest=Math.max(0,actor.vest-absorbed);damage-=absorbed;
-  }
-  return damage;
+// Permanent passive firearm body defense. Online authority: BE defense.ts.
+// All combat percentages are centralized here and mirrored by the BE contract.
+var DEFENSE_RULES=Object.freeze({
+ revision:'pointblock-defense-2026-11-05-p1',
+ maxHp:100,bodyReduction:.30,pumpShotgunBodyReduction:.20,headshotMultiplier:3
+});
+function defenseSpawn(actor){actor.hp=DEFENSE_RULES.maxHp;actor.helm=true;}
+function defenseBodyReductionForWeapon(weaponId){
+ // No BOT/player branch. Use the canonical registered weapon class and pump flag.
+ var profile=Number.isSafeInteger(weaponId)?WEAPON_PROFILES[weaponId]:null;
+ return profile&&profile.kind==='shotgun'&&profile.pump===true?
+  DEFENSE_RULES.pumpShotgunBodyReduction:DEFENSE_RULES.bodyReduction;
 }
-// Headshot after helmet removal is identical for bots and player.
+function defenseDamage(actor,raw,kind,weaponId){
+ var damage=Math.max(0,Number.isFinite(raw)?raw:0);
+ return kind==='bullet-body'?damage*(1-defenseBodyReductionForWeapon(weaponId)):damage;
+}
+// Helmet absorbs the first headshot bonus; unhelmeted headshots retain 3x.
 function defenseHeadshotDamage(base){return base*DEFENSE_RULES.headshotMultiplier;}
 // ---- WEAPON REGISTRY: stable IDs for save files, bot loadouts and all weapon arrays ----
 var WEAPON_PROFILES=[],WEAPON_MODEL_BUILDERS=[],WEAPON_RANGE_MODIFIERS=[];
@@ -2682,8 +2686,8 @@ function projectileHitCharacter(b,target,head){
     }else damage=defenseHeadshotDamage(damage);
   }
   curK=source;killW=b.wid>=0?b.wid:1;hsF=!!head;
-  if(target===pl)hurt(damage,b.sx,b.sz,head?'head':'bullet-body');
-  else dmgE(target,damage,b.vx,b.vz,0,head?'head':'bullet-body');
+  if(target===pl)hurt(damage,b.sx,b.sz,head?'head':'bullet-body',b.wid);
+  else dmgE(target,damage,b.vx,b.vz,0,head?'head':'bullet-body',b.wid);
   hsF=false;
 }
 // Existing weapon speed ratings (WP.moveMult) remain the source of truth.
@@ -2753,7 +2757,7 @@ function bloodHit(x,y,z,dx,dz,head){
 // reset(): clears the whole world state (bullets, bots, particles, decals) and re-creates the player object `pl` for a fresh match.
 function reset(){
   [].concat(en||[],bl||[],cr||[],fx||[],sk||[],dead||[],grs||[],dg||[],chutes||[]).forEach(function(o){S.remove(o.g||o.m);});document.getElementById("kn").innerHTML="";DC.forEach(function(m){S.remove(m);});DC=[];CH.forEach(function(c){S.remove(c.m);});CH=[];cs.k=cs.s=cs.kv=cs.y=cs.yv=cs.r=cs.rv=0;clrSm();clrFD();mzf.forEach(function(q){S.remove(q.m);});mzf=[];
-  if(typeof botIntelReset==='function')botIntelReset();bloodPoolClear();bloodActive=0;pl={helm:true,vest:DEFENSE_RULES.vestMax,dead:false,dt:0,rt:0,life:0,x:0,z:10,hp:DEFENSE_RULES.maxHp,w:1,mag:30,res:90,rl:0,pump:0,pumpEjected:false,cd:0,face:Math.PI,pitch:0,y:0,vy:0,slot:0,prim:1,sw:0,stab:0,sth:false,thr:0,pend:false,ghide:0,ammo:(function(){var o={};WP.forEach(function(w,i){o[i]={mag:w.mag,res:w.res};});return o;})()};en=[];bl=[];cr=[];fx=[];sk=[];dead=[];dg=[];grs=[];chutes=[];resetKillStreak();shakeT=0;score=0;spawnT=1;crateT=.5;adsT=sprT=0;resetPm();hlms.forEach(function(h){S.remove(h.m);});hlms=[];setHm();document.body.classList.remove("dead");
+  if(typeof botIntelReset==='function')botIntelReset();bloodPoolClear();bloodActive=0;pl={helm:true,dead:false,dt:0,rt:0,life:0,x:0,z:10,hp:DEFENSE_RULES.maxHp,w:1,mag:30,res:90,rl:0,pump:0,pumpEjected:false,cd:0,face:Math.PI,pitch:0,y:0,vy:0,slot:0,prim:1,sw:0,stab:0,sth:false,thr:0,pend:false,ghide:0,ammo:(function(){var o={};WP.forEach(function(w,i){o[i]={mag:w.mag,res:w.res};});return o;})()};en=[];bl=[];cr=[];fx=[];sk=[];dead=[];dg=[];grs=[];chutes=[];resetKillStreak();shakeT=0;score=0;spawnT=1;crateT=.5;adsT=sprT=0;resetPm();hlms.forEach(function(h){S.remove(h.m);});hlms=[];setHm();document.body.classList.remove("dead");
 }
 // toast(): shows a short message in the middle of the screen (toastT = time left).
 function toast(t){var e=document.getElementById("toast");e.textContent=t;e.style.opacity=1;toastT=1.4;}
@@ -3210,10 +3214,10 @@ function botDamageReaction(e,d,kx,kz,head,confirmed){
   var hm=Math.hypot(kx||0,kz||0);
   if(hm>.01){e.hdx=kx/hm;e.hdz=kz/hm;}
 }
-function dmgE(e,d,kx,kz,ex,kind){
+function dmgE(e,d,kx,kz,ex,kind,weaponId){
   if(e.inv>0||e.dead)return;
   if(isBombMode())bombInterruptPlant(e);
-  d=defenseDamage(e,d,kind||"bullet-body");
+  d=defenseDamage(e,d,kind||"bullet-body",weaponId);
   botDamageReaction(e,d,kx,kz,kind==="head",false);
   e.hp-=d;
   if(e.hp<=0)killE(e,kx||0,kz||0,ex);
@@ -3469,7 +3473,7 @@ function hdUpd(dt){var R=Math.min(innerWidth,innerHeight)*.3,sf=Math.sin(pl.face
     var dx=h.x-pl.x,dz=h.z-pl.z,an=Math.atan2(-dx*cf+dz*sf,dx*sf+dz*cf);
     h.el.style.transform="translate(-50%,-50%) rotate("+an+"rad) translateY("+(-R)+"px)";h.el.style.opacity=Math.min(1,h.t/.6);}}
 // hurt(): damages the PLAYER by d (from position sx,sz). Ignored while dead or spawn-protected. Calls die() at 0 HP.
-function hurt(d,sx,sz,kind){if(pl.dead||pl.inv>0)return;if(isBombMode())bombInterruptPlant(pl);d=defenseDamage(pl,d,kind||"bullet-body");if(sx!==undefined&&Math.hypot(sx-pl.x,sz-pl.z)>.6)hdHit(sx,sz);if(d>0)bloodHit(pl.x,(pl.y||0)+(kind==="head"?1.65:1.12),pl.z,(sx===undefined?0:pl.x-sx),(sz===undefined?0:pl.z-sz),kind==="head");pl.hp-=d;pm.fl=.1;cs.s=Math.max(cs.s,.55);var hs2=0;if(sx!==undefined){var ddx=sx-pl.x,ddz=sz-pl.z;hs2=Math.sign(-ddx*Math.cos(pl.face)+ddz*Math.sin(pl.face));}cs.kv+=.7;cs.yv+=hs2*1.5;cs.rv+=hs2*.5+(Math.random()-.5)*.4;document.getElementById("hit").style.opacity=1;if(pl.hp<=0){pl.hp=0;die();}}
+function hurt(d,sx,sz,kind,weaponId){if(pl.dead||pl.inv>0)return;if(isBombMode())bombInterruptPlant(pl);d=defenseDamage(pl,d,kind||"bullet-body",weaponId);if(sx!==undefined&&Math.hypot(sx-pl.x,sz-pl.z)>.6)hdHit(sx,sz);if(d>0)bloodHit(pl.x,(pl.y||0)+(kind==="head"?1.65:1.12),pl.z,(sx===undefined?0:pl.x-sx),(sz===undefined?0:pl.z-sz),kind==="head");pl.hp-=d;pm.fl=.1;cs.s=Math.max(cs.s,.55);var hs2=0;if(sx!==undefined){var ddx=sx-pl.x,ddz=sz-pl.z;hs2=Math.sign(-ddx*Math.cos(pl.face)+ddz*Math.sin(pl.face));}cs.kv+=.7;cs.yv+=hs2*1.5;cs.rv+=hs2*.5+(Math.random()-.5)*.4;document.getElementById("hit").style.opacity=1;if(pl.hp<=0){pl.hp=0;die();}}
 // die(): player death: starts the 5 s respawn timer, drops the gun, updates stats and the killer credit.
 function die(){pl.dead=true;resetKillStreak();pl.rsT=5;pl.st.d++;pl.kb=curK&&curK!==pl?curK.name:"";if(curK&&curK!==pl){curK.st.k++;if(!isBombMode())ts[curK.tm]++;}kFeed(curK,1,false,pl);mouse.right=false;mouse.down=false;fireHeld=false;kn.innerHTML="";pm.g.visible=true;if(pm.hg)pm.hg.visible=false;pl.bloodPool=bloodPoolSpawn(pl.x,pl.y||0,pl.z,null);dropPlayerGun();if(isBombMode()){bombDrop(pl);document.body.classList.add("bomb-spectator");}else document.body.classList.add("dead");
   try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();tn(260,40,1.2,"sawtooth",.12);tn(120,30,1.6,"sine",.3);}catch(e){}}
@@ -7967,7 +7971,7 @@ function radar(){
 // hides the gun model while scoped, kill banners, radar.
 function hud(){var w=WP[pl.w],hp=pl.hp;tmUpd();wselUpd();abUpd();var tacticalAdsActive=tacticalOpticUpdate();scopedNow=!!w.snp&&adsT>.92&&!pl.dead&&!lob&&!mt.over;scopeEl.style.display=scopedNow?"block":"none";document.body.classList.toggle("scoped",scopedNow);hold.visible=!scopedNow&&!tacticalOpticHidesViewmodel(pl.w,tacticalAdsActive)&&!(isBombMode()&&pl.bAction);
   E.hpf.style.width=hp+"%";E.hpf.style.background=hp>60?"linear-gradient(90deg,#2f9e44,#69db7c)":hp>30?"linear-gradient(90deg,#f08c00,#ffd43b)":"linear-gradient(90deg,#c92a2a,#ff6b6b)";
-  E.hpt.textContent=Math.ceil(hp);var vestEl=document.getElementById("vestHud");if(vestEl){vestEl.textContent="VEST "+Math.ceil(pl.vest);vestEl.classList.toggle("empty",pl.vest<=0);}E.sc.textContent=score;E.wn.textContent=w.n;
+  E.hpt.textContent=Math.ceil(hp);E.sc.textContent=score;E.wn.textContent=w.n;
   E.mg.textContent=pl.mag;E.mg.style.color=pl.mag<=w.mag*.25?"#ff6b6b":"";
   E.rs.textContent="/ "+(pl.res===Infinity?"\u221e":pl.res);
   slotUI(w);if(wiK!==pl.w){wiK=pl.w;E.wi.innerHTML=SV[pl.w];}hhi.className=hp>0&&hp<=30?"low":"";chE.style.setProperty("--g",((6+mvAmt*4+sprT*8+kick*30)*(1-.6*adsT))+"px");rbEl.style.opacity=pl.rl>0?1:0;E.rbf.style.width=pl.rl>0?(100*(1-pl.rl/w.rt))+"%":"0";radar();bombHudUpdate();}
@@ -9803,7 +9807,6 @@ function onlineApplyWorld(){
   if(fresh&&self.alive)
    onlineGrenadeServerCharge=privateState?.grenadeCharge??null;
   pl.hp=privateState?.hp??self.hp??pl.hp;
-  pl.vest=privateState?.vest??self.vest??pl.vest;
   if(Number.isFinite(privateState?.spawnShieldRemaining))pl.inv=Math.max(0,privateState.spawnShieldRemaining);
   if(typeof privateState?.helmet==='boolean')pl.helm=privateState.helmet;
   else if(typeof self.helmet==='boolean')pl.helm=self.helmet;
