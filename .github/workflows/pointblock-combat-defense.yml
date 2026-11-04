@@ -15,6 +15,7 @@ on:
       - 'assets/game.js'
       - 'tools/source-manifest.json'
       - 'tests/damage-range.test.mjs'
+      - 'tests/bomb-tactical-hardening.test.mjs'
       - 'tests/defense-bot-weapons.test.mjs'
       - '.github/workflows/pointblock-combat-defense.yml'
   workflow_dispatch:
@@ -36,7 +37,7 @@ jobs:
       - name: Verify generated game bundle
         run: node tools/build.mjs --check
       - name: Verify modified defense and directly affected ballistics
-        run: node --test tests/defense-bot-weapons.test.mjs tests/damage-range.test.mjs tests/gunplay-ballistics.test.mjs tests/parity.test.mjs
+        run: node --test tests/defense-bot-weapons.test.mjs tests/damage-range.test.mjs tests/bomb-tactical-hardening.test.mjs tests/gunplay-ballistics.test.mjs tests/parity.test.mjs
       - name: Build production frontend
         run: npm run build
       - name: Check distributable
