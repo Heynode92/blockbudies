@@ -172,6 +172,7 @@ function animHands(){
   hold.rotation.set((tilt*.45+idle*.004+X[3])*(1-.8*a)-.42*sp+barrelPitch,
     (tilt*.3+X[4])*(1-a)+.55*sp-barrelYaw,
     (-tilt*.35+sw*.012*bb+X[5])*(1-a)+.18*sp);
+  pl.renderedBarrelPitch=barrelPitch;pl.renderedBarrelYaw=barrelYaw;
   var boltGun=WP[w]&&WP[w].snp?guns[w]:null,bh8=boltGun&&boltGun.userData.bolt;
   if(bh8){var bo=pl.rl<=0?(pl.bolt||0):0;
     if(bo>0){var bp=1-bo/BOLT_T,hg=0,pu=0,lf=0;
