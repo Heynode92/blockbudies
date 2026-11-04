@@ -8523,44 +8523,22 @@ function onlineShotTracer(frame,muzzle){
  if(!Number.isInteger(frame.weaponId)||frame.weaponId<0||frame.weaponId>=WP.length)return;
  var w=WP[frame.weaponId];
  if(w.melee||w.gr)return;
- var self=frame.actorId===onlineUserId();
- if(self&&!muzzle)return; // Do not invent a muzzle for an outdated weapon pose.
- if(onlineShotTracers.length>=40){
-  var oldest=onlineShotTracers.shift();
-  oldest.scene.remove(oldest.m);
- }
- var own=self?'p':'e',mesh=tracer(own,false);
+ if(onlineShotTracers.length>=40){var oldest=onlineShotTracers.shift();oldest.scene.remove(oldest.m);}
+ var own=frame.actorId===onlineUserId()?'p':'e',mesh=tracer(own,false);
+ // Actual speed is sent with the authorized server shot. It influences only
+ // the cosmetic mesh, never client collision or hit registration.
  var angle=frame.yaw,pitch=frame.pitch,
   speed=Number.isFinite(frame.projectileSpeed)&&frame.projectileSpeed>0&&frame.projectileSpeed<=1000?
-   frame.projectileSpeed:(w.spd||180);
- var direction=new T.Vector3(Math.sin(angle)*Math.cos(pitch),
-  Math.sin(pitch),Math.cos(angle)*Math.cos(pitch));
- var scene=S,velocity=direction.clone().multiplyScalar(speed),
-  duration=Math.min(.15,Math.max(.075,24/speed)),origin=muzzle||
-   new T.Vector3(frame.x,frame.y,frame.z);
- if(self){
-  // The projectile still travels through the authoritative WORLD engine.
-  // Project that verified ballistic ray into VC so the short FIRST-PERSON
-  // streak originates on the actual moving gun barrel, not the world camera.
-  // Rendering this short piece inside VS does not award hits or fake damage.
-  C.updateWorldMatrix(true,false);
-  VC.updateProjectionMatrix();
-  var worldTarget=new T.Vector3(frame.x,frame.y,frame.z)
-    .addScaledVector(direction,80).project(C);
-  if(![worldTarget.x,worldTarget.y].every(Number.isFinite))return;
-  var viewTarget=new T.Vector3(worldTarget.x,worldTarget.y,.99).unproject(VC);
-  direction.copy(viewTarget.sub(origin)).normalize();
-  velocity.copy(direction).multiplyScalar(Math.min(18,Math.max(6,speed/14)));
-  duration=Math.min(.17,Math.max(.07,2/velocity.length()));
-  scene=VS;
- }
- // tracer() is centered on its 1.1-unit streak; offset by half its length
- // so the BACK END of the visible streak touches the actual muzzle socket.
- mesh.position.copy(origin).addScaledVector(direction,.55);
- mesh.quaternion.setFromUnitVectors(new T.Vector3(0,0,1),direction);
- scene.add(mesh);
- onlineShotTracers.push({m:mesh,scene:scene,vx:velocity.x,
-  vy:velocity.y,vz:velocity.z,t:duration});
+   frame.projectileSpeed:(w.spd||180),
+  duration=Math.min(.15,Math.max(.075,24/speed));
+ mesh.rotation.order='YXZ';mesh.rotation.set(-pitch,angle,0);
+ // World-space origin now comes from v2 server's actual 3P barrel socket.
+ // Only the first-person muzzle FLASH belongs in VS; the original tracer
+ // always flies through S at the exact server-certified projectile speed.
+ mesh.position.set(frame.x,frame.y,frame.z);
+ S.add(mesh);
+ onlineShotTracers.push({m:mesh,vx:Math.sin(angle)*Math.cos(pitch)*speed,
+  vy:Math.sin(pitch)*speed,vz:Math.cos(angle)*Math.cos(pitch)*speed,t:duration,scene:S});
 }
 function onlineWarn(error) {
  var code=typeof error==='string'?error:error&&error.code||'BACKEND_UNAVAILABLE';

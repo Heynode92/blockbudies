@@ -45,15 +45,14 @@ test('all 17 ballistic weapons own mesh-derived sockets; Dual Kriss has two inde
  assert.ok(Math.abs(left.getWorldPosition(new THREE.Vector3()).x-
     right.getWorldPosition(new THREE.Vector3()).x+.52)<1e-6);
 });
-test('online first-person muzzle tracer renders in VS camera space and server still owns impacts',()=>{
+test('3D gun socket controls muzzle flash but certified projectile tracer remains in original world scene',()=>{
  const live=read('src/game/98-online-bridge.js'),render=read('src/game/99-render-loop.js');
- assert.match(live,/var scene=S,velocity=/);
- assert.match(live,/scene=VS/);
- assert.match(live,/\.project\(C\)/);
- assert.match(live,/\.unproject\(VC\)/);
  assert.match(live,/weaponMuzzleSocket\(guns\[frame\.weaponId\],left\)/);
  assert.match(render,/rightMuzzle\.getWorldPosition/);
- assert.doesNotMatch(live,/mesh\.position\.set\(frame\.x,frame\.y,frame\.z\)/);
+ assert.match(live,/mesh\.position\.set\(frame\.x,frame\.y,frame\.z\)/);
+ assert.match(live,/S\.add\(mesh\)/);
+ const tracer=live.slice(live.indexOf('function onlineShotTracer('),live.indexOf('function onlineWarn(',live.indexOf('function onlineShotTracer(')));
+ assert.doesNotMatch(tracer,/scene=VS|unproject\(VC\)|speed\/14/);
 });
 
 test('all model-derived barrel tips match the independent authoritative backend muzzle fixture',()=>{
