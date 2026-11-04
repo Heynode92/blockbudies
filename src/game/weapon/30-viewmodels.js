@@ -124,6 +124,14 @@ function xp(w){var r=[0,0,0,0,0,0],u,p,s,q,b,f;
   return r;}
 // lp(): smoothstep interpolation between 3D points a and b (t is clamped to 0..1).
 function lp(a,b,t){t=Math.max(0,Math.min(1,t));t=t*t*(3-2*t);return[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];}
+function syncWeaponBarrelPoseImmediate(){
+ var pitch=pl.ballisticBarrelWeapon===pl.w?pl.ballisticBarrelPitch||0:0;
+ var yaw=pl.ballisticBarrelWeapon===pl.w?pl.ballisticBarrelYaw||0:0;
+ hold.rotation.x+=pitch-(pl.renderedBarrelPitch||0);
+ hold.rotation.y-=yaw-(pl.renderedBarrelYaw||0);
+ pl.renderedBarrelPitch=pitch;pl.renderedBarrelYaw=yaw;
+ hold.updateWorldMatrix(true,true);
+}
 // animHands(): called every frame from loop(). Positions the gun (`hold`), hands and arms for: idle bob, walking, sprint,
 // aim-down-sights, recoil kick, reload animation (progress t = 1 - pl.rl / reload time), and the AWP bolt-action cycle (pl.bolt).
 function animHands(){
