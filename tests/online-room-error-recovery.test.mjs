@@ -81,6 +81,7 @@ test('READY fetch failures never escape as unhandled promise rejections',async()
  const ctx={roomCurrent:{id:'room1'},onlineActive:false,onlineAttaching:false,
   onlineAuth:()=>true,onlineApi:{state:()=>({player:{id:'x'}}),
    getRoom:async()=>{throw {status:409,code:'ROOM_CONFLICT_RETRY'};}},
+  onlineAdoptRoom:r=>r,
   onlineWarn:()=>{warning++},onlineRecoverMembership:async()=>{recovered++},
  };
  runInNewContext(isolate('async function onlineToggleReady(){','function onlinePromptKickMember','onlineToggleReady'),ctx);
