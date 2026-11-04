@@ -6,7 +6,7 @@ function amo(id){return id===pl.w?pl:pl.ammo[id];}
 // swW(i): switches to weapon i, saving the current weapon's ammo into pl.ammo and loading the new one. Cancels reload.
 function swW(i){if(typeof onlineActive!=='undefined'&&onlineActive&&pl.w===5&&i!==5)
   onlineGrenadeCancelPrime();
- pl.ammo[pl.w]={mag:pl.mag,res:pl.res};pl.w=i;var a=pl.ammo[i];pl.mag=a.mag;pl.res=a.res;pl.rl=0;pl.pump=0;pl.pumpEjected=false;pl.sw=.28;pl.thr=0;pl.pend=false;pl.sth=false;pl.stab=0;pl.ghide=0;pl.cd=Math.max(pl.cd,.2);
+ pl.ammo[pl.w]={mag:pl.mag,res:pl.res};pl.w=i;var a=pl.ammo[i];pl.mag=a.mag;pl.res=a.res;pl.rl=0;pl.pump=0;pl.pumpEjected=false;pl.sw=.28;pl.thr=0;pl.pend=false;pl.sth=false;pl.stab=0;pl.knifeAlt=false;pl.ghide=0;pl.cd=Math.max(pl.cd,.2);
  if(typeof onlineActive!=='undefined'&&onlineActive){onlinePendingWeapon=i;onlinePendingWeaponAt=performance.now();}
 }
 // swSlot(s): switches to slot s (0 primary, 1 pistol, 2 knife, 3 grenade) with the switch animation.
