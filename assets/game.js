@@ -8479,16 +8479,28 @@ function onlineShowWaitingPlayers(room){
 }
 async function onlineToggleReady(){
  if(!onlineAuth()||!roomCurrent||onlineActive||onlineAttaching)return;
- var player=onlineApi.state().player?.id;
- var room=onlineAdoptRoom(await onlineApi.getRoom(roomCurrent.id));
- if(room.status==='ACTIVE'){await onlineAttachMatch(room);return;}
- if(room.status!=='OPEN')return;
- if(room.ownerId===player){await onlineMasterStart();return;}
- var me=room.members.find(m=>m.playerId===player);if(!me){onlineWarn('ROOM_MEMBERSHIP_REQUIRED');return;}
  try{
+  var player=onlineApi.state().player?.id;
+  var room=onlineAdoptRoom(await onlineApi.getRoom(roomCurrent.id));
+  // READY can race with another player's START or a stale room snapshot.
+  // Render the current server status before attempting WS attachment.
+  onlineLiveRoomDecorate(room);
+  if(room.status==='ACTIVE'){await onlineAttachMatch(room);return;}
+  if(room.status!=='OPEN')return;
+  if(room.ownerId===player){await onlineMasterStart();return;}
+  var me=room.members.find(m=>m.playerId===player);
+  if(!me){onlineWarn('ROOM_MEMBERSHIP_REQUIRED');return;}
   var updated=await onlineApi.setRoomReady(room.id,!me.ready);
   onlineLiveRoomDecorate(onlineAdoptRoom(updated));
- }catch(error){onlineWarn(error)}
+ }catch(error){
+  onlineWarn(error);
+  // A genuine 409 is a room-state race; recover authoritative membership
+  // instead of throwing an unhandled rejection from the READY button.
+  if(error?.status===409&&roomCurrent){
+   try{await onlineRecoverMembership();}
+   catch(recovery){onlineWarn(recovery);}
+  }
+ }
 }
 function onlinePromptKickMember(id,name){
  if(!onlineIsMaster()||roomCurrent?.status!=='OPEN')return;
@@ -8687,12 +8699,43 @@ function onlineConfirmLeaveRoom(){
 }
 async function onlineLeaveRoom(){
  if(!onlineAuth()||!roomCurrent)return;
+ var roomId=roomCurrent.id;
  try{
-  if(onlineActive){await onlineApi.abandonRoom(roomCurrent.id);}
-  else await onlineApi.leaveRoom(roomCurrent.id);
+  // Local onlineActive can be false while the server has already started a
+  // match (e.g. client_ready/WS connection failed). /leave is OPEN-only.
+  var fresh=await onlineApi.getRoom(roomId);
+  if(fresh.status==='ACTIVE'&&!onlineActive){
+   onlineLiveRoomDecorate(onlineAdoptRoom(fresh));
+   onlineRoomDialog('MATCH IN PROGRESS',
+    'This room is ACTIVE on the server. Normal LEAVE is not permitted during a match. '+
+    'Select REJOIN MATCH in the Room Lobby; leaving the running match uses the '+
+    'separate abandonment rules.',
+    'OK',null,null);
+   return;
+  }
+  if(fresh.status==='ACTIVE'){
+   await onlineApi.abandonRoom(roomId);
+  }else if(fresh.status==='OPEN'){
+   await onlineApi.leaveRoom(roomId);
+  }else{
+   throw Error('ROOM_NOT_WAITING');
+  }
   onlineResetLive();roomCurrent=null;roomList=[];roomEditState(null);
   roomLobbyOpen();
- }catch(error){onlineWarn(error)}
+ }catch(error){
+  onlineWarn(error);
+  if(error?.status===409){
+   // Membership and status may have changed after the GET. Never treat 409
+   // as a successful leave or discard the real server-owned room.
+   try{
+    var recovered=await onlineRecoverMembership();
+    if(recovered?.status==='ACTIVE')
+     onlineRoomDialog('MATCH IN PROGRESS',
+      'The server has already started this match. Your room remains intact. '+
+      'Press REJOIN MATCH to reconnect.','OK',null,null);
+   }catch(recovery){onlineWarn(recovery);}
+  }
+ }
 }
 function onlineStartRoomPoll() {
  clearInterval(onlineRoomTimer);
@@ -8781,11 +8824,18 @@ async function onlineAttachMatch(room){
  }catch(error){
   onlineResetLive();
   var code=onlineWarn(error);
-  // Match stays ACTIVE on the server. Surface the actual connection failure
-  // instead of leaving a misleading START MATCH button with no visible feedback.
-  roomText('rmlBotSummary','MATCH CONNECTION FAILED · '+code);
-  if(roomCurrent?.status==='ACTIVE'&&onlineIsMaster())
-   document.getElementById('rmlStart').textContent='RETRY MATCH CONNECTION';
+  // The obsolete rmlBotSummary element no longer exists in index.html.
+  // Never mask the real WS error with a TypeError in the error handler.
+  var retryButton=document.getElementById('rmlStart');
+  if(retryButton&&roomCurrent?.status==='ACTIVE'){
+   retryButton.hidden=false;
+   retryButton.textContent='REJOIN MATCH';
+   retryButton.disabled=false;
+  }
+  onlineRoomDialog('MATCH CONNECTION FAILED',
+   'The game server refused or lost the match connection ('+String(code).slice(0,80)+
+   '). Your room membership is preserved. Press REJOIN MATCH to retry.',
+   'OK',null,null);
   return false;
  }finally{onlineAttaching=false}
 }
