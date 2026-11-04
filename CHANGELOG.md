@@ -1,3 +1,10 @@
+## 2026-11-04 — Fix ACTIVE room leave conflicts and failed match handshake crash
+- Eliminate the runtime TypeError caused by writing connection errors into nonexistent `rmlBotSummary`. Failed room realtime-ticket / WS attachment now preserves server-owned membership and shows a real status dialog with the original failure code and REJOIN MATCH action label.
+- READY refreshes the authoritative room before deciding between non-master ready, master start or already-ACTIVE match rejoin. Request/409 errors are caught and membership is recovered rather than surfacing an unhandled promise rejection.
+- Check current backend room status before /leave. An ACTIVE room is not OPEN: do not call the OPEN-only leave endpoint when local onlineActive is false after a failed match handshake. Handle the OPEN→ACTIVE HTTP 409 race by retaining membership and presenting actionable REJOIN instructions.
+- When an existing confirmation creates a newer server-status notice, do not auto-close that notice with the old dialog's completion callback.
+- Add narrow regression cases for failed WS handshake, correct OPEN leave, ACTIVE guard, 409 recovery and nested dialog visibility. No BE change, dependency, migration, weapon/bomb scoring or gameplay change.
+
 ## 2026-11-04 — Restore Bomb Mission round wins and offline solid collision envelope
 - Online Bomb Mission top HUD now displays authoritative round wins (same `ts[winner]++` as offline), never cumulative Deathmatch team kill totals. The original DM top scoreboard remains kills; K/D scoreboard retains per-player kills.
 - Physics and online prediction use the original offline circular character hull against registered solid rectangles, rather than invisible square corner inflation. All map graphics, object dimensions, projectile blocking, gravity and weapon data are preserved.
