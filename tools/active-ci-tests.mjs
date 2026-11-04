@@ -16,6 +16,7 @@ const tests=[
  'defense-bot-weapons',
  'gunplay-ballistics',
  'authoritative-recoil',
+ 'ci-workflow-policy',
  'k2-shotgun-rpg-ads',
  'match-input-liveness',
  'muzzle-sockets',
