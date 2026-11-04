@@ -38,6 +38,33 @@ function updSky(dt){var cp=C.position,t=performance.now()/1000,CL=SKW.userData.c
 function inObs(x,z,m,y){m=m||.1;for(var i=0;i<OB.length;i++){var o=OB[i];if(o.fl||(o.y0&&y===undefined))continue;if(y!==undefined&&(y>o.h||y<(o.y0||0)))continue;if(Math.abs(x-o.x)<o.hw+m&&Math.abs(z-o.z)<o.hd+m)return true;}return false;}
 // gh(): ground height at (x,z) for a character whose feet are at y. Lets players step/jump onto boxes (o.st = step-up limit, default .35).
 function gh(x,z,y){var g=0;for(var i=0;i<OB.length;i++){var o=OB[i];if(o.h<=y+(o.st||.35)&&Math.abs(x-o.x)<o.hw+.25&&Math.abs(z-o.z)<o.hd+.25)g=Math.max(g,o.h);}return g;}
+// Shared physical-map body test: only source-of-truth OB entries are solid.
+// The FE game constructs every playable wall/furniture body through wl()/OB.
+// Decorative textures, glass tint, road paint and lamps stay visual-only.
+function solidPositionBlocked(x,y,z,radius,height){
+ if(!Number.isFinite(x)||!Number.isFinite(y)||!Number.isFinite(z)||
+    !Number.isFinite(radius)||radius<0)return true;
+ if(Math.abs(x)+radius>A||Math.abs(z)+radius>A)return true;
+ var h=height===undefined?1.8:height;
+ for(var i=0;i<OB.length;i++){
+  var o=OB[i];
+  if(o.fl||y+h<=(o.y0||0)||y>=o.h)continue;
+  if(Math.abs(x-o.x)<o.hw+radius&&Math.abs(z-o.z)<o.hd+radius)return true;
+ }
+ return false;
+}
+// Swept axis-separated translation prevents tunneling through thin walls,
+// tables and crates even after one slow frame; the server uses the same step
+// policy in moveWithCollision(), but is always authoritative online.
+function moveWithSolidCollision(p,dx,dz,radius){
+ if(![dx,dz].every(Number.isFinite)||!p||!Number.isFinite(p.y))return;
+ var count=Math.max(1,Math.ceil(Math.hypot(dx,dz)/Math.max(.1,radius*.45))),
+     sx=dx/count,sz=dz/count;
+ for(var i=0;i<count;i++){
+  if(!solidPositionBlocked(p.x+sx,p.y,p.z,radius))p.x+=sx;
+  if(!solidPositionBlocked(p.x,p.y,p.z+sz,radius))p.z+=sz;
+ }
+}
 // resolve(): pushes entity p (radius r) out of solid boxes so characters cannot walk through walls.
 function resolve(p,r){
   p.x=Math.max(-A,Math.min(A,p.x));p.z=Math.max(-A,Math.min(A,p.z));
