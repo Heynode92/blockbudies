@@ -666,7 +666,13 @@ document.getElementById('roomOnlineDialogOk').addEventListener('click',async fun
  var action=onlineRoomDialogAccept;
  if(!action){onlineRoomDialogClose();return;}
  onlineRoomDialogBlocked=true;this.disabled=true;
- try{await action();onlineRoomDialogClose();}
+ try{
+  await action();
+  // An action may replace this confirmation with a newer server-status
+  // notice (for example OPEN -> ACTIVE while attempting LEAVE).
+  // Do not close that replacement dialog out from under the user.
+  if(onlineRoomDialogAccept===action)onlineRoomDialogClose();
+ }
  catch(error){onlineWarn(error);}
  finally{onlineRoomDialogBlocked=false;this.disabled=false;}
 });
