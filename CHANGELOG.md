@@ -1,3 +1,10 @@
+## 2026-11-04 — Non-penetrable solid bodies, knife slash/stab and silent movement
+- Introduce one swept, axis-separated physical OB collision path for offline local player, offline BOT movement and online client prediction, preventing frame-step tunneling across narrow buildings, desks and crates. Only canonical solid map bodies block movement; trim, road paint and decorative lighting remain non-colliding.
+- Avoid remote player/BOT visual interpolation through mapped wall/cover corners by using safe two-leg turns or holding the last valid authorized snapshot. Server remains authoritative for final positions and projectile damage.
+- First-person knife: left-click diagonal lower-left to upper-right slash, right-click forward stab. Mirror a boolean knife-only secondary intent into server input; display the server-issued variant to nearby authorized players without changing damage.
+- SHIFT now reduces speed by 15% based on existing weapon moveMult ratings and suppresses footsteps. Normal movement speed equals the original maximum weapon-rated pace; ADS, 19 weapons, and inventory weights are unchanged.
+- Only gameplay FE modules and visual parity are touched. No new packages or local storage migrations, and offline M0–M7 release history remains intact.
+
 ## 2026-11-04 — Show trusted BOT-composition penalty on online match Results
 - After authoritative settlement, display the bot-count percentage reduction returned from the private backend reward endpoint. No second client-side economy table or local reward calculation is introduced.
 - DM/BM weapon, map, rank, legacy offline game, BOT AI behavior and network gameplay are unchanged. New policy is backend-owned and only affects new verified matches after its additive PostgreSQL migration.
