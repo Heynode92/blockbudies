@@ -166,29 +166,32 @@ test('a server-owned wall hit invokes the original offline wall damage and groun
  ctx.paint({x:NaN,y:1,z:3,nx:1,ny:0,nz:0});
  assert.equal(seen.length,2,'invalid impact payload cannot draw anything');
 });
-test('server-confirmed tracer restores original world-space speed and mesh without a slow first-person laser',()=>{
+test('local tracer is projected from the actual visible gun barrel into world scene at full velocity',()=>{
  const start=code.indexOf('function onlineShotTracer('),end=code.indexOf('\nfunction onlineWarn(',start);
  assert.ok(start>=0&&end>start);
  const S=new THREE.Scene(),VS=new THREE.Scene(),
-   state={Math,Number,T:THREE,WP:Array.from({length:19},()=>({spd:180})),
-    onlineShotTracers:[],onlineUserId:()=> 'me',S,VS,
-    tracer:()=>new THREE.Group()};
+  C=new THREE.PerspectiveCamera(70,16/9,.1,430),
+  VC=new THREE.PerspectiveCamera(56,16/9,.1,10);
+ C.position.set(0,1.5,0);C.lookAt(0,1.5,10);
+ const state={Math,Number,T:THREE,WP:Array.from({length:19},()=>({spd:180})),
+  onlineShotTracers:[],onlineUserId:()=> 'me',S,VS,C,VC,
+  tracer:()=>new THREE.Group()};
  runInNewContext(code.slice(start,end)+'\nthis.draw=onlineShotTracer;',state);
  const viewTip=new THREE.Vector3(.3,-.2,-1.8);
- // The first-person model socket belongs only to flash/animation: collision,
- // SHOT and the WORLD tracer all originate from trusted BE muzzle x/y/z.
- state.draw({actorId:'me',weaponId:9,x:0.15,y:1.05,z:1.3,yaw:0,pitch:0,projectileSpeed:420},viewTip);
+ state.draw({actorId:'me',weaponId:9,x:.05,y:1.05,z:1.4,
+  yaw:0,pitch:0,projectileSpeed:420},viewTip);
  assert.equal(state.onlineShotTracers.length,1);
- const shot=state.onlineShotTracers[0];
- assert.equal(shot.scene,S);
- assert.equal(shot.m.parent,S);
- assert.notEqual(shot.m.parent,VS);
- assert.ok(shot.m.position.distanceTo(new THREE.Vector3(.15,1.05,1.3))<1e-10);
- assert.equal(shot.vz,420,'certified backend projectile speed MUST NOT be clamped for cosmetics');
- assert.equal(shot.vx,0);
- assert.equal(shot.vy,0);
- assert.ok(shot.t>.05&&shot.t<.2,'reuse original short-lived visual');
- state.draw({actorId:'remote',weaponId:9,x:0,y:1.05,z:1.3,yaw:0,pitch:0,projectileSpeed:180});
+ const tracer=state.onlineShotTracers[0];
+ assert.equal(tracer.scene,S);
+ assert.equal(tracer.m.parent,S);
+ assert.notEqual(tracer.m.parent,VS);
+ const muzzleNdc=viewTip.clone().project(VC);
+ const tracerNdc=tracer.m.position.clone().project(C);
+ assert.ok(Math.abs(muzzleNdc.x-tracerNdc.x)<1e-8);
+ assert.ok(Math.abs(muzzleNdc.y-tracerNdc.y)<1e-8);
+ assert.ok(Math.abs(Math.hypot(tracer.vx,tracer.vy,tracer.vz)-420)<1e-8);
+ state.draw({actorId:'remote',weaponId:9,x:0,y:1.05,z:1.3,
+  yaw:0,pitch:0,projectileSpeed:180});
  assert.equal(state.onlineShotTracers[1].scene,S);
  assert.equal(state.onlineShotTracers[1].vz,180);
  state.draw({actorId:'me',weaponId:9,x:NaN,y:0,z:0,yaw:0,pitch:0},viewTip);
