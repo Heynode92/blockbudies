@@ -49,7 +49,9 @@ test('3D gun socket controls muzzle flash but certified projectile tracer remain
  const live=read('src/game/98-online-bridge.js'),render=read('src/game/99-render-loop.js');
  assert.match(live,/weaponMuzzleSocket\(guns\[frame\.weaponId\],left\)/);
  assert.match(render,/rightMuzzle\.getWorldPosition/);
- assert.match(live,/mesh\.position\.set\(frame\.x,frame\.y,frame\.z\)/);
+ assert.match(live,/mesh\.position\.copy\(origin\)/);
+ assert.match(live,/muzzle\.clone\(\)\.project\(VC\)/);
+ assert.match(live,/\.unproject\(C\)/);
  assert.match(live,/S\.add\(mesh\)/);
  const tracer=live.slice(live.indexOf('function onlineShotTracer('),live.indexOf('function onlineWarn(',live.indexOf('function onlineShotTracer(')));
  assert.doesNotMatch(tracer,/scene=VS|unproject\(VC\)|speed\/14/);
