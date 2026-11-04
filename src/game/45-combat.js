@@ -61,25 +61,57 @@ function toast(t){var e=document.getElementById("toast");e.textContent=t;e.style
 //  Dual Kriss: shotSide flips each shot (0 = right gun, 1 = left gun at x-0.52) and the bullet spawns from that gun.
 //  Tracers are only visible for every 3rd bullet of rapid-fire weapons (performance); collision still happens for all bullets.
 function fire(o,face,w,own,adv){
-  if(typeof botSoundEmit==='function')botSoundEmit(o,'gunshot');
-  var D=w.snp?90:w.dual?45:20,
-      patternedShotgun=w.pel>1&&w.stats&&w.stats.kind==="shotgun";
-  for(var i=0;i<w.pel;i++){
-    // Fixed shotgun pattern on both axes; other weapons keep their original RNG.
-    var pelletOffset=patternedShotgun?shotgunPelletSpread(i,w.pel):null,
-        spreadScale=own==="p"?(w.snp?1-adsT:1-.65*adsT):1,
-        yawOffset=patternedShotgun?pelletOffset[0]:(Math.random()-.5)*2,
-        a=face+yawOffset*w.spr*spreadScale,g=tracer(own,w.rk);
-    var mx0,my0,mz0;if(own==="p"){if(w.dual)shotSide=shotSide?0:1;var lx=hold.position.x-(w.dual&&shotSide?.52:0),dd=-(hold.position.z+MZ[pl.w]);mx0=o.x+Math.sin(face)*dd-Math.cos(face)*lx;mz0=o.z+Math.cos(face)*dd+Math.sin(face)*lx;my0=1.5+(o.y||0)+hold.position.y+.02;a+=Math.atan(lx/D);}else{var ey=face;mx0=o.x+Math.sin(ey)*1.1+Math.cos(ey)*.05;mz0=o.z+Math.cos(ey)*1.1-Math.sin(ey)*.05;my0=1.07+(o.y||0)-.3*(o.crA||0);}
-    var vy0=own==="p"?w.spd*(1.5+(o.y||0)+D*Math.tan(pl.pitch)-my0)/D:
-      (Number.isFinite(o.aimShotPitch)?w.spd*Math.tan(o.aimShotPitch):0);
-    // Add elevation only to shotgun pellets, on top of the existing
-    // player muzzle-to-crosshair pitch or bot's original flat trajectory.
-    if(patternedShotgun)vy0+=w.spd*Math.tan(pelletOffset[1]*w.spr*spreadScale);
-    o.tc=(o.tc||0)+1;g.visible=!!(w.rk||w.pel>1||w.snp||o.tc%3===1);g.rotation.order="YXZ";g.rotation.set(-Math.atan2(vy0,w.spd||1),a,0);if(Math.abs(mx0)>=A||Math.abs(mz0)>=A||sweepObs(o.x,my0,o.z,mx0,my0,mz0)||sweepLT(o.x,my0,o.z,mx0,my0,mz0)||obsAt(mx0,mz0,my0)){mx0=o.x;mz0=o.z;}
-    g.position.set(mx0,my0,mz0);S.add(g);
-    var ad=adv||0;
-    bl.push({m:g,vx:Math.sin(a)*w.spd,vy:vy0,vz:Math.cos(a)*w.spd,life:w.life,ad:ad,dmg:w.dmg,own:own,tm:o.tm,by:o,rk:w.rk,sx:o.x,sz:o.z,wid:WP.indexOf(w),fo:w.rangeModifier?[w.rangeModifier,w.rangeUnit]:null});if(typeof botQaEnabled!=='undefined'&&botQaEnabled)botQaShot(o,w,own,bl[bl.length-1]);if(own==="e"&&i===0)enemyShotFx(o,mx0,my0,mz0);if(w.rk&&own==="p")smoke(mx0,my0,mz0,6,1.4,.3,1.3,.25,0);}
+ if(!w.pel)return;
+ if(typeof botSoundEmit==='function')botSoundEmit(o,'gunshot');
+ var weaponId=WP.indexOf(w),D=w.snp?90:w.dual?45:20;
+ if(!o.gunplayStates)o.gunplayStates=new Map();
+ var state=o.gunplayStates.get(weaponId);
+ if(!state){state=freshGunplayState();o.gunplayStates.set(weaponId,state);}
+ // Recoil progresses once per trigger, not once per shotgun pellet.
+ var shot=gunplayShot(weaponId,state,tt,{
+  ads:own==='p'?adsT:0,speed:Math.max(0,o.gunplaySpeed||0),
+  crouch:!!o.crouch,grounded:own==='p'?pl.vy===0:o.vy===0||o.vy===undefined
+ },Math.random);
+ var shotgun=w.pel>1&&w.stats&&w.stats.kind==='shotgun';
+ var barrelPitch=(own==='p'?pl.pitch:(Number.isFinite(o.aimShotPitch)?o.aimShotPitch:0))+shot.pitch;
+ var barrelYaw=face+shot.yaw;
+ for(var i=0;i<w.pel;i++){
+  var pellet=shotgun?shotgunPelletSpread(i,w.pel):null,
+    pelletSpread=shotgun?w.spr*(own==='p'?(1-.23*adsT):1):0,
+    a=barrelYaw+(pellet?pellet[0]*pelletSpread:0),g=tracer(own,w.rk);
+  var mx0,my0,mz0,lx=0;
+  if(own==='p'){
+   if(w.dual)shotSide=shotSide?0:1;
+   lx=hold.position.x-(w.dual&&shotSide?.52:0);
+   var dd=-(hold.position.z+MZ[pl.w]);
+   mx0=o.x+Math.sin(face)*dd-Math.cos(face)*lx;
+   mz0=o.z+Math.cos(face)*dd+Math.sin(face)*lx;
+   my0=1.5+(o.y||0)+hold.position.y+.02;
+   a+=Math.atan(lx/D);
+  }else{
+   mx0=o.x+Math.sin(face)*1.1+Math.cos(face)*.05;
+   mz0=o.z+Math.cos(face)*1.1-Math.sin(face)*.05;
+   my0=1.07+(o.y||0)-.3*(o.crA||0);
+  }
+  var pitchAngle=own==='p'?
+   Math.atan2(1.5+(o.y||0)+D*Math.tan(barrelPitch)-my0,D):barrelPitch;
+  if(pellet)pitchAngle+=pellet[1]*pelletSpread;
+  pitchAngle=Math.max(-1.48,Math.min(1.48,pitchAngle));
+  var horizontal=Math.cos(pitchAngle),velocityX=Math.sin(a)*horizontal*w.spd,
+    velocityY=Math.sin(pitchAngle)*w.spd,velocityZ=Math.cos(a)*horizontal*w.spd;
+  o.tc=(o.tc||0)+1;
+  g.visible=!!(w.rk||w.pel>1||w.snp||o.tc%3===1);
+  g.rotation.order='YXZ';g.rotation.set(-pitchAngle,a,0);
+  if(Math.abs(mx0)>=A||Math.abs(mz0)>=A||sweepObs(o.x,my0,o.z,mx0,my0,mz0)||
+    sweepLT(o.x,my0,o.z,mx0,my0,mz0)||obsAt(mx0,mz0,my0)){mx0=o.x;mz0=o.z;}
+  g.position.set(mx0,my0,mz0);S.add(g);
+  bl.push({m:g,vx:velocityX,vy:velocityY,vz:velocityZ,
+    life:w.life,ad:adv||0,dmg:w.dmg,own:own,tm:o.tm,by:o,rk:w.rk,
+    sx:o.x,sz:o.z,wid:weaponId,fo:w.rangeModifier?[w.rangeModifier,w.rangeUnit]:null});
+  if(typeof botQaEnabled!=='undefined'&&botQaEnabled)botQaShot(o,w,own,bl[bl.length-1]);
+  if(own==='e'&&i===0)enemyShotFx(o,mx0,my0,mz0);
+  if(w.rk&&own==='p')smoke(mx0,my0,mz0,6,1.4,.3,1.3,.25,0);
+ }
 }
 // boom(): explosion (rocket or grenade) at (x,z): splash damage with line-of-sight check, scorch decal, particles, camera shake. lab = kill-feed label.
 function boom(x,z,dmg,lab,by,shooter){var attacker=shooter||pl;curK=attacker;boomLab=lab||"RPG";killW=boomLab==="GRENADE"?5:3;if((by===undefined||by<1.1)&&Math.abs(x)<A&&Math.abs(z)<A)gDecal(TXS,x,z,3.2+Math.random()*.6);
