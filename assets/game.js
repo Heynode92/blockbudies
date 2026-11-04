@@ -1472,6 +1472,33 @@ function updSky(dt){var cp=C.position,t=performance.now()/1000,CL=SKW.userData.c
 function inObs(x,z,m,y){m=m||.1;for(var i=0;i<OB.length;i++){var o=OB[i];if(o.fl||(o.y0&&y===undefined))continue;if(y!==undefined&&(y>o.h||y<(o.y0||0)))continue;if(Math.abs(x-o.x)<o.hw+m&&Math.abs(z-o.z)<o.hd+m)return true;}return false;}
 // gh(): ground height at (x,z) for a character whose feet are at y. Lets players step/jump onto boxes (o.st = step-up limit, default .35).
 function gh(x,z,y){var g=0;for(var i=0;i<OB.length;i++){var o=OB[i];if(o.h<=y+(o.st||.35)&&Math.abs(x-o.x)<o.hw+.25&&Math.abs(z-o.z)<o.hd+.25)g=Math.max(g,o.h);}return g;}
+// Shared physical-map body test: only source-of-truth OB entries are solid.
+// The FE game constructs every playable wall/furniture body through wl()/OB.
+// Decorative textures, glass tint, road paint and lamps stay visual-only.
+function solidPositionBlocked(x,y,z,radius,height){
+ if(!Number.isFinite(x)||!Number.isFinite(y)||!Number.isFinite(z)||
+    !Number.isFinite(radius)||radius<0)return true;
+ if(Math.abs(x)+radius>A||Math.abs(z)+radius>A)return true;
+ var h=height===undefined?1.8:height;
+ for(var i=0;i<OB.length;i++){
+  var o=OB[i];
+  if(o.fl||y+h<=(o.y0||0)||y>=o.h)continue;
+  if(Math.abs(x-o.x)<o.hw+radius&&Math.abs(z-o.z)<o.hd+radius)return true;
+ }
+ return false;
+}
+// Swept axis-separated translation prevents tunneling through thin walls,
+// tables and crates even after one slow frame; the server uses the same step
+// policy in moveWithCollision(), but is always authoritative online.
+function moveWithSolidCollision(p,dx,dz,radius){
+ if(![dx,dz].every(Number.isFinite)||!p||!Number.isFinite(p.y))return;
+ var count=Math.max(1,Math.ceil(Math.hypot(dx,dz)/Math.max(.1,radius*.45))),
+     sx=dx/count,sz=dz/count;
+ for(var i=0;i<count;i++){
+  if(!solidPositionBlocked(p.x+sx,p.y,p.z,radius))p.x+=sx;
+  if(!solidPositionBlocked(p.x,p.y,p.z+sz,radius))p.z+=sz;
+ }
+}
 // resolve(): pushes entity p (radius r) out of solid boxes so characters cannot walk through walls.
 function resolve(p,r){
   p.x=Math.max(-A,Math.min(A,p.x));p.z=Math.max(-A,Math.min(A,p.z));
@@ -2201,11 +2228,18 @@ var RG=[[0,-0.2,-0.1],[0,-0.2,-0.15],[0,-0.13,-0.08],[0,-0.14,-0.2],[0,0.02,-0.0
  RL=[[-0.03,-0.22,-0.22],[0,-0.09,-0.62],[0,-0.1,-0.58],[0,-0.1,-0.7],[-0.3,-0.5,-0.1],[-0.3,-0.5,-0.1],[0,-0.09,-0.5],[-0.52,-0.22,-0.1],[0,-0.1,-0.62],[0,-0.09,-0.72],[0,-0.16,-0.54],[0,-0.15,-0.56],[0,-0.18,-0.84],[0,-0.16,-0.65],[0,-0.17,-0.66],[0,-0.17,-0.88],[0,-0.18,-0.74],[0,-0.1,-0.62],[0,-0.12,-0.56]],
  PT=[[0,-0.2,-0.28],[0,-0.24,-0.4],[0,-0.12,-0.2],[0,0.02,-0.95],[0,0,0],[0,0,0],[0,-0.24,-0.35],[0,0,0],[0,-0.24,-0.42],[0,-0.24,-0.43],[0,-0.32,-0.3],[0,-0.23,-0.42],[0,-0.31,-0.45],[0,-0.29,-0.3],[0,-0.28,-0.32],[0,-0.3,-0.4],[0,-0.3,-0.35],[0,-0.24,-0.42],[0,-0.28,-0.24]],
  MODE=[0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],NC=[1,1,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],DD=[-.1,-.34,-.28];
-// xp(w): extra viewmodel offsets [x,y,z,rotX,rotY,rotZ] for weapon switch, knife stab and grenade throw animations.
+// Canonical first-person knife poses; never modify the weapon's speed or damage.
+// Slash: start at lower-left and cut diagonally towards upper-right.
+// Alternate mouse right: pull back then thrust straight forward.
+var KNIFE_ANIMATIONS=Object.freeze({
+ slash:Object.freeze({windup:[-.38,-.30,.10,.25,-.15,.90],strike:[.46,.31,-.25,-.42,.20,-.85]}),
+ thrust:Object.freeze({windup:[.02,-.12,.29,.10,-.06,-.05],strike:[.02,.05,-.78,-.28,0,.05]})
+});
+// xp(w): extra viewmodel offsets [x,y,z,rotX,rotY,rotZ] for weapon switch, knife attack and grenade throw animations.
 function xp(w){var r=[0,0,0,0,0,0],u,p,s,q,b,f;
   if(pl.sw>0){u=pl.sw/.28;u=u*u;r[1]-=u*.55;r[3]+=u*.7;r[4]+=u*.3;}
   if(w===4){r[3]+=.1;r[4]+=.15;r[5]-=.1;
-    if(pl.stab>0){p=1-pl.stab/.42;var wa=[.28,.16,.16,-.35,.7,-.7],sa=[-.6,-.22,-.3,.3,-1.25,.95],k,i2;
+    if(pl.stab>0){p=1-pl.stab/.42;var pose=pl.knifeAlt?KNIFE_ANIMATIONS.thrust:KNIFE_ANIMATIONS.slash,wa=pose.windup,sa=pose.strike,k,i2;
       if(p<.25){k=p/.25;k=k*k*(3-2*k);for(i2=0;i2<6;i2++)r[i2]+=wa[i2]*k;}
       else if(p<.6){k=(p-.25)/.35;k=1-(1-k)*(1-k);for(i2=0;i2<6;i2++)r[i2]+=wa[i2]+(sa[i2]-wa[i2])*k;}
       else{k=(p-.6)/.4;k=1-k*k*(3-2*k);for(i2=0;i2<6;i2++)r[i2]+=sa[i2]*k;}}}
@@ -2247,13 +2281,13 @@ function animHands(){
     if(phase>=.48&&!pl.pumpEjected){pl.pumpEjected=true;ejectShell(w,1);}
   }
   if(slide)slide.position.z=-.6+.19*pull;
-  var tm=performance.now()/1000;bobP+=(tm*1000-bobL)/1000*(7.5+4*sprT)*(1-.2*wtT);bobL=tm*1000;var sw=Math.sin(bobP),bm=mvAmt,idle=Math.sin(tm*1.7),rl=t>=0,wob=rl?Math.sin(Math.PI*t*3)*.02:0;
+  var tm=performance.now()/1000;bobP+=(tm*1000-bobL)/1000*(7.5-2*sprT)*(1-.2*wtT);bobL=tm*1000;var sw=Math.sin(bobP),bm=mvAmt,idle=Math.sin(tm*1.7),rl=t>=0,wob=rl?Math.sin(Math.PI*t*3)*.02:0;
   handR.position.y+=rl?-tilt*.05:0;handR.position.z+=rl?tilt*.04:0;
   var lx=pos[0],ly=pos[1]+wob,lz=pos[2];
   handL.position.set(lx,ly,lz);handL.rotation.set(rl?-tilt*.6:0,0,rl?Math.sin(t*20)*.15*tilt:0);
   magP.visible=pr===1;shP.visible=pr===2;rkP.visible=pr===3;
   var X=xp(w);
-  var a=canAds(w)?adsT*adsT*(3-2*adsT):0,sp=sprT*(1-a),bb=bm*(1-.85*a)*(1+.7*sp)*(1+.5*wtT),AA=AP[w]||AP[0];
+  var a=canAds(w)?adsT*adsT*(3-2*adsT):0,sp=0,sneak=sprT*(1-a),bb=bm*(1-.85*a)*(1-.3*sneak)*(1+.5*wtT),AA=AP[w]||AP[0];
   hold.position.set((.26+sw*.012*bb+X[0]-.09*sp)*(1-a)+AA[0]*a,(-.17-tilt*.12-Math.abs(sw)*.02*bb+idle*.004+X[1]-.07*sp)*(1-a)+AA[1]*a,(-.5+kick*(1-.5*a)+tilt*.06+X[2]+.03*sp)*(1-a)+AA[2]*a);
   hold.rotation.set((kick*.6+tilt*.45+idle*.004+X[3])*(1-.8*a)-.42*sp,(tilt*.3+X[4])*(1-a)+.55*sp,(-tilt*.35+sw*.012*bb+X[5])*(1-a)+.18*sp);
   var boltGun=WP[w]&&WP[w].snp?guns[w]:null,bh8=boltGun&&boltGun.userData.bolt;
@@ -2460,22 +2494,19 @@ function projectileHitCharacter(b,target,head){
   else dmgE(target,damage,b.vx,b.vz,0,head?'head':'bullet-body');
   hsF=false;
 }
-// Global movement rules: speed rating is maximum sprint as a percentage of baseline.
-// 100 rating = 100% of baseSpeed when sprinting. Walking is 15% slower
-// relative to the sprint speed, so sprint is exactly 15% faster than walk.
-// These are project mechanics (not a reverse-engineered Point Blank formula).
+// Existing weapon speed ratings (WP.moveMult) remain the source of truth.
+// SHIFT now means silent/sneak movement: 15% below normal weapon-rated pace.
+// ADS slowdown is unchanged; no weapon profile or damage value is modified.
 var MOVEMENT_RULES=Object.freeze({
   baseSpeed:6.5,
-  sprintBonus:.15,
+  sneakSlowdown:.15,
   adsSlowdown:.38
 });
-// sprintBlend/adsBlend are interpolated 0..1 by the existing input system.
-// The heavy-weapon wtT animation is visual only and does not alter speed.
-function weaponMovementSpeed(weaponId,sprintBlend,adsBlend){
+function weaponMovementSpeed(weaponId,sneakBlend,adsBlend){
   var r=MOVEMENT_RULES;
   var speedRatio=WP[weaponId].moveMult;
-  var walk=r.baseSpeed*speedRatio/(1+r.sprintBonus);
-  return walk*(1+r.sprintBonus*sprintBlend)*(1-r.adsSlowdown*adsBlend);
+  return r.baseSpeed*speedRatio*(1-r.sneakSlowdown*sneakBlend)*
+    (1-r.adsSlowdown*adsBlend);
 }
 // BOLT_T = AWP bolt-action cycle length in seconds (must stay <= the AWP fire cooldown so the next shot is possible when it ends).
 // MZ = per-weapon muzzle z offset in viewmodel space (where bullets and muzzle flash start). kick = recoil offset. flashT = muzzle flash time left.
@@ -3110,8 +3141,8 @@ function footstepPlay(actor,local,sprint){
   src.start(t);src.stop(t+.195);
  }catch(e){} // Audio failure must never interrupt movement or bot AI.
 }
-function footstepAdvance(actor,dist,grounded,sprint,local){
- if(!actor||actor.dead||!run||lob||mt.over||mt.cd>0||!grounded||!Number.isFinite(dist)||dist>2.6){
+function footstepAdvance(actor,dist,grounded,sprint,local,sneaking){
+ if(!actor||actor.dead||!run||lob||mt.over||mt.cd>0||!grounded||sneaking===true||!Number.isFinite(dist)||dist>2.6){
   if(actor)actor.stepTrail=0;
   return;
  }
