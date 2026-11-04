@@ -1679,7 +1679,13 @@ function onlineApplyWorld(){
   }
   onlinePrevAlive=self.alive;
  }
- if(Array.isArray(game.teamKills)){ts[0]=game.teamKills[0];ts[1]=game.teamKills[1]}
+ // Offline Bomb Mission uses ts[] for ROUND WINS; Deathmatch uses KILLS.
+ // Both are independently authoritative fields in the BE public match state.
+ var teamScore=isBombMode()?game.rounds:game.teamKills;
+ if(Array.isArray(teamScore)&&teamScore.length===2&&
+    teamScore.every(n=>Number.isSafeInteger(n)&&n>=0)){
+  ts[0]=teamScore[0];ts[1]=teamScore[1];
+ }
  mt.t=Number.isFinite(game.remaining)?Math.max(0,game.remaining):mt.t;
  mt.cd=0;mt.over=game.status==='COMPLETED'&&!onlineActive;
  var visible=new Set();
