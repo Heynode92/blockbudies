@@ -31,7 +31,7 @@ test('online hand-hidden grenade is restored after the original 0.65-second wind
 test('same offline animation timer is advanced by online render loop, not ammo policy',()=>{
  assert.match(offline,/pl\.ghide=Math\.max\(0,pl\.ghide-dt\)/);
  assert.match(online,/onlineGrenadePresentationTick\(dt\);/);
- assert.match(online,/if\(frame\.actorId===onlineUserId\(\)\)pl\.ghide=\.65;/);
+ assert.match(online,/if\(frame\.actorId===onlineUserId\(\)\)\{pl\.ghide=\.65;/);
  assert.match(viewmodel,/g\.visible=i===pl\.w&&!?\(i===5&&pl\.ghide>0\)/);
  assert.match(online,/pl\.ghide=0;/);
 });
