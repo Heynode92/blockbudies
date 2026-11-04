@@ -196,7 +196,7 @@ function onlineApplyCollisionCorrection(p,correction,alpha,radius){
 function onlinePredictStep(position,input,dt){
  if(!(dt>0)||!Number.isFinite(dt))return position;
  var step=Math.min(dt,.05),fw=-input.moveZ,sn=Math.sin(input.yaw),cs=Math.cos(input.yaw);
- var speed=weaponMovementSpeed(input.weaponId,input.sprint&&!input.crouch?1:0,input.ads?1:0);
+ var speed=weaponMovementSpeed(input.weaponId,input.sprint?1:0,input.ads?1:0);
  onlineMoveWithCollision(position,(fw*sn-input.moveX*cs)*speed,
   (fw*cs+input.moveX*sn)*speed,step,.55);
  // Offline source of truth calls gh() before jump and after gravity.
