@@ -166,8 +166,9 @@ function animHands(){
   hold.position.set((.26+sw*.012*bb+X[0]-.09*sp)*(1-a)+AA[0]*a,(-.17-tilt*.12-Math.abs(sw)*.02*bb+idle*.004+X[1]-.07*sp)*(1-a)+AA[1]*a,(-.5+kick*(1-.5*a)+tilt*.06+X[2]+.03*sp)*(1-a)+AA[2]*a);
   // All gun and hand children share the same deterministic ballistic axis.
   // Camera shake/kick is secondary only; no extra recoil rotation is invented.
-  var barrelPitch=Number.isFinite(pl.ballisticBarrelPitch)?pl.ballisticBarrelPitch:0,
-      barrelYaw=Number.isFinite(pl.ballisticBarrelYaw)?pl.ballisticBarrelYaw:0;
+  var poseCurrent=pl.ballisticBarrelWeapon===w,
+      barrelPitch=poseCurrent&&Number.isFinite(pl.ballisticBarrelPitch)?pl.ballisticBarrelPitch:0,
+      barrelYaw=poseCurrent&&Number.isFinite(pl.ballisticBarrelYaw)?pl.ballisticBarrelYaw:0;
   hold.rotation.set((tilt*.45+idle*.004+X[3])*(1-.8*a)-.42*sp+barrelPitch,
     (tilt*.3+X[4])*(1-a)+.55*sp-barrelYaw,
     (-tilt*.35+sw*.012*bb+X[5])*(1-a)+.18*sp);
