@@ -61,11 +61,19 @@ test('Verified roster rank models reuse the canonical 3D insignia generator',()=
  assert.match(source,/rankInsigniaModel\(index,view\)/);
  assert.match(css,/#lbroomlive \.rml-rank-3d/);
 });
-test('vPBT star is a genuine extruded Three.js model, not a hardcoded letter',()=>{
- assert.match(html,/id="homeVpbtStar"/);
- assert.doesNotMatch(html,/home-vpbt-icon">V</);
- assert.match(source,/function vpbtStarInit\(\)/);
- assert.match(source,/new T\.ExtrudeGeometry\(shape/);
+test('vPBT uses its uploaded PNG with the same 1:1 responsive dimensions as PBT',()=>{
+ const css=read('src/styles/13-home-header.css');
+ const onlineCss=read('src/styles/17-online.css');
+ assert.ok(html.includes('src="./src/assets/icon/vPBT-logo.png"'));
+ assert.ok(html.includes('src="./src/assets/icon/pb-logo.png"'));
+ assert.equal((html.match(/class="home-token-coin/g)||[]).length,2);
+ assert.match(css,/#gameLobbyHeader \.home-token-coin/);
+ assert.match(css,/width:25px;height:25px;aspect-ratio:1 \/ 1/);
+ assert.match(css,/\.home-token-coin \{ width:22px;height:22px/);
+ assert.doesNotMatch(html,/homeVpbtStar|homeVpbtStarFallback/);
+ assert.doesNotMatch(source,/vpbtStarInit|vpbtStarRenderer/);
+ assert.doesNotMatch(onlineCss,/home-vpbt-icon|homeVpbtStarFallback/);
+ assert.ok(readFileSync(new URL('../src/assets/icon/vPBT-logo.png',import.meta.url)).length>0);
 });
 test('Training completion and timeout use server-verified Results before registration',()=>{
  const bridge=read('src/game/98-online-bridge.js');
