@@ -593,20 +593,49 @@ function onlineShotTracer(frame,muzzle){
  if(w.melee||w.gr)return;
  if(onlineShotTracers.length>=40){var oldest=onlineShotTracers.shift();oldest.scene.remove(oldest.m);}
  var own=frame.actorId===onlineUserId()?'p':'e',mesh=tracer(own,false);
- // Actual speed is sent with the authorized server shot. It influences only
- // the cosmetic mesh, never client collision or hit registration.
+ // All server-certified shot metadata remains immutable. Only the visual
+ // start of the local shot may be projected onto the visible 1P gun socket.
  var angle=frame.yaw,pitch=frame.pitch,
   speed=Number.isFinite(frame.projectileSpeed)&&frame.projectileSpeed>0&&frame.projectileSpeed<=1000?
    frame.projectileSpeed:(w.spd||180),
-  duration=Math.min(.15,Math.max(.075,24/speed));
- mesh.rotation.order='YXZ';mesh.rotation.set(-pitch,angle,0);
- // World-space origin now comes from v2 server's actual 3P barrel socket.
- // Only the first-person muzzle FLASH belongs in VS; the original tracer
- // always flies through S at the exact server-certified projectile speed.
- mesh.position.set(frame.x,frame.y,frame.z);
+  duration=Math.min(.15,Math.max(.075,24/speed)),
+  realOrigin=new T.Vector3(frame.x,frame.y,frame.z),
+  realDirection=new T.Vector3(Math.sin(angle)*Math.cos(pitch),
+   Math.sin(pitch),Math.cos(angle)*Math.cos(pitch)),
+  origin=realOrigin,travel=realDirection;
+ if(own==='p'&&muzzle&&muzzle.isVector3){
+  // VS/VC and S/C have DIFFERENT camera spaces and FOV. Align the physical
+  // model's actual socket to the same SCREEN pixel in the world camera.
+  // Never use the 3P server muzzle as the 1P gun's apparent screen position.
+  VC.updateWorldMatrix(true,false);
+  C.updateWorldMatrix(true,false);
+  var ndc=muzzle.clone().project(VC),
+   eyeDistance=realOrigin.distanceTo(C.position);
+  if([ndc.x,ndc.y,ndc.z,eyeDistance].every(Number.isFinite)&&
+    ndc.z>=-1&&ndc.z<=1&&eyeDistance>C.near&&eyeDistance<C.far){
+   var worldRay=new T.Vector3(ndc.x,ndc.y,.5).unproject(C)
+    .sub(C.position).normalize();
+   var visualOrigin=C.position.clone().addScaledVector(worldRay,eyeDistance);
+   // Join the genuine server ballistic path at the end of the original
+   // short tracer lifetime; do NOT change speed, damage, hit or collision.
+   var ballisticTarget=realOrigin.clone()
+    .addScaledVector(realDirection,speed*duration);
+   var candidate=ballisticTarget.sub(visualOrigin).normalize();
+   if([candidate.x,candidate.y,candidate.z].every(Number.isFinite)&&
+     candidate.dot(realDirection)>0){
+    origin=visualOrigin;travel=candidate;
+   }
+  }
+ }
+ // Keep the original thin world tracer, lifetime and AUTHENTIC speed.
+ // The viewmodel scene draws the gun/muzzle flash only: no slow VS laser.
+ mesh.rotation.order='YXZ';
+ mesh.rotation.set(-Math.atan2(travel.y,Math.hypot(travel.x,travel.z)),
+  Math.atan2(travel.x,travel.z),0);
+ mesh.position.copy(origin);
  S.add(mesh);
- onlineShotTracers.push({m:mesh,vx:Math.sin(angle)*Math.cos(pitch)*speed,
-  vy:Math.sin(pitch)*speed,vz:Math.cos(angle)*Math.cos(pitch)*speed,t:duration,scene:S});
+ onlineShotTracers.push({m:mesh,vx:travel.x*speed,vy:travel.y*speed,
+  vz:travel.z*speed,t:duration,scene:S});
 }
 function onlineWarn(error) {
  var code=typeof error==='string'?error:error&&error.code||'BACKEND_UNAVAILABLE';
