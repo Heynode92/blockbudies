@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
+import * as THREE from 'three';
 import { readFileSync } from 'node:fs';
 const root=new URL('../',import.meta.url);
 const read=path=>readFileSync(new URL(path,root),'utf8');
@@ -10,10 +11,11 @@ const combat=read('src/game/45-combat.js');
 const fire=combat.slice(combat.indexOf('function fire('),combat.indexOf('// boom():'));
 function volley({id=2,ads=0,owner='p',rand=.5,pitch=0}={}){
  const bullets=[],math=Object.create(Math);math.random=()=>rand;
- const env={Math:math,tt:0,pl:{w:id,pitch,vy:0},adsT:ads,
+ const env={Math:math,T:THREE,tt:0,pl:{w:id,pitch,vy:0},adsT:ads,
+  offlineGunMuzzleWorld(){return new THREE.Vector3(0,1.4,0);},
   hold:{position:{x:0,y:-.6,z:-.6}},MZ:Array(19).fill(-.9),shotSide:0,A:80,bl:bullets,
   S:{add(){}},botSoundEmit(){},enemyShotFx(){},smoke(){},
-  tracer(){return{rotation:{set(){}},position:{set(x,y,z){Object.assign(this,{x,y,z});}}}},
+  tracer(){return{quaternion:{setFromUnitVectors(){}},rotation:{set(){}},position:{set(x,y,z){Object.assign(this,{x,y,z});}}}},
   sweepObs(){return false},sweepLT(){return false},obsAt(){return false}};
  const context=vm.createContext(env);vm.runInContext(weapons+'\n'+fire,context);
  const shooter={x:0,y:0,z:0,tm:0,gunplaySpeed:0};
