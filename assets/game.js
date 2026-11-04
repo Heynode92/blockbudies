@@ -9376,6 +9376,9 @@ function onlineReceiveFrame(frame){
  }
 }
 function onlineSocketStatus(info){
+ // The match was already authoritatively completed. Its local 2+2 winner
+ // presentation must finish even if the old match WebSocket closes.
+ if(onlinePendingMatchCompleted)return;
  if(info.code===1000||!onlineActive||onlineReconnecting)return;
  // Server retains the player for 60 seconds. Never fall back to client hit simulation.
  onlineReconnecting=true;onlineReconnectStarted=Date.now();run=false;
