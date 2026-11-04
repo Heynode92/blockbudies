@@ -1080,6 +1080,7 @@ function onlineResetLive(){
  onlinePendingMatchCompleted=null;
  onlineCombatQa={fireInputs:0,confirmedShots:0,confirmedHits:0,wallImpacts:0,damageTaken:0,lastEvent:'NONE'};
  onlineActive=false;onlineTraining=false;onlineCurrentId=null;onlineMatchId=null;
+ pl.ballisticBarrelYaw=pl.ballisticBarrelPitch=0;pl.ballisticBarrelWeapon=null;pl.ballisticBarrelIdle=null;
  onlineWorld=null;onlineGame=null;
  onlineServerPhase='CONNECTING';onlineClientSceneReady=false;onlineLoadParticipants={ready:0,total:0};
  document.getElementById('dv').classList.remove('online-results');
@@ -1595,6 +1596,11 @@ function onlineReceiveFrame(frame){
    var bot=remote.model;bot.rc=1;
    if(Number.isInteger(frame.weaponId)&&frame.weaponId>=0&&frame.weaponId<WP.length){
     botVisualWeapon(bot,frame.weaponId);bot.weapon=frame.weaponId;
+    if(Number.isFinite(frame.barrelYaw)&&Number.isFinite(frame.barrelPitch)&&bot.g?.userData?.rg){
+     var updatedGun=bot.g.userData.rg;
+     updatedGun.rotation.order='YXZ';
+     updatedGun.rotation.set(frame.barrelPitch,Math.PI+frame.barrelYaw,0);
+    }
    }
    if(bot.weapon===4){
     bot.knifeAttackUntil=performance.now()+420;
