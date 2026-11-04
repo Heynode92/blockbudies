@@ -2386,6 +2386,14 @@ function xp(w){var r=[0,0,0,0,0,0],u,p,s,q,b,f;
   return r;}
 // lp(): smoothstep interpolation between 3D points a and b (t is clamped to 0..1).
 function lp(a,b,t){t=Math.max(0,Math.min(1,t));t=t*t*(3-2*t);return[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];}
+function syncWeaponBarrelPoseImmediate(){
+ var pitch=pl.ballisticBarrelWeapon===pl.w?pl.ballisticBarrelPitch||0:0;
+ var yaw=pl.ballisticBarrelWeapon===pl.w?pl.ballisticBarrelYaw||0:0;
+ hold.rotation.x+=pitch-(pl.renderedBarrelPitch||0);
+ hold.rotation.y-=yaw-(pl.renderedBarrelYaw||0);
+ pl.renderedBarrelPitch=pitch;pl.renderedBarrelYaw=yaw;
+ hold.updateWorldMatrix(true,true);
+}
 // animHands(): called every frame from loop(). Positions the gun (`hold`), hands and arms for: idle bob, walking, sprint,
 // aim-down-sights, recoil kick, reload animation (progress t = 1 - pl.rl / reload time), and the AWP bolt-action cycle (pl.bolt).
 function animHands(){
@@ -2434,6 +2442,7 @@ function animHands(){
   hold.rotation.set((tilt*.45+idle*.004+X[3])*(1-.8*a)-.42*sp+barrelPitch,
     (tilt*.3+X[4])*(1-a)+.55*sp-barrelYaw,
     (-tilt*.35+sw*.012*bb+X[5])*(1-a)+.18*sp);
+  pl.renderedBarrelPitch=barrelPitch;pl.renderedBarrelYaw=barrelYaw;
   var boltGun=WP[w]&&WP[w].snp?guns[w]:null,bh8=boltGun&&boltGun.userData.bolt;
   if(bh8){var bo=pl.rl<=0?(pl.bolt||0):0;
     if(bo>0){var bp=1-bo/BOLT_T,hg=0,pu=0,lf=0;
@@ -2749,6 +2758,7 @@ function fire(o,face,w,own,adv){
  // Canonical predictable barrel pose drives the actual gun mesh and hands,
  // not a second visual-only recoil accumulator.
  o.ballisticBarrelYaw=shot.barrelYaw;o.ballisticBarrelPitch=shot.barrelPitch;o.ballisticBarrelWeapon=weaponId;
+ if(own==='p')syncWeaponBarrelPoseImmediate();
  if(own!=='p'&&o.g?.userData?.rg){
   var meshGun=o.g.userData.rg;
   meshGun.rotation.order='YXZ';
@@ -8529,6 +8539,7 @@ function onlineShotMuzzle(frame){
   if(pl.dead||pl.w!==frame.weaponId)return null;
   // This is a VS-space position, NOT a world-space point: the first-person
   // weapon is rendered by VC in a separate scene with its own projection.
+  syncWeaponBarrelPoseImmediate();
   var localSocket=weaponMuzzleSocket(guns[frame.weaponId],left);
   if(!localSocket)return null;
   return localSocket.getWorldPosition(new T.Vector3());
