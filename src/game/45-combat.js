@@ -95,6 +95,7 @@ function fire(o,face,w,own,adv){
  // Canonical predictable barrel pose drives the actual gun mesh and hands,
  // not a second visual-only recoil accumulator.
  o.ballisticBarrelYaw=shot.barrelYaw;o.ballisticBarrelPitch=shot.barrelPitch;o.ballisticBarrelWeapon=weaponId;
+ if(own==='p')syncWeaponBarrelPoseImmediate();
  if(own!=='p'&&o.g?.userData?.rg){
   var meshGun=o.g.userData.rg;
   meshGun.rotation.order='YXZ';
