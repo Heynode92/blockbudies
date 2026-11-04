@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
+import * as THREE from 'three';
 import {readFileSync} from 'node:fs';
 const root=new URL('../',import.meta.url);
 const read=path=>readFileSync(new URL(path,root),'utf8');
@@ -107,14 +108,15 @@ test('M2: actual projectile factory honors BOT vertical pitch and preserves play
  const w={stats:{kind:'rifle'},pel:1,spd:180,spr:0,life:1,
    dmg:20,rangeModifier:1,rangeUnit:20};
  const shots=[],events=[];
- const c={Math,A:80,WP:[w],bl:shots,shotSide:0,adsT:0,
+ const c={Math,T:THREE,A:80,WP:[w],bl:shots,shotSide:0,adsT:0,
+  offlineGunMuzzleWorld(){return new THREE.Vector3(0,1.4,0);},
   pl:{x:0,z:0,y:0,face:0,pitch:.22,w:0},
   hold:{position:{x:0,y:0,z:0}},MZ:[-.4],
   shotgunPelletSpread:()=>[0,0],
   tt:0,
   freshGunplayState(){return {shots:0,yaw:0,pitch:0,bloom:0,lastShotAt:-Infinity};},
   gunplayShot(){return {yaw:0,pitch:0,index:0,inaccuracy:0};},
-  tracer(){return{visible:false,rotation:{order:'',set(){}},
+  tracer(){return{visible:false,quaternion:{setFromUnitVectors(){}},rotation:{order:'',set(){}},
     position:{set(){} }}},
   S:{add(){}},enemyShotFx(){},
   sweepObs(){return false;},sweepLT(){return false;},obsAt(){return false;},
