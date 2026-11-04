@@ -159,24 +159,12 @@ function onlineMeasureSnapshot(world,now){
 // map: the server is authoritative, while FE prediction uses the same geometry
 // that bld()/wl()/map constructors already registered.
 function onlinePositionBlocked(x,y,z,radius){
- if(!Number.isFinite(x)||!Number.isFinite(y)||!Number.isFinite(z))return true;
- if(Math.abs(x)+radius>A||Math.abs(z)+radius>A)return true;
- for(var i=0;i<OB.length;i++){
-  var o=OB[i];
-  if(o.fl||y+1.8<=(o.y0||0)||y>=o.h-.05)continue;
-  if(Math.abs(x-o.x)<o.hw+radius&&Math.abs(z-o.z)<o.hd+radius)return true;
- }
- return false;
+ return solidPositionBlocked(x,y,z,radius);
 }
 // Swept, axis-separated local prediction: same step-size and sliding approach
 // as server moveWithCollision(), with FE's existing OB as the geometry source.
 function onlineMoveWithCollision(p,vx,vz,dt,radius){
- var distance=Math.hypot(vx*dt,vz*dt),count=Math.max(1,Math.ceil(distance/Math.max(.1,radius*.45)));
- var sx=vx*dt/count,sz=vz*dt/count;
- for(var i=0;i<count;i++){
-  if(!onlinePositionBlocked(p.x+sx,p.y,p.z,radius))p.x+=sx;
-  if(!onlinePositionBlocked(p.x,p.y,p.z+sz,radius))p.z+=sz;
- }
+ moveWithSolidCollision(p,vx*dt,vz*dt,radius);
 }
 // Smooth correction is cosmetic only, but must obey the original world
 // collider. Never drag the camera through walls during reconciliation.
