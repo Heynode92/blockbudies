@@ -8,10 +8,24 @@ on:
       - 'tools/source-manifest.json'
       - 'tools/vite-game-plugin.mjs'
       - 'package.json'
+      - 'tests/**'
+      - 'assets/game.js'
+      - 'package-lock.json'
       - 'vite.config.mjs'
       - 'index.html'
       - '.github/workflows/online-frontend-build.yml'
   pull_request:
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'assets/game.js'
+      - 'tools/source-manifest.json'
+      - 'tools/vite-game-plugin.mjs'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vite.config.mjs'
+      - 'index.html'
+      - '.github/workflows/online-frontend-build.yml'
 
 permissions:
   contents: read
@@ -26,8 +40,8 @@ jobs:
           node-version: '22'
       - name: Install pinned dependencies
         run: npm install --no-audit --no-fund
-      - name: Focused and full JavaScript regression tests
-        run: npm test
+      - name: Focused active regression tests (no archived BOT M0–M7)
+        run: npm run test:ci
       - name: Compile production frontend
         run: npm run build
       - name: Inspect distributable
