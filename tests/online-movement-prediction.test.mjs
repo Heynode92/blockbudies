@@ -43,7 +43,7 @@ test('movement yaw, diagonal normalization and crouch sprint restriction preserv
  const {pl,api}=harness();
  const input={...forward,yaw:Math.PI/2,sprint:true,crouch:true};
  api.step(pl,input,.05);
- assert.ok(Math.abs(pl.x-speed*.05)<.000001);
+ assert.ok(Math.abs(pl.x-speed*.85*.05)<.000001,'SHIFT stealth is 15% slower, not faster');
  assert.ok(Math.abs(pl.z)<.000001);
  const diagonal={...input,yaw:0,moveX:Math.SQRT1_2,moveZ:-Math.SQRT1_2,crouch:false};
  api.step(pl,diagonal,.05);
@@ -119,7 +119,7 @@ test('online particle lifecycle removes muzzle flash and blood instead of leavin
  const ctx={Math,mzf:[{m:flash,t:.04}],
   sk:[{m:blood,t:0,l:.05,vx:0,vy:0,vz:0,sz:.06,blood:true}],
   bloodActive:1,fx:[],toastT:0,onlineShotTracers:[],S:{remove:m=>removed.push(m)},
-  updCl:()=>{},updDead:()=>{},updSm:()=>{},bloodPoolUpdate:()=>{}};
+  updG:()=>{},grs:[],updCl:()=>{},updDead:()=>{},updSm:()=>{},bloodPoolUpdate:()=>{}};
  runInNewContext(code.slice(start,end)+'\nthis.tick=onlineTickEffects;',ctx);
  ctx.tick(.06);
  assert.equal(ctx.mzf.length,0);
