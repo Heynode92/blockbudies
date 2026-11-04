@@ -111,6 +111,9 @@ test('M2: actual projectile factory honors BOT vertical pitch and preserves play
   pl:{x:0,z:0,y:0,face:0,pitch:.22,w:0},
   hold:{position:{x:0,y:0,z:0}},MZ:[-.4],
   shotgunPelletSpread:()=>[0,0],
+  tt:0,
+  freshGunplayState(){return {shots:0,yaw:0,pitch:0,bloom:0,lastShotAt:-Infinity};},
+  gunplayShot(){return {yaw:0,pitch:0,index:0,inaccuracy:0};},
   tracer(){return{visible:false,rotation:{order:'',set(){}},
     position:{set(){} }}},
   S:{add(){}},enemyShotFx(){},
@@ -119,12 +122,12 @@ test('M2: actual projectile factory honors BOT vertical pitch and preserves play
  vm.createContext(c);vm.runInContext(source,c);
  const bot={x:0,z:0,y:0,tm:1,aimShotPitch:.12};
  c.fire(bot,0,w,'e',0);
- assert.ok(Math.abs(shots[0].vy-180*Math.tan(.12))<1e-8);
+ assert.ok(Math.abs(shots[0].vy-180*Math.sin(.12))<1e-8);
  assert.ok(shots[0].vy>0,'projectile must gain height toward elevated target');
  assert.equal(shots[0].dmg,20);
  assert.equal(shots[0].own,'e');
  c.fire(c.pl,0,w,'p',0);
- const expected=w.spd*(1.5+20*Math.tan(c.pl.pitch)-(1.5+c.hold.position.y+.02))/20;
+ const expected=w.spd*Math.sin(Math.atan2(1.5+20*Math.tan(c.pl.pitch)-(1.5+c.hold.position.y+.02),20));
  assert.ok(Math.abs(shots[1].vy-expected)<1e-8,'player pitch unchanged');
  assert.equal(events.length,2);
 });
