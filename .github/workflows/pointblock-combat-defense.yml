@@ -1,0 +1,43 @@
+name: PointBlock Combat Defense (Windows)
+
+on:
+  pull_request:
+    paths:
+      - 'src/game/39-defense.js'
+      - 'src/game/42-projectile-defense.js'
+      - 'src/game/45-combat.js'
+      - 'src/game/65-audio.js'
+      - 'src/game/70-kills-and-damage-hud.js'
+      - 'src/game/96-hud-and-radar.js'
+      - 'src/game/98-online-bridge.js'
+      - 'src/styles/08-defense.css'
+      - 'index.html'
+      - 'assets/game.js'
+      - 'tools/source-manifest.json'
+      - 'tests/damage-range.test.mjs'
+      - 'tests/defense-bot-weapons.test.mjs'
+      - '.github/workflows/pointblock-combat-defense.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  defense:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Verify generated game bundle
+        run: node tools/build.mjs --check
+      - name: Verify modified defense and directly affected ballistics
+        run: node --test tests/defense-bot-weapons.test.mjs tests/damage-range.test.mjs tests/gunplay-ballistics.test.mjs tests/parity.test.mjs
+      - name: Build production frontend
+        run: npm run build
+      - name: Check distributable
+        run: npm run check:dist
