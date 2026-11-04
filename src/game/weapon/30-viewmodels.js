@@ -177,8 +177,12 @@ function animHands(){
   var poseCurrent=pl.ballisticBarrelWeapon===w,
       barrelPitch=poseCurrent&&Number.isFinite(pl.ballisticBarrelPitch)?pl.ballisticBarrelPitch:0,
       barrelYaw=poseCurrent&&Number.isFinite(pl.ballisticBarrelYaw)?pl.ballisticBarrelYaw:0;
-  hold.rotation.set((tilt*.45+idle*.004+X[3])*(1-.8*a)-.42*sp+barrelPitch,
-    (tilt*.3+X[4])*(1-a)+.55*sp-barrelYaw,
+  // This-shot ballistic pose always rotates the barrel and BOTH hands.
+  // The existing short-lived firing kick is also an immediate gun-body
+  // spring, not just a camera jolt; it never changes certified bullet physics.
+  var gunImpulse=kick*(1-.5*a),lateralSign=Math.sign(barrelYaw);
+  hold.rotation.set((tilt*.45+idle*.004+X[3])*(1-.8*a)-.42*sp+barrelPitch+gunImpulse,
+    (tilt*.3+X[4])*(1-a)+.55*sp-barrelYaw-lateralSign*gunImpulse*.35,
     (-tilt*.35+sw*.012*bb+X[5])*(1-a)+.18*sp);
   pl.renderedBarrelPitch=barrelPitch;pl.renderedBarrelYaw=barrelYaw;
   var boltGun=WP[w]&&WP[w].snp?guns[w]:null,bh8=boltGun&&boltGun.userData.bolt;
