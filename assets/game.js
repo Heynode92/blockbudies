@@ -3320,7 +3320,7 @@ function amo(id){return id===pl.w?pl:pl.ammo[id];}
 // swW(i): switches to weapon i, saving the current weapon's ammo into pl.ammo and loading the new one. Cancels reload.
 function swW(i){if(typeof onlineActive!=='undefined'&&onlineActive&&pl.w===5&&i!==5)
   onlineGrenadeCancelPrime();
- pl.ammo[pl.w]={mag:pl.mag,res:pl.res};pl.w=i;var a=pl.ammo[i];pl.mag=a.mag;pl.res=a.res;pl.rl=0;pl.pump=0;pl.pumpEjected=false;pl.sw=.28;pl.thr=0;pl.pend=false;pl.sth=false;pl.stab=0;pl.ghide=0;pl.cd=Math.max(pl.cd,.2);
+ pl.ammo[pl.w]={mag:pl.mag,res:pl.res};pl.w=i;var a=pl.ammo[i];pl.mag=a.mag;pl.res=a.res;pl.rl=0;pl.pump=0;pl.pumpEjected=false;pl.sw=.28;pl.thr=0;pl.pend=false;pl.sth=false;pl.stab=0;pl.knifeAlt=false;pl.ghide=0;pl.cd=Math.max(pl.cd,.2);
  if(typeof onlineActive!=='undefined'&&onlineActive){onlinePendingWeapon=i;onlinePendingWeaponAt=performance.now();}
 }
 // swSlot(s): switches to slot s (0 primary, 1 pistol, 2 knife, 3 grenade) with the switch animation.
@@ -7295,7 +7295,7 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
     var steering=botMoveSteer(e,recovery[0],recovery[1],sp,dt,holdMovement);
     mvx=steering[0];mvz=steering[1];
     f=(t&&e.lok)?e.aimYaw:(mvx||mvz)?Math.atan2(mvx,mvz):e.g.rotation.y;
-    e.x+=mvx*sp*dt;e.z+=mvz*sp*dt;resolve(e,.55);
+    moveWithSolidCollision(e,mvx*sp*dt,mvz*sp*dt,.55);
     var dm=Math.hypot(e.x-ox,e.z-oz);
     footstepAdvance(e,dm,!cdn&&dm>.002,sp>4.4,false);
     if(typeof botQaEnabled!=='undefined'&&botQaEnabled)botQaMove(wantedMovement,dm,sp,dt);
@@ -7321,7 +7321,7 @@ function botsUpdOld(dt){var i,cdn=mt.cd>0;
     if(t&&!t.dead&&!(t===pl&&pl.dead)){dx=t.x-e.x;dz=t.z-e.z;d=Math.hypot(dx,dz)||1;f=Math.atan2(dx,dz);mv=d>14?1:d<7?-.5:0;e.bt=(e.bt||0)-dt;if(e.bt<=0){e.bt=.7+Math.random()*1.4;e.sd=[-1,0,1][(Math.random()*3)|0];}st=(e.sd||0)*.9;}
     else{t=null;dx=e.wx-e.x;dz=e.wz-e.z;d=Math.hypot(dx,dz)||1;f=Math.atan2(dx,dz);mv=d>2?1:0;}
     if(cdn)mv=st=0;
-    e.x+=(dx/d*mv+(dz/d)*st)*sp*dt;e.z+=(dz/d*mv-(dx/d)*st)*sp*dt;resolve(e,.55);
+    moveWithSolidCollision(e,(dx/d*mv+(dz/d)*st)*sp*dt,(dz/d*mv-(dx/d)*st)*sp*dt,.55);
     var dm=Math.hypot(e.x-ox,e.z-oz);
     if((mv||st)&&dm<sp*dt*.3){e.stk+=dt;if(e.stk>.6){e.stk=0;e.sd=Math.random()<.5?-1:1;e.bt=1;e.wx=e.x+(Math.random()-.5)*30;e.wz=e.z+(Math.random()-.5)*30;}}else e.stk=0;
     e.g.rotation.y=f;e.cd-=dt;
@@ -7554,21 +7554,23 @@ function update(dt){
   if(mt.cd>0)mt.cd-=dt;else if(!mt.over){mt.t-=dt;if(!isBombMode()&&(mt.t<=0||roomReachedKillLimit())){endMatch();return;}}
   var mx=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0)+ST.l.x,mz=(keys.KeyS||keys.ArrowDown?1:0)-(keys.KeyW||keys.ArrowUp?1:0)+ST.l.y,ml=Math.hypot(mx,mz);
   if(pl.dead||mt.cd>0||(isBombMode()&&pl.bAction)){mx=mz=ml=0;}if(ml>1){mx/=ml;mz/=ml;ml=1;}
-  var shoot=!pl.dead&&mt.cd<=0&&!(isBombMode()&&pl.bAction)&&(!!keys.KeyF||fireHeld||(mouse.down&&document.pointerLockElement===R.domElement));
+  var knifeRight=pl.w===4&&mouse.right&&document.pointerLockElement===R.domElement;
+  var shoot=!pl.dead&&mt.cd<=0&&!(isBombMode()&&pl.bAction)&&(!!keys.KeyF||fireHeld||knifeRight||(mouse.down&&document.pointerLockElement===R.domElement));
   var pb0=pl.bolt||0;pl.bolt=Math.max(0,pb0-dt);if(!WP[pl.w].snp||pl.dead)pl.bolt=0;if(pb0>0&&pl.bolt===0&&WP[pl.w].snp&&!pl.dead&&pl.mag<=0)reload();
   if(!WP[pl.w].snp||pl.dead||pl.rl>0||pl.bolt>0)scopeOn=false;
-  var wA=!pl.dead&&(WP[pl.w].snp?scopeOn:mouse.right)&&canAds(pl.w)&&pl.rl<=0&&pl.sw<=0&&pl.thr<=0&&pl.stab<=0,wS=!pl.dead&&(keys.ShiftLeft||keys.ShiftRight)&&-mz>.25&&!wA&&!shoot;
+  var wA=!pl.dead&&(WP[pl.w].snp?scopeOn:mouse.right)&&canAds(pl.w)&&pl.rl<=0&&pl.sw<=0&&pl.thr<=0&&pl.stab<=0,wS=!pl.dead&&(keys.ShiftLeft||keys.ShiftRight);
   adsT+=((wA?1:0)-adsT)*Math.min(1,dt*12);sprT+=((wS?1:0)-sprT)*Math.min(1,dt*9);
   if(!pl.dead)pl.life+=dt;else{pl.dt+=dt;pl.rsT-=dt;if(pl.rsT<=0&&!mt.over&&!isBombMode())respawnPl();}
   var spd=weaponMovementSpeed(pl.w,sprT,adsT);
   mvAmt+=(ml-mvAmt)*Math.min(1,dt*8);wtT+=((pl.w>=1&&pl.w<=3||["rifle","smg","dual","sniper","rocket"].indexOf(WP[pl.w].stats.kind)>=0?1:0)-wtT)*Math.min(1,dt*6);
   var oldStepX=pl.x,oldStepZ=pl.z;
-  var fw=-mz,sf=Math.sin(pl.face),cf=Math.cos(pl.face);pl.x+=(fw*sf-mx*cf)*spd*dt;pl.z+=(fw*cf+mx*sf)*spd*dt;resolve(pl,.55);
+  var fw=-mz,sf=Math.sin(pl.face),cf=Math.cos(pl.face);
+  moveWithSolidCollision(pl,(fw*sf-mx*cf)*spd*dt,(fw*cf+mx*sf)*spd*dt,.55);
   var py=pl.y,gy=gh(pl.x,pl.z,py);
   if(!pl.dead&&!(isBombMode()&&pl.bAction)&&(keys.Space||jumpHeld)&&pl.y<=gy+.001)pl.vy=9;
   pl.vy-=28*dt;pl.y+=pl.vy*dt;gy=gh(pl.x,pl.z,py);
   if(pl.y<=gy){pl.y=gy;pl.vy=0;}
-  footstepAdvance(pl,Math.hypot(pl.x-oldStepX,pl.z-oldStepZ),!pl.dead&&pl.vy===0,sprT>.4,true);
+  footstepAdvance(pl,Math.hypot(pl.x-oldStepX,pl.z-oldStepZ),!pl.dead&&pl.vy===0,false,true,wS);
   if(pl.vy===0&&Math.abs(pl.y-camY)<1.2)camY+=(pl.y-camY)*Math.min(1,dt*16);else camY=pl.y;
   var rk=pl.dead?0:1;pl.face-=ST.r.x*2.4*dt*rk;pl.pitch=Math.max(-1.2,Math.min(1.2,pl.pitch-ST.r.y*1.6*dt*rk));
   var cdo=pl.cd;pl.cd-=dt;pl.ov=(cdo>0&&pl.cd<0)?-pl.cd:0;var w=WP[pl.w],priorPump=pl.pump||0;
@@ -7577,7 +7579,7 @@ function update(dt){
   if(priorPump>0&&pl.pump===0&&w.pump&&pl.mag<=0&&!pl.dead)reload();
   pl.sw=Math.max(0,pl.sw-dt);pl.stab=Math.max(0,pl.stab-dt);pl.ghide=Math.max(0,pl.ghide-dt);if(pl.sth&&pl.stab<=.23){pl.sth=false;doStab();}if(pl.thr>0){pl.thr=Math.max(0,pl.thr-dt);if(pl.pend&&pl.thr<=.225){pl.pend=false;throwG();}}
   if(pl.rl>0){pl.rl-=dt;if(pl.rl<=0){var n=Math.min(w.mag-pl.mag,pl.res);pl.mag+=n;pl.res-=n;}}
-  for(var sn=0;sn<3&&shoot&&pl.cd<=0&&pl.rl<=0&&pl.thr<=0&&pl.sw<=0&&!(w.snp&&pl.bolt>0)&&!(w.pump&&pl.pump>0);sn++){if(sn>0)pl.ov=-pl.cd;if(w.melee){pl.cd=w.cd;pl.stab=.42;pl.sth=true;}else if(w.gr){if(pl.mag>0){pl.thr=.5;pl.pend=true;pl.cd=w.cd;}}else if(pl.mag>0){fire(pl,pl.face,w,"p",pl.ov);if(!w.pump)ejectShell(pl.w,(pl.w===7&&shotSide)?-1:1);pl.cd=w.cd-pl.ov;kick=Math.min(.26,kick+w.viewKick);flashT=Math.min(.06,w.cd*.75);camShot(pl.w);gunSfx(GS[SFXI[pl.w]],1);if(w.snp){scopeOn=false;pl.mag--;pl.bolt=BOLT_T;pl.bc=0;}else if(w.pump){pl.mag--;pl.pump=w.pumpDuration;pl.pumpEjected=false;}else if(--pl.mag===0)reload();}else reload();}
+  for(var sn=0;sn<3&&shoot&&pl.cd<=0&&pl.rl<=0&&pl.thr<=0&&pl.sw<=0&&!(w.snp&&pl.bolt>0)&&!(w.pump&&pl.pump>0);sn++){if(sn>0)pl.ov=-pl.cd;if(w.melee){pl.cd=w.cd;pl.stab=.42;pl.knifeAlt=!!knifeRight;pl.sth=true;}else if(w.gr){if(pl.mag>0){pl.thr=.5;pl.pend=true;pl.cd=w.cd;}}else if(pl.mag>0){fire(pl,pl.face,w,"p",pl.ov);if(!w.pump)ejectShell(pl.w,(pl.w===7&&shotSide)?-1:1);pl.cd=w.cd-pl.ov;kick=Math.min(.26,kick+w.viewKick);flashT=Math.min(.06,w.cd*.75);camShot(pl.w);gunSfx(GS[SFXI[pl.w]],1);if(w.snp){scopeOn=false;pl.mag--;pl.bolt=BOLT_T;pl.bc=0;}else if(w.pump){pl.mag--;pl.pump=w.pumpDuration;pl.pumpEjected=false;}else if(--pl.mag===0)reload();}else reload();}
   if(!pl.dead&&pl.w===7&&pl.mag<=0&&pl.res<=0){var kk=pl.ammo[6];if(kk&&kk.mag+kk.res>0)toggleDual();}
   if(!pl.dead&&pl.mag<=0&&pl.res<=0&&pl.rl<=0&&pl.thr<=0&&!WP[pl.w].melee&&!WP[pl.w].gr){
     var pistol=amo(0),next=pistol.mag+pistol.res>0?1:2;
@@ -7909,24 +7911,12 @@ function onlineMeasureSnapshot(world,now){
 // map: the server is authoritative, while FE prediction uses the same geometry
 // that bld()/wl()/map constructors already registered.
 function onlinePositionBlocked(x,y,z,radius){
- if(!Number.isFinite(x)||!Number.isFinite(y)||!Number.isFinite(z))return true;
- if(Math.abs(x)+radius>A||Math.abs(z)+radius>A)return true;
- for(var i=0;i<OB.length;i++){
-  var o=OB[i];
-  if(o.fl||y+1.8<=(o.y0||0)||y>=o.h-.05)continue;
-  if(Math.abs(x-o.x)<o.hw+radius&&Math.abs(z-o.z)<o.hd+radius)return true;
- }
- return false;
+ return solidPositionBlocked(x,y,z,radius);
 }
 // Swept, axis-separated local prediction: same step-size and sliding approach
 // as server moveWithCollision(), with FE's existing OB as the geometry source.
 function onlineMoveWithCollision(p,vx,vz,dt,radius){
- var distance=Math.hypot(vx*dt,vz*dt),count=Math.max(1,Math.ceil(distance/Math.max(.1,radius*.45)));
- var sx=vx*dt/count,sz=vz*dt/count;
- for(var i=0;i<count;i++){
-  if(!onlinePositionBlocked(p.x+sx,p.y,p.z,radius))p.x+=sx;
-  if(!onlinePositionBlocked(p.x,p.y,p.z+sz,radius))p.z+=sz;
- }
+ moveWithSolidCollision(p,vx*dt,vz*dt,radius);
 }
 // Smooth correction is cosmetic only, but must obey the original world
 // collider. Never drag the camera through walls during reconciliation.
@@ -7958,7 +7948,7 @@ function onlineApplyCollisionCorrection(p,correction,alpha,radius){
 function onlinePredictStep(position,input,dt){
  if(!(dt>0)||!Number.isFinite(dt))return position;
  var step=Math.min(dt,.05),fw=-input.moveZ,sn=Math.sin(input.yaw),cs=Math.cos(input.yaw);
- var speed=weaponMovementSpeed(input.weaponId,input.sprint&&!input.crouch?1:0,input.ads?1:0);
+ var speed=weaponMovementSpeed(input.weaponId,input.sprint?1:0,input.ads?1:0);
  onlineMoveWithCollision(position,(fw*sn-input.moveX*cs)*speed,
   (fw*cs+input.moveX*sn)*speed,step,.55);
  // Offline source of truth calls gh() before jump and after gravity.
@@ -8021,11 +8011,49 @@ function onlineInterpolateActor(samples,renderAt){
   var b=samples[i],a=samples[i-1];
   if(renderAt>b.t)continue;
   var alpha=Math.max(0,Math.min(1,(renderAt-a.t)/(b.t-a.t||1)));
-  return{x:a.x+(b.x-a.x)*alpha,y:a.y+(b.y-a.y)*alpha,z:a.z+(b.z-a.z)*alpha,
-   yaw:a.yaw+Math.atan2(Math.sin(b.yaw-a.yaw),Math.cos(b.yaw-a.yaw))*alpha};
+  return onlineCollisionSafeRemotePose(a,b,alpha);
  }
  // Never extrapolate enemies past server-authorized snapshots.
  return samples[samples.length-1];
+}
+// Remote interpolation is cosmetic and uses only authorized snapshots.
+// A straight chord between two valid server positions can clip the corner of
+// a small table/wall. Follow a clear orthogonal bend when available instead.
+function onlineRemoteSegmentClear(a,b,radius){
+ var d=Math.hypot(b.x-a.x,b.z-a.z),n=Math.max(1,Math.ceil(d/Math.max(.1,radius*.35)));
+ for(var i=1;i<=n;i++){
+  var t=i/n;
+  if(onlinePositionBlocked(a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,
+      a.z+(b.z-a.z)*t,radius))return false;
+ }
+ return true;
+}
+function onlineCollisionSafeRemotePose(a,b,alpha){
+ var result={x:a.x+(b.x-a.x)*alpha,y:a.y+(b.y-a.y)*alpha,
+   z:a.z+(b.z-a.z)*alpha,
+   yaw:a.yaw+Math.atan2(Math.sin(b.yaw-a.yaw),Math.cos(b.yaw-a.yaw))*alpha};
+ if(onlineRemoteSegmentClear(a,b,.55))return result;
+ var bends=[{x:b.x,z:a.z},{x:a.x,z:b.z}];
+ for(var j=0;j<bends.length;j++){
+  var bend={x:bends[j].x,z:bends[j].z,y:result.y},
+      one=Math.hypot(bend.x-a.x,bend.z-a.z),
+      two=Math.hypot(b.x-bend.x,b.z-bend.z),length=one+two;
+  if(length<.00001||!onlineRemoteSegmentClear(a,bend,.55)||
+     !onlineRemoteSegmentClear(bend,b,.55))continue;
+  var travelled=length*alpha;
+  if(travelled<=one){
+   var t=one>0?travelled/one:0;
+   result.x=a.x+(bend.x-a.x)*t;result.z=a.z+(bend.z-a.z)*t;
+  }else{
+   var t=two>0?(travelled-one)/two:1;
+   result.x=bend.x+(b.x-bend.x)*t;result.z=bend.z+(b.z-bend.z)*t;
+  }
+  return result;
+ }
+ // No straight/one-bend safe interpolation: do not render a character inside
+ // collision. Hold the last safe position until newer server samples arrive.
+ result.x=alpha<1?a.x:b.x;result.z=alpha<1?a.z:b.z;
+ return result;
 }
 // A pending local weapon switch remains visual-only until its authoritative echo.
 function onlineWeaponSnapshot(actor,privateState,fresh){
@@ -8074,6 +8102,15 @@ function onlineAnimateRemoteActor(record,sample,dt){
  }
  bot.rc=Math.max(0,(bot.rc||0)-dt*6);
  if(bot.arms&&bot.arms.length>=2&&bot.g.userData.gun)aimArms(bot);
+ if(bot.weapon===4&&bot.knifeAttackUntil>performance.now()&&bot.arms?.[0]){
+  var phase=1-(bot.knifeAttackUntil-performance.now())/420,
+      stroke=Math.sin(Math.PI*Math.max(0,Math.min(1,phase)));
+  if(bot.knifeAttackAlt){
+   bot.arms[0].rotation.x-=stroke*.95;bot.body.rotation.x=-stroke*.12;
+  }else{
+   bot.arms[0].rotation.z-=stroke*.85;bot.body.rotation.z+=stroke*.13;
+  }
+ }
  // Offline BOT simulation owns hit wobble; online must update visual damage separately.
  if(bot.fl>0||Math.abs(bot.hx||0)>.001||Math.abs(bot.hv||0)>.001)flash(bot,dt);
 }
@@ -9140,6 +9177,10 @@ function onlineReceiveFrame(frame){
    if(Number.isInteger(frame.weaponId)&&frame.weaponId>=0&&frame.weaponId<WP.length){
     botVisualWeapon(bot,frame.weaponId);bot.weapon=frame.weaponId;
    }
+   if(bot.weapon===4){
+    bot.knifeAttackUntil=performance.now()+420;
+    bot.knifeAttackAlt=frame.altFire===true;
+   }
    if(bot.weapon!==4&&bot.weapon!==5){
     var muzzle=onlineShotMuzzle(frame);
     if(muzzle)enemyShotFx(bot,muzzle.x,muzzle.y,muzzle.z);
@@ -9539,7 +9580,8 @@ function onlineVisualUpdate(dt){
  adsT+=((ads?1:0)-adsT)*Math.min(1,dt*12);
  sprT+=((keys.ShiftLeft||keys.ShiftRight?1:0)-sprT)*Math.min(1,dt*9);
  pl.face-=ST.r.x*2.4*dt;pl.pitch=Math.max(-1.2,Math.min(1.2,pl.pitch-ST.r.y*1.6*dt));
- var wantsFire=!onlinePendingMatchCompleted&&!pl.dead&&(!!keys.KeyF||fireHeld||
+ var knifeRight=pl.w===4&&mouse.right&&document.pointerLockElement===R.domElement;
+ var wantsFire=!onlinePendingMatchCompleted&&!pl.dead&&(!!keys.KeyF||fireHeld||knifeRight||
    (mouse.down&&document.pointerLockElement===R.domElement));
  if(pl.w===5){
   var canPrime=wantsFire&&!onlineGrenadeCancelUntilRelease&&pl.mag>0&&pl.rl<=0;
@@ -9560,7 +9602,7 @@ function onlineVisualUpdate(dt){
  if(acceptedFire&&pl.w!==5&&pl.mag>0&&now-onlineMuzzleTime>Math.max(75,(WP[pl.w]?.cd||.14)*1000)){
   // Cosmetic prediction only: server decides shot legitimacy, ammo, hit and damage.
   onlineMuzzleTime=now;
-  if(pl.w===4)pl.stab=.42;
+  if(pl.w===4){pl.stab=.42;pl.knifeAlt=!!knifeRight;}
   else if(pl.w===5)pl.thr=.5;
   else{
    flashT=.035;kick=Math.min(.26,kick+(WP[pl.w]?.viewKick||.018));
@@ -9575,7 +9617,8 @@ function onlineVisualUpdate(dt){
   var sequence=onlineSeq+1;
   if(onlineApi.live.send({type:'input',frame:{
    seq:sequence,moveX:x,moveZ:z,yaw:pl.face,pitch:pl.pitch,
-   sprint:sprint,ads:!!ads,fire:acceptedFire,reload:!!keys.KeyR,
+   sprint:sprint,ads:!!ads,fire:acceptedFire,
+   ...(pl.w===4&&acceptedFire?{altFire:!!knifeRight}:{}),reload:!!keys.KeyR,
    jump:jump,crouch:crouch,interact:!!(keys.KeyE||bombHold),weaponId:pl.w,
   }})){
    onlineSeq=sequence;onlineSendAt=now;
