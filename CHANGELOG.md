@@ -1,3 +1,9 @@
+## 2026-11-04 — Restore Bomb Mission round wins and offline solid collision envelope
+- Online Bomb Mission top HUD now displays authoritative round wins (same `ts[winner]++` as offline), never cumulative Deathmatch team kill totals. The original DM top scoreboard remains kills; K/D scoreboard retains per-player kills.
+- Physics and online prediction use the original offline circular character hull against registered solid rectangles, rather than invisible square corner inflation. All map graphics, object dimensions, projectile blocking, gravity and weapon data are preserved.
+- Add per-active-map collider bins to reduce per-frame obstacle checks during prediction and remote-actor interpolation. Explicitly invalidate cache on each arena switch so a previous hidden map cannot contribute blockers.
+- Targeted regression checks verify screenshot-style 8–15 kills with 1–2 Bomb round wins, circle-versus-table corner clearance, swept narrow-cover blocking and same-length map swap invalidation. No dependency or database migration is required.
+
 ## 2026-11-04 — Non-penetrable solid bodies, knife slash/stab and silent movement
 - Introduce one swept, axis-separated physical OB collision path for offline local player, offline BOT movement and online client prediction, preventing frame-step tunneling across narrow buildings, desks and crates. Only canonical solid map bodies block movement; trim, road paint and decorative lighting remain non-colliding.
 - Avoid remote player/BOT visual interpolation through mapped wall/cover corners by using safe two-leg turns or holding the last valid authorized snapshot. Server remains authoritative for final positions and projectile damage.
