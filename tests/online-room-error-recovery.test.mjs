@@ -88,3 +88,22 @@ test('READY fetch failures never escape as unhandled promise rejections',async()
  assert.equal(warning,1);
  assert.equal(recovered,1);
 });
+
+test('ACTIVE room confirmation explains REJOIN without scheduling an OPEN-only leave',()=>{
+ const dialogs=[];
+ const ctx={
+  onlineAuth:()=>true,roomCurrent:{id:'room1',status:'ACTIVE'},
+  onlineActive:false,onlineIsMaster:()=>true,
+  onlineRoomDialog:(...args)=>dialogs.push(args),
+ };
+ runInNewContext(isolate('function onlineConfirmLeaveRoom(){','async function onlineLeaveRoom()','onlineConfirmLeaveRoom'),ctx);
+ ctx.action();
+ assert.equal(dialogs[0][0],'MATCH IN PROGRESS');
+ assert.match(dialogs[0][1],/REJOIN MATCH/);
+ assert.equal(dialogs[0][4],null);
+});
+
+test('new authoritative status notices cannot be closed by an older confirmation callback',()=>{
+ assert.match(source,/if\(onlineRoomDialogAccept===action\)onlineRoomDialogClose\(\)/);
+ assert.doesNotMatch(source,/try\{await action\(\);onlineRoomDialogClose\(\);\}/);
+});
