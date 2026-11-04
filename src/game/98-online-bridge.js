@@ -577,6 +577,7 @@ function onlineShotMuzzle(frame){
   if(pl.dead||pl.w!==frame.weaponId)return null;
   // This is a VS-space position, NOT a world-space point: the first-person
   // weapon is rendered by VC in a separate scene with its own projection.
+  syncWeaponBarrelPoseImmediate();
   var localSocket=weaponMuzzleSocket(guns[frame.weaponId],left);
   if(!localSocket)return null;
   return localSocket.getWorldPosition(new T.Vector3());
