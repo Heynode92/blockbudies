@@ -475,6 +475,9 @@ function selectGameMap(bombActive){
     }
   }
   GB=null;
+  // OB is replaced in place whenever a map changes. Rebuild the collision
+  // broadphase from only the active map, never a stale hidden arena.
+  if(typeof solidCollisionInvalidate==='function')solidCollisionInvalidate();
 }
 function bombSpawnPt(team){
   if(bombMapId(selectedBombMapId)==="hospital")return hospitalSpawnPt(team);
@@ -1475,15 +1478,47 @@ function gh(x,z,y){var g=0;for(var i=0;i<OB.length;i++){var o=OB[i];if(o.h<=y+(o
 // Shared physical-map body test: only source-of-truth OB entries are solid.
 // The FE game constructs every playable wall/furniture body through wl()/OB.
 // Decorative textures, glass tint, road paint and lamps stay visual-only.
+// Spatial lookup of canonical OB solids. The array is reused between map
+// swaps, so selectGameMap() explicitly invalidates the cache each time.
+var solidCollisionCache=null;
+function solidCollisionInvalidate(){solidCollisionCache=null;}
+function solidCollisionGrid(){
+ if(solidCollisionCache&&solidCollisionCache.length===OB.length&&solidCollisionCache.half===A)
+  return solidCollisionCache;
+ var cell=(2*A)/Math.max(8,Math.ceil(Math.sqrt(OB.length))),
+     bins=new Map();
+ for(var i=0;i<OB.length;i++){
+  var o=OB[i];if(o.fl)continue;
+  var ix0=Math.floor((o.x-o.hw+A)/cell),ix1=Math.floor((o.x+o.hw+A)/cell),
+      iz0=Math.floor((o.z-o.hd+A)/cell),iz1=Math.floor((o.z+o.hd+A)/cell);
+  for(var ix=ix0;ix<=ix1;ix++)for(var iz=iz0;iz<=iz1;iz++){
+   var key=ix+','+iz,items=bins.get(key);
+   if(items)items.push(o);else bins.set(key,[o]);
+  }
+ }
+ solidCollisionCache={length:OB.length,half:A,cell:cell,bins:bins};
+ return solidCollisionCache;
+}
 function solidPositionBlocked(x,y,z,radius,height){
  if(!Number.isFinite(x)||!Number.isFinite(y)||!Number.isFinite(z)||
     !Number.isFinite(radius)||radius<0)return true;
  if(Math.abs(x)+radius>A||Math.abs(z)+radius>A)return true;
- var h=height===undefined?1.8:height;
- for(var i=0;i<OB.length;i++){
-  var o=OB[i];
-  if(o.fl||y+h<=(o.y0||0)||y>=o.h)continue;
-  if(Math.abs(x-o.x)<o.hw+radius&&Math.abs(z-o.z)<o.hd+radius)return true;
+ var h=height===undefined?1.8:height,g=solidCollisionGrid(),
+     ix0=Math.floor((x-radius+A)/g.cell),ix1=Math.floor((x+radius+A)/g.cell),
+     iz0=Math.floor((z-radius+A)/g.cell),iz1=Math.floor((z+radius+A)/g.cell);
+ for(var ix=ix0;ix<=ix1;ix++)for(var iz=iz0;iz<=iz1;iz++){
+  var items=g.bins.get(ix+','+iz);
+  if(!items)continue;
+  for(var i=0;i<items.length;i++){
+   var o=items[i];
+   if(y+h<=(o.y0||0)||y>=o.h)continue;
+   // Match the ORIGINAL offline resolve(): circular player hull vs solid
+   // rectangle. Inflating the rectangle by radius on both axes caused
+   // invisible corner collisions in tight Bomb Mission corridors.
+   var dx=Math.max(0,Math.abs(x-o.x)-o.hw),
+       dz=Math.max(0,Math.abs(z-o.z)-o.hd);
+   if(radius===0?dx===0&&dz===0:dx*dx+dz*dz<radius*radius)return true;
+  }
  }
  return false;
 }
@@ -9431,7 +9466,13 @@ function onlineApplyWorld(){
   }
   onlinePrevAlive=self.alive;
  }
- if(Array.isArray(game.teamKills)){ts[0]=game.teamKills[0];ts[1]=game.teamKills[1]}
+ // Offline Bomb Mission uses ts[] for ROUND WINS; Deathmatch uses KILLS.
+ // Both are independently authoritative fields in the BE public match state.
+ var teamScore=isBombMode()?game.rounds:game.teamKills;
+ if(Array.isArray(teamScore)&&teamScore.length===2&&
+    teamScore.every(n=>Number.isSafeInteger(n)&&n>=0)){
+  ts[0]=teamScore[0];ts[1]=teamScore[1];
+ }
  mt.t=Number.isFinite(game.remaining)?Math.max(0,game.remaining):mt.t;
  mt.cd=0;mt.over=game.status==='COMPLETED'&&!onlineActive;
  var visible=new Set();
