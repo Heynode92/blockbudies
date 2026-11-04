@@ -65,9 +65,12 @@ test('actual K2 3D muzzle socket moves with H/V barrel rotation and includes han
  const rotated=socket.getWorldPosition(new THREE.Vector3());
  assert.ok(rotated.distanceTo(origin)>.02);
  assert.match(src,/hold.rotation.set\([\s\S]*barrelPitch/);
+ assert.match(src,/function syncWeaponBarrelPoseImmediate\(\)/);
+ assert.match(read('src/game/45-combat.js'),/syncWeaponBarrelPoseImmediate\(\)/);
  assert.match(src,/barrelYaw/);
  const live=read('src/game/98-online-bridge.js');
  assert.match(live,/frame\.barrelPitch/);
  assert.match(live,/frame\.barrelYaw/);
+ assert.match(live,/syncWeaponBarrelPoseImmediate\(\)/);
  assert.match(live,/updatedGun\.rotation\.set\(frame\.barrelPitch,Math\.PI\+frame\.barrelYaw,0\)/);
 });
