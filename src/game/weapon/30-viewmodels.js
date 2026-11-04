@@ -102,13 +102,13 @@ function animHands(){
     if(phase>=.48&&!pl.pumpEjected){pl.pumpEjected=true;ejectShell(w,1);}
   }
   if(slide)slide.position.z=-.6+.19*pull;
-  var tm=performance.now()/1000;bobP+=(tm*1000-bobL)/1000*(7.5+4*sprT)*(1-.2*wtT);bobL=tm*1000;var sw=Math.sin(bobP),bm=mvAmt,idle=Math.sin(tm*1.7),rl=t>=0,wob=rl?Math.sin(Math.PI*t*3)*.02:0;
+  var tm=performance.now()/1000;bobP+=(tm*1000-bobL)/1000*(7.5-2*sprT)*(1-.2*wtT);bobL=tm*1000;var sw=Math.sin(bobP),bm=mvAmt,idle=Math.sin(tm*1.7),rl=t>=0,wob=rl?Math.sin(Math.PI*t*3)*.02:0;
   handR.position.y+=rl?-tilt*.05:0;handR.position.z+=rl?tilt*.04:0;
   var lx=pos[0],ly=pos[1]+wob,lz=pos[2];
   handL.position.set(lx,ly,lz);handL.rotation.set(rl?-tilt*.6:0,0,rl?Math.sin(t*20)*.15*tilt:0);
   magP.visible=pr===1;shP.visible=pr===2;rkP.visible=pr===3;
   var X=xp(w);
-  var a=canAds(w)?adsT*adsT*(3-2*adsT):0,sp=sprT*(1-a),bb=bm*(1-.85*a)*(1+.7*sp)*(1+.5*wtT),AA=AP[w]||AP[0];
+  var a=canAds(w)?adsT*adsT*(3-2*adsT):0,sp=0,sneak=sprT*(1-a),bb=bm*(1-.85*a)*(1-.3*sneak)*(1+.5*wtT),AA=AP[w]||AP[0];
   hold.position.set((.26+sw*.012*bb+X[0]-.09*sp)*(1-a)+AA[0]*a,(-.17-tilt*.12-Math.abs(sw)*.02*bb+idle*.004+X[1]-.07*sp)*(1-a)+AA[1]*a,(-.5+kick*(1-.5*a)+tilt*.06+X[2]+.03*sp)*(1-a)+AA[2]*a);
   hold.rotation.set((kick*.6+tilt*.45+idle*.004+X[3])*(1-.8*a)-.42*sp,(tilt*.3+X[4])*(1-a)+.55*sp,(-tilt*.35+sw*.012*bb+X[5])*(1-a)+.18*sp);
   var boltGun=WP[w]&&WP[w].snp?guns[w]:null,bh8=boltGun&&boltGun.userData.bolt;
