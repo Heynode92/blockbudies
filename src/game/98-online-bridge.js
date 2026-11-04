@@ -455,7 +455,7 @@ function onlineTickEffects(dt){
  }
  for(var n=onlineShotTracers.length-1;n>=0;n--){
   var beam=onlineShotTracers[n];beam.t-=dt;
-  if(beam.t<=0){S.remove(beam.m);onlineShotTracers.splice(n,1);continue;}
+  if(beam.t<=0){beam.scene.remove(beam.m);onlineShotTracers.splice(n,1);continue;}
   beam.m.position.x+=beam.vx*dt;beam.m.position.y+=beam.vy*dt;
   beam.m.position.z+=beam.vz*dt;
  }
@@ -571,41 +571,64 @@ function onlineGrenadeExplosion(frame){
 // Muzzle origin is computed from the real canonical gun model, not the actor
 // center. The backend remains authoritative over trajectory, speed and hits.
 function onlineShotMuzzle(frame){
- var z=Number.isInteger(frame.weaponId)?MZ[frame.weaponId]:null;
- if(!Number.isFinite(z))return null;
+ if(!Number.isInteger(frame.weaponId)||frame.weaponId<0||frame.weaponId>=guns.length)return null;
+ var left=frame.weaponId===7&&(frame.shotIndex%2===1);
  if(frame.actorId===onlineUserId()){
-  if(pl.dead)return null;
-  mflash.position.set(0,.02,z);mflash.updateWorldMatrix(true,false);
-  var viewTip=mflash.getWorldPosition(new T.Vector3());
-  C.updateWorldMatrix(true,false);
-  return viewTip.applyQuaternion(C.quaternion).add(C.position);
+  if(pl.dead||pl.w!==frame.weaponId)return null;
+  // This is a VS-space position, NOT a world-space point: the first-person
+  // weapon is rendered by VC in a separate scene with its own projection.
+  var localSocket=weaponMuzzleSocket(guns[frame.weaponId],left);
+  if(!localSocket)return null;
+  return localSocket.getWorldPosition(new T.Vector3());
  }
- var model=onlineActors.get(frame.actorId)?.model;
- var gun=model?.g?.userData?.rg;
- if(!gun||model.dead||!model.g.visible)return null;
- gun.updateWorldMatrix(true,false);
- return gun.localToWorld(new T.Vector3(0,0,z));
+ var actor=onlineActors.get(frame.actorId)?.model,gun=actor?.g?.userData?.rg;
+ if(!gun||actor.dead||!actor.g.visible)return null;
+ var socket=weaponMuzzleSocket(gun,left);
+ return socket?socket.getWorldPosition(new T.Vector3()):null;
 }
 function onlineShotTracer(frame,muzzle){
  if(![frame.x,frame.y,frame.z,frame.yaw,frame.pitch].every(Number.isFinite))return;
  if(!Number.isInteger(frame.weaponId)||frame.weaponId<0||frame.weaponId>=WP.length)return;
  var w=WP[frame.weaponId];
  if(w.melee||w.gr)return;
- if(onlineShotTracers.length>=40){var oldest=onlineShotTracers.shift();S.remove(oldest.m);}
- var own=frame.actorId===onlineUserId()?'p':'e',mesh=tracer(own,false);
- // Actual speed is sent with the authorized server shot. It influences only
- // the cosmetic mesh, never client collision or hit registration.
+ var self=frame.actorId===onlineUserId();
+ if(self&&!muzzle)return; // Do not invent a muzzle for an outdated weapon pose.
+ if(onlineShotTracers.length>=40){
+  var oldest=onlineShotTracers.shift();
+  oldest.scene.remove(oldest.m);
+ }
+ var own=self?'p':'e',mesh=tracer(own,false);
  var angle=frame.yaw,pitch=frame.pitch,
   speed=Number.isFinite(frame.projectileSpeed)&&frame.projectileSpeed>0&&frame.projectileSpeed<=1000?
-   frame.projectileSpeed:(w.spd||180),
-  duration=Math.min(.15,Math.max(.075,24/speed));
- mesh.rotation.order='YXZ';mesh.rotation.set(-pitch,angle,0);
- // Trajectory must begin at the server-confirmed spawn point, never the
- // cosmetically predicted first-person viewmodel muzzle.
- mesh.position.set(frame.x,frame.y,frame.z);
- S.add(mesh);
- onlineShotTracers.push({m:mesh,vx:Math.sin(angle)*Math.cos(pitch)*speed,
-  vy:Math.sin(pitch)*speed,vz:Math.cos(angle)*Math.cos(pitch)*speed,t:duration});
+   frame.projectileSpeed:(w.spd||180);
+ var direction=new T.Vector3(Math.sin(angle)*Math.cos(pitch),
+  Math.sin(pitch),Math.cos(angle)*Math.cos(pitch));
+ var scene=S,velocity=direction.clone().multiplyScalar(speed),
+  duration=Math.min(.15,Math.max(.075,24/speed)),origin=muzzle||
+   new T.Vector3(frame.x,frame.y,frame.z);
+ if(self){
+  // The projectile still travels through the authoritative WORLD engine.
+  // Project that verified ballistic ray into VC so the short FIRST-PERSON
+  // streak originates on the actual moving gun barrel, not the world camera.
+  // Rendering this short piece inside VS does not award hits or fake damage.
+  C.updateWorldMatrix(true,false);
+  VC.updateProjectionMatrix();
+  var worldTarget=new T.Vector3(frame.x,frame.y,frame.z)
+    .addScaledVector(direction,80).project(C);
+  if(![worldTarget.x,worldTarget.y].every(Number.isFinite))return;
+  var viewTarget=new T.Vector3(worldTarget.x,worldTarget.y,.99).unproject(VC);
+  direction.copy(viewTarget.sub(origin)).normalize();
+  velocity.copy(direction).multiplyScalar(Math.min(18,Math.max(6,speed/14)));
+  duration=Math.min(.17,Math.max(.07,2/velocity.length()));
+  scene=VS;
+ }
+ // tracer() is centered on its 1.1-unit streak; offset by half its length
+ // so the BACK END of the visible streak touches the actual muzzle socket.
+ mesh.position.copy(origin).addScaledVector(direction,.55);
+ mesh.quaternion.setFromUnitVectors(new T.Vector3(0,0,1),direction);
+ scene.add(mesh);
+ onlineShotTracers.push({m:mesh,scene:scene,vx:velocity.x,
+  vy:velocity.y,vz:velocity.z,t:duration});
 }
 function onlineWarn(error) {
  var code=typeof error==='string'?error:error&&error.code||'BACKEND_UNAVAILABLE';
@@ -1075,7 +1098,7 @@ function onlineResetLive(){
  for(const dropped of dg)S.remove(dropped.m);dg.length=0;
  for(const corpse of dead){if(corpse.bloodPool)bloodPoolRemove(corpse.bloodPool);S.remove(corpse.g);}dead.length=0;
  for(const helmet of hlms)S.remove(helmet.m);hlms.length=0;
- for(const tracer of onlineShotTracers)S.remove(tracer.m);onlineShotTracers.length=0;
+ for(const tracer of onlineShotTracers)tracer.scene.remove(tracer.m);onlineShotTracers.length=0;
  for(const grenade of grs)if(grenade.serverVisual)S.remove(grenade.m);
  for(var gi=grs.length-1;gi>=0;gi--)if(grs[gi].serverVisual)grs.splice(gi,1);
  onlineSeenGrenadeBlasts.clear();
