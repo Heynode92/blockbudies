@@ -56,11 +56,18 @@ var RG=[[0,-0.2,-0.1],[0,-0.2,-0.15],[0,-0.13,-0.08],[0,-0.14,-0.2],[0,0.02,-0.0
  RL=[[-0.03,-0.22,-0.22],[0,-0.09,-0.62],[0,-0.1,-0.58],[0,-0.1,-0.7],[-0.3,-0.5,-0.1],[-0.3,-0.5,-0.1],[0,-0.09,-0.5],[-0.52,-0.22,-0.1],[0,-0.1,-0.62],[0,-0.09,-0.72],[0,-0.16,-0.54],[0,-0.15,-0.56],[0,-0.18,-0.84],[0,-0.16,-0.65],[0,-0.17,-0.66],[0,-0.17,-0.88],[0,-0.18,-0.74],[0,-0.1,-0.62],[0,-0.12,-0.56]],
  PT=[[0,-0.2,-0.28],[0,-0.24,-0.4],[0,-0.12,-0.2],[0,0.02,-0.95],[0,0,0],[0,0,0],[0,-0.24,-0.35],[0,0,0],[0,-0.24,-0.42],[0,-0.24,-0.43],[0,-0.32,-0.3],[0,-0.23,-0.42],[0,-0.31,-0.45],[0,-0.29,-0.3],[0,-0.28,-0.32],[0,-0.3,-0.4],[0,-0.3,-0.35],[0,-0.24,-0.42],[0,-0.28,-0.24]],
  MODE=[0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],NC=[1,1,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],DD=[-.1,-.34,-.28];
-// xp(w): extra viewmodel offsets [x,y,z,rotX,rotY,rotZ] for weapon switch, knife stab and grenade throw animations.
+// Canonical first-person knife poses; never modify the weapon's speed or damage.
+// Slash: start at lower-left and cut diagonally towards upper-right.
+// Alternate mouse right: pull back then thrust straight forward.
+var KNIFE_ANIMATIONS=Object.freeze({
+ slash:Object.freeze({windup:[-.38,-.30,.10,.25,-.15,.90],strike:[.46,.31,-.25,-.42,.20,-.85]}),
+ thrust:Object.freeze({windup:[.02,-.12,.29,.10,-.06,-.05],strike:[.02,.05,-.78,-.28,0,.05]})
+});
+// xp(w): extra viewmodel offsets [x,y,z,rotX,rotY,rotZ] for weapon switch, knife attack and grenade throw animations.
 function xp(w){var r=[0,0,0,0,0,0],u,p,s,q,b,f;
   if(pl.sw>0){u=pl.sw/.28;u=u*u;r[1]-=u*.55;r[3]+=u*.7;r[4]+=u*.3;}
   if(w===4){r[3]+=.1;r[4]+=.15;r[5]-=.1;
-    if(pl.stab>0){p=1-pl.stab/.42;var wa=[.28,.16,.16,-.35,.7,-.7],sa=[-.6,-.22,-.3,.3,-1.25,.95],k,i2;
+    if(pl.stab>0){p=1-pl.stab/.42;var pose=pl.knifeAlt?KNIFE_ANIMATIONS.thrust:KNIFE_ANIMATIONS.slash,wa=pose.windup,sa=pose.strike,k,i2;
       if(p<.25){k=p/.25;k=k*k*(3-2*k);for(i2=0;i2<6;i2++)r[i2]+=wa[i2]*k;}
       else if(p<.6){k=(p-.25)/.35;k=1-(1-k)*(1-k);for(i2=0;i2<6;i2++)r[i2]+=wa[i2]+(sa[i2]-wa[i2])*k;}
       else{k=(p-.6)/.4;k=1-k*k*(3-2*k);for(i2=0;i2<6;i2++)r[i2]+=sa[i2]*k;}}}
