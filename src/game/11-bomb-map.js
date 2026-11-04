@@ -294,6 +294,9 @@ function selectGameMap(bombActive){
     }
   }
   GB=null;
+  // OB is replaced in place whenever a map changes. Rebuild the collision
+  // broadphase from only the active map, never a stale hidden arena.
+  solidCollisionInvalidate();
 }
 function bombSpawnPt(team){
   if(bombMapId(selectedBombMapId)==="hospital")return hospitalSpawnPt(team);
