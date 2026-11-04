@@ -1390,6 +1390,10 @@ function onlineReceiveFrame(frame){
    if(Number.isInteger(frame.weaponId)&&frame.weaponId>=0&&frame.weaponId<WP.length){
     botVisualWeapon(bot,frame.weaponId);bot.weapon=frame.weaponId;
    }
+   if(bot.weapon===4){
+    bot.knifeAttackUntil=performance.now()+420;
+    bot.knifeAttackAlt=frame.altFire===true;
+   }
    if(bot.weapon!==4&&bot.weapon!==5){
     var muzzle=onlineShotMuzzle(frame);
     if(muzzle)enemyShotFx(bot,muzzle.x,muzzle.y,muzzle.z);
@@ -1789,7 +1793,8 @@ function onlineVisualUpdate(dt){
  adsT+=((ads?1:0)-adsT)*Math.min(1,dt*12);
  sprT+=((keys.ShiftLeft||keys.ShiftRight?1:0)-sprT)*Math.min(1,dt*9);
  pl.face-=ST.r.x*2.4*dt;pl.pitch=Math.max(-1.2,Math.min(1.2,pl.pitch-ST.r.y*1.6*dt));
- var wantsFire=!onlinePendingMatchCompleted&&!pl.dead&&(!!keys.KeyF||fireHeld||
+ var knifeRight=pl.w===4&&mouse.right&&document.pointerLockElement===R.domElement;
+ var wantsFire=!onlinePendingMatchCompleted&&!pl.dead&&(!!keys.KeyF||fireHeld||knifeRight||
    (mouse.down&&document.pointerLockElement===R.domElement));
  if(pl.w===5){
   var canPrime=wantsFire&&!onlineGrenadeCancelUntilRelease&&pl.mag>0&&pl.rl<=0;
@@ -1810,7 +1815,7 @@ function onlineVisualUpdate(dt){
  if(acceptedFire&&pl.w!==5&&pl.mag>0&&now-onlineMuzzleTime>Math.max(75,(WP[pl.w]?.cd||.14)*1000)){
   // Cosmetic prediction only: server decides shot legitimacy, ammo, hit and damage.
   onlineMuzzleTime=now;
-  if(pl.w===4)pl.stab=.42;
+  if(pl.w===4){pl.stab=.42;pl.knifeAlt=!!knifeRight;}
   else if(pl.w===5)pl.thr=.5;
   else{
    flashT=.035;kick=Math.min(.26,kick+(WP[pl.w]?.viewKick||.018));
@@ -1825,7 +1830,8 @@ function onlineVisualUpdate(dt){
   var sequence=onlineSeq+1;
   if(onlineApi.live.send({type:'input',frame:{
    seq:sequence,moveX:x,moveZ:z,yaw:pl.face,pitch:pl.pitch,
-   sprint:sprint,ads:!!ads,fire:acceptedFire,reload:!!keys.KeyR,
+   sprint:sprint,ads:!!ads,fire:acceptedFire,
+   ...(pl.w===4&&acceptedFire?{altFire:!!knifeRight}:{}),reload:!!keys.KeyR,
    jump:jump,crouch:crouch,interact:!!(keys.KeyE||bombHold),weaponId:pl.w,
   }})){
    onlineSeq=sequence;onlineSendAt=now;
