@@ -19,7 +19,8 @@ function update(dt){
   var spd=weaponMovementSpeed(pl.w,sprT,adsT);
   mvAmt+=(ml-mvAmt)*Math.min(1,dt*8);wtT+=((pl.w>=1&&pl.w<=3||["rifle","smg","dual","sniper","rocket"].indexOf(WP[pl.w].stats.kind)>=0?1:0)-wtT)*Math.min(1,dt*6);
   var oldStepX=pl.x,oldStepZ=pl.z;
-  var fw=-mz,sf=Math.sin(pl.face),cf=Math.cos(pl.face);pl.x+=(fw*sf-mx*cf)*spd*dt;pl.z+=(fw*cf+mx*sf)*spd*dt;resolve(pl,.55);
+  var fw=-mz,sf=Math.sin(pl.face),cf=Math.cos(pl.face);
+  moveWithSolidCollision(pl,(fw*sf-mx*cf)*spd*dt,(fw*cf+mx*sf)*spd*dt,.55);
   var py=pl.y,gy=gh(pl.x,pl.z,py);
   if(!pl.dead&&!(isBombMode()&&pl.bAction)&&(keys.Space||jumpHeld)&&pl.y<=gy+.001)pl.vy=9;
   pl.vy-=28*dt;pl.y+=pl.vy*dt;gy=gh(pl.x,pl.z,py);
