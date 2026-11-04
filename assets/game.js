@@ -9693,7 +9693,7 @@ function onlineWatchSnapshots(now){
   if(!onlineActive||onlineMatchId!==id)return;
   if(room.status==='OPEN'){
    if(onlineGame?.status==='COMPLETED')
-    onlineFinalizeCompletedMatch({matchId:id,game:onlineGame});
+    onlineQueueCompletedMatch({matchId:id,game:onlineGame,winner:onlineLastWinner});
    else{
     onlineResetLive();matchExitToLobby('room');
     onlineWarn('MATCH_RESULT_UNAVAILABLE_REJOIN_ROOM');
