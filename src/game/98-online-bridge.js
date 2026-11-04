@@ -350,6 +350,15 @@ function onlineAnimateRemoteActor(record,sample,dt){
  }
  bot.rc=Math.max(0,(bot.rc||0)-dt*6);
  if(bot.arms&&bot.arms.length>=2&&bot.g.userData.gun)aimArms(bot);
+ if(bot.weapon===4&&bot.knifeAttackUntil>performance.now()&&bot.arms?.[0]){
+  var phase=1-(bot.knifeAttackUntil-performance.now())/420,
+      stroke=Math.sin(Math.PI*Math.max(0,Math.min(1,phase)));
+  if(bot.knifeAttackAlt){
+   bot.arms[0].rotation.x-=stroke*.95;bot.body.rotation.x=-stroke*.12;
+  }else{
+   bot.arms[0].rotation.z-=stroke*.85;bot.body.rotation.z+=stroke*.13;
+  }
+ }
  // Offline BOT simulation owns hit wobble; online must update visual damage separately.
  if(bot.fl>0||Math.abs(bot.hx||0)>.001||Math.abs(bot.hv||0)>.001)flash(bot,dt);
 }
