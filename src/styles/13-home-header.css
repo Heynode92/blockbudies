@@ -82,7 +82,8 @@
   background:rgba(15,32,51,.85);
   box-shadow:inset 0 1px 0 rgba(215,235,255,.04);
 }
-#gameLobbyHeader .home-pbt-coin {
+/* Shared native 1:1 token art size for both vPBT and PBT. */
+#gameLobbyHeader .home-token-coin {
   display:block;flex:0 0 auto;
   width:25px;height:25px;aspect-ratio:1 / 1;
   object-fit:contain;
@@ -177,7 +178,7 @@
   }
   #gameLobbyHeader .home-pbt,#gameLobbyHeader #homeWalletConnect { height:36px; }
   #gameLobbyHeader .home-pbt { min-width:133px;padding:3px 4px 3px 7px;gap:6px; }
-  #gameLobbyHeader .home-pbt-coin { width:22px;height:22px; }
+  #gameLobbyHeader .home-token-coin { width:22px;height:22px; }
   #gameLobbyHeader .home-pbt-amount { min-width:42px; }
   #gameLobbyHeader .home-pbt-amount strong { font-size:15px; }
   #gameLobbyHeader .home-pbt-add { width:24px;height:24px;font-size:18px; }

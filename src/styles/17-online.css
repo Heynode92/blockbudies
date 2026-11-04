@@ -35,8 +35,6 @@
 #gameLobbyHeader .home-progress-track i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ed721d,#ffd16e);transition:width .3s ease-out}
 #gameLobbyHeader .home-vpbt{display:flex;align-items:center;gap:8px;box-sizing:border-box;min-width:120px;height:43px;
  padding:4px 10px;border:1px solid #3b6a67;border-radius:5px;background:rgba(10,41,41,.8)}
-#gameLobbyHeader .home-vpbt-icon{display:grid;place-items:center;width:27px;height:27px;flex:none;border-radius:50%;
- color:#063c31;background:linear-gradient(135deg,#73f1ce,#25a88f);font:900 16px Impact,sans-serif}
 #gameLobbyHeader .home-vpbt-amount{display:flex;min-width:0;flex-direction:column;gap:3px}
 #gameLobbyHeader .home-vpbt-amount small{color:#89d8c0;font:900 10px Rajdhani,sans-serif;letter-spacing:.1em}
 #gameLobbyHeader .home-vpbt-amount strong{color:#edfff9;font:900 15px Rajdhani,sans-serif;white-space:nowrap;font-variant-numeric:tabular-nums}
@@ -194,12 +192,6 @@
 /* Status and KICK always remain inside the existing occupied team row. */
 #lbroomlive .rml-slot .rml-kick-player{box-sizing:border-box;flex:0 0 auto;min-width:0;max-width:60px;margin:0;padding:5px 7px;border-radius:6px;white-space:nowrap;font-size:clamp(9px,.7vw,11px);line-height:1.1}
 #lbroomlive #rmlStart.room-cancel-action,#lbroomlive #rmlStart.room-cancel-action:hover{background:linear-gradient(110deg,#971b2d,#e14442);color:#fff}
-
-#gameLobbyHeader .home-vpbt-icon{background:transparent;border-radius:0;overflow:visible}
-#gameLobbyHeader .home-vpbt-icon canvas{display:block;width:30px;height:30px;object-fit:contain;filter:drop-shadow(0 2px 4px #0b1a18)}
-#gameLobbyHeader .home-vpbt-icon canvas[hidden]{display:none!important}
-#homeVpbtStarFallback{display:block;width:23px;height:23px;background:linear-gradient(135deg,#bafbe3,#2bae8c);clip-path:polygon(50% 0%,62% 32%,98% 35%,73% 57%,81% 94%,50% 75%,19% 94%,27% 57%,2% 35%,38% 32%)}
-#homeVpbtStarFallback[hidden]{display:none!important}
 
 /* Shared Battle Report backdrop, verified training outcome variant. */
 #dv.training-result-active{background:radial-gradient(ellipse at 50% 40%,#12444a,#071b2c 70%,#030d17)}
