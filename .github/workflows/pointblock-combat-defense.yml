@@ -31,8 +31,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Install locked dependencies
-        run: npm ci --no-audit --no-fund
+      - name: Install pinned project dependencies
+        run: npm install --no-audit --no-fund
       - name: Verify generated game bundle
         run: node tools/build.mjs --check
       - name: Verify modified defense and directly affected ballistics
