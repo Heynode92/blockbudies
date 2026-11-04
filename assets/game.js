@@ -7414,6 +7414,7 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
     f=(t&&e.lok)?e.aimYaw:(mvx||mvz)?Math.atan2(mvx,mvz):e.g.rotation.y;
     moveWithSolidCollision(e,mvx*sp*dt,mvz*sp*dt,.55);
     var dm=Math.hypot(e.x-ox,e.z-oz);
+    e.gunplaySpeed=dm/Math.max(.001,dt);
     footstepAdvance(e,dm,!cdn&&dm>.002,sp>4.4,false);
     if(typeof botQaEnabled!=='undefined'&&botQaEnabled)botQaMove(wantedMovement,dm,sp,dt);
     botMoveTrack(e,ox,oz,dt,sp,wantedMovement,combat);
