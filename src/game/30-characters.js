@@ -45,7 +45,40 @@ function aimA(q,px,py,tx,ty,tz,sd){var L1=.4,L2=.46;va.set(tx-px,ty-py,tz);var d
   var ex=px+vb.x*L1,ey=py+vb.y*L1,ez=vb.z*L1;vp.set(tx-ex,ty-ey,tz-ez).normalize();qb.setFromUnitVectors(QD,vp);
   q.userData.fa.quaternion.copy(qa).invert().multiply(qb);}
 // aimArms(): positions both arms of bot e so the right hand holds its gun and the left hand supports it (or raises when celebrating).
-function aimArms(e){var r=e.rc||0,ce=0,ph=tt*7+e.ph,gx0=Math.sin(tt*1.1+e.ph)*.015,gy0=.05*r+Math.sin(tt*1.7+e.ph)*.012,gx=gx0+ce*(.3+Math.sin(ph*.5)*.05),gy=gy0+ce*(.9+Math.abs(Math.sin(ph))*.1),gz=-.14*r;e.g.userData.gun.position.set(-.15+gx,gy,-.1+gz);aimA(e.arms[1],.55,1.3,.05+gx,.85+gy,.24+gz,1);aimA(e.arms[0],-.55,1.3,(.05+gx0)*(1-ce)-.6*ce,(.98+gy0)*(1-ce)+(2.25+Math.abs(Math.sin(ph+1))*.15)*ce,(.5+gz)*(1-ce)+.05*ce,-1);}
+function aimArms(e){
+ var r=e.rc||0,ce=0,ph=tt*7+e.ph,gx0=Math.sin(tt*1.1+e.ph)*.015,
+  gy0=.05*r+Math.sin(tt*1.7+e.ph)*.012,
+  gx=gx0+ce*(.3+Math.sin(ph*.5)*.05),
+  gy=gy0+ce*(.9+Math.abs(Math.sin(ph))*.1),gz=-.14*r;
+ var mount=e.g.userData.gun,barrel=e.g.userData.rg;
+ mount.position.set(-.15+gx,gy,-.1+gz);
+ // Preserve the original two hand grips, but rotate their IK targets around
+ // the SAME mesh pivot as the certified H/V barrel (YXZ at PI+yaw, pitch).
+ // This prevents the 3P gun moving alone while its hands stay frozen.
+ var pitch=Number.isFinite(e.ballisticBarrelPitch)?e.ballisticBarrelPitch:0,
+  yaw=Number.isFinite(e.ballisticBarrelYaw)?e.ballisticBarrelYaw:0,
+  rx=.05+gx,ry=.85+gy,rz=.24+gz,
+  lx=(.05+gx0)*(1-ce)-.6*ce,
+  ly=(.98+gy0)*(1-ce)+(2.25+Math.abs(Math.sin(ph+1))*.15)*ce,
+  lz=(.5+gz)*(1-ce)+.05*ce;
+ if(barrel&&(pitch!==0||yaw!==0)){
+  var px=mount.position.x+barrel.position.x,
+   py=mount.position.y+barrel.position.y,
+   pz=mount.position.z+barrel.position.z,
+   cp=Math.cos(pitch),sp=Math.sin(pitch),cy=Math.cos(yaw),sy=Math.sin(yaw);
+  function grip(x,y,z){
+   var dx=x-px,dy=y-py,dz=z-pz;
+   return [px+dx*cy+dz*sy*cp-dy*sy*sp,
+    py+dy*cp+dz*sp,
+    pz-dx*sy-dy*sp*cy+dz*cp*cy];
+  }
+  var right=grip(rx,ry,rz),left=grip(lx,ly,lz);
+  rx=right[0];ry=right[1];rz=right[2];
+  lx=left[0];ly=left[1];lz=left[2];
+ }
+ aimA(e.arms[1],.55,1.3,rx,ry,rz,1);
+ aimA(e.arms[0],-.55,1.3,lx,ly,lz,-1);
+}
 // flash(): hit-flash/knockback wobble of a bot after it takes damage (e.fl timer, e.hv/e.hx wobble).
 function flash(e,dt){e.fl=Math.max(0,e.fl-dt);if(e.tm===undefined)return;e.hv=e.hv||0;e.hx=e.hx||0;e.hv+=(-e.hx*170-e.hv*13)*dt;e.hx+=e.hv*dt;var h=Math.max(-.5,Math.min(.9,e.hx));e.body.rotation.x-=h*.75;e.body.rotation.y+=h*(e.hs||1)*.35;e.body.position.y-=Math.abs(h)*.06;e.g.position.x+=(e.hdx||0)*h*.3;e.g.position.z+=(e.hdz||0)*h*.3;}
 

@@ -1587,7 +1587,40 @@ function aimA(q,px,py,tx,ty,tz,sd){var L1=.4,L2=.46;va.set(tx-px,ty-py,tz);var d
   var ex=px+vb.x*L1,ey=py+vb.y*L1,ez=vb.z*L1;vp.set(tx-ex,ty-ey,tz-ez).normalize();qb.setFromUnitVectors(QD,vp);
   q.userData.fa.quaternion.copy(qa).invert().multiply(qb);}
 // aimArms(): positions both arms of bot e so the right hand holds its gun and the left hand supports it (or raises when celebrating).
-function aimArms(e){var r=e.rc||0,ce=0,ph=tt*7+e.ph,gx0=Math.sin(tt*1.1+e.ph)*.015,gy0=.05*r+Math.sin(tt*1.7+e.ph)*.012,gx=gx0+ce*(.3+Math.sin(ph*.5)*.05),gy=gy0+ce*(.9+Math.abs(Math.sin(ph))*.1),gz=-.14*r;e.g.userData.gun.position.set(-.15+gx,gy,-.1+gz);aimA(e.arms[1],.55,1.3,.05+gx,.85+gy,.24+gz,1);aimA(e.arms[0],-.55,1.3,(.05+gx0)*(1-ce)-.6*ce,(.98+gy0)*(1-ce)+(2.25+Math.abs(Math.sin(ph+1))*.15)*ce,(.5+gz)*(1-ce)+.05*ce,-1);}
+function aimArms(e){
+ var r=e.rc||0,ce=0,ph=tt*7+e.ph,gx0=Math.sin(tt*1.1+e.ph)*.015,
+  gy0=.05*r+Math.sin(tt*1.7+e.ph)*.012,
+  gx=gx0+ce*(.3+Math.sin(ph*.5)*.05),
+  gy=gy0+ce*(.9+Math.abs(Math.sin(ph))*.1),gz=-.14*r;
+ var mount=e.g.userData.gun,barrel=e.g.userData.rg;
+ mount.position.set(-.15+gx,gy,-.1+gz);
+ // Preserve the original two hand grips, but rotate their IK targets around
+ // the SAME mesh pivot as the certified H/V barrel (YXZ at PI+yaw, pitch).
+ // This prevents the 3P gun moving alone while its hands stay frozen.
+ var pitch=Number.isFinite(e.ballisticBarrelPitch)?e.ballisticBarrelPitch:0,
+  yaw=Number.isFinite(e.ballisticBarrelYaw)?e.ballisticBarrelYaw:0,
+  rx=.05+gx,ry=.85+gy,rz=.24+gz,
+  lx=(.05+gx0)*(1-ce)-.6*ce,
+  ly=(.98+gy0)*(1-ce)+(2.25+Math.abs(Math.sin(ph+1))*.15)*ce,
+  lz=(.5+gz)*(1-ce)+.05*ce;
+ if(barrel&&(pitch!==0||yaw!==0)){
+  var px=mount.position.x+barrel.position.x,
+   py=mount.position.y+barrel.position.y,
+   pz=mount.position.z+barrel.position.z,
+   cp=Math.cos(pitch),sp=Math.sin(pitch),cy=Math.cos(yaw),sy=Math.sin(yaw);
+  function grip(x,y,z){
+   var dx=x-px,dy=y-py,dz=z-pz;
+   return [px+dx*cy+dz*sy*cp-dy*sy*sp,
+    py+dy*cp+dz*sp,
+    pz-dx*sy-dy*sp*cy+dz*cp*cy];
+  }
+  var right=grip(rx,ry,rz),left=grip(lx,ly,lz);
+  rx=right[0];ry=right[1];rz=right[2];
+  lx=left[0];ly=left[1];lz=left[2];
+ }
+ aimA(e.arms[1],.55,1.3,rx,ry,rz,1);
+ aimA(e.arms[0],-.55,1.3,lx,ly,lz,-1);
+}
 // flash(): hit-flash/knockback wobble of a bot after it takes damage (e.fl timer, e.hv/e.hx wobble).
 function flash(e,dt){e.fl=Math.max(0,e.fl-dt);if(e.tm===undefined)return;e.hv=e.hv||0;e.hx=e.hx||0;e.hv+=(-e.hx*170-e.hv*13)*dt;e.hx+=e.hv*dt;var h=Math.max(-.5,Math.min(.9,e.hx));e.body.rotation.x-=h*.75;e.body.rotation.y+=h*(e.hs||1)*.35;e.body.position.y-=Math.abs(h)*.06;e.g.position.x+=(e.hdx||0)*h*.3;e.g.position.z+=(e.hdz||0)*h*.3;}
 
@@ -2199,7 +2232,7 @@ var WP=WEAPON_PROFILES.map(weaponProfile);
 
 // Keep these exact equations in backend src/matches/engine/gunplay.ts.
 // Original deterministic whole-weapon recoil, bloom and movement/ADS accuracy.
-var GUNPLAY_REVISION='pointblock-gunplay-2026-11-04-v3-barrel';
+var GUNPLAY_REVISION='pointblock-gunplay-2026-11-05-v4-first-shot';
 var GUNPLAY_ARCHETYPES={
  pistol:{vertical:.8,horizontal:.8,bloom:.7,recovery:5.8},
  rifle:{vertical:1,horizontal:1,bloom:1,recovery:4.5},
@@ -2239,13 +2272,15 @@ function gunplayShotRated(p,w,state,time,conditions,random){
  var inaccuracy=gunplayClamp((base+state.bloom)*locomotion*optics,.0002,.12);
  var radius=Math.sqrt(gunplayClamp(random(),0,.999999))*inaccuracy,
    angle=gunplayClamp(random(),0,.999999)*Math.PI*2;
- var barrelYaw=state.yaw,barrelPitch=state.pitch;
- var yaw=barrelYaw+Math.cos(angle)*radius,pitch=barrelPitch+Math.sin(angle)*radius;
  var verticalKick=.0030*vert*arch.vertical*(1+Math.min(index,16)*.035)*(1-.07*ads);
  var horizontalStep=.0031*horz*arch.horizontal*
    (.74*Math.sin((index+1)*.43+arch.vertical)+.26*Math.sin((index+1)*.17));
  state.pitch=gunplayClamp(state.pitch+verticalKick,0,.18);
  state.yaw=gunplayClamp(state.yaw+horizontalStep,-.15,.15);
+ // Apply this very shot's kick before sampling the authoritative muzzle axis;
+ // index 0 must not be a camera-only animation with zero ballistic recoil.
+ var barrelYaw=state.yaw,barrelPitch=state.pitch;
+ var yaw=barrelYaw+Math.cos(angle)*radius,pitch=barrelPitch+Math.sin(angle)*radius;
  state.bloom=gunplayClamp(state.bloom+(.00016+.00042*(1-control))*arch.bloom,0,.038);
  state.shots=Math.min(150,index+1);
  state.lastShotAt=time;
@@ -2439,8 +2474,12 @@ function animHands(){
   var poseCurrent=pl.ballisticBarrelWeapon===w,
       barrelPitch=poseCurrent&&Number.isFinite(pl.ballisticBarrelPitch)?pl.ballisticBarrelPitch:0,
       barrelYaw=poseCurrent&&Number.isFinite(pl.ballisticBarrelYaw)?pl.ballisticBarrelYaw:0;
-  hold.rotation.set((tilt*.45+idle*.004+X[3])*(1-.8*a)-.42*sp+barrelPitch,
-    (tilt*.3+X[4])*(1-a)+.55*sp-barrelYaw,
+  // This-shot ballistic pose always rotates the barrel and BOTH hands.
+  // The existing short-lived firing kick is also an immediate gun-body
+  // spring, not just a camera jolt; it never changes certified bullet physics.
+  var gunImpulse=kick*(1-.5*a),lateralSign=Math.sign(barrelYaw);
+  hold.rotation.set((tilt*.45+idle*.004+X[3])*(1-.8*a)-.42*sp+barrelPitch+gunImpulse,
+    (tilt*.3+X[4])*(1-a)+.55*sp-barrelYaw-lateralSign*gunImpulse*.35,
     (-tilt*.35+sw*.012*bb+X[5])*(1-a)+.18*sp);
   pl.renderedBarrelPitch=barrelPitch;pl.renderedBarrelYaw=barrelYaw;
   var boltGun=WP[w]&&WP[w].snp?guns[w]:null,bh8=boltGun&&boltGun.userData.bolt;
@@ -8091,6 +8130,8 @@ var onlineStallChecking=false,onlineLastStallCheckAt=0;
 var onlinePendingKillTick=-1,onlinePendingKillTotal=null;
 var onlinePendingWeapon=null,onlinePendingWeaponAt=0,onlineHitMarker=null,onlineHitUntil=0;
 var onlineShotTracers=[],onlineSeenGrenadeBlasts=new Set();
+// Client-side *presentation-only* recoil forecast; never used for authority.
+var onlinePredictedBarrelStates=new Map();
 var onlineScoreboard=new Map(),onlineSeenKillIds=new Set();
 // Public identity metadata only, independent of actor visibility/coordinates.
 function onlineCleanCallsign(value,fallback){
@@ -9044,6 +9085,7 @@ function onlineResetLive(){
  onlineCombatQa={fireInputs:0,confirmedShots:0,confirmedHits:0,wallImpacts:0,damageTaken:0,lastEvent:'NONE'};
  onlineActive=false;onlineTraining=false;onlineCurrentId=null;onlineMatchId=null;
  pl.ballisticBarrelYaw=pl.ballisticBarrelPitch=0;pl.ballisticBarrelWeapon=null;pl.ballisticBarrelIdle=null;
+ onlinePredictedBarrelStates.clear();
  onlineWorld=null;onlineGame=null;
  onlineServerPhase='CONNECTING';onlineClientSceneReady=false;onlineLoadParticipants={ready:0,total:0};
  document.getElementById('dv').classList.remove('online-results');
@@ -9944,6 +9986,21 @@ function onlineWatchSnapshots(now){
   }
  }).catch(onlineWarn).finally(function(){onlineStallChecking=false;});
 }
+// Animate the real, rated H/V law on the VERY FIRST local trigger without
+// waiting for network RTT. Server SHOT always replaces this cosmetic forecast.
+// Only server metadata supplies physical bullet yaw, muzzle, collision and damage.
+function onlinePredictVisibleBarrel(weaponId,now,ads){
+ if(!Number.isInteger(weaponId)||!WP[weaponId]||WP[weaponId].melee||WP[weaponId].gr)return;
+ var state=onlinePredictedBarrelStates.get(weaponId);
+ if(!state){state=freshGunplayState();onlinePredictedBarrelStates.set(weaponId,state);}
+ var shot=gunplayShot(weaponId,state,now/1000,{
+  ads:ads?1:0,speed:Math.max(0,pl.gunplaySpeed||0),
+  crouch:!!(keys.ControlLeft||keys.ControlRight),grounded:pl.vy===0
+ },function(){return 0;});
+ pl.ballisticBarrelYaw=shot.barrelYaw;pl.ballisticBarrelPitch=shot.barrelPitch;
+ pl.ballisticBarrelWeapon=weaponId;pl.ballisticBarrelIdle=0;
+ syncWeaponBarrelPoseImmediate();
+}
 // Consistent interruption recovery for cosmetic gun body/hands, never physics.
 function onlineRecoverBarrel(actor,dt){
  if(!Number.isFinite(actor.ballisticBarrelIdle))return;
@@ -10015,6 +10072,7 @@ function onlineVisualUpdate(dt){
   else if(pl.w===5)pl.thr=.5;
   else{
    flashT=.035;kick=Math.min(.26,kick+(WP[pl.w]?.viewKick||.018));
+   onlinePredictVisibleBarrel(pl.w,now,ads);
    camShot(pl.w);gunSfx(GS[SFXI[pl.w]],1);
    if(pl.w!==8)ejectShell(pl.w,1);
    if(WP[pl.w]?.pump){pl.pump=WP[pl.w].pumpDuration;pl.pumpEjected=false;}
