@@ -259,11 +259,49 @@ function onlineInterpolateActor(samples,renderAt){
   var b=samples[i],a=samples[i-1];
   if(renderAt>b.t)continue;
   var alpha=Math.max(0,Math.min(1,(renderAt-a.t)/(b.t-a.t||1)));
-  return{x:a.x+(b.x-a.x)*alpha,y:a.y+(b.y-a.y)*alpha,z:a.z+(b.z-a.z)*alpha,
-   yaw:a.yaw+Math.atan2(Math.sin(b.yaw-a.yaw),Math.cos(b.yaw-a.yaw))*alpha};
+  return onlineCollisionSafeRemotePose(a,b,alpha);
  }
  // Never extrapolate enemies past server-authorized snapshots.
  return samples[samples.length-1];
+}
+// Remote interpolation is cosmetic and uses only authorized snapshots.
+// A straight chord between two valid server positions can clip the corner of
+// a small table/wall. Follow a clear orthogonal bend when available instead.
+function onlineRemoteSegmentClear(a,b,radius){
+ var d=Math.hypot(b.x-a.x,b.z-a.z),n=Math.max(1,Math.ceil(d/Math.max(.1,radius*.35)));
+ for(var i=1;i<=n;i++){
+  var t=i/n;
+  if(onlinePositionBlocked(a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,
+      a.z+(b.z-a.z)*t,radius))return false;
+ }
+ return true;
+}
+function onlineCollisionSafeRemotePose(a,b,alpha){
+ var result={x:a.x+(b.x-a.x)*alpha,y:a.y+(b.y-a.y)*alpha,
+   z:a.z+(b.z-a.z)*alpha,
+   yaw:a.yaw+Math.atan2(Math.sin(b.yaw-a.yaw),Math.cos(b.yaw-a.yaw))*alpha};
+ if(onlineRemoteSegmentClear(a,b,.55))return result;
+ var bends=[{x:b.x,z:a.z},{x:a.x,z:b.z}];
+ for(var j=0;j<bends.length;j++){
+  var bend={x:bends[j].x,z:bends[j].z,y:result.y},
+      one=Math.hypot(bend.x-a.x,bend.z-a.z),
+      two=Math.hypot(b.x-bend.x,b.z-bend.z),length=one+two;
+  if(length<.00001||!onlineRemoteSegmentClear(a,bend,.55)||
+     !onlineRemoteSegmentClear(bend,b,.55))continue;
+  var travelled=length*alpha;
+  if(travelled<=one){
+   var t=one>0?travelled/one:0;
+   result.x=a.x+(bend.x-a.x)*t;result.z=a.z+(bend.z-a.z)*t;
+  }else{
+   var t=two>0?(travelled-one)/two:1;
+   result.x=bend.x+(b.x-bend.x)*t;result.z=bend.z+(b.z-bend.z)*t;
+  }
+  return result;
+ }
+ // No straight/one-bend safe interpolation: do not render a character inside
+ // collision. Hold the last safe position until newer server samples arrive.
+ result.x=alpha<1?a.x:b.x;result.z=alpha<1?a.z:b.z;
+ return result;
 }
 // A pending local weapon switch remains visual-only until its authoritative echo.
 function onlineWeaponSnapshot(actor,privateState,fresh){
