@@ -2,7 +2,7 @@
 
 The current ballistic protocol is `pointblock-gunplay-2026-11-04-v3-barrel`. The backend controls real H/V recoil, recoil-rotated muzzle position, final projectile velocity, hit registration and damage. The frontend reads certified barrel yaw/pitch to animate the existing gun and hands; it must never submit trusted shot data.
 
-Routine CI: `vite.yml` and `online-frontend-build.yml` run `npm run test:ci`, production build and distributable checks. `pointblock-gunplay-windows.yml` runs dedicated authoritative recoil and muzzle tests. The approved test list is `tools/active-ci-tests.mjs`.
+Routine CI: `vite.yml` runs `npm run test:ci`, production build and distributable checks. `online-frontend-build.yml` runs `npm run test:integration` plus focused network build checks. `pointblock-gunplay-windows.yml` runs dedicated authoritative recoil and muzzle tests. The approved test list is `tools/active-ci-tests.mjs`.
 
 Historical BOT AI M0–M7 milestones are completed. Their historical tests, code and evidence remain intact, but `bot-ai-m0.yml` and `bot-ai-m7-browser.yml` accept manual `workflow_dispatch` only. Ordinary push and PR activity does not recertify them. `npm test` or `npm run test:full` remains a manual full test option.
 
