@@ -44,36 +44,26 @@ test('missing fixed slot can never crash original in-game HUD or weapon shortcut
  assert.doesNotThrow(()=>ctx.slot(1),'no null-ammo dereference');
  assert.equal(ctx.pl.w,9);
 });
-test('completed match has bounded finalizer independent of render animation and initial loadout rehydrates',()=>{
- assert.match(bridge,/onlineResultFallbackTimer=setTimeout\(function\(\)/);
- assert.match(bridge,/onlineFinalizeCompletedMatch\(completed\)/);
+test('completed match finalizer is independent of render animation and initial loadout rehydrates',()=>{
+ assert.match(bridge,/ONLINE_MATCH_END_TIMING=Object\.freeze\(\{pauseMs:2000,announcementMs:2000\}\)/);
+ assert.match(bridge,/onlineFinalizeCompletedMatch\(frame\)/);
  assert.match(bridge,/clearTimeout\(onlineResultFallbackTimer\)/);
  assert.match(bridge,/await onlineLoadInventory\(\)\.catch\(onlineWarn\)/);
  assert.match(bridge,/function onlineResetLive\(\)/);
 });
 
-test('verified match completion opens results after bounded corpse wait even if RAF stopped',()=>{
+test('verified match completion schedules 2s battlefield pause and 2s server-winner reveal before results',()=>{
  const start=bridge.indexOf(" if(frame.type==='match_completed'){");
  const end=bridge.indexOf(" if(frame.type==='training_result')",start);
  assert.ok(start>=0&&end>start);
- const calls=[],timers=[],ctx={
-  onlineActive:true,dead:[{t:0}],onlinePendingMatchCompleted:null,
-  onlineResultFallbackTimer:null,
-  clearTimeout(){},
-  setTimeout(fn,ms){timers.push({fn,ms});return timers.length;},
-  onlineFinalizeCompletedMatch(frame){calls.push(frame.matchId);}
+ const calls=[],ctx={
+  onlineQueueCompletedMatch(frame){calls.push(frame.matchId)}
  };
  runInNewContext('function receipt(frame){'+bridge.slice(start,end)+'}\nthis.receipt=receipt;',ctx);
  ctx.receipt({type:'match_completed',matchId:'trusted-match'});
- assert.equal(calls.length,0,'preserve existing ragdoll animation first');
- assert.equal(ctx.onlinePendingMatchCompleted.matchId,'trusted-match');
- assert.equal(timers.length,1);
- assert.equal(timers[0].ms,2200);
- timers[0].fn();
- assert.deepEqual(calls,['trusted-match'],'show verified result without waiting forever');
- assert.equal(ctx.onlinePendingMatchCompleted,null);
- ctx.receipt({type:'match_completed',matchId:'new-match'});
- assert.equal(timers.length,2);
- ctx.dead.length=0;timers[1].fn();
- assert.deepEqual(calls,['trusted-match','new-match']);
+ assert.deepEqual(calls,['trusted-match']);
+ assert.match(bridge,/if\(!onlineActive\|\|onlineTraining\|\|onlinePendingMatchCompleted\|\|/);
+ assert.match(bridge,/onlineShowMatchWinnerBanner\(frame\)/);
+ assert.match(bridge,/ONLINE_MATCH_END_TIMING\.announcementMs/);
+ assert.doesNotMatch(bridge,/onlinePendingMatchCompleted&&dead\.length===0/);
 });
