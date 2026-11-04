@@ -911,7 +911,16 @@ async function onlineSwitchTeam(team){
 }
 function onlineConfirmLeaveRoom(){
  if(!onlineAuth()||!roomCurrent)return;
+ if(roomCurrent.status==='ACTIVE'&&!onlineActive){
+  onlineRoomDialog('MATCH IN PROGRESS',
+   'This match is active on the server, but your game is not connected. '+
+   'Use REJOIN MATCH to reconnect. Normal LEAVE is available once the room reopens.',
+   'OK',null,null);
+  return;
+ }
  onlineRoomDialog('LEAVE ROOM?',
+  roomCurrent.status==='ACTIVE'?
+    'Abandon the active match? Abandonment penalties apply and room membership remains server-owned until match completion.':
   onlineIsMaster()?'Are you sure you want to leave? Room Master will pass to the next player. If no one remains, this room will close.':
     'Are you sure you want to leave this room and return to the Room Browser?',
   'YES','NO',onlineLeaveRoom);
