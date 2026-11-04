@@ -11,7 +11,9 @@
     "test": "node tools/build.mjs && node --test",
     "test:integration": "node --test tests/vite-integration.test.mjs",
     "check:dist": "node tools/check-dist.mjs",
-    "verify": "npm run test && npm run build && npm run check:dist"
+    "verify": "npm run test && npm run build && npm run check:dist",
+    "test:ci": "node tools/build.mjs --check && node tools/active-ci-tests.mjs",
+    "test:full": "npm test"
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
