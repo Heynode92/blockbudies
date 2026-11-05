@@ -102,7 +102,7 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
     e.g.rotation.y=f;e.cd-=dt;
     if(t&&e.lok&&!cdn&&!(isBombMode()&&e.bAction)&&e.cd<=0){botCombatTick(e,t,f,d);}
     e.y=(e.y||0)+(gh(e.x,e.z,0)-(e.y||0))*Math.min(1,dt*10);e.g.position.set(e.x,e.y,e.z);e.g.visible=e.inv>0?Math.floor(tt*12)%2===0:true;
-    e.wp=(e.wp||0)+dm*2.4;var am=Math.min(1,dm/dt/2.2);e.legs[0].rotation.x=Math.sin(e.wp)*.8*am;e.legs[1].rotation.x=-e.legs[0].rotation.x;e.rc=Math.max(0,(e.rc||0)-dt*6);aimArms(e);
+    e.wp=(e.wp||0)+dm*2.4;var am=Math.min(1,dm/dt/2.2);e.hitboxPace=am;e.legs[0].rotation.x=Math.sin(e.wp)*.8*am;e.legs[1].rotation.x=-e.legs[0].rotation.x;e.rc=Math.max(0,(e.rc||0)-dt*6);aimArms(e);
     e.body.position.y=Math.abs(Math.sin(e.wp))*.07*am;e.body.rotation.z=Math.sin(e.wp)*.05*am;e.body.rotation.x=-.05*(e.rc||0);e.body.rotation.y=0;flash(e,dt);
     if(isBombMode()&&e.bAction){e.body.position.y=-.43;e.body.rotation.x=.23;e.legs[0].rotation.x=-.95;e.legs[1].rotation.x=-1.05;e.arms[1].rotation.z=-.7;e.arms[0].rotation.z=.7;}
   });}
