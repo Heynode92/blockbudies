@@ -70,8 +70,8 @@ test('impact preserves identical human/BOT headshot classification and weapon co
   assert.equal(c.impactCalls[0][2],33);assert.equal(c.impactCalls[1][1],33);
   c.projectileHitCharacter(shot,bot,true);c.projectileHitCharacter(shot,pl,true);
   assert.equal(c.impactCalls[2][2],99);assert.equal(c.impactCalls[3][1],99);
-  assert.equal(c.impactCalls[2].at(-2),'head');assert.equal(c.impactCalls[3].at(-2),'head');
-  assert.equal(c.impactCalls[2].at(-1),1);assert.equal(c.impactCalls[3].at(-1),1);
+  assert.equal(c.impactCalls[2].at(-3),'head');assert.equal(c.impactCalls[3].at(-3),'head');
+  assert.equal(c.impactCalls[2].at(-2),1);assert.equal(c.impactCalls[3].at(-2),1);
 });
 test('bot loadout is drawn from shared WP with finite ammo and a sidearm',()=>{
   const ctx=setup();ctx.Math=Object.create(Math);ctx.Math.random=()=>.2;
