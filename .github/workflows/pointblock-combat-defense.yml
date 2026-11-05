@@ -1,4 +1,4 @@
-name: PointBlock Combat Defense & Hitgroups (Windows)
+name: PointBlock Combat Anatomy (Windows)
 
 on:
   pull_request:
@@ -10,12 +10,16 @@ on:
       - 'src/game/70-kills-and-damage-hud.js'
       - 'src/game/96-hud-and-radar.js'
       - 'src/game/98-online-bridge.js'
+      - 'src/game/90-bot-ai.js'
+      - 'src/game/95-simulation.js'
       - 'src/styles/08-defense.css'
       - 'index.html'
       - 'assets/game.js'
       - 'tools/source-manifest.json'
       - 'tests/damage-range.test.mjs'
       - 'tests/hitgroup-phase2.test.mjs'
+      - 'tests/anatomical-hitbox.test.mjs'
+      - 'tests/online-movement-prediction.test.mjs'
       - 'tests/bomb-tactical-hardening.test.mjs'
       - 'tests/defense-bot-weapons.test.mjs'
       - '.github/workflows/pointblock-combat-defense.yml'
@@ -38,7 +42,7 @@ jobs:
       - name: Verify generated game bundle
         run: node tools/build.mjs --check
       - name: Verify modified defense and directly affected ballistics
-        run: node --test tests/defense-bot-weapons.test.mjs tests/damage-range.test.mjs tests/hitgroup-phase2.test.mjs tests/bomb-tactical-hardening.test.mjs tests/gunplay-ballistics.test.mjs tests/parity.test.mjs
+        run: node --test tests/defense-bot-weapons.test.mjs tests/damage-range.test.mjs tests/hitgroup-phase2.test.mjs tests/anatomical-hitbox.test.mjs tests/online-movement-prediction.test.mjs tests/bomb-tactical-hardening.test.mjs tests/gunplay-ballistics.test.mjs tests/parity.test.mjs
       - name: Build production frontend
         run: npm run build
       - name: Check distributable
