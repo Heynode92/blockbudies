@@ -1552,8 +1552,10 @@ function onlineReceiveFrame(frame){
   if(onlineActive&&frame.actorId===onlineUserId()){
    onlineCombatQa.confirmedHits++;
    onlineCombatQa.lastEvent='HIT';
-   onlineHitConfirm(frame.headshot===true);
-   onlineReactToImpact(frame.victimId,frame.headshot===true,true);
+   var verifiedHead=frame.headshot===true&&
+    (frame.hitgroup===undefined||frame.hitgroup==='head');
+   onlineHitConfirm(verifiedHead);
+   onlineReactToImpact(frame.victimId,verifiedHead,true);
   }
   return;
  }
@@ -2075,10 +2077,13 @@ function onlineVisualUpdate(dt){
  }
  if(!wantsFire)onlineGrenadeCancelUntilRelease=false;
  onlineGrenadeChargeUI();
- var gunplayCompatible=onlineGame?.ballisticRevision===GUNPLAY_REVISION;
+ // Both approved damage and ballistic revisions must be identical to BE.
+ // A mismatched FE must not predict valid-looking shots for another law.
+ var gunplayCompatible=onlineGame?.ballisticRevision===GUNPLAY_REVISION&&
+  onlineGame?.combatRevision===COMBAT_SYNC_REVISION;
  if(onlineGame&&!gunplayCompatible&&!onlineGunplayMismatchWarned){
   onlineGunplayMismatchWarned=true;
-  onlineWarn('BALLISTIC_VERSION_MISMATCH — UPDATE FE AND BE TOGETHER');
+  onlineWarn('COMBAT_VERSION_MISMATCH — UPDATE FE AND BE TOGETHER');
  }
  var acceptedFire=wantsFire&&!onlineGrenadeCancelUntilRelease&&gunplayCompatible;
  // Render-only cadence mirrors the REAL weapon cooldown. Do not impose an
