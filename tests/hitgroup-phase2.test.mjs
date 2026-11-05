@@ -24,8 +24,8 @@ test('central phase-2 body zone rules reflect model heights and player-facing ri
  assert.equal(c.defenseClassifyBodyHitgroup(q(0,.58,0),p),'stomach');
  assert.equal(c.defenseClassifyBodyHitgroup(q(0,1,0),p),'chest');
  assert.equal(c.defenseClassifyBodyHitgroup(q(0,1.1,.64),{...p,yaw:Math.PI/2}),'arm');
- assert.throws(()=>c.defenseClassifyBodyHitgroup(q(NaN,.8,0),p),RangeError);
- assert.throws(()=>c.defenseHitgroupMultiplier('unknown'),RangeError);
+ assert.throws(()=>c.defenseClassifyBodyHitgroup(q(NaN,.8,0),p),e=>e?.name==='RangeError');
+ assert.throws(()=>c.defenseHitgroupMultiplier('unknown'),e=>e?.name==='RangeError');
 });
 test('body damage order is distance adjusted raw then zone then passive defense',()=>{
  const c=setup();
