@@ -1,5 +1,6 @@
 // Permanent passive firearm body defense. Online authority: BE defense.ts.
 // All combat percentages are centralized here and mirrored by the BE contract.
+var COMBAT_SYNC_REVISION='pointblock-combat-sync-2026-11-05-p6';
 var DEFENSE_RULES=Object.freeze({
  revision:'pointblock-defense-2026-11-05-p1',
  maxHp:100,bodyReduction:.30,pumpShotgunBodyReduction:.20,headshotMultiplier:3
