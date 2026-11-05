@@ -21,7 +21,7 @@ test('original visible 3P model dimensions, narrow actual head and no above-shou
  assert.equal(cast(c,0,1.15)?.hitgroup,'chest');
  assert.equal(cast(c,0,.75)?.hitgroup,'stomach');
  assert.equal(cast(c,.53,1.20)?.hitgroup,'arm');
- assert.equal(cast(c,0,.23)?.hitgroup,'leg');
+ assert.equal(cast(c,.2,.23)?.hitgroup,'leg');
 });
 test('same collision applies to human/BOT and is first contact along swept bullet',()=>{
  const c=setup(),a=cast(c,0,1.65);
@@ -38,7 +38,7 @@ test('crouched head follows the rendered body and lower body remains hittable',(
  assert.equal(cast(c,0,1.25,crouch)?.hitgroup,'head');
  assert.equal(cast(c,0,.72,crouch)?.hitgroup,'chest');
  assert.equal(cast(c,0,.32,crouch)?.hitgroup,'stomach');
- assert.equal(cast(c,0,.22,crouch)?.hitgroup,'leg');
+ assert.equal(cast(c,.2,.07,crouch)?.hitgroup,'leg');
 });
 test('gait-aware legs and invalid hitbox inputs use deterministic guarded geometry',()=>{
  const c=setup(),stationary={...pose,gaitPace:0,gaitPhase:0};
