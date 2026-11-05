@@ -32,16 +32,40 @@ test("original thirteen weapon IDs and class configs are preserved alongside exp
  assert.equal(c.WEAPON_CLASS_LABELS.sniper,"SNIPER RIFLE");
  assert.equal(c.WEAPON_CLASS_LABELS.smg,"SUBMACHINE GUN");
 });
-test("CS-style exponential decay has exact values at 0, 10, 20, 40 and 60 world units",()=>{
+test("original exponential decay remains exact for every non-rifle bullet archetype",()=>{
  const ctx=setup(),unit=ctx.DAMAGE_FALLOFF.referenceUnits;
  assert.equal(unit,20);
- for(const id of [0,1,2,6,7,8,9,10,11,12]){
-  const w=ctx.WP[id];
-  for(const d of [0,10,20,40,60])near(raw(w,d,ctx),w.dmg*Math.pow(w.rangeModifier,d/unit),w.n+" "+d);
-  for(const d of [0,10,20,40])assert.ok(raw(w,d+10,ctx)<=raw(w,d,ctx),w.n+" damage increased");
+ for(const [id,w] of ctx.WP.entries()){
+  if(w.stats.kind==='rifle'||!w.rangeModifier)continue;
+  for(const d of [0,10,20,40,60])
+   near(raw(w,d,ctx),w.dmg*Math.pow(w.rangeModifier,d/unit),w.n+" "+d);
+  for(const d of [0,10,20,40])
+   assert.ok(raw(w,d+10,ctx)<=raw(w,d,ctx),w.n+" damage increased");
  }
 });
-test("Rifle, SMG, sniper, shotgun have distinct CS-like decay",()=>{
+test("assault rifles retain full damage through 30m, then follow one piecewise-linear curve",()=>{
+ const c=setup();
+ const checkpoints=[[0,1],[30,1],[40,.95],[50,.90],[60,.85],[70,.80],
+  [80,.775],[90,.75],[100,.725],[110,.70],[115,.675],[120,.65],
+  [130,.625],[140,.60],[150,.575],[160,.55]];
+ assert.equal(c.DAMAGE_FALLOFF.rifleRevision,'pointblock-rifle-falloff-2026-11-05-p4');
+ assert.ok(Object.isFrozen(c.DAMAGE_FALLOFF.rifleCurve));
+ const rifles=c.WP.filter(w=>w.stats.kind==='rifle');
+ assert.equal(rifles.length,5);
+ for(const w of rifles) {
+  for(const [d,pct] of checkpoints)if(d<=w.range)
+   near(raw(w,d,c),w.dmg*pct,w.n+" "+d+"m");
+  assert.equal(w.life*w.spd,w.range,w.n+" projectile cap unchanged");
+  assert.equal(w.rangeModifier,w.stats.rangeModifier ?? w.rangeModifier,
+    w.n+" immutable original rating");
+  for(let d=0;d<Math.min(w.range,155);d+=5)
+   assert.ok(raw(w,d+5,c)<=raw(w,d,c)+1e-10,w.n+" falloff must not rise");
+ }
+ assert.equal(c.rifleDamageRetention(160),.55);
+ assert.equal(c.rifleDamageRetention(400),.55);
+ assert.throws(()=>c.rifleDamageRetention(-1),e=>e?.name==='RangeError');
+});
+test("Rifle plateau differs from unchanged SMG, sniper and shotgun falloff",()=>{
  const c=setup();
  near(c.WP[1].rangeModifier,.98,"AK");
  near(c.WP[10].rangeModifier,.85,"MP7");
@@ -73,9 +97,9 @@ test("Falloff still precedes helmet/headshot and the permanent body defense",()=
    wid:9,by:{tm:0},vx:1,vz:0,m:{position:{x:60,y:1.2,z:0}}};
  const target={helm:true,x:60,y:0,z:0,g:{rotation:{y:0}}};
  c.projectileHitCharacter(shot,target,true);
- near(hits.at(-1).damage,w.dmg*Math.pow(.98,3),"helmeted headshot");
+ near(hits.at(-1).damage,w.dmg*.85,"helmeted headshot after 60m rifle falloff");
  c.projectileHitCharacter(shot,target,true);
- near(hits.at(-1).damage,w.dmg*Math.pow(.98,3)*3,"unhelmeted headshot");
+ near(hits.at(-1).damage,w.dmg*.85*3,"unhelmeted headshot after 60m rifle falloff");
  c.projectileHitCharacter(shot,target,false);
  const rawBody=hits.at(-1).damage;
  near(c.defenseDamage({},rawBody,"bullet-body",shot.wid),rawBody*.7,"30% body reduction");
