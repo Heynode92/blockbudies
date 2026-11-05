@@ -48,7 +48,7 @@ jobs:
       - name: Verify generated game bundle
         run: node tools/build.mjs --check
       - name: Verify combat parity, effects and exact H recoil
-        run: node --test tests/combat-sync-phase6.test.mjs tests/gunplay-ballistics.test.mjs tests/anatomical-hitbox.test.mjs tests/hitgroup-phase2.test.mjs tests/defense-bot-weapons.test.mjs tests/damage-range.test.mjs tests/parity.test.mjs
+        run: node --test tests/combat-sync-phase6.test.mjs tests/online-kill-hud.test.mjs tests/online-movement-prediction.test.mjs tests/gunplay-ballistics.test.mjs tests/anatomical-hitbox.test.mjs tests/hitgroup-phase2.test.mjs tests/defense-bot-weapons.test.mjs tests/damage-range.test.mjs tests/parity.test.mjs
       - name: Build production frontend
         run: npm run build
       - name: Check distributable
