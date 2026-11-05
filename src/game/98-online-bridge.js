@@ -1298,7 +1298,9 @@ function onlineApplyVerifiedKill(event){
  if(!event||typeof event.id!=='string'||onlineSeenKillIds.has(event.id))return;
  onlineSeenKillIds.add(event.id);
  if(onlineSeenKillIds.size>128)onlineSeenKillIds.delete(onlineSeenKillIds.values().next().value);
- if(!onlineActive||!run||lob||event.actorId!==onlineUserId()||!pl.st)return;
+ if(!onlineActive||!run||lob||event.actorId!==onlineUserId()||!pl.st||
+    !Number.isSafeInteger(event.tick)||event.tick<=0||
+    event.tick<onlineLastAuthTick)return;
  // No derived +1 or client damage calculation: the BE supplies actual total.
  if(!Number.isSafeInteger(event.kills)||event.kills<score)return;
  // A same-tick world snapshot may precede its KILL event. The public KILL
@@ -1327,7 +1329,9 @@ function onlineApplyVerifiedExplosion(event){
  if(!event||typeof event.id!=='string'||onlineSeenKillIds.has(event.id)||
     !onlineActive||!run||lob||event.actorId!==onlineUserId()||
     !Number.isSafeInteger(event.count)||event.count<=0||
-    (Number.isSafeInteger(event.kills)&&event.kills<score))return;
+    !Number.isSafeInteger(event.tick)||event.tick<=0||
+   event.tick<onlineLastAuthTick||
+   (Number.isSafeInteger(event.kills)&&event.kills<score))return;
  // Same-tick snapshots must not swallow a server-confirmed MASS KILL.
  onlineSeenKillIds.add(event.id);
  if(onlineSeenKillIds.size>128)onlineSeenKillIds.delete(onlineSeenKillIds.values().next().value);
