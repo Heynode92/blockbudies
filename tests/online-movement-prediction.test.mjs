@@ -130,7 +130,8 @@ test('online particle lifecycle removes muzzle flash and blood instead of leavin
 });
 test('network hit reactions remain server-driven, visible-only and short lived',()=>{
  assert.match(code,/frame.type==='combat_impact'/);
- assert.match(code,/onlineReactToImpact\(frame.victimId,!!frame.headshot,true\)/);
+ assert.match(code,/frame.actorId===onlineUserId\(\)/);
+ assert.match(code,/onlineReactToImpact\(frame.victimId,verifiedHead,true\)/);
  assert.match(code,/onlineActors.get\(victimId\)/);
  assert.match(code,/botDamageReaction\(model,visualDamage,dx,dz,!!headshot,true\)/);
  assert.match(code,/flash\(bot,dt\)/);
