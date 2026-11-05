@@ -438,13 +438,15 @@ function onlineConfirmedDeath(event){
  model.dead=true;
  spawnBotDeathVisual(model,dx,dz,0);
 }
-function onlineReactToImpact(victimId,headshot,ownShot){
+function onlineReactToImpact(victimId,headshot,ownShot,weaponId){
  if(typeof victimId!=='string'||!onlineActive)return;
  var model=onlineActors.get(victimId)?.model;
  if(!model||model.dead||!model.g?.visible)return;
  // Reuse the original offline hit recoil and blood, not a second online formula.
  // This intensity is cosmetic only and comes from the existing weapon profile.
- var visualDamage=ownShot?(WP[pl.w]?.dmg||0):0;
+ // Use the authenticated HIT weapon, not a new local selection made after
+ // the shot was sent. This only controls visual stagger; never HP/damage.
+ var visualDamage=ownShot?(WP[Number.isInteger(weaponId)?weaponId:pl.w]?.dmg||0):0;
  var dx=ownShot?model.x-pl.x:0,dz=ownShot?model.z-pl.z:0;
  botDamageReaction(model,visualDamage,dx,dz,!!headshot,true);
 }
@@ -1559,7 +1561,7 @@ function onlineReceiveFrame(frame){
    var verifiedHead=frame.headshot===true&&
     (frame.hitgroup===undefined||frame.hitgroup==='head');
    onlineHitConfirm(verifiedHead);
-   onlineReactToImpact(frame.victimId,verifiedHead,true);
+   onlineReactToImpact(frame.victimId,verifiedHead,true,frame.weaponId);
   }
   return;
  }
@@ -1573,6 +1575,8 @@ function onlineReceiveFrame(frame){
    var hit=document.getElementById('hit');
    if(hit)hit.style.opacity='1';
    cs.s=Math.max(cs.s,.45);
+   // Blood is cosmetic and only triggered by BE-confirmed victim feedback.
+   if(!pl.dead)bloodHit(pl.x,(pl.y||0)+1.12,pl.z,0,0,false);
   }
   return;
  }
