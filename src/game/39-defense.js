@@ -5,6 +5,15 @@ var DEFENSE_RULES=Object.freeze({
  revision:'pointblock-defense-2026-11-05-p1',
  maxHp:100,bodyReduction:.30,pumpShotgunBodyReduction:.20,headshotMultiplier:3
 });
+// Explosion damage is range-scaled for BOTs, players and the server alike.
+// No passive bullet-body VEST modifier applies to this damage kind.
+var EXPLOSION_DAMAGE_RULES=Object.freeze({radius:4.2,edgeReduction:.8});
+function defenseExplosionDamage(raw,distance){
+ if(!Number.isFinite(raw)||raw<0||!Number.isFinite(distance)||distance<0)
+  throw new RangeError('Invalid explosion damage/distance');
+ return distance>=EXPLOSION_DAMAGE_RULES.radius?0:
+  Math.ceil(raw*(1-distance/EXPLOSION_DAMAGE_RULES.radius*EXPLOSION_DAMAGE_RULES.edgeReduction));
+}
 // Body-zone geometry mirrors the BE hitgroup.ts and the existing blocky model.
 // This classifies a contact within the OLD cylinder, not a new limb collider.
 var HITGROUP_RULES=Object.freeze({
