@@ -16,7 +16,7 @@ function setup(){
  return ctx;
 }
 function raw(w,d,ctx){
- return w.dmg*ctx.fall({sx:0,sz:0,fo:w.rangeModifier?[w.rangeModifier,w.rangeUnit]:null},{x:d,z:0});
+ return w.dmg*ctx.fall({sx:0,sz:0,wid:ctx.WP.indexOf(w),fo:w.rangeModifier?[w.rangeModifier,w.rangeUnit]:null},{x:d,z:0});
 }
 function near(a,b,what){assert.ok(Math.abs(a-b)<1e-8,what+": "+a+" != "+b);}
 test("original thirteen weapon IDs and class configs are preserved alongside expanded weapon catalog",()=>{
@@ -56,8 +56,7 @@ test("assault rifles retain full damage through 30m, then follow one piecewise-l
   for(const [d,pct] of checkpoints)if(d<=w.range)
    near(raw(w,d,c),w.dmg*pct,w.n+" "+d+"m");
   assert.equal(w.life*w.spd,w.range,w.n+" projectile cap unchanged");
-  assert.equal(w.rangeModifier,w.stats.rangeModifier ?? w.rangeModifier,
-    w.n+" immutable original rating");
+  assert.equal(w.stats.damage,w.dmg*w.pel,w.n+" immutable original damage");
   for(let d=0;d<Math.min(w.range,155);d+=5)
    assert.ok(raw(w,d+5,c)<=raw(w,d,c)+1e-10,w.n+" falloff must not rise");
  }
