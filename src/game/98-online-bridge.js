@@ -2068,9 +2068,13 @@ function onlineVisualUpdate(dt){
   onlineWarn('BALLISTIC_VERSION_MISMATCH — UPDATE FE AND BE TOGETHER');
  }
  var acceptedFire=wantsFire&&!onlineGrenadeCancelUntilRelease&&gunplayCompatible;
- if(acceptedFire&&pl.w!==5&&pl.mag>0&&now-onlineMuzzleTime>Math.max(75,(WP[pl.w]?.cd||.14)*1000)){
+ // Render-only cadence mirrors the REAL weapon cooldown. Do not impose an
+ // unrelated 75ms ceiling on SMGs or lose fractional time on each frame.
+ var cosmeticDue=acceptedFire&&pl.w!==5&&pl.mag>0&&WP[pl.w]?
+  weaponCosmeticShotTime(onlineMuzzleTime,now,WP[pl.w].cd):null;
+ if(cosmeticDue!==null){
   // Cosmetic prediction only: server decides shot legitimacy, ammo, hit and damage.
-  onlineMuzzleTime=now;
+  onlineMuzzleTime=cosmeticDue;
   if(pl.w===4){pl.stab=.42;pl.knifeAlt=!!knifeRight;}
   else if(pl.w===5)pl.thr=.5;
   else{

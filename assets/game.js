@@ -2395,10 +2395,33 @@ var WEAPON_TUNING={
  dual:{rpmMin:850,rpmMax:1250,spread:.095,bulletSpeed:170,reload:2.4,viewKick:.55,recoilScale:.4},
  sniper:{rpmMin:30,rpmMax:65,spread:.21,bulletSpeed:420,reload:2.6,viewKick:2.8,recoilScale:1.5}
 };
+// Phase 5: preserve the original score-to-real-RPM archetype conversion.
+// This is PointBlock balancing, not a claim about official Point Blank data.
+var FIRE_RATE_REVISION='pointblock-fire-rate-2026-11-05-p5';
+function weaponEffectiveRpm(p){
+ var t=WEAPON_TUNING[p.kind];
+ if(!t)throw new RangeError('Unknown weapon fire-rate archetype');
+ if(p.rpm===null)return null; // Knife/grenade use their original fixed cooldowns.
+ if(!Number.isFinite(p.rpm)||p.rpm<0||p.rpm>100||
+    !Number.isFinite(t.rpmMin)||!Number.isFinite(t.rpmMax)||t.rpmMin<=0||t.rpmMax<t.rpmMin)
+  throw new RangeError('Invalid weapon RPM score/tuning');
+ return t.rpmMin+(t.rpmMax-t.rpmMin)*p.rpm/100;
+}
+// Cosmetic-only (local muzzle, shell, sound). No projectile/damage authority.
+// Preserve fractional shot cadence rather than snapping each event to a
+// render frame; never replay stale shots after pauses or tab throttling.
+function weaponCosmeticShotTime(lastMs,nowMs,cooldownSeconds){
+ if(!Number.isFinite(nowMs)||nowMs<0||!Number.isFinite(cooldownSeconds)||cooldownSeconds<=0)
+  throw new RangeError('Invalid visual fire-rate schedule');
+ var period=cooldownSeconds*1000;
+ if(!Number.isFinite(lastMs)||lastMs<=0||nowMs-lastMs>=2*period)return nowMs;
+ if(nowMs+1e-6<lastMs+period)return null;
+ return lastMs+period;
+}
 function weaponProfile(p,id){var t=WEAPON_TUNING[p.kind],pel=t.pellets||1;
   var rangeModifier=WEAPON_RANGE_MODIFIERS[id];
   if(rangeModifier===undefined)rangeModifier=DAMAGE_FALLOFF.defaultModifiers[p.kind]||null;
-  var realRpm=p.rpm===null?null:t.rpmMin+(t.rpmMax-t.rpmMin)*p.rpm/100;
+  var realRpm=weaponEffectiveRpm(p);
   var speed=t.bulletSpeed||0;
   var w={n:p.name,stats:p,cd:realRpm===null?t.cooldown:60/realRpm,
     dmg:p.damage/pel,spd:speed,life:p.range===null?0:p.range/speed,
@@ -10258,9 +10281,13 @@ function onlineVisualUpdate(dt){
   onlineWarn('BALLISTIC_VERSION_MISMATCH — UPDATE FE AND BE TOGETHER');
  }
  var acceptedFire=wantsFire&&!onlineGrenadeCancelUntilRelease&&gunplayCompatible;
- if(acceptedFire&&pl.w!==5&&pl.mag>0&&now-onlineMuzzleTime>Math.max(75,(WP[pl.w]?.cd||.14)*1000)){
+ // Render-only cadence mirrors the REAL weapon cooldown. Do not impose an
+ // unrelated 75ms ceiling on SMGs or lose fractional time on each frame.
+ var cosmeticDue=acceptedFire&&pl.w!==5&&pl.mag>0&&WP[pl.w]?
+  weaponCosmeticShotTime(onlineMuzzleTime,now,WP[pl.w].cd):null;
+ if(cosmeticDue!==null){
   // Cosmetic prediction only: server decides shot legitimacy, ammo, hit and damage.
-  onlineMuzzleTime=now;
+  onlineMuzzleTime=cosmeticDue;
   if(pl.w===4){pl.stab=.42;pl.knifeAlt=!!knifeRight;}
   else if(pl.w===5)pl.thr=.5;
   else{
