@@ -1634,12 +1634,22 @@ function blockDeathPose(model,elapsed){
 }
 // Permanent passive firearm body defense. Online authority: BE defense.ts.
 // All combat percentages are centralized here and mirrored by the BE contract.
+var COMBAT_SYNC_REVISION='pointblock-combat-sync-2026-11-05-p6';
 var DEFENSE_RULES=Object.freeze({
  revision:'pointblock-defense-2026-11-05-p1',
  maxHp:100,bodyReduction:.30,pumpShotgunBodyReduction:.20,headshotMultiplier:3
 });
-// Body-zone geometry mirrors the BE hitgroup.ts and the existing blocky model.
-// This classifies a contact within the OLD cylinder, not a new limb collider.
+// Explosion damage is range-scaled for BOTs, players and the server alike.
+// No passive bullet-body VEST modifier applies to this damage kind.
+var EXPLOSION_DAMAGE_RULES=Object.freeze({radius:4.2,edgeReduction:.8});
+function defenseExplosionDamage(raw,distance){
+ if(!Number.isFinite(raw)||raw<0||!Number.isFinite(distance)||distance<0)
+  throw new RangeError('Invalid explosion damage/distance');
+ return distance>=EXPLOSION_DAMAGE_RULES.radius?0:
+  Math.ceil(raw*(1-distance/EXPLOSION_DAMAGE_RULES.radius*EXPLOSION_DAMAGE_RULES.edgeReduction));
+}
+// Phase-2 approximate classifier is kept ONLY for legacy callers. Actual
+// bullet hits use the Phase-3 anatomical sweep further below on both FE/BE.
 var HITGROUP_RULES=Object.freeze({
  revision:'pointblock-hitgroup-2026-11-05-p2',
  multipliers:Object.freeze({chest:1,stomach:1.25,arm:1,leg:.75}),
@@ -2444,7 +2454,7 @@ var WP=WEAPON_PROFILES.map(weaponProfile);
 
 // Keep these exact equations in backend src/matches/engine/gunplay.ts.
 // Original deterministic whole-weapon recoil, bloom and movement/ADS accuracy.
-var GUNPLAY_REVISION='pointblock-gunplay-2026-11-05-v4-first-shot';
+var GUNPLAY_REVISION='pointblock-gunplay-2026-11-05-v6-sync';
 var GUNPLAY_ARCHETYPES={
  pistol:{vertical:.8,horizontal:.8,bloom:.7,recovery:5.8},
  rifle:{vertical:1,horizontal:1,bloom:1,recovery:4.5},
@@ -2486,7 +2496,7 @@ function gunplayShotRated(p,w,state,time,conditions,random){
    angle=gunplayClamp(random(),0,.999999)*Math.PI*2;
  var verticalKick=.0030*vert*arch.vertical*(1+Math.min(index,16)*.035)*(1-.07*ads);
  var horizontalStep=.0031*horz*arch.horizontal*
-   (.74*Math.sin((index+1)*.43+arch.vertical)+.26*Math.sin((index+1)*.17));
+   (.74*Math.sin((index+1)*.43+arch.vertical)+.26*Math.sin((index+1)*.17)+.22);
  state.pitch=gunplayClamp(state.pitch+verticalKick,0,.18);
  state.yaw=gunplayClamp(state.yaw+horizontalStep,-.15,.15);
  // Apply this very shot's kick before sampling the authoritative muzzle axis;
@@ -2887,14 +2897,21 @@ function botCombatTick(e,target,face,d){
 // The armor/headshot rules are identical, independent of who fired.
 function projectileHitCharacter(b,target,head,verifiedBodyGroup){
   if(typeof botQaEnabled!=='undefined'&&botQaEnabled)botQaHit(b);
+  // Phase-3 actual swept contact is the source of truth; do not permit a
+  // stale height-only bool to transform a verified torso hit into a headshot.
+  if(verifiedBodyGroup!==undefined){
+    if(!['head','chest','stomach','arm','leg'].includes(verifiedBodyGroup))
+      throw new RangeError('Invalid verified offline impact hitgroup');
+    head=verifiedBodyGroup==='head';
+  }
   var damage=b.dmg*(b.fo?fall(b,b.m.position):1),source=b.by;
   if(head){
     if(target.helm){
       if(target===pl)popPl();else popHelm(target,b.vx,b.vz);
     }else damage=defenseHeadshotDamage(damage);
   }
-  // The original collision decides head/body. Phase 2 only classifies
-  // body contacts inside that existing collider; no new geometry here.
+  // Phase 3 collider already selects a true body group. The old Phase 2
+  // approximate classifier is fallback ONLY for legacy callers/tests.
   var group=head?'chest':verifiedBodyGroup||defenseClassifyBodyHitgroup(b.m.position,{
     x:target.x,y:target.y||0,z:target.z,
     yaw:target===pl?target.face:target.g.rotation.y
@@ -3061,9 +3078,9 @@ function boom(x,z,dmg,lab,by,shooter){var attacker=shooter||pl;curK=attacker;boo
   var m=new T.Mesh(new T.SphereGeometry(1,14,14),new T.MeshBasicMaterial({color:0xffa94d,transparent:true,opacity:.7}));
   m.position.set(x,Math.max(.3,Math.min(1.5,by||1)),z);S.add(m);fx.push({m:m,t:0});spark(x,1,z,0xffa94d,26,9,.28);spark(x,1,z,0xfff3bf,10,5,.2);var sy=Math.max(.3,Math.min(1.5,by||1));smoke(x,sy,z,8,3.2,1,2.4,1.2,1);smoke(x,.35,z,10,4.5,.9,2.2,.25,0);smoke(x,sy+.4,z,5,1.2,1.2,3,1.6,1);
   boomN=0;inBoom=true;
-  en.slice().forEach(function(e){if(e.tm===attacker.tm||e.dead)return;var dd=Math.hypot(e.x-x,e.z-z);if(dd<4.2&&clearTo(x,z,e.x,e.z,.45)){var k=dd||1;dmgE(e,dmg,(e.x-x)/k,(e.z-z)/k,1,"explosive");}});
-  if(attacker!==pl&&!attacker.dead){var selfDistance=Math.hypot(attacker.x-x,attacker.z-z);if(selfDistance<4.2&&clearTo(x,z,attacker.x,attacker.z,.45))dmgE(attacker,Math.ceil(dmg*(1-selfDistance/4.2*.8)),0,0,1,"explosive");}
-  inBoom=false;var pd=Math.hypot(pl.x-x,pl.z-z);if((pl.tm!==attacker.tm||attacker===pl)&&pd<4.2&&clearTo(x,z,pl.x,pl.z,.45))hurt(Math.ceil(dmg*(1-pd/4.2*.8)),x,z,"explosive");shakeT=Math.max(shakeT,.35);if(boomN>0)killNotify(boomN>2);
+  en.slice().forEach(function(e){if(e.tm===attacker.tm||e.dead)return;var dd=Math.hypot(e.x-x,e.z-z);if(dd<4.2&&clearTo(x,z,e.x,e.z,.45)){var k=dd||1;dmgE(e,defenseExplosionDamage(dmg,dd),(e.x-x)/k,(e.z-z)/k,1,"explosive");}});
+  if(attacker!==pl&&!attacker.dead){var selfDistance=Math.hypot(attacker.x-x,attacker.z-z);if(selfDistance<4.2&&clearTo(x,z,attacker.x,attacker.z,.45))dmgE(attacker,defenseExplosionDamage(dmg,selfDistance),0,0,1,"explosive");}
+  inBoom=false;var pd=Math.hypot(pl.x-x,pl.z-z);if((pl.tm!==attacker.tm||attacker===pl)&&pd<4.2&&clearTo(x,z,pl.x,pl.z,.45))hurt(defenseExplosionDamage(dmg,pd),x,z,"explosive");shakeT=Math.max(shakeT,.35);if(boomN>0)killNotify(boomN>2);
 }
 // Transient, animated blood pools on the ground under fallen characters.
 // Uses shared procedural geometry, capped and recycled mesh groups: no permanent decals.
@@ -3666,8 +3683,18 @@ var favPrim=1,scopeOn=false,shotSide=0,scopedNow=false;
 var killW=1,KF=document.getElementById("kfd"),KFL=[],
 HSI='<span class="hsi"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.2" fill="none" stroke="#ff4d4d" stroke-width="1.6"/><circle cx="8" cy="8" r="1.5" fill="#ff4d4d"/><path d="M8 0v3.6M8 12.4V16M0 8h3.6M12.4 8H16" stroke="#ff4d4d" stroke-width="1.6"/></svg></span>';
 // kFeed(): adds a row to the kill feed (killer, weapon id, headshot flag, victim).
-function kFeed(k,w,hs,v){if(!KF)return;var el=document.createElement("div");el.className="kfr";
-  var nm=function(o){return o===pl?'You':o.name;},tc=function(o){return o.tm?'#ff8a65':'#4dabf7';};el.innerHTML=(k?'<span style="color:'+tc(k)+'">'+nm(k)+'</span><span class="wp">'+(SV[w]||SV[1])+'</span>':'')+(hs?HSI:'')+'<span style="color:'+tc(v)+'">'+nm(v)+'</span>';
+function kFeed(k,w,hs,v){if(!KF||!v)return;var el=document.createElement("div");el.className="kfr";
+  var nm=function(o){return o===pl?'You':typeof o?.name==='string'?o.name:'UNKNOWN';},
+      tc=function(o){return o?.tm?'#ff8a65':'#4dabf7';};
+  // Trusted local SVG icon templates remain HTML; public player/BOT names
+  // are always text nodes, never interpolated into innerHTML.
+  function label(actor){var span=document.createElement('span');
+    span.style.color=tc(actor);span.textContent=nm(actor);el.appendChild(span);}
+  if(k){label(k);var weapon=document.createElement('span');weapon.className='wp';
+    weapon.innerHTML=SV[w]||SV[1];el.appendChild(weapon);}
+  if(hs){var indicator=document.createElement('span');indicator.innerHTML=HSI;
+    if(indicator.firstElementChild)el.appendChild(indicator.firstElementChild);}
+  label(v);
   KF.appendChild(el);KFL.push({el:el,t:4.6});
   while(KFL.length>5){var o=KFL.shift();o.el.style.transition="opacity .2s linear";o.el.classList.add("out");(function(n){setTimeout(function(){if(n.parentNode)n.parentNode.removeChild(n);},240);})(o.el);}
   void el.offsetWidth;el.classList.add("in");}
@@ -9511,15 +9538,18 @@ function onlineApplyVerifiedKill(event){
  if(!event||typeof event.id!=='string'||onlineSeenKillIds.has(event.id))return;
  onlineSeenKillIds.add(event.id);
  if(onlineSeenKillIds.size>128)onlineSeenKillIds.delete(onlineSeenKillIds.values().next().value);
- if(!onlineActive||!run||lob||event.actorId!==onlineUserId()||!pl.st||
-    (Number.isSafeInteger(event.tick)&&event.tick<=onlineLastAuthTick))return;
+ if(!onlineActive||!run||lob||event.actorId!==onlineUserId()||!pl.st)return;
  // No derived +1 or client damage calculation: the BE supplies actual total.
- if(!Number.isSafeInteger(event.kills)||event.kills<0)return;
+ if(!Number.isSafeInteger(event.kills)||event.kills<score)return;
+ // A same-tick world snapshot may precede its KILL event. The public KILL
+ // event ID and server-supplied total are authoritative; suppress older
+ // totals instead of suppressing valid confirmed HEADSHOT/streak banners.
  if(event.kills>=score){
   onlineSyncKillDisplay(event.kills,event.kills===score+1);
   pl.st.k=event.kills;
  }
- if(Number.isSafeInteger(event.tick)&&event.tick>=onlinePendingKillTick){
+ if(Number.isSafeInteger(event.tick)&&event.tick>onlineLastAuthTick&&
+    event.tick>=onlinePendingKillTick){
   onlinePendingKillTick=event.tick;
   onlinePendingKillTotal=Math.max(onlinePendingKillTotal??0,event.kills);
  }
@@ -9537,7 +9567,8 @@ function onlineApplyVerifiedExplosion(event){
  if(!event||typeof event.id!=='string'||onlineSeenKillIds.has(event.id)||
     !onlineActive||!run||lob||event.actorId!==onlineUserId()||
     !Number.isSafeInteger(event.count)||event.count<=0||
-    (Number.isSafeInteger(event.tick)&&event.tick<=onlineLastAuthTick))return;
+    (Number.isSafeInteger(event.kills)&&event.kills<score))return;
+ // Same-tick snapshots must not swallow a server-confirmed MASS KILL.
  onlineSeenKillIds.add(event.id);
  if(onlineSeenKillIds.size>128)onlineSeenKillIds.delete(onlineSeenKillIds.values().next().value);
  if(Number.isSafeInteger(event.streak)&&event.streak>=0)ck.n=event.streak;
@@ -9755,11 +9786,16 @@ function onlineReceiveFrame(frame){
   return;
  }
  if(frame.type==='combat_hit'){
-  if(onlineActive){
+  // HIT confirmations (including the red headshot hitmarker) belong ONLY
+  // to the authenticated local shooter. Incoming/allied hits must not
+  // appear as the player's own successful headshot.
+  if(onlineActive&&frame.actorId===onlineUserId()){
    onlineCombatQa.confirmedHits++;
    onlineCombatQa.lastEvent='HIT';
-   onlineHitConfirm(!!frame.headshot);
-   onlineReactToImpact(frame.victimId,!!frame.headshot,true);
+   var verifiedHead=frame.headshot===true&&
+    (frame.hitgroup===undefined||frame.hitgroup==='head');
+   onlineHitConfirm(verifiedHead);
+   onlineReactToImpact(frame.victimId,verifiedHead,true);
   }
   return;
  }
@@ -10049,8 +10085,14 @@ function onlineApplyWorld(){
    onlineGrenadeServerCharge=privateState?.grenadeCharge??null;
   pl.hp=privateState?.hp??self.hp??pl.hp;
   if(Number.isFinite(privateState?.spawnShieldRemaining))pl.inv=Math.max(0,privateState.spawnShieldRemaining);
-  if(typeof privateState?.helmet==='boolean')pl.helm=privateState.helmet;
-  else if(typeof self.helmet==='boolean')pl.helm=self.helmet;
+  var trustedHelmet=typeof privateState?.helmet==='boolean'?
+   privateState.helmet:typeof self.helmet==='boolean'?self.helmet:null;
+  if(trustedHelmet!==null&&pl.helm!==trustedHelmet){
+   // The original offline helmet indicator and pop effect are reused,
+   // but ONLY after observing the BE-owned helmet transition.
+   if(pl.helm&&trustedHelmet===false&&self.alive)popPl();
+   else{pl.helm=trustedHelmet;setHm();}
+  }
   onlineWeaponSnapshot(self,privateState,fresh);
   if(pl.st&&privateState){
    var kills=privateState.kills;
@@ -10275,10 +10317,13 @@ function onlineVisualUpdate(dt){
  }
  if(!wantsFire)onlineGrenadeCancelUntilRelease=false;
  onlineGrenadeChargeUI();
- var gunplayCompatible=onlineGame?.ballisticRevision===GUNPLAY_REVISION;
+ // Both approved damage and ballistic revisions must be identical to BE.
+ // A mismatched FE must not predict valid-looking shots for another law.
+ var gunplayCompatible=onlineGame?.ballisticRevision===GUNPLAY_REVISION&&
+  onlineGame?.combatRevision===COMBAT_SYNC_REVISION;
  if(onlineGame&&!gunplayCompatible&&!onlineGunplayMismatchWarned){
   onlineGunplayMismatchWarned=true;
-  onlineWarn('BALLISTIC_VERSION_MISMATCH — UPDATE FE AND BE TOGETHER');
+  onlineWarn('COMBAT_VERSION_MISMATCH — UPDATE FE AND BE TOGETHER');
  }
  var acceptedFire=wantsFire&&!onlineGrenadeCancelUntilRelease&&gunplayCompatible;
  // Render-only cadence mirrors the REAL weapon cooldown. Do not impose an
