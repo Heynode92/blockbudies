@@ -1298,15 +1298,18 @@ function onlineApplyVerifiedKill(event){
  if(!event||typeof event.id!=='string'||onlineSeenKillIds.has(event.id))return;
  onlineSeenKillIds.add(event.id);
  if(onlineSeenKillIds.size>128)onlineSeenKillIds.delete(onlineSeenKillIds.values().next().value);
- if(!onlineActive||!run||lob||event.actorId!==onlineUserId()||!pl.st||
-    (Number.isSafeInteger(event.tick)&&event.tick<=onlineLastAuthTick))return;
+ if(!onlineActive||!run||lob||event.actorId!==onlineUserId()||!pl.st)return;
  // No derived +1 or client damage calculation: the BE supplies actual total.
- if(!Number.isSafeInteger(event.kills)||event.kills<0)return;
+ if(!Number.isSafeInteger(event.kills)||event.kills<score)return;
+ // A same-tick world snapshot may precede its KILL event. The public KILL
+ // event ID and server-supplied total are authoritative; suppress older
+ // totals instead of suppressing valid confirmed HEADSHOT/streak banners.
  if(event.kills>=score){
   onlineSyncKillDisplay(event.kills,event.kills===score+1);
   pl.st.k=event.kills;
  }
- if(Number.isSafeInteger(event.tick)&&event.tick>=onlinePendingKillTick){
+ if(Number.isSafeInteger(event.tick)&&event.tick>onlineLastAuthTick&&
+    event.tick>=onlinePendingKillTick){
   onlinePendingKillTick=event.tick;
   onlinePendingKillTotal=Math.max(onlinePendingKillTotal??0,event.kills);
  }
@@ -1324,7 +1327,8 @@ function onlineApplyVerifiedExplosion(event){
  if(!event||typeof event.id!=='string'||onlineSeenKillIds.has(event.id)||
     !onlineActive||!run||lob||event.actorId!==onlineUserId()||
     !Number.isSafeInteger(event.count)||event.count<=0||
-    (Number.isSafeInteger(event.tick)&&event.tick<=onlineLastAuthTick))return;
+    (Number.isSafeInteger(event.kills)&&event.kills<score))return;
+ // Same-tick snapshots must not swallow a server-confirmed MASS KILL.
  onlineSeenKillIds.add(event.id);
  if(onlineSeenKillIds.size>128)onlineSeenKillIds.delete(onlineSeenKillIds.values().next().value);
  if(Number.isSafeInteger(event.streak)&&event.streak>=0)ck.n=event.streak;
@@ -1542,11 +1546,14 @@ function onlineReceiveFrame(frame){
   return;
  }
  if(frame.type==='combat_hit'){
-  if(onlineActive){
+  // HIT confirmations (including the red headshot hitmarker) belong ONLY
+  // to the authenticated local shooter. Incoming/allied hits must not
+  // appear as the player's own successful headshot.
+  if(onlineActive&&frame.actorId===onlineUserId()){
    onlineCombatQa.confirmedHits++;
    onlineCombatQa.lastEvent='HIT';
-   onlineHitConfirm(!!frame.headshot);
-   onlineReactToImpact(frame.victimId,!!frame.headshot,true);
+   onlineHitConfirm(frame.headshot===true);
+   onlineReactToImpact(frame.victimId,frame.headshot===true,true);
   }
   return;
  }
@@ -1836,8 +1843,14 @@ function onlineApplyWorld(){
    onlineGrenadeServerCharge=privateState?.grenadeCharge??null;
   pl.hp=privateState?.hp??self.hp??pl.hp;
   if(Number.isFinite(privateState?.spawnShieldRemaining))pl.inv=Math.max(0,privateState.spawnShieldRemaining);
-  if(typeof privateState?.helmet==='boolean')pl.helm=privateState.helmet;
-  else if(typeof self.helmet==='boolean')pl.helm=self.helmet;
+  var trustedHelmet=typeof privateState?.helmet==='boolean'?
+   privateState.helmet:typeof self.helmet==='boolean'?self.helmet:null;
+  if(trustedHelmet!==null&&pl.helm!==trustedHelmet){
+   // The original offline helmet indicator and pop effect are reused,
+   // but ONLY after observing the BE-owned helmet transition.
+   if(pl.helm&&trustedHelmet===false&&self.alive)popPl();
+   else{pl.helm=trustedHelmet;setHm();}
+  }
   onlineWeaponSnapshot(self,privateState,fresh);
   if(pl.st&&privateState){
    var kills=privateState.kills;
