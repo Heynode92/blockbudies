@@ -72,7 +72,7 @@ function chhbDot(a,b){return a.x*b.x+a.y*b.y+a.z*b.z;}
 function chhbSub(a,b){return ({x:a.x-b.x,y:a.y-b.y,z:a.z-b.z});}
 function chhbPlus(a,b){return ({x:a.x+b.x,y:a.y+b.y,z:a.z+b.z});}
 function chhbMul(a,f){return ({x:a.x*f,y:a.y*f,z:a.z*f});}
-function chhbNorm(a){const l=Math.hypot(a.x,a.y,a.z);return l<1e-12?{x:0,y:-1,z:0}:chhbMul(a,1/l)};}
+function chhbNorm(a){const l=Math.hypot(a.x,a.y,a.z);return l<1e-12?{x:0,y:-1,z:0}:chhbMul(a,1/l);}
 function chhbBox(a,b,c,hx,hy,hz) {
   const d=chhbSub(b,a);
   let lo=0,hi=1;
