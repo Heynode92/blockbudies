@@ -1,4 +1,4 @@
-name: PointBlock Fire Rate (Windows)
+name: PointBlock Combat Sync Phase 6 (Windows)
 
 on:
   pull_request:
@@ -21,6 +21,8 @@ on:
       - 'tools/source-manifest.json'
       - 'tests/damage-range.test.mjs'
       - 'tests/fire-rate-phase5.test.mjs'
+      - 'tests/combat-sync-phase6.test.mjs'
+      - 'tests/gunplay-ballistics.test.mjs'
       - 'tests/hitgroup-phase2.test.mjs'
       - 'tests/anatomical-hitbox.test.mjs'
       - 'tests/online-movement-prediction.test.mjs'
@@ -45,8 +47,8 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Verify generated game bundle
         run: node tools/build.mjs --check
-      - name: Verify actual weapon RPM, cosmetic cadence and FE parity
-        run: node --test tests/fire-rate-phase5.test.mjs tests/damage-range.test.mjs tests/parity.test.mjs tests/online-movement-prediction.test.mjs
+      - name: Verify combat parity, effects and exact H recoil
+        run: node --test tests/combat-sync-phase6.test.mjs tests/gunplay-ballistics.test.mjs tests/anatomical-hitbox.test.mjs tests/hitgroup-phase2.test.mjs tests/defense-bot-weapons.test.mjs tests/damage-range.test.mjs tests/parity.test.mjs
       - name: Build production frontend
         run: npm run build
       - name: Check distributable
