@@ -1,4 +1,4 @@
-name: PointBlock Rifle Falloff (Windows)
+name: PointBlock Fire Rate (Windows)
 
 on:
   pull_request:
@@ -13,12 +13,14 @@ on:
       - 'src/game/90-bot-ai.js'
       - 'src/game/95-simulation.js'
       - 'src/game/weapon/00-registry.js'
+      - 'src/game/weapon/20-ballistics.js'
       - 'src/game/75-weapon-controls.js'
       - 'src/styles/08-defense.css'
       - 'index.html'
       - 'assets/game.js'
       - 'tools/source-manifest.json'
       - 'tests/damage-range.test.mjs'
+      - 'tests/fire-rate-phase5.test.mjs'
       - 'tests/hitgroup-phase2.test.mjs'
       - 'tests/anatomical-hitbox.test.mjs'
       - 'tests/online-movement-prediction.test.mjs'
@@ -43,8 +45,8 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Verify generated game bundle
         run: node tools/build.mjs --check
-      - name: Verify rifle falloff, original class damage and FE parity
-        run: node --test tests/damage-range.test.mjs tests/hitgroup-phase2.test.mjs tests/defense-bot-weapons.test.mjs tests/parity.test.mjs
+      - name: Verify actual weapon RPM, cosmetic cadence and FE parity
+        run: node --test tests/fire-rate-phase5.test.mjs tests/damage-range.test.mjs tests/parity.test.mjs tests/online-movement-prediction.test.mjs
       - name: Build production frontend
         run: npm run build
       - name: Check distributable
