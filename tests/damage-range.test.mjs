@@ -70,8 +70,8 @@ test("Falloff still precedes helmet/headshot and the permanent body defense",()=
  c.dmgE=(e,damage,...rest)=>hits.push({damage,rest});
  runInNewContext(impact,c);
  const w=c.WP[9],shot={dmg:w.dmg,fo:[w.rangeModifier,w.rangeUnit],sx:0,sz:0,
-   wid:9,by:{tm:0},vx:1,vz:0,m:{position:{x:60,z:0}}};
- const target={helm:true};
+   wid:9,by:{tm:0},vx:1,vz:0,m:{position:{x:60,y:1.2,z:0}}};
+ const target={helm:true,x:60,y:0,z:0,g:{rotation:{y:0}}};
  c.projectileHitCharacter(shot,target,true);
  near(hits.at(-1).damage,w.dmg*Math.pow(.98,3),"helmeted headshot");
  c.projectileHitCharacter(shot,target,true);
@@ -79,7 +79,8 @@ test("Falloff still precedes helmet/headshot and the permanent body defense",()=
  c.projectileHitCharacter(shot,target,false);
  const rawBody=hits.at(-1).damage;
  near(c.defenseDamage({},rawBody,"bullet-body",shot.wid),rawBody*.7,"30% body reduction");
- assert.equal(hits.at(-1).rest.at(-1),shot.wid,"weapon identity is available to the reducer");
+ assert.equal(hits.at(-1).rest.at(-2),shot.wid,"weapon identity is available to the reducer");
+ assert.equal(hits.at(-1).rest.at(-1),'chest',"center upper-body hit classified as chest");
  assert.equal(c.DEFENSE_RULES.headshotMultiplier,3);
  assert.equal(c.DEFENSE_RULES.bodyReduction,.30);
  assert.equal(c.DEFENSE_RULES.pumpShotgunBodyReduction,.20);
