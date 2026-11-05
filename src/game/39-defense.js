@@ -14,8 +14,8 @@ function defenseExplosionDamage(raw,distance){
  return distance>=EXPLOSION_DAMAGE_RULES.radius?0:
   Math.ceil(raw*(1-distance/EXPLOSION_DAMAGE_RULES.radius*EXPLOSION_DAMAGE_RULES.edgeReduction));
 }
-// Body-zone geometry mirrors the BE hitgroup.ts and the existing blocky model.
-// This classifies a contact within the OLD cylinder, not a new limb collider.
+// Phase-2 approximate classifier is kept ONLY for legacy callers. Actual
+// bullet hits use the Phase-3 anatomical sweep further below on both FE/BE.
 var HITGROUP_RULES=Object.freeze({
  revision:'pointblock-hitgroup-2026-11-05-p2',
  multipliers:Object.freeze({chest:1,stomach:1.25,arm:1,leg:.75}),
