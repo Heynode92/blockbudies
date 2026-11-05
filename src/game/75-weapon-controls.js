@@ -100,7 +100,7 @@ var WSEL=[],WDESC={1:"Balanced · Mid range",2:"Close range · High burst",3:"Ex
  6:"Fast fire rate",8:"High damage · Long range",9:"Standard-issue rifle",
  10:"Compact · Rapid fire",11:"High capacity · Fast SMG",12:"Tactical rifle · Optic",13:"Suppressed · Iron sights",14:"UMP45 · Iron sights",15:"HK417 · Red-dot optic",16:"XM8 · Round red-dot sight",17:"XM2010 · Bolt-action sniper",18:"Saiga-12 · Box red-dot sight"};
 function canAds(w){if(w===7)return false;return w<4||w===6||(WP[w]&&WP[w].snp)||w===WEAPON_STARTER_ID||w===13||w===14||!!tacticalOpticConfig(w);}
-function fall(b,p){var f=b.fo;if(!f)return 1;var d=Math.max(0,Math.hypot(p.x-b.sx,p.z-b.sz));return Math.pow(f[0],d/f[1]);}
+function fall(b,p){var d=Math.max(0,Math.hypot(p.x-b.sx,p.z-b.sz));if(WEAPON_PROFILES[b.wid]?.kind==='rifle')return rifleDamageRetention(d);var f=b.fo;return f?Math.pow(f[0],d/f[1]):1;}
 var scopeEl=document.getElementById("scope"),abEl=document.getElementById("ab");
 function refreshWeaponSelection(){
  var owned=inventoryOwned("main");
