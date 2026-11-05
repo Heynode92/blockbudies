@@ -1638,6 +1638,28 @@ var DEFENSE_RULES=Object.freeze({
  revision:'pointblock-defense-2026-11-05-p1',
  maxHp:100,bodyReduction:.30,pumpShotgunBodyReduction:.20,headshotMultiplier:3
 });
+// Body-zone geometry mirrors the BE hitgroup.ts and the existing blocky model.
+// This classifies a contact within the OLD cylinder, not a new limb collider.
+var HITGROUP_RULES=Object.freeze({
+ revision:'pointblock-hitgroup-2026-11-05-p2',
+ multipliers:Object.freeze({chest:1,stomach:1.25,arm:1,leg:.75}),
+ zones:Object.freeze({legsTop:.58,stomachTop:1.0,armBottom:.58,armSide:.40})
+});
+function defenseClassifyBodyHitgroup(point,pose){
+ if(![point.x,point.y,point.z,pose.x,pose.y,pose.z,pose.yaw].every(Number.isFinite))
+  throw new RangeError('Non-finite body impact pose');
+ var h=point.y-pose.y,zone=HITGROUP_RULES.zones;
+ if(h<zone.legsTop)return 'leg';
+ var dx=point.x-pose.x,dz=point.z-pose.z;
+ var right=dx*Math.cos(pose.yaw)-dz*Math.sin(pose.yaw);
+ if(h>=zone.armBottom&&Math.abs(right)>=zone.armSide)return 'arm';
+ return h<zone.stomachTop?'stomach':'chest';
+}
+function defenseHitgroupMultiplier(group){
+ if(!Object.prototype.hasOwnProperty.call(HITGROUP_RULES.multipliers,group))
+  throw new RangeError('Invalid body hitgroup');
+ return HITGROUP_RULES.multipliers[group];
+}
 function defenseSpawn(actor){actor.hp=DEFENSE_RULES.maxHp;actor.helm=true;}
 function defenseBodyReductionForWeapon(weaponId){
  // No BOT/player branch. Use the canonical registered weapon class and pump flag.
@@ -1645,9 +1667,12 @@ function defenseBodyReductionForWeapon(weaponId){
  return profile&&profile.kind==='shotgun'&&profile.pump===true?
   DEFENSE_RULES.pumpShotgunBodyReduction:DEFENSE_RULES.bodyReduction;
 }
-function defenseDamage(actor,raw,kind,weaponId){
+function defenseDamage(actor,raw,kind,weaponId,hitgroup){
  var damage=Math.max(0,Number.isFinite(raw)?raw:0);
- return kind==='bullet-body'?damage*(1-defenseBodyReductionForWeapon(weaponId)):damage;
+ // Distance is already applied by projectileHitCharacter(). No rounding
+ // between hitgroup and permanent defense, including each shotgun pellet.
+ return kind==='bullet-body'?
+  damage*defenseHitgroupMultiplier(hitgroup||'chest')*(1-defenseBodyReductionForWeapon(weaponId)):damage;
 }
 // Helmet absorbs the first headshot bonus; unhelmeted headshots retain 3x.
 function defenseHeadshotDamage(base){return base*DEFENSE_RULES.headshotMultiplier;}
@@ -2685,9 +2710,15 @@ function projectileHitCharacter(b,target,head){
       if(target===pl)popPl();else popHelm(target,b.vx,b.vz);
     }else damage=defenseHeadshotDamage(damage);
   }
+  // The original collision decides head/body. Phase 2 only classifies
+  // body contacts inside that existing collider; no new geometry here.
+  var group=head?'chest':defenseClassifyBodyHitgroup(b.m.position,{
+    x:target.x,y:target.y||0,z:target.z,
+    yaw:target===pl?target.face:target.g.rotation.y
+  });
   curK=source;killW=b.wid>=0?b.wid:1;hsF=!!head;
-  if(target===pl)hurt(damage,b.sx,b.sz,head?'head':'bullet-body',b.wid);
-  else dmgE(target,damage,b.vx,b.vz,0,head?'head':'bullet-body',b.wid);
+  if(target===pl)hurt(damage,b.sx,b.sz,head?'head':'bullet-body',b.wid,group);
+  else dmgE(target,damage,b.vx,b.vz,0,head?'head':'bullet-body',b.wid,group);
   hsF=false;
 }
 // Existing weapon speed ratings (WP.moveMult) remain the source of truth.
@@ -3214,10 +3245,10 @@ function botDamageReaction(e,d,kx,kz,head,confirmed){
   var hm=Math.hypot(kx||0,kz||0);
   if(hm>.01){e.hdx=kx/hm;e.hdz=kz/hm;}
 }
-function dmgE(e,d,kx,kz,ex,kind,weaponId){
+function dmgE(e,d,kx,kz,ex,kind,weaponId,hitgroup){
   if(e.inv>0||e.dead)return;
   if(isBombMode())bombInterruptPlant(e);
-  d=defenseDamage(e,d,kind||"bullet-body",weaponId);
+  d=defenseDamage(e,d,kind||"bullet-body",weaponId,hitgroup);
   botDamageReaction(e,d,kx,kz,kind==="head",false);
   e.hp-=d;
   if(e.hp<=0)killE(e,kx||0,kz||0,ex);
@@ -3473,7 +3504,7 @@ function hdUpd(dt){var R=Math.min(innerWidth,innerHeight)*.3,sf=Math.sin(pl.face
     var dx=h.x-pl.x,dz=h.z-pl.z,an=Math.atan2(-dx*cf+dz*sf,dx*sf+dz*cf);
     h.el.style.transform="translate(-50%,-50%) rotate("+an+"rad) translateY("+(-R)+"px)";h.el.style.opacity=Math.min(1,h.t/.6);}}
 // hurt(): damages the PLAYER by d (from position sx,sz). Ignored while dead or spawn-protected. Calls die() at 0 HP.
-function hurt(d,sx,sz,kind,weaponId){if(pl.dead||pl.inv>0)return;if(isBombMode())bombInterruptPlant(pl);d=defenseDamage(pl,d,kind||"bullet-body",weaponId);if(sx!==undefined&&Math.hypot(sx-pl.x,sz-pl.z)>.6)hdHit(sx,sz);if(d>0)bloodHit(pl.x,(pl.y||0)+(kind==="head"?1.65:1.12),pl.z,(sx===undefined?0:pl.x-sx),(sz===undefined?0:pl.z-sz),kind==="head");pl.hp-=d;pm.fl=.1;cs.s=Math.max(cs.s,.55);var hs2=0;if(sx!==undefined){var ddx=sx-pl.x,ddz=sz-pl.z;hs2=Math.sign(-ddx*Math.cos(pl.face)+ddz*Math.sin(pl.face));}cs.kv+=.7;cs.yv+=hs2*1.5;cs.rv+=hs2*.5+(Math.random()-.5)*.4;document.getElementById("hit").style.opacity=1;if(pl.hp<=0){pl.hp=0;die();}}
+function hurt(d,sx,sz,kind,weaponId,hitgroup){if(pl.dead||pl.inv>0)return;if(isBombMode())bombInterruptPlant(pl);d=defenseDamage(pl,d,kind||"bullet-body",weaponId,hitgroup);if(sx!==undefined&&Math.hypot(sx-pl.x,sz-pl.z)>.6)hdHit(sx,sz);if(d>0)bloodHit(pl.x,(pl.y||0)+(kind==="head"?1.65:1.12),pl.z,(sx===undefined?0:pl.x-sx),(sz===undefined?0:pl.z-sz),kind==="head");pl.hp-=d;pm.fl=.1;cs.s=Math.max(cs.s,.55);var hs2=0;if(sx!==undefined){var ddx=sx-pl.x,ddz=sz-pl.z;hs2=Math.sign(-ddx*Math.cos(pl.face)+ddz*Math.sin(pl.face));}cs.kv+=.7;cs.yv+=hs2*1.5;cs.rv+=hs2*.5+(Math.random()-.5)*.4;document.getElementById("hit").style.opacity=1;if(pl.hp<=0){pl.hp=0;die();}}
 // die(): player death: starts the 5 s respawn timer, drops the gun, updates stats and the killer credit.
 function die(){pl.dead=true;resetKillStreak();pl.rsT=5;pl.st.d++;pl.kb=curK&&curK!==pl?curK.name:"";if(curK&&curK!==pl){curK.st.k++;if(!isBombMode())ts[curK.tm]++;}kFeed(curK,1,false,pl);mouse.right=false;mouse.down=false;fireHeld=false;kn.innerHTML="";pm.g.visible=true;if(pm.hg)pm.hg.visible=false;pl.bloodPool=bloodPoolSpawn(pl.x,pl.y||0,pl.z,null);dropPlayerGun();if(isBombMode()){bombDrop(pl);document.body.classList.add("bomb-spectator");}else document.body.classList.add("dead");
   try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();tn(260,40,1.2,"sawtooth",.12);tn(120,30,1.6,"sine",.3);}catch(e){}}

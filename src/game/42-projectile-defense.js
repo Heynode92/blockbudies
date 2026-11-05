@@ -8,8 +8,14 @@ function projectileHitCharacter(b,target,head){
       if(target===pl)popPl();else popHelm(target,b.vx,b.vz);
     }else damage=defenseHeadshotDamage(damage);
   }
+  // The original collision decides head/body. Phase 2 only classifies
+  // body contacts inside that existing collider; no new geometry here.
+  var group=head?'chest':defenseClassifyBodyHitgroup(b.m.position,{
+    x:target.x,y:target.y||0,z:target.z,
+    yaw:target===pl?target.face:target.g.rotation.y
+  });
   curK=source;killW=b.wid>=0?b.wid:1;hsF=!!head;
-  if(target===pl)hurt(damage,b.sx,b.sz,head?'head':'bullet-body',b.wid);
-  else dmgE(target,damage,b.vx,b.vz,0,head?'head':'bullet-body',b.wid);
+  if(target===pl)hurt(damage,b.sx,b.sz,head?'head':'bullet-body',b.wid,group);
+  else dmgE(target,damage,b.vx,b.vz,0,head?'head':'bullet-body',b.wid,group);
   hsF=false;
 }
