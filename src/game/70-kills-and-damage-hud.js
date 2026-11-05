@@ -43,8 +43,18 @@ var favPrim=1,scopeOn=false,shotSide=0,scopedNow=false;
 var killW=1,KF=document.getElementById("kfd"),KFL=[],
 HSI='<span class="hsi"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.2" fill="none" stroke="#ff4d4d" stroke-width="1.6"/><circle cx="8" cy="8" r="1.5" fill="#ff4d4d"/><path d="M8 0v3.6M8 12.4V16M0 8h3.6M12.4 8H16" stroke="#ff4d4d" stroke-width="1.6"/></svg></span>';
 // kFeed(): adds a row to the kill feed (killer, weapon id, headshot flag, victim).
-function kFeed(k,w,hs,v){if(!KF)return;var el=document.createElement("div");el.className="kfr";
-  var nm=function(o){return o===pl?'You':o.name;},tc=function(o){return o.tm?'#ff8a65':'#4dabf7';};el.innerHTML=(k?'<span style="color:'+tc(k)+'">'+nm(k)+'</span><span class="wp">'+(SV[w]||SV[1])+'</span>':'')+(hs?HSI:'')+'<span style="color:'+tc(v)+'">'+nm(v)+'</span>';
+function kFeed(k,w,hs,v){if(!KF||!v)return;var el=document.createElement("div");el.className="kfr";
+  var nm=function(o){return o===pl?'You':typeof o?.name==='string'?o.name:'UNKNOWN';},
+      tc=function(o){return o?.tm?'#ff8a65':'#4dabf7';};
+  // Trusted local SVG icon templates remain HTML; public player/BOT names
+  // are always text nodes, never interpolated into innerHTML.
+  function label(actor){var span=document.createElement('span');
+    span.style.color=tc(actor);span.textContent=nm(actor);el.appendChild(span);}
+  if(k){label(k);var weapon=document.createElement('span');weapon.className='wp';
+    weapon.innerHTML=SV[w]||SV[1];el.appendChild(weapon);}
+  if(hs){var indicator=document.createElement('span');indicator.innerHTML=HSI;
+    if(indicator.firstElementChild)el.appendChild(indicator.firstElementChild);}
+  label(v);
   KF.appendChild(el);KFL.push({el:el,t:4.6});
   while(KFL.length>5){var o=KFL.shift();o.el.style.transition="opacity .2s linear";o.el.classList.add("out");(function(n){setTimeout(function(){if(n.parentNode)n.parentNode.removeChild(n);},240);})(o.el);}
   void el.offsetWidth;el.classList.add("in");}

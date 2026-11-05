@@ -141,7 +141,7 @@ function boom(x,z,dmg,lab,by,shooter){var attacker=shooter||pl;curK=attacker;boo
   var m=new T.Mesh(new T.SphereGeometry(1,14,14),new T.MeshBasicMaterial({color:0xffa94d,transparent:true,opacity:.7}));
   m.position.set(x,Math.max(.3,Math.min(1.5,by||1)),z);S.add(m);fx.push({m:m,t:0});spark(x,1,z,0xffa94d,26,9,.28);spark(x,1,z,0xfff3bf,10,5,.2);var sy=Math.max(.3,Math.min(1.5,by||1));smoke(x,sy,z,8,3.2,1,2.4,1.2,1);smoke(x,.35,z,10,4.5,.9,2.2,.25,0);smoke(x,sy+.4,z,5,1.2,1.2,3,1.6,1);
   boomN=0;inBoom=true;
-  en.slice().forEach(function(e){if(e.tm===attacker.tm||e.dead)return;var dd=Math.hypot(e.x-x,e.z-z);if(dd<4.2&&clearTo(x,z,e.x,e.z,.45)){var k=dd||1;dmgE(e,dmg,(e.x-x)/k,(e.z-z)/k,1,"explosive");}});
-  if(attacker!==pl&&!attacker.dead){var selfDistance=Math.hypot(attacker.x-x,attacker.z-z);if(selfDistance<4.2&&clearTo(x,z,attacker.x,attacker.z,.45))dmgE(attacker,Math.ceil(dmg*(1-selfDistance/4.2*.8)),0,0,1,"explosive");}
-  inBoom=false;var pd=Math.hypot(pl.x-x,pl.z-z);if((pl.tm!==attacker.tm||attacker===pl)&&pd<4.2&&clearTo(x,z,pl.x,pl.z,.45))hurt(Math.ceil(dmg*(1-pd/4.2*.8)),x,z,"explosive");shakeT=Math.max(shakeT,.35);if(boomN>0)killNotify(boomN>2);
+  en.slice().forEach(function(e){if(e.tm===attacker.tm||e.dead)return;var dd=Math.hypot(e.x-x,e.z-z);if(dd<4.2&&clearTo(x,z,e.x,e.z,.45)){var k=dd||1;dmgE(e,defenseExplosionDamage(dmg,dd),(e.x-x)/k,(e.z-z)/k,1,"explosive");}});
+  if(attacker!==pl&&!attacker.dead){var selfDistance=Math.hypot(attacker.x-x,attacker.z-z);if(selfDistance<4.2&&clearTo(x,z,attacker.x,attacker.z,.45))dmgE(attacker,defenseExplosionDamage(dmg,selfDistance),0,0,1,"explosive");}
+  inBoom=false;var pd=Math.hypot(pl.x-x,pl.z-z);if((pl.tm!==attacker.tm||attacker===pl)&&pd<4.2&&clearTo(x,z,pl.x,pl.z,.45))hurt(defenseExplosionDamage(dmg,pd),x,z,"explosive");shakeT=Math.max(shakeT,.35);if(boomN>0)killNotify(boomN>2);
 }

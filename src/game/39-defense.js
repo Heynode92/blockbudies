@@ -1,11 +1,21 @@
 // Permanent passive firearm body defense. Online authority: BE defense.ts.
 // All combat percentages are centralized here and mirrored by the BE contract.
+var COMBAT_SYNC_REVISION='pointblock-combat-sync-2026-11-05-p6';
 var DEFENSE_RULES=Object.freeze({
  revision:'pointblock-defense-2026-11-05-p1',
  maxHp:100,bodyReduction:.30,pumpShotgunBodyReduction:.20,headshotMultiplier:3
 });
-// Body-zone geometry mirrors the BE hitgroup.ts and the existing blocky model.
-// This classifies a contact within the OLD cylinder, not a new limb collider.
+// Explosion damage is range-scaled for BOTs, players and the server alike.
+// No passive bullet-body VEST modifier applies to this damage kind.
+var EXPLOSION_DAMAGE_RULES=Object.freeze({radius:4.2,edgeReduction:.8});
+function defenseExplosionDamage(raw,distance){
+ if(!Number.isFinite(raw)||raw<0||!Number.isFinite(distance)||distance<0)
+  throw new RangeError('Invalid explosion damage/distance');
+ return distance>=EXPLOSION_DAMAGE_RULES.radius?0:
+  Math.ceil(raw*(1-distance/EXPLOSION_DAMAGE_RULES.radius*EXPLOSION_DAMAGE_RULES.edgeReduction));
+}
+// Phase-2 approximate classifier is kept ONLY for legacy callers. Actual
+// bullet hits use the Phase-3 anatomical sweep further below on both FE/BE.
 var HITGROUP_RULES=Object.freeze({
  revision:'pointblock-hitgroup-2026-11-05-p2',
  multipliers:Object.freeze({chest:1,stomach:1.25,arm:1,leg:.75}),

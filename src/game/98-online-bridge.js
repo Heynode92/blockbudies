@@ -438,13 +438,15 @@ function onlineConfirmedDeath(event){
  model.dead=true;
  spawnBotDeathVisual(model,dx,dz,0);
 }
-function onlineReactToImpact(victimId,headshot,ownShot){
+function onlineReactToImpact(victimId,headshot,ownShot,weaponId){
  if(typeof victimId!=='string'||!onlineActive)return;
  var model=onlineActors.get(victimId)?.model;
  if(!model||model.dead||!model.g?.visible)return;
  // Reuse the original offline hit recoil and blood, not a second online formula.
  // This intensity is cosmetic only and comes from the existing weapon profile.
- var visualDamage=ownShot?(WP[pl.w]?.dmg||0):0;
+ // Use the authenticated HIT weapon, not a new local selection made after
+ // the shot was sent. This only controls visual stagger; never HP/damage.
+ var visualDamage=ownShot?(WP[Number.isInteger(weaponId)?weaponId:pl.w]?.dmg||0):0;
  var dx=ownShot?model.x-pl.x:0,dz=ownShot?model.z-pl.z:0;
  botDamageReaction(model,visualDamage,dx,dz,!!headshot,true);
 }
@@ -1299,14 +1301,19 @@ function onlineApplyVerifiedKill(event){
  onlineSeenKillIds.add(event.id);
  if(onlineSeenKillIds.size>128)onlineSeenKillIds.delete(onlineSeenKillIds.values().next().value);
  if(!onlineActive||!run||lob||event.actorId!==onlineUserId()||!pl.st||
-    (Number.isSafeInteger(event.tick)&&event.tick<=onlineLastAuthTick))return;
+    !Number.isSafeInteger(event.tick)||event.tick<=0||
+    event.tick<onlineLastAuthTick)return;
  // No derived +1 or client damage calculation: the BE supplies actual total.
- if(!Number.isSafeInteger(event.kills)||event.kills<0)return;
+ if(!Number.isSafeInteger(event.kills)||event.kills<score)return;
+ // A same-tick world snapshot may precede its KILL event. The public KILL
+ // event ID and server-supplied total are authoritative; suppress older
+ // totals instead of suppressing valid confirmed HEADSHOT/streak banners.
  if(event.kills>=score){
   onlineSyncKillDisplay(event.kills,event.kills===score+1);
   pl.st.k=event.kills;
  }
- if(Number.isSafeInteger(event.tick)&&event.tick>=onlinePendingKillTick){
+ if(Number.isSafeInteger(event.tick)&&event.tick>onlineLastAuthTick&&
+    event.tick>=onlinePendingKillTick){
   onlinePendingKillTick=event.tick;
   onlinePendingKillTotal=Math.max(onlinePendingKillTotal??0,event.kills);
  }
@@ -1324,7 +1331,10 @@ function onlineApplyVerifiedExplosion(event){
  if(!event||typeof event.id!=='string'||onlineSeenKillIds.has(event.id)||
     !onlineActive||!run||lob||event.actorId!==onlineUserId()||
     !Number.isSafeInteger(event.count)||event.count<=0||
-    (Number.isSafeInteger(event.tick)&&event.tick<=onlineLastAuthTick))return;
+    !Number.isSafeInteger(event.tick)||event.tick<=0||
+   event.tick<onlineLastAuthTick||
+   (Number.isSafeInteger(event.kills)&&event.kills<score))return;
+ // Same-tick snapshots must not swallow a server-confirmed MASS KILL.
  onlineSeenKillIds.add(event.id);
  if(onlineSeenKillIds.size>128)onlineSeenKillIds.delete(onlineSeenKillIds.values().next().value);
  if(Number.isSafeInteger(event.streak)&&event.streak>=0)ck.n=event.streak;
@@ -1542,11 +1552,16 @@ function onlineReceiveFrame(frame){
   return;
  }
  if(frame.type==='combat_hit'){
-  if(onlineActive){
+  // HIT confirmations (including the red headshot hitmarker) belong ONLY
+  // to the authenticated local shooter. Incoming/allied hits must not
+  // appear as the player's own successful headshot.
+  if(onlineActive&&frame.actorId===onlineUserId()){
    onlineCombatQa.confirmedHits++;
    onlineCombatQa.lastEvent='HIT';
-   onlineHitConfirm(!!frame.headshot);
-   onlineReactToImpact(frame.victimId,!!frame.headshot,true);
+   var verifiedHead=frame.headshot===true&&
+    (frame.hitgroup===undefined||frame.hitgroup==='head');
+   onlineHitConfirm(verifiedHead);
+   onlineReactToImpact(frame.victimId,verifiedHead,true,frame.weaponId);
   }
   return;
  }
@@ -1560,6 +1575,8 @@ function onlineReceiveFrame(frame){
    var hit=document.getElementById('hit');
    if(hit)hit.style.opacity='1';
    cs.s=Math.max(cs.s,.45);
+   // Blood is cosmetic and only triggered by BE-confirmed victim feedback.
+   if(!pl.dead)bloodHit(pl.x,(pl.y||0)+1.12,pl.z,0,0,false);
   }
   return;
  }
@@ -1836,8 +1853,14 @@ function onlineApplyWorld(){
    onlineGrenadeServerCharge=privateState?.grenadeCharge??null;
   pl.hp=privateState?.hp??self.hp??pl.hp;
   if(Number.isFinite(privateState?.spawnShieldRemaining))pl.inv=Math.max(0,privateState.spawnShieldRemaining);
-  if(typeof privateState?.helmet==='boolean')pl.helm=privateState.helmet;
-  else if(typeof self.helmet==='boolean')pl.helm=self.helmet;
+  var trustedHelmet=typeof privateState?.helmet==='boolean'?
+   privateState.helmet:typeof self.helmet==='boolean'?self.helmet:null;
+  if(trustedHelmet!==null&&pl.helm!==trustedHelmet){
+   // The original offline helmet indicator and pop effect are reused,
+   // but ONLY after observing the BE-owned helmet transition.
+   if(pl.helm&&trustedHelmet===false&&self.alive)popPl();
+   else{pl.helm=trustedHelmet;setHm();}
+  }
   onlineWeaponSnapshot(self,privateState,fresh);
   if(pl.st&&privateState){
    var kills=privateState.kills;
@@ -2062,10 +2085,13 @@ function onlineVisualUpdate(dt){
  }
  if(!wantsFire)onlineGrenadeCancelUntilRelease=false;
  onlineGrenadeChargeUI();
- var gunplayCompatible=onlineGame?.ballisticRevision===GUNPLAY_REVISION;
+ // Both approved damage and ballistic revisions must be identical to BE.
+ // A mismatched FE must not predict valid-looking shots for another law.
+ var gunplayCompatible=onlineGame?.ballisticRevision===GUNPLAY_REVISION&&
+  onlineGame?.combatRevision===COMBAT_SYNC_REVISION;
  if(onlineGame&&!gunplayCompatible&&!onlineGunplayMismatchWarned){
   onlineGunplayMismatchWarned=true;
-  onlineWarn('BALLISTIC_VERSION_MISMATCH — UPDATE FE AND BE TOGETHER');
+  onlineWarn('COMBAT_VERSION_MISMATCH — UPDATE FE AND BE TOGETHER');
  }
  var acceptedFire=wantsFire&&!onlineGrenadeCancelUntilRelease&&gunplayCompatible;
  // Render-only cadence mirrors the REAL weapon cooldown. Do not impose an
