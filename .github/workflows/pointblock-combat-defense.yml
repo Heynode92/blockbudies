@@ -1,4 +1,4 @@
-name: PointBlock Combat Sync Phase 6 (Windows)
+name: PointBlock Combat Phase 7 TTK (Windows)
 
 on:
   pull_request:
@@ -22,6 +22,9 @@ on:
       - 'tests/damage-range.test.mjs'
       - 'tests/fire-rate-phase5.test.mjs'
       - 'tests/combat-sync-phase6.test.mjs'
+      - 'tests/combat-phase7-validation.test.mjs'
+      - 'docs/combat-phase7-vectors.json'
+      - 'docs/combat-phase7-ttk.md'
       - 'tests/gunplay-ballistics.test.mjs'
       - 'tests/hitgroup-phase2.test.mjs'
       - 'tests/anatomical-hitbox.test.mjs'
@@ -47,8 +50,8 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Verify generated game bundle
         run: node tools/build.mjs --check
-      - name: Verify combat parity, effects and exact H recoil
-        run: node --test tests/combat-sync-phase6.test.mjs tests/online-kill-hud.test.mjs tests/online-movement-prediction.test.mjs tests/gunplay-ballistics.test.mjs tests/anatomical-hitbox.test.mjs tests/hitgroup-phase2.test.mjs tests/defense-bot-weapons.test.mjs tests/damage-range.test.mjs tests/parity.test.mjs
+      - name: Verify Phase 7 goldens, FE-BE damage, armor and human-BOT parity
+        run: node --test tests/combat-phase7-validation.test.mjs tests/damage-range.test.mjs tests/defense-bot-weapons.test.mjs tests/hitgroup-phase2.test.mjs tests/anatomical-hitbox.test.mjs tests/combat-sync-phase6.test.mjs tests/parity.test.mjs
       - name: Build production frontend
         run: npm run build
       - name: Check distributable
