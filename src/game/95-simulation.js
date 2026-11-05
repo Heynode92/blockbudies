@@ -66,11 +66,33 @@ function update(dt){
       if(!ho){var lt2=sweepLT(qx,qy,qz,p.x,p.y,p.z);if(lt2){ho=lt2;hn=faceOf(lt2,qx,qy,qz,p);}}
       if(!ho)for(var li=0;li<LT.length;li++){var lt=LT[li];if(Math.abs(p.x-lt.x)<lt.hw&&Math.abs(p.z-lt.z)<lt.hd&&p.y>=lt.y0&&p.y<=lt.h){ho=lt;hn=faceOf(lt,qx,qy,qz,p);break;}}
       hit=b2.life<=0||p.y<gh(p.x,p.z,p.y)+.03||Math.abs(p.x)>A+1||Math.abs(p.z)>A+1||!!ho;
-      if(!hit){var bt=b2.tm;
-        for(var j=0;j<en.length;j++){var EE=en[j];if(EE.tm===bt||EE.inv>0)continue;if(Math.hypot(EE.x-p.x,EE.z-p.z)<.85&&p.y-(EE.y||0)<2.1){
-          if(!b2.rk){projectileHitCharacter(b2,EE,p.y-(EE.y||0)>=1.38);}
-          hit=true;break;}}
-        if(!hit&&pl.tm!==bt&&!pl.dead&&pl.inv<=0&&Math.hypot(pl.x-p.x,pl.z-p.z)<.7&&Math.abs(p.y-(pl.y+1))<1.1){projectileHitCharacter(b2,pl,p.y>=pl.y+1.38);hit=true;}}
+      if(!hit){var bt=b2.tm,closest=null,victim=null;
+        var start={x:qx,y:qy,z:qz},finish={x:p.x,y:p.y,z:p.z};
+        // Exact segment/limb sweep. Match the BE server anatomy rather than
+        // a larger BOT-only cylinder or height-only headshots.
+        for(var j=0;j<en.length;j++){var EE=en[j];
+          if(EE.tm===bt||EE.inv>0||EE.dead)continue;
+          var contact=sweptCharacterHit(start,finish,{
+            x:EE.x,y:EE.y||0,z:EE.z,yaw:EE.g.rotation.y,
+            crouch:!!EE.crouch,gaitPhase:EE.wp||0,gaitPace:EE.hitboxPace||0});
+          if(contact&&(!closest||contact.fraction<closest.fraction)){
+            closest=contact;victim=EE;
+          }
+        }
+        if(pl.tm!==bt&&!pl.dead&&pl.inv<=0){
+          var selfContact=sweptCharacterHit(start,finish,{
+            x:pl.x,y:pl.y,z:pl.z,yaw:pl.face,crouch:false,
+            gaitPhase:0,gaitPace:0});
+          if(selfContact&&(!closest||selfContact.fraction<closest.fraction)){
+            closest=selfContact;victim=pl;
+          }
+        }
+        if(closest){
+          p.set(closest.point.x,closest.point.y,closest.point.z);
+          if(!b2.rk)projectileHitCharacter(b2,victim,closest.headshot,closest.hitgroup);
+          hit=true;
+        }
+      }
     }
     if(hit){if(hn)impact(ho,hn,b2);else if(p.y<gh(p.x,p.z,p.y)+.03)gImpact(p);if(b2.rk)boom(p.x,p.z,b2.dmg,0,p.y,b2.by);else spark(p.x,p.y,p.z,b2.own==="p"?0xffd54a:0xff5c5c,7,5,.07);S.remove(b2.m);bl.splice(i,1);}}
   for(i=sk.length-1;i>=0;i--){var q=sk[i];q.t+=dt;q.m.position.x+=q.vx*dt;q.m.position.y+=q.vy*dt;q.m.position.z+=q.vz*dt;q.vy-=9*dt;q.m.scale.setScalar(Math.max(.001,q.sz*(1-q.t/q.l)));if(q.t>=q.l){S.remove(q.m);sk.splice(i,1);if(q.blood)bloodActive=Math.max(0,bloodActive-1);}}

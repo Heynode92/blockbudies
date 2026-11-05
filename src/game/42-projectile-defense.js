@@ -1,6 +1,6 @@
 // Unified bullet impact resolution for bot and human targets.
 // The armor/headshot rules are identical, independent of who fired.
-function projectileHitCharacter(b,target,head){
+function projectileHitCharacter(b,target,head,verifiedBodyGroup){
   if(typeof botQaEnabled!=='undefined'&&botQaEnabled)botQaHit(b);
   var damage=b.dmg*(b.fo?fall(b,b.m.position):1),source=b.by;
   if(head){
@@ -10,7 +10,7 @@ function projectileHitCharacter(b,target,head){
   }
   // The original collision decides head/body. Phase 2 only classifies
   // body contacts inside that existing collider; no new geometry here.
-  var group=head?'chest':defenseClassifyBodyHitgroup(b.m.position,{
+  var group=head?'chest':verifiedBodyGroup||defenseClassifyBodyHitgroup(b.m.position,{
     x:target.x,y:target.y||0,z:target.z,
     yaw:target===pl?target.face:target.g.rotation.y
   });

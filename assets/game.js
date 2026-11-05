@@ -1676,6 +1676,135 @@ function defenseDamage(actor,raw,kind,weaponId,hitgroup){
 }
 // Helmet absorbs the first headshot bonus; unhelmeted headshots retain 3x.
 function defenseHeadshotDamage(base){return base*DEFENSE_RULES.headshotMultiplier;}
+
+// Server-authoritative, pose-aware character hit volumes (Phase 3).
+// Derived from the authored Third-Person meshes in FE src/game/30-characters.js:
+// head .6 cube at y=1.65; chest/vest ~.86x.8x.56; shoulders +/- .55
+// with two-bone .4/.46 arms; paired legs pivot at +/- .2,y=.55.
+// Recoil/weapon geometry is NOT a collision volume. FE mirror is
+// CHARACTER_HITBOX_RULES + sweptCharacterHit in src/game/39-defense.js.
+// No client-supplied hit result, pose, or collider can reach this function.
+
+var CHARACTER_HITBOX_RULES = Object.freeze({
+  revision:'pointblock-hitbox-2026-11-05-p3',
+  // The head target is deliberately INSIDE the visible .6x.6x.6 head mesh.
+  // Helmet cosmetics are not a headshot volume.
+  head:Object.freeze({centerY:1.65,halfX:.25,halfY:.26,halfZ:.25}),
+  chest:Object.freeze({centerY:1.15,halfX:.43,halfY:.20,halfZ:.28}),
+  stomach:Object.freeze({centerY:.75,halfX:.43,halfY:.20,halfZ:.28}),
+  crouchDrop:.4, // matches authoritative crouched 3P muzzle offset
+  bobMax:.07,walkPhasePerUnit:2.4,legSwing:.8,paceAtSpeed:2.2,
+  shoulderX:.55,shoulderY:1.3,upperArmLength:.4,forearmLength:.46,
+  upperArmRadius:.155,forearmRadius:.145,
+  legX:.2,legPivotY:.55,legLength:.49,legRadius:.175,
+  // Grip points are measured from 30-characters.js aimArms(), both arms.
+  rightHand:Object.freeze({x:.05,y:.85,z:.24}),
+  leftHand:Object.freeze({x:.05,y:.98,z:.5}),
+});
+
+function chhbDot(a,b){return a.x*b.x+a.y*b.y+a.z*b.z;}
+function chhbSub(a,b){return ({x:a.x-b.x,y:a.y-b.y,z:a.z-b.z});}
+function chhbPlus(a,b){return ({x:a.x+b.x,y:a.y+b.y,z:a.z+b.z});}
+function chhbMul(a,f){return ({x:a.x*f,y:a.y*f,z:a.z*f});}
+function chhbNorm(a){const l=Math.hypot(a.x,a.y,a.z);return l<1e-12?{x:0,y:-1,z:0}:chhbMul(a,1/l);}
+function chhbBox(a,b,c,hx,hy,hz) {
+  const d=chhbSub(b,a);
+  let lo=0,hi=1;
+  for(const axis of ['x','y','z']) {
+    const v=a[axis]-c[axis],speed=d[axis],half=axis==='x'?hx:axis==='y'?hy:hz;
+    if(Math.abs(speed)<1e-12){if(v < -half || v > half)return null;continue}
+    const p=(-half-v)/speed,q=(half-v)/speed;
+    lo=Math.max(lo,Math.min(p,q));hi=Math.min(hi,Math.max(p,q));
+    if(lo>hi)return null;
+  }
+  return lo<=1&&hi>=0?Math.max(0,lo):null;
+}
+function chhbSphere(a,d,c,r) {
+  const v=chhbSub(a,c),A=chhbDot(d,d),B=chhbDot(v,d),C=chhbDot(v,v)-r*r;
+  if(C<=0)return 0;
+  if(A<1e-12)return null;
+  const disc=B*B-A*C;
+  if(disc<0)return null;
+  const t=(-B-Math.sqrt(disc))/A;
+  return t>=0&&t<=1?t:null;
+}
+function chhbCapsule(a,b,start,end,r) {
+  const d=chhbSub(b,a),ba=chhbSub(end,start),oa=chhbSub(a,start),len2=chhbDot(ba,ba);
+  if(len2<1e-12)return chhbSphere(a,d,start,r);
+  const baba=len2,bard=chhbDot(ba,d),baoa=chhbDot(ba,oa);
+  const A=baba*chhbDot(d,d)-bard*bard;
+  const B=baba*chhbDot(oa,d)-baoa*bard;
+  const C=baba*chhbDot(oa,oa)-baoa*baoa-r*r*baba;
+  let found=null;
+  if(C<=0 && baoa>=0 && baoa<=baba)found=0;
+  if(A>1e-12) {
+    const discriminant=B*B-A*C;
+    if(discriminant>=0) {
+      const root=Math.sqrt(discriminant);
+      for(const t of [(-B-root)/A,(-B+root)/A]) {
+        const axial=baoa+t*bard;
+        if(t>=0&&t<=1&&axial>=0&&axial<=baba&&(found===null||t<found))found=t;
+      }
+    }
+  }
+  for(const cap of [start,end]) {
+    const t=chhbSphere(a,d,cap,r);
+    if(t!==null&&(found===null||t<found))found=t;
+  }
+  return found;
+}
+function chhbArmElbow(shoulder,hand,side) {
+  // Same two-bone IK geometry as FE aimA() (no client skeletal transforms).
+  const r=CHARACTER_HITBOX_RULES,L1=r.upperArmLength,L2=r.forearmLength;
+  const diff=chhbSub(hand,shoulder),len=Math.hypot(diff.x,diff.y,diff.z);
+  const distance=Math.max(.2,Math.min(L1+L2-.01,len));
+  const direction=chhbNorm(diff);
+  const ca=(L1*L1+distance*distance-L2*L2)/(2*L1*distance);
+  const sa=Math.sqrt(Math.max(0,1-ca*ca));
+  const plane={x:side*.7,y:-1,z:-.1};
+  const bend=chhbNorm(chhbSub(plane,chhbMul(direction,chhbDot(plane,direction))));
+  return chhbPlus(shoulder,chhbMul(chhbPlus(chhbMul(direction,ca),chhbMul(bend,sa)),L1));
+}
+// Earliest contact across actual limb/torso/head volumes; wall occlusion is
+// still resolved by headless-match.ts BEFORE accepting this intersection.
+function sweptCharacterHit(from,to,actor) {
+  const yaw=actor.yaw??0,phase=actor.gaitPhase??0,pace=Math.max(0,Math.min(1,actor.gaitPace??0));
+  if(![from.x,from.y,from.z,to.x,to.y,to.z,actor.x,actor.y,actor.z,yaw,phase,pace].every(Number.isFinite))
+    throw new RangeError('Invalid trusted character hitbox pose');
+  const cos=Math.cos(yaw),sin=Math.sin(yaw),bodyDrop=actor.crouch?CHARACTER_HITBOX_RULES.crouchDrop:0;
+  const worldLocal=(p)=>{const dx=p.x-actor.x,dz=p.z-actor.z;return{
+    x:dx*cos-dz*sin,y:p.y-actor.y,z:dx*sin+dz*cos}};
+  const a=worldLocal(from),b=worldLocal(to),rule=CHARACTER_HITBOX_RULES;
+  const bob=Math.abs(Math.sin(phase))*rule.bobMax*pace;
+  let first=null,group='chest';
+  const register=(t,g)=>{
+    if(t!==null&&(first===null||t<first-1e-10)){first=t;group=g}
+  };
+  // Separate head box: shots above the shoulders but outside this narrow
+  // visible-head volume MISS; old 'all y>=1.38 is headshot' is gone.
+  register(chhbBox(a,b,{x:0,y:rule.head.centerY-bodyDrop+bob,z:0},
+    rule.head.halfX,rule.head.halfY,rule.head.halfZ),'head');
+  for(const g of ['chest','stomach']) {
+    const zone=rule[g];
+    register(chhbBox(a,b,{x:0,y:zone.centerY-bodyDrop+bob,z:0},
+      zone.halfX,zone.halfY,zone.halfZ),g);
+  }
+  for(const side of [-1,1]) {
+    const shoulder={x:side*rule.shoulderX,y:rule.shoulderY-bodyDrop+bob,z:0};
+    const goal=side===1?rule.rightHand:rule.leftHand;
+    const hand={x:goal.x,y:goal.y-bodyDrop+bob,z:goal.z};
+    const elbow=chhbArmElbow(shoulder,hand,side);
+    register(chhbCapsule(a,b,shoulder,elbow,rule.upperArmRadius),'arm');
+    register(chhbCapsule(a,b,elbow,hand,rule.forearmRadius),'arm');
+    const swing=Math.sin(phase)*rule.legSwing*pace*(side===-1?1:-1);
+    const hip={x:side*rule.legX,y:rule.legPivotY+bob,z:0};
+    const foot={x:hip.x,y:hip.y-rule.legLength*Math.cos(swing),z:-rule.legLength*Math.sin(swing)};
+    register(chhbCapsule(a,b,hip,foot,rule.legRadius),'leg');
+  }
+  if(first===null)return null;
+  const delta=chhbSub(to,from);
+  return {fraction:first,headshot:group==='head',hitgroup:group,point:chhbPlus(from,chhbMul(delta,first))};
+}
 // ---- WEAPON REGISTRY: stable IDs for save files, bot loadouts and all weapon arrays ----
 var WEAPON_PROFILES=[],WEAPON_MODEL_BUILDERS=[],WEAPON_RANGE_MODIFIERS=[];
 var WEAPON_STARTER_ID=9;
@@ -2702,7 +2831,7 @@ function botCombatTick(e,target,face,d){
 }
 // Unified bullet impact resolution for bot and human targets.
 // The armor/headshot rules are identical, independent of who fired.
-function projectileHitCharacter(b,target,head){
+function projectileHitCharacter(b,target,head,verifiedBodyGroup){
   if(typeof botQaEnabled!=='undefined'&&botQaEnabled)botQaHit(b);
   var damage=b.dmg*(b.fo?fall(b,b.m.position):1),source=b.by;
   if(head){
@@ -2712,7 +2841,7 @@ function projectileHitCharacter(b,target,head){
   }
   // The original collision decides head/body. Phase 2 only classifies
   // body contacts inside that existing collider; no new geometry here.
-  var group=head?'chest':defenseClassifyBodyHitgroup(b.m.position,{
+  var group=head?'chest':verifiedBodyGroup||defenseClassifyBodyHitgroup(b.m.position,{
     x:target.x,y:target.y||0,z:target.z,
     yaw:target===pl?target.face:target.g.rotation.y
   });
@@ -7558,7 +7687,7 @@ function botsUpd(dt){var i,cdn=mt.cd>0;if(!GB)gInit();
     e.g.rotation.y=f;e.cd-=dt;
     if(t&&e.lok&&!cdn&&!(isBombMode()&&e.bAction)&&e.cd<=0){botCombatTick(e,t,f,d);}
     e.y=(e.y||0)+(gh(e.x,e.z,0)-(e.y||0))*Math.min(1,dt*10);e.g.position.set(e.x,e.y,e.z);e.g.visible=e.inv>0?Math.floor(tt*12)%2===0:true;
-    e.wp=(e.wp||0)+dm*2.4;var am=Math.min(1,dm/dt/2.2);e.legs[0].rotation.x=Math.sin(e.wp)*.8*am;e.legs[1].rotation.x=-e.legs[0].rotation.x;e.rc=Math.max(0,(e.rc||0)-dt*6);aimArms(e);
+    e.wp=(e.wp||0)+dm*2.4;var am=Math.min(1,dm/dt/2.2);e.hitboxPace=am;e.legs[0].rotation.x=Math.sin(e.wp)*.8*am;e.legs[1].rotation.x=-e.legs[0].rotation.x;e.rc=Math.max(0,(e.rc||0)-dt*6);aimArms(e);
     e.body.position.y=Math.abs(Math.sin(e.wp))*.07*am;e.body.rotation.z=Math.sin(e.wp)*.05*am;e.body.rotation.x=-.05*(e.rc||0);e.body.rotation.y=0;flash(e,dt);
     if(isBombMode()&&e.bAction){e.body.position.y=-.43;e.body.rotation.x=.23;e.legs[0].rotation.x=-.95;e.legs[1].rotation.x=-1.05;e.arms[1].rotation.z=-.7;e.arms[0].rotation.z=.7;}
   });}
@@ -7866,11 +7995,33 @@ function update(dt){
       if(!ho){var lt2=sweepLT(qx,qy,qz,p.x,p.y,p.z);if(lt2){ho=lt2;hn=faceOf(lt2,qx,qy,qz,p);}}
       if(!ho)for(var li=0;li<LT.length;li++){var lt=LT[li];if(Math.abs(p.x-lt.x)<lt.hw&&Math.abs(p.z-lt.z)<lt.hd&&p.y>=lt.y0&&p.y<=lt.h){ho=lt;hn=faceOf(lt,qx,qy,qz,p);break;}}
       hit=b2.life<=0||p.y<gh(p.x,p.z,p.y)+.03||Math.abs(p.x)>A+1||Math.abs(p.z)>A+1||!!ho;
-      if(!hit){var bt=b2.tm;
-        for(var j=0;j<en.length;j++){var EE=en[j];if(EE.tm===bt||EE.inv>0)continue;if(Math.hypot(EE.x-p.x,EE.z-p.z)<.85&&p.y-(EE.y||0)<2.1){
-          if(!b2.rk){projectileHitCharacter(b2,EE,p.y-(EE.y||0)>=1.38);}
-          hit=true;break;}}
-        if(!hit&&pl.tm!==bt&&!pl.dead&&pl.inv<=0&&Math.hypot(pl.x-p.x,pl.z-p.z)<.7&&Math.abs(p.y-(pl.y+1))<1.1){projectileHitCharacter(b2,pl,p.y>=pl.y+1.38);hit=true;}}
+      if(!hit){var bt=b2.tm,closest=null,victim=null;
+        var start={x:qx,y:qy,z:qz},finish={x:p.x,y:p.y,z:p.z};
+        // Exact segment/limb sweep. Match the BE server anatomy rather than
+        // a larger BOT-only cylinder or height-only headshots.
+        for(var j=0;j<en.length;j++){var EE=en[j];
+          if(EE.tm===bt||EE.inv>0||EE.dead)continue;
+          var contact=sweptCharacterHit(start,finish,{
+            x:EE.x,y:EE.y||0,z:EE.z,yaw:EE.g.rotation.y,
+            crouch:!!EE.crouch,gaitPhase:EE.wp||0,gaitPace:EE.hitboxPace||0});
+          if(contact&&(!closest||contact.fraction<closest.fraction)){
+            closest=contact;victim=EE;
+          }
+        }
+        if(pl.tm!==bt&&!pl.dead&&pl.inv<=0){
+          var selfContact=sweptCharacterHit(start,finish,{
+            x:pl.x,y:pl.y,z:pl.z,yaw:pl.face,crouch:false,
+            gaitPhase:0,gaitPace:0});
+          if(selfContact&&(!closest||selfContact.fraction<closest.fraction)){
+            closest=selfContact;victim=pl;
+          }
+        }
+        if(closest){
+          p.set(closest.point.x,closest.point.y,closest.point.z);
+          if(!b2.rk)projectileHitCharacter(b2,victim,closest.headshot,closest.hitgroup);
+          hit=true;
+        }
+      }
     }
     if(hit){if(hn)impact(ho,hn,b2);else if(p.y<gh(p.x,p.z,p.y)+.03)gImpact(p);if(b2.rk)boom(p.x,p.z,b2.dmg,0,p.y,b2.by);else spark(p.x,p.y,p.z,b2.own==="p"?0xffd54a:0xff5c5c,7,5,.07);S.remove(b2.m);bl.splice(i,1);}}
   for(i=sk.length-1;i>=0;i--){var q=sk[i];q.t+=dt;q.m.position.x+=q.vx*dt;q.m.position.y+=q.vy*dt;q.m.position.z+=q.vz*dt;q.vy-=9*dt;q.m.scale.setScalar(Math.max(.001,q.sz*(1-q.t/q.l)));if(q.t>=q.l){S.remove(q.m);sk.splice(i,1);if(q.blood)bloodActive=Math.max(0,bloodActive-1);}}
@@ -8331,7 +8482,8 @@ function onlineRemoteSegmentClear(a,b,radius){
 function onlineCollisionSafeRemotePose(a,b,alpha){
  var result={x:a.x+(b.x-a.x)*alpha,y:a.y+(b.y-a.y)*alpha,
    z:a.z+(b.z-a.z)*alpha,
-   yaw:a.yaw+Math.atan2(Math.sin(b.yaw-a.yaw),Math.cos(b.yaw-a.yaw))*alpha};
+   yaw:a.yaw+Math.atan2(Math.sin(b.yaw-a.yaw),Math.cos(b.yaw-a.yaw))*alpha,
+   crouch:alpha<.5?!!a.crouch:!!b.crouch};
  if(onlineRemoteSegmentClear(a,b,.55))return result;
  var bends=[{x:b.x,z:a.z},{x:a.x,z:b.z}];
  for(var j=0;j<bends.length;j++){
@@ -8401,11 +8553,15 @@ function onlineAnimateRemoteActor(record,sample,dt){
  bot.g.position.set(sample.x,sample.y,sample.z);bot.g.rotation.y=sample.yaw;
  bot.wp=(bot.wp||0)+moved*2.4;
  if(bot.legs&&bot.legs.length>=2){
-  bot.legs[0].rotation.x=Math.sin(bot.wp)*.8*pace;
+  var crouchOffset=sample.crouch?CHARACTER_HITBOX_RULES.crouchDrop:0;
+  bot.legs[0].position.y=CHARACTER_HITBOX_RULES.legPivotY+crouchOffset;
+  bot.legs[1].position.y=CHARACTER_HITBOX_RULES.legPivotY+crouchOffset;
+  bot.legs[0].rotation.x=Math.sin(bot.wp)*CHARACTER_HITBOX_RULES.legSwing*pace;
   bot.legs[1].rotation.x=-bot.legs[0].rotation.x;
  }
  if(bot.body){
-  bot.body.position.y=Math.abs(Math.sin(bot.wp))*.07*pace;
+  bot.body.position.y=Math.abs(Math.sin(bot.wp))*CHARACTER_HITBOX_RULES.bobMax*pace-
+    (sample.crouch?CHARACTER_HITBOX_RULES.crouchDrop:0);
   bot.body.rotation.z=Math.sin(bot.wp)*.05*pace;
   bot.body.rotation.x=-.05*(bot.rc||0);
   bot.body.rotation.y=0; // Reset per-frame hit wobble so repeated hits never twist the model permanently.
@@ -9896,7 +10052,7 @@ function onlineApplyWorld(){
    var samples=current.samples,last=samples[samples.length-1];
    // Never interpolate across a server-authorized teleport or new life.
    if(last&&Math.hypot(last.x-actor.x,last.z-actor.z)>4)samples.length=0;
-   samples.push({t:performance.now(),x:actor.x,y:actor.y,z:actor.z,yaw:actor.yaw});
+   samples.push({t:performance.now(),x:actor.x,y:actor.y,z:actor.z,yaw:actor.yaw,crouch:!!actor.crouch});
    if(samples.length>8)samples.shift();
    current.lastTick=world.serverTick;
   }

@@ -323,7 +323,8 @@ function onlineRemoteSegmentClear(a,b,radius){
 function onlineCollisionSafeRemotePose(a,b,alpha){
  var result={x:a.x+(b.x-a.x)*alpha,y:a.y+(b.y-a.y)*alpha,
    z:a.z+(b.z-a.z)*alpha,
-   yaw:a.yaw+Math.atan2(Math.sin(b.yaw-a.yaw),Math.cos(b.yaw-a.yaw))*alpha};
+   yaw:a.yaw+Math.atan2(Math.sin(b.yaw-a.yaw),Math.cos(b.yaw-a.yaw))*alpha,
+   crouch:alpha<.5?!!a.crouch:!!b.crouch};
  if(onlineRemoteSegmentClear(a,b,.55))return result;
  var bends=[{x:b.x,z:a.z},{x:a.x,z:b.z}];
  for(var j=0;j<bends.length;j++){
@@ -393,11 +394,15 @@ function onlineAnimateRemoteActor(record,sample,dt){
  bot.g.position.set(sample.x,sample.y,sample.z);bot.g.rotation.y=sample.yaw;
  bot.wp=(bot.wp||0)+moved*2.4;
  if(bot.legs&&bot.legs.length>=2){
-  bot.legs[0].rotation.x=Math.sin(bot.wp)*.8*pace;
+  var crouchOffset=sample.crouch?CHARACTER_HITBOX_RULES.crouchDrop:0;
+  bot.legs[0].position.y=CHARACTER_HITBOX_RULES.legPivotY+crouchOffset;
+  bot.legs[1].position.y=CHARACTER_HITBOX_RULES.legPivotY+crouchOffset;
+  bot.legs[0].rotation.x=Math.sin(bot.wp)*CHARACTER_HITBOX_RULES.legSwing*pace;
   bot.legs[1].rotation.x=-bot.legs[0].rotation.x;
  }
  if(bot.body){
-  bot.body.position.y=Math.abs(Math.sin(bot.wp))*.07*pace;
+  bot.body.position.y=Math.abs(Math.sin(bot.wp))*CHARACTER_HITBOX_RULES.bobMax*pace-
+    (sample.crouch?CHARACTER_HITBOX_RULES.crouchDrop:0);
   bot.body.rotation.z=Math.sin(bot.wp)*.05*pace;
   bot.body.rotation.x=-.05*(bot.rc||0);
   bot.body.rotation.y=0; // Reset per-frame hit wobble so repeated hits never twist the model permanently.
@@ -1888,7 +1893,7 @@ function onlineApplyWorld(){
    var samples=current.samples,last=samples[samples.length-1];
    // Never interpolate across a server-authorized teleport or new life.
    if(last&&Math.hypot(last.x-actor.x,last.z-actor.z)>4)samples.length=0;
-   samples.push({t:performance.now(),x:actor.x,y:actor.y,z:actor.z,yaw:actor.yaw});
+   samples.push({t:performance.now(),x:actor.x,y:actor.y,z:actor.z,yaw:actor.yaw,crouch:!!actor.crouch});
    if(samples.length>8)samples.shift();
    current.lastTick=world.serverTick;
   }
