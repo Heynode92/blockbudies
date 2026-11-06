@@ -187,6 +187,13 @@ function homeAuthGateOpen(intent){
   else void onlineStartGate();
   return;
  }
+ if(state?.authenticated&&!state.registered&&state.onboarding?.trainingCompleted){
+  // The player already passed on the server; do not show START TRAINING again.
+  // onlineStartGate revalidates onboarding before showing the callsign form.
+  homeAuthGateClose();
+  void onlineStartGate();
+  return;
+ }
  var registered=!!state?.authenticated,profileMissing=registered&&state.registered&&!state.player?.id;
  document.getElementById('walletGateTitle').textContent=profileMissing?'PROFILE SYNC REQUIRED':registered?'TRAINING REQUIRED':'CONNECT YOUR WALLET';
  document.getElementById('walletGateText').textContent=profileMissing?
