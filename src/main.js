@@ -11,7 +11,7 @@ import menuMusic from './assets/audio/Pointblock_bgm.mp3?url';
 
 const wallet=createPointBlockRainbowWallet({
   projectId:import.meta.env.VITE_WALLETCONNECT_PROJECT_ID,
-  rpcUrl:import.meta.env.VITE_BSC_RPC_URL,
+  rpcUrl:import.meta.env.VITE_ROBINHOOD_RPC_URL,
 });
 const online=createPointBlockClient({
   baseUrl:import.meta.env.VITE_POINTBLOCK_API_URL||
