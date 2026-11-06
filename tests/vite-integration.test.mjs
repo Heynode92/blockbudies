@@ -27,7 +27,7 @@ test('All existing game parts compile in original order; no gameplay files dropp
  const oldBundle = read('assets/game.js');
  const oldSource = '(function(){\n'+manifest.parts.map(read).join('').replace(/\r\n/g,'\n')+'})();\n';
  assert.equal(oldBundle.replace(/\r\n/g,'\n'),oldSource);
- const expected = `export function mountPointBlock(THREE, GAME_ASSET_URLS, MENU_BGM, BACKGROUND_SIM, PB_ONLINE) {\n${manifest.parts.map(read).join('').replace(/\r\n/g,'\n')}\n}\n`;
+ const expected = `export function mountPointBlock(THREE, GAME_ASSET_URLS, MENU_BGM, BACKGROUND_SIM, PB_ONLINE, PB_WALLET) {\n${manifest.parts.map(read).join('').replace(/\r\n/g,'\n')}\n}\n`;
  assert.equal(code, expected);
  assert.ok(files.has(resolve(root,'tools/source-manifest.json')));
 });
