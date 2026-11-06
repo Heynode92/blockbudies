@@ -1,0 +1,228 @@
+/* PointBlock match settlement HUD. Pure DOM/CSS, no image overlay or fake rewards.
+   Scoped to verified online results; the existing scoreboard and match HUD stay intact. */
+#verifiedReward[hidden],
+#verifiedRewardRetry[hidden],
+#verifiedReward .point-reward-status[hidden]{display:none!important}
+
+#dv.online-results .dleft #verifiedReward{
+ position:relative;isolation:isolate;box-sizing:border-box;
+ align-self:stretch;width:100%;max-width:none;
+ margin:clamp(13px,2vh,20px) 0 0;
+ padding:clamp(13px,1.4vw,17px);
+ overflow:hidden;text-align:left;
+ border:2px solid #ff932d;border-radius:9px;
+ color:#f5f8ff;
+ background:
+  radial-gradient(ellipse at 86% -50%,rgba(42,137,206,.25),transparent 70%),
+  linear-gradient(150deg,rgba(17,40,63,.98),rgba(6,15,27,.98));
+ box-shadow:
+  inset 0 1px rgba(255,223,179,.23),
+  inset 0 0 26px rgba(0,95,176,.12),
+  0 0 0 1px rgba(255,132,22,.19),
+  0 0 24px rgba(255,128,34,.22),
+  0 15px 30px rgba(0,0,0,.38);
+}
+/* Solid stepped corners, orange inner rails and a tactical titlebar. */
+#dv.online-results #verifiedReward::before{
+ content:"";position:absolute;inset:0;pointer-events:none;z-index:-1;
+ background:
+ linear-gradient(135deg,rgba(255,149,43,.5) 0 3px,transparent 3px),
+ linear-gradient(315deg,rgba(255,149,43,.42) 0 3px,transparent 3px);
+}
+#dv.online-results #verifiedReward::after{
+ content:"";position:absolute;top:0;left:18px;right:20%;height:2px;
+ background:linear-gradient(90deg,#ff8a24,#ffc177 32%,transparent);
+ opacity:.9;pointer-events:none;
+}
+#dv.online-results #verifiedReward .point-reward-heading{
+ display:flex;align-items:center;justify-content:space-between;gap:9px;
+ box-sizing:border-box;min-width:0;padding:0 0 13px;
+ border-bottom:1px solid rgba(119,161,200,.55);
+ color:#f5f8ff;text-align:left;
+ font:800 14px/1.1 Rajdhani,sans-serif;letter-spacing:.09em;
+}
+#dv.online-results #verifiedReward .point-reward-title{
+ display:flex;align-items:center;gap:10px;min-width:0;white-space:nowrap;
+}
+#dv.online-results #verifiedReward .point-reward-title>span:last-child{
+ font:italic 900 clamp(21px,1.8vw,29px)/1 var(--pb-display-font,Impact,"Arial Black",sans-serif);
+ letter-spacing:.055em;text-shadow:0 3px 0 #07121e,0 0 12px #6cbfff55;
+}
+#dv.online-results #verifiedReward .point-reward-stripes{
+ display:inline-block;flex:none;width:42px;height:18px;transform:skewX(-14deg);
+ background:repeating-linear-gradient(110deg,#ff8c25 0 9px,transparent 9px 15px);
+ filter:drop-shadow(0 0 7px #ff912955);
+}
+#dv.online-results #verifiedReward .point-reward-awarded-flag{
+ display:inline-flex;align-items:center;justify-content:center;gap:5px;
+ flex:none;min-width:79px;max-width:132px;min-height:28px;box-sizing:border-box;
+ padding:5px 8px;text-align:center;white-space:nowrap;
+ border:1px solid #bd8339;border-radius:4px;
+ background:linear-gradient(120deg,#4b321e,#1a251f);
+ color:#ffd09b;font:900 clamp(9px,.78vw,12px)/1.1 Rajdhani,sans-serif;
+ letter-spacing:.11em;
+ box-shadow:inset 0 1px rgba(255,255,255,.08),0 0 10px #eea35022;
+}
+#dv.online-results #verifiedReward[data-reward-state="awarded"] .point-reward-awarded-flag{
+ border-color:#22ba8b;color:#aaffdf;
+ background:linear-gradient(135deg,#114f43,#082c31);
+ box-shadow:inset 0 1px #baffed26,0 0 12px #2ddfab40;
+}
+#dv.online-results #verifiedReward[data-reward-state="awarded"] .point-reward-awarded-flag::before{
+ content:"✓";font:900 17px/1 Rajdhani,sans-serif;
+}
+#dv.online-results #verifiedReward .point-reward-grid{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ align-items:stretch;gap:clamp(8px,1.1vw,15px);min-width:0;margin-top:14px;
+}
+#dv.online-results #verifiedReward .point-reward-value{
+ position:relative;box-sizing:border-box;min-width:0;min-height:117px;
+ display:flex;flex-direction:row;justify-content:flex-start;align-items:center;
+ gap:clamp(9px,.9vw,14px);padding:clamp(10px,1.1vw,17px);
+ overflow:hidden;border-radius:9px;
+ border:1px solid #47baff;background:
+  radial-gradient(ellipse at 10% 20%,rgba(43,155,248,.20),transparent 65%),
+  linear-gradient(130deg,#15385b,#091c34 70%);
+ box-shadow:inset 0 1px #d5f5ff24,inset 0 -2px #258fea72,0 0 15px rgba(50,150,235,.2);
+}
+#dv.online-results #verifiedReward .point-reward-vpbt{
+ border-color:#27dba4;
+ background:
+  radial-gradient(ellipse at 10% 20%,rgba(25,229,162,.22),transparent 65%),
+  linear-gradient(135deg,#0d554b,#092b31 75%);
+ box-shadow:inset 0 1px #e3fff624,inset 0 -2px #24c99888,0 0 15px rgba(20,219,157,.16);
+}
+#dv.online-results #verifiedReward .point-reward-value::after{
+ content:"";position:absolute;right:-7px;bottom:-5px;width:69px;height:54px;
+ opacity:.42;pointer-events:none;
+ background:repeating-linear-gradient(133deg,transparent 0 9px,rgba(81,187,255,.9) 9px 15px,transparent 15px 21px);
+ clip-path:polygon(28% 100%,100% 0,100% 100%);
+}
+#dv.online-results #verifiedReward .point-reward-vpbt::after{
+ background:repeating-linear-gradient(133deg,transparent 0 9px,rgba(64,255,193,.94) 9px 15px,transparent 15px 21px);
+}
+#dv.online-results #verifiedReward .point-reward-emblem{
+ position:relative;isolation:isolate;box-sizing:border-box;
+ display:grid;place-items:center;flex:0 0 clamp(51px,4.6vw,69px);
+ width:clamp(51px,4.6vw,69px);height:clamp(55px,5vw,73px);
+ color:#e9f7ff;
+ filter:drop-shadow(0 3px 8px rgba(22,133,236,.55));
+}
+#dv.online-results #verifiedReward .point-reward-emblem::before,
+#dv.online-results #verifiedReward .point-reward-emblem::after{
+ content:"";position:absolute;inset:0;z-index:-1;
+ clip-path:polygon(50% 0,93% 25%,93% 75%,50% 100%,7% 75%,7% 25%);
+}
+#dv.online-results #verifiedReward .point-reward-emblem::before{
+ background:linear-gradient(145deg,#d3fbff,#4cadff 40%,#0b416e 100%);
+}
+#dv.online-results #verifiedReward .point-reward-emblem::after{
+ inset:4px;background:linear-gradient(145deg,#1f629b,#0d2645);
+ box-shadow:inset 0 0 6px #a5f1ff88;
+}
+#dv.online-results #verifiedReward .point-reward-emblem-exp b{
+ font:italic 900 clamp(20px,1.8vw,27px)/1 var(--pb-display-font,Impact,"Arial Black",sans-serif);
+ text-shadow:0 2px 3px #000c;letter-spacing:.035em;
+}
+#dv.online-results #verifiedReward .point-reward-emblem-vpbt{
+ filter:drop-shadow(0 4px 8px rgba(13,231,165,.4));
+}
+#dv.online-results #verifiedReward .point-reward-emblem-vpbt::before{
+ background:linear-gradient(135deg,#baffeb,#2ef3b0 45%,#0e6853);
+}
+#dv.online-results #verifiedReward .point-reward-emblem-vpbt::after{
+ background:linear-gradient(135deg,#126c62,#082e35);
+}
+#dv.online-results #verifiedReward .point-reward-emblem-vpbt img{
+ position:relative;display:block;z-index:1;
+ width:54%;height:54%;object-fit:contain;
+ filter:drop-shadow(0 2px 3px #000a);
+}
+#dv.online-results #verifiedReward .point-reward-copy{
+ box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;
+ align-items:flex-start;gap:5px;min-width:0;flex:1;
+ border-left:1px solid rgba(153,220,253,.4);
+ padding-left:clamp(9px,1vw,14px);
+}
+#dv.online-results #verifiedReward .point-reward-vpbt .point-reward-copy{
+ border-color:rgba(100,247,200,.47);
+}
+#dv.online-results #verifiedReward .point-reward-value small{
+ color:#d5ebff;
+ font:900 clamp(10px,.83vw,13px)/1.2 Rajdhani,sans-serif;
+ letter-spacing:.13em;white-space:nowrap;
+}
+#dv.online-results #verifiedReward .point-reward-value strong{
+ color:#fff1dc;font:italic 900 clamp(33px,3.1vw,55px)/1
+ var(--pb-display-font,Impact,"Arial Black",sans-serif);
+ letter-spacing:.03em;white-space:nowrap;max-width:100%;
+ font-variant-numeric:tabular-nums;
+ text-shadow:0 3px 0 #0008,0 0 17px #f1ab7444;
+}
+#dv.online-results #verifiedReward .point-reward-vpbt strong{
+ color:#91ffda;text-shadow:0 3px 0 #002d23,0 0 15px #35eaba44;
+}
+#dv.online-results #verifiedReward .point-reward-status{
+ display:flex;align-items:center;justify-content:space-between;
+ gap:10px;margin-top:10px;padding:7px 8px;
+ border:1px solid #6b674c;background:rgba(71,53,23,.25);
+ color:#ffd197;font:800 12px/1.2 Rajdhani,sans-serif;
+ letter-spacing:.03em;text-align:left;
+}
+#dv.online-results #verifiedReward .point-reward-status[hidden]{display:none!important}
+#dv.online-results #verifiedRewardRetry{
+ flex:none;padding:5px 9px;border:1px solid #d88d36;border-radius:3px;
+ background:#432b1d;color:#ffe0af;font:900 12px Rajdhani,sans-serif;cursor:pointer;
+}
+#dv.online-results #verifiedReward[data-reward-state="awarded"] .point-reward-value{
+ animation:pointRewardAwarded .5s ease-out both;
+}
+@keyframes pointRewardAwarded{
+ from{filter:brightness(1.45);transform:translateY(4px)}
+ to{filter:brightness(1);transform:translateY(0)}
+}
+@media (max-width:1100px) and (min-width:861px){
+ #dv.online-results #verifiedReward .point-reward-emblem{
+  flex-basis:49px;width:49px;height:55px;
+ }
+ #dv.online-results #verifiedReward .point-reward-value{padding:9px;gap:7px}
+ #dv.online-results #verifiedReward .point-reward-copy{padding-left:7px}
+ #dv.online-results #verifiedReward .point-reward-value strong{font-size:clamp(30px,3vw,39px)}
+}
+@media (max-width:860px){
+ #dv.online-results .dleft #verifiedReward{max-width:none}
+}
+@media (max-width:540px){
+ #dv.online-results .dleft #verifiedReward{padding:10px}
+ #dv.online-results #verifiedReward .point-reward-title>span:last-child{font-size:21px}
+ #dv.online-results #verifiedReward .point-reward-stripes{width:30px;height:15px}
+ #dv.online-results #verifiedReward .point-reward-awarded-flag{
+  padding:4px 6px;min-width:68px;font-size:9px;
+ }
+ #dv.online-results #verifiedReward .point-reward-grid{gap:7px}
+ #dv.online-results #verifiedReward .point-reward-value{
+  padding:9px 7px;gap:5px;min-height:94px;
+ }
+ #dv.online-results #verifiedReward .point-reward-emblem{
+  flex-basis:41px;width:41px;height:47px;
+ }
+ #dv.online-results #verifiedReward .point-reward-emblem-exp b{font-size:17px}
+ #dv.online-results #verifiedReward .point-reward-copy{padding-left:6px;gap:3px}
+ #dv.online-results #verifiedReward .point-reward-value small{font-size:9px;letter-spacing:.045em}
+ #dv.online-results #verifiedReward .point-reward-value strong{font-size:clamp(25px,6.5vw,35px)}
+}
+@media (max-width:365px){
+ #dv.online-results #verifiedReward .point-reward-emblem{flex-basis:34px;width:34px;height:39px}
+ #dv.online-results #verifiedReward .point-reward-value strong{font-size:23px}
+}
+@media (max-height:700px) and (min-width:861px){
+ #dv.online-results .dleft #verifiedReward{margin-top:10px;padding:11px}
+ #dv.online-results #verifiedReward .point-reward-heading{padding-bottom:7px}
+ #dv.online-results #verifiedReward .point-reward-grid{margin-top:8px}
+ #dv.online-results #verifiedReward .point-reward-value{min-height:88px;padding:8px}
+ #dv.online-results #verifiedReward .point-reward-emblem{height:51px;flex-basis:48px;width:48px}
+ #dv.online-results #verifiedReward .point-reward-value strong{font-size:34px}
+}
+@media(prefers-reduced-motion:reduce){
+ #dv.online-results #verifiedReward[data-reward-state="awarded"] .point-reward-value{animation:none}
+}
