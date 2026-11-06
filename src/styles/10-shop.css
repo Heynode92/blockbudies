@@ -282,3 +282,124 @@ background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent)}
  #lbshop .shop-catalog .shop-chip{flex:1 1 120px;min-width:max-content}
  #lbshop .shop-catalog .shop-chip:first-child{flex:1 1 90px;min-width:84px}
 }
+
+
+/* Shop visual parity with Inventory — layout and JS are intentionally unchanged. */
+/* Shared visual language: Inventory header, display type and tactical palette.
+   No panel positioning, workspace grid, card sizing or filter ordering changes. */
+#lbshop.on{
+ background:radial-gradient(ellipse at 44% 60%,rgba(19,65,102,.18),transparent 64%),
+            linear-gradient(145deg,#07111d,#030912);
+}
+#lbshop .shop-shell{
+ background:linear-gradient(160deg,rgba(7,17,29,.94),rgba(3,9,18,.97));
+}
+#lbshop .shop-head{
+ border-bottom:1px solid rgba(114,162,203,.25);
+ background:linear-gradient(115deg,rgba(4,12,23,.78),rgba(15,26,43,.65));
+}
+#lbshop .shop-heading h2{
+ font:italic 900 clamp(42px,4.2vw,76px)/.96 Impact,"Arial Black",sans-serif;
+ letter-spacing:.045em;color:#fff;
+ text-shadow:3px 4px 0 rgba(140,61,27,.8),0 6px 19px #000;
+}
+#lbshop .shop-heading>span{
+ color:#a9c4e1;font:800 clamp(10px,.85vw,14px) Rajdhani,sans-serif;
+ letter-spacing:.25em;
+}
+#lbshop .shop-heading p,#lbshop .shop-note{
+ color:#c4d5e8;font-family:Rajdhani,sans-serif;font-weight:700;
+}
+/* Match Inventory's actual #ivback styles rather than the old large Impact button. */
+#lbshop #shopBack{
+ display:inline-flex;align-items:center;justify-content:center;
+ box-sizing:border-box;flex:none;min-width:96px;width:auto;
+ height:44px;min-height:44px;margin:0;padding:0 17px;
+ border:1px solid rgba(179,197,216,.5);border-radius:6px;
+ background:rgba(30,45,64,.85);box-shadow:none;
+ clip-path:polygon(9px 0,100% 0,calc(100% - 9px) 100%,0 100%);
+ font:800 13px Rajdhani,sans-serif;letter-spacing:.075em;
+ color:#f1f3f8;white-space:nowrap;transform:none;
+ transition:filter .15s,border-color .15s;
+}
+#lbshop #shopBack:hover,#lbshop #shopBack:focus-visible{
+ transform:none;background:rgba(30,45,64,.85);box-shadow:none;
+ filter:brightness(1.2);border-color:#ff9f39;outline:2px solid #ff9f39;
+ outline-offset:1px;
+}
+/* Shop category menu uses the same typography and orange active treatment
+   as Inventory's .ivclasses buttons. Counts remain visible, role filter intact. */
+#lbshop .shop-catalog .shop-chip{
+ box-sizing:border-box;border:1px solid #3e617e;border-radius:6px;
+ clip-path:none;box-shadow:none;transform:none;
+ background:linear-gradient(#142b44,#0a192b);color:#b6cde5;
+ font:800 clamp(11px,.82vw,14px) Rajdhani,sans-serif;
+ letter-spacing:.055em;
+}
+#lbshop .shop-catalog .shop-chip:hover{
+ background:linear-gradient(#203c58,#122a42);
+ box-shadow:none;transform:none;filter:brightness(1.15);
+}
+#lbshop .shop-catalog .shop-chip.shop-chip-on,
+#lbshop .shop-catalog .shop-chip.shop-chip-on:hover{
+ background:linear-gradient(#ffa537,#f7801c);
+ border-color:#ff9e38;color:#0b192a;box-shadow:none;transform:none;
+}
+#lbshop .shop-catalog .shop-chip span{
+ font:800 12px Rajdhani,sans-serif;letter-spacing:.03em;
+ color:#dbe8f5;background:rgba(6,19,32,.48);border-radius:3px;
+}
+#lbshop .shop-catalog .shop-chip.shop-chip-on span{
+ color:#192838;background:rgba(255,255,255,.3);
+}
+#lbshop .shop-catalog .shop-chip:focus-visible,
+#lbshop .shop-catalog .shop-weapon:focus-visible{
+ outline:2px solid #ff9f39;outline-offset:2px;
+}
+/* Inventory-style card surfaces and type, preserving Shop's exact grid and
+   card placement, thumbnails, stats, prices, and selected-weapon preview. */
+#lbshop .shop-selected{
+ border-color:rgba(90,147,197,.46);
+ background:linear-gradient(145deg,rgba(10,23,39,.96),rgba(4,12,22,.94));
+ box-shadow:inset 0 1px rgba(198,224,248,.09),0 7px 30px rgba(0,0,0,.3);
+}
+#lbshop .shop-catalog .shop-weapon{
+ border-color:#335671;border-radius:7px;clip-path:none;
+ background:linear-gradient(140deg,#1b3148,#0d192b);
+ box-shadow:inset 0 1px rgba(255,255,255,.07);
+}
+#lbshop .shop-catalog .shop-weapon:not(.shop-owned)::before{
+ background:linear-gradient(90deg,#fb8628 0 22%,rgba(80,135,175,.2) 22% 100%);
+ height:3px;
+}
+#lbshop .shop-catalog .shop-weapon.shop-weapon-active{
+ border-color:#ffa12e;
+ background:linear-gradient(140deg,#4c3529,#172437);
+ box-shadow:0 0 0 1px rgba(255,143,30,.68),0 0 17px rgba(255,112,17,.32);
+}
+#lbshop .shop-catalog .shop-details h3{
+ font:italic 900 clamp(19px,1.55vw,28px)/1 Impact,"Arial Black",sans-serif;
+ letter-spacing:.065em;text-shadow:0 2px 7px #000;
+}
+#lbshop .shop-sel-heading h3{
+ font:italic 900 clamp(27px,2.4vw,43px)/1 Impact,"Arial Black",sans-serif;
+}
+#lbshop .shop-sel-role{
+ color:#ff9b36;font:900 12px Rajdhani,sans-serif;letter-spacing:.11em;
+}
+#lbshop .shop-sel-stats-title{
+ font:900 17px Rajdhani,sans-serif;letter-spacing:.1em;
+ color:#f1f5fb;border-left-color:#ff8626;
+}
+#lbshop .shop-action{
+ border:1px solid #ffad58;border-radius:5px;clip-path:none;
+ background:linear-gradient(150deg,#ffac40,#ef7717);
+ font-family:Impact,"Arial Black",sans-serif;letter-spacing:.07em;
+}
+#lbshop .shop-action.shop-action-owned{
+ border-color:#168866;border-radius:5px;clip-path:none;
+ background:linear-gradient(125deg,#07583e,#0c4335);
+}
+@media(max-width:650px){
+ #lbshop #shopBack{min-width:82px;height:40px;min-height:40px;padding:0 10px;}
+}
