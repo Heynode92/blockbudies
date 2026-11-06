@@ -242,3 +242,17 @@
   #lbroomlive .rml-heading h2 { font-size:32px; }
   #lbroomlive .rml-brand { font-size:18px; }
 }
+
+/* RainbowKit is a small React island inside the existing Three.js header. */
+#gameLobbyHeader #rainbowkitWalletRoot{display:flex;align-items:center;justify-content:flex-end;min-width:0;flex:0 0 auto}
+#gameLobbyHeader .pb-rainbow-wallet{display:flex;align-items:center;position:relative;min-width:0}
+#gameLobbyHeader #rainbowkitWalletRoot #homeWalletConnect{display:flex;align-items:center;justify-content:center;min-width:130px;white-space:nowrap}
+#gameLobbyHeader .pb-rainbow-error{position:absolute;z-index:30;top:100%;right:0;width:min(240px,85vw);padding:8px;
+ background:#2b1721;color:#ffbea7;border:1px solid #e2705a;font:700 11px Rajdhani,sans-serif}
+#gameLobbyHeader .pb-rainbow-unconfigured{display:inline-block;max-width:200px;color:#ffc9aa;
+ font:800 10px Rajdhani,sans-serif;line-height:1.2}
+@media(max-width:720px){
+ #gameLobbyHeader #rainbowkitWalletRoot{flex:0 0 130px}
+ #gameLobbyHeader .pb-rainbow-wallet,#gameLobbyHeader #homeWalletConnect{width:100%}
+}
+@media(max-width:450px){#gameLobbyHeader #rainbowkitWalletRoot{flex:1 1 100%;width:100%}}
