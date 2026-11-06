@@ -63,7 +63,7 @@ test('Menu music uses a bundled MP3 and only runs in menu/room states', () => {
  assert.match(entry,/import menuMusic from '\.\/assets\/audio\/Pointblock_bgm\.mp3\?url'/);
  assert.match(entry,/const menuBgm = createMenuBgm\(menuMusic\)/);
  assert.match(entry,/mountPointBlock\(THREE, Object\.freeze\(\{ deathmatch: deathmatchVideo, bomb: bombVideo \}\), menuBgm,/);
- assert.match(plugin,/mountPointBlock\(THREE, GAME_ASSET_URLS, MENU_BGM, BACKGROUND_SIM, PB_ONLINE\)/);
+ assert.match(plugin,/mountPointBlock\(THREE, GAME_ASSET_URLS, MENU_BGM, BACKGROUND_SIM, PB_ONLINE, PB_WALLET\)/);
  assert.match(controller,/sound\.loop = true/);
  assert.match(controller,/events\.addEventListener\('pointerdown'/);
  assert.match(controller,/events\.addEventListener\('keydown'/);
@@ -80,7 +80,7 @@ test('Hidden-tab worker and fixed-step simulation are injected without changing 
  assert.match(entry,/import \{ createBackgroundTicker \} from '\.\/background\/background-ticker\.js'/);
  assert.match(entry,/import \{ createSimulationClock \} from '\.\/background\/simulation-clock\.js'/);
  assert.match(entry,/const backgroundTicker = createBackgroundTicker\(\)/);
- assert.match(plugin,/mountPointBlock\(THREE, GAME_ASSET_URLS, MENU_BGM, BACKGROUND_SIM, PB_ONLINE\)/);
+ assert.match(plugin,/mountPointBlock\(THREE, GAME_ASSET_URLS, MENU_BGM, BACKGROUND_SIM, PB_ONLINE, PB_WALLET\)/);
  assert.match(source,/backgroundGameClock\.tickBackground\(performance\.now\(\)\)/);
  assert.match(source,/if\(!document\.hidden\)backgroundGameClock\.tickVisible\(now\)/);
  assert.match(source,/BACKGROUND_SIM\.ticker\.setHidden\(document\.hidden\)/);
