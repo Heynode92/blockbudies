@@ -74,6 +74,15 @@ export function createPointBlockClient({ baseUrl, wallet } = {}) {
       catch{saved=null;}
       if(!saved||saved.chainId!==GAME_WALLET_CHAIN_ID||!ADDRESS.test(saved.address||'')||
          !/^[A-Za-z0-9_-]{32,128}$/.test(saved.token||''))return state();
+      // RainbowKit may reconnect asynchronously on page refresh. Restore only
+      // after wallet hydration AND when the exact same BSC account is present.
+      if(!wallet?.configured||!await wallet.waitReady?.())return state();
+      const connected=wallet.connection?.();
+      if(!connected||connected.chainId!==GAME_WALLET_CHAIN_ID||
+         connected.address.toLowerCase()!==saved.address.toLowerCase()){
+        try{sessionStorage.removeItem(sessionKey);}catch{}
+        return state();
+      }
       auth={token:saved.token,address:saved.address,registered:false,player:null,onboarding:null};
       try {
         // refreshProfile uses protected, no-cache /v1/onboarding and /v1/me.
