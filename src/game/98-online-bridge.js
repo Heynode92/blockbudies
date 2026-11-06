@@ -1130,6 +1130,9 @@ function onlineResetLive(){
  onlineFrameSamples.length=0;onlineSnapshotSamples.length=0;onlineCorrectionSize=0;
  if(onlinePerfPanel){onlinePerfPanel.remove();onlinePerfPanel=null;}
  onlineAimInitialized=false;onlineTrainingProgressValue=null;onlinePrevAlive=true;onlineGunplayMismatchWarned=false;
+ // Never leak the previous attempt's training counter into a new match or lobby.
+ var trainingHud=document.getElementById('trainingProgressHud');
+ if(trainingHud)trainingHud.hidden=true;
  onlineSelfTarget=null;onlineLastWinner=undefined;onlineMuzzleTime=0;onlineScoreboard.clear();onlineSeenKillIds.clear();
  onlinePendingKillTick=-1;onlinePendingKillTotal=null;onlineLastStallCheckAt=0;
  onlinePendingWeapon=null;onlinePendingWeaponAt=0;onlineHitUntil=0;
@@ -1725,12 +1728,22 @@ async function onlineRetry(){
   onlineReconnectTimer=setTimeout(onlineRetry,2500);
  }
 }
+// Training score belongs to a small separate HUD, NEVER to #rsp.
+// #rsp is reserved for short countdown/respawn/death messages.
 function onlineTrainingProgress(progress){
- if(!progress)return;
+ var hud=document.getElementById('trainingProgressHud'),
+     counter=document.getElementById('trainingProgressCount');
+ if(!hud||!counter)return;
+ if(!onlineActive||!onlineTraining||progress?.status!=='ACTIVE'||
+    !Number.isSafeInteger(progress.combinedKills)||progress.combinedKills<0||
+    !Number.isSafeInteger(progress.targetKills)||progress.targetKills<=0||
+    progress.combinedKills>progress.targetKills){
+  hud.hidden=true;return;
+ }
  onlineTrainingProgressValue=progress;
- var text='TRAINING '+progress.combinedKills+' / '+progress.targetKills;
- var element=document.getElementById('rsp');
- if(element&&onlineTraining)element.textContent=text;
+ var text=progress.combinedKills+' / '+progress.targetKills;
+ if(counter.textContent!==text)counter.textContent=text;
+ hud.hidden=false;
 }
 function onlineDialog(title,description,action,submit) {
  var existing=document.getElementById('pointblockOnlineDialog');if(existing)existing.remove();
@@ -2196,7 +2209,8 @@ function onlineVisualUpdate(dt){
  if(typeof hud==='function')hud();
  if(typeof hdUpd==='function')hdUpd(dt);
  if(typeof kfUpd==='function')kfUpd(dt);
- if(onlineTraining&&onlineTrainingProgressValue)onlineTrainingProgress(onlineTrainingProgressValue);
+ // training_progress is updated from server frames, not reinserted into
+ // the center-screen respawn element every render frame.
  if(isBombMode()&&bombMatch&&typeof bombHudUpdate==='function')bombHudUpdate();
 }
 var oldOnlineRoomRender=roomRender,oldOnlineRoomLobbyOpen=roomLobbyOpen;
