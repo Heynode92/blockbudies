@@ -273,6 +273,8 @@ export function createPointBlockClient({ baseUrl, wallet } = {}) {
     buyWeapon:(weaponId,idempotencyKey)=>request('/v1/shop/orders',{
       method:'POST',body:{weaponId,currency:'vPBT',idempotencyKey},
     }),
+    // Public rank-only Top 10; wallet sign-in is not required to browse.
+    leaderboard:()=>request('/v1/leaderboard',{authRequired:false}),
     progression:()=>request('/v1/me/progression'),
     stats:()=>request('/v1/me/statistics'),
     award:matchId=>request('/v1/me/matches/'+checkedId(matchId)+'/reward'),
