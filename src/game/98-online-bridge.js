@@ -1745,9 +1745,10 @@ function onlineTrainingProgress(progress){
  if(counter.textContent!==text)counter.textContent=text;
  hud.hidden=false;
 }
-function onlineDialog(title,description,action,submit) {
+function onlineDialog(title,description,action,submit,kind) {
  var existing=document.getElementById('pointblockOnlineDialog');if(existing)existing.remove();
- var overlay=document.createElement('div');overlay.id='pointblockOnlineDialog';overlay.className='point-online-dialog';
+ var overlay=document.createElement('div');overlay.id='pointblockOnlineDialog';
+ overlay.className='point-online-dialog'+(kind==='onboarding'?' point-online-registration':'');
  var form=document.createElement('form');form.className='point-online-dialog-panel';
  var h=document.createElement('h2');h.textContent=title;
  var p=document.createElement('p');p.textContent=description;
@@ -1838,7 +1839,7 @@ async function onlineTrainingResultExit(){
     await onlineApi.refreshProfile();
     await onlineLoadInventory();
     roomLobbyOpen();
-   });
+   },'onboarding');
   onlineTrainingResultClose();
  }catch(err){
   error.textContent=String(err?.code||err?.message||'TRAINING_VERIFICATION_FAILED').slice(0,160);
