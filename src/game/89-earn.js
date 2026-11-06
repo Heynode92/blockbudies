@@ -1,50 +1,40 @@
-// EARN is a public visual placeholder. No prices, swap quotes, approvals,
-// contract interactions or off-chain balance mutations are permitted here.
-var earnPendingSignIn=false;
+// Public EARN placeholder. No rate calculation, contracts, approvals or
+// backend token mutations are enabled while conversion is coming soon.
+function earnWalletConnected(){
+ // Wagmi/RainbowKit owns connection state. SIWE is not required to VIEW
+ // a disabled placeholder; no conversion can be submitted here.
+ return PB_WALLET?.state?.().connected===true;
+}
 function earnRender(){
  var screen=document.getElementById('lbearn');
  if(!screen)return;
- var authenticated=typeof PB_ONLINE!=='undefined'&&PB_ONLINE.state().authenticated===true;
+ var connected=earnWalletConnected();
  screen.querySelectorAll('.earn-convert-action').forEach(function(button){
-  button.textContent=authenticated?'COMING SOON':earnPendingSignIn?'SIGNING IN…':'CONNECT WALLET';
-  button.disabled=authenticated||earnPendingSignIn;
-  button.setAttribute('aria-label',authenticated?'Token conversion coming soon':'Connect wallet to access future conversion');
+  button.textContent=connected?'COMING SOON':'CONNECT WALLET';
+  button.disabled=connected;
+  button.setAttribute('aria-label',connected?
+   'Token conversion coming soon':'Connect wallet to preview future conversion');
  });
 }
 function earnOpen(){
  lobP('lbearn');
- earnPendingSignIn=false;
  document.getElementById('earnStatus').textContent='';
  earnRender();
 }
-async function earnConnectWallet(){
- if(earnPendingSignIn)return;
- if(typeof PB_ONLINE==='undefined'||!PB_WALLET?.configured){
-  document.getElementById('earnStatus').textContent='WALLET CONNECTION UNAVAILABLE';
+function earnConnectWallet(){
+ var notice=document.getElementById('earnStatus');
+ if(earnWalletConnected()){earnRender();return;}
+ if(!PB_WALLET?.configured||!PB_WALLET.openConnect?.()){
+  notice.textContent='WALLET CONNECTION UNAVAILABLE';
   return;
  }
- if(PB_ONLINE.state().authenticated){earnRender();return;}
- var status=document.getElementById('earnStatus');
- status.textContent='';
- if(!PB_WALLET.connection?.()){
-  if(PB_WALLET.openConnect?.()){
-   status.textContent='CONNECT YOUR WALLET, THEN SELECT CONNECT WALLET TO SIGN IN';
-  }else status.textContent='WALLET CONNECTION UNAVAILABLE';
-  return;
- }
- earnPendingSignIn=true;earnRender();
- try{
-  await homeWalletSignIn(); // Existing RainbowKit / SIWE flow. No token approvals.
-  status.textContent='CONVERTER FEATURE IS UNDER DEVELOPMENT';
- }catch(error){
-  status.textContent=String(error?.code||error?.message||'WALLET_SIGN_IN_FAILED')
-   .replace(/_/g,' ').slice(0,100);
- }finally{
-  earnPendingSignIn=false;earnRender();
- }
+ notice.textContent='CONNECT YOUR WALLET TO VIEW THE COMING SOON CONVERTER';
 }
 document.getElementById('learn').addEventListener('click',earnOpen);
 document.getElementById('earnBack').addEventListener('click',function(){lobP('lbs');});
 document.querySelectorAll('#lbearn .earn-convert-action').forEach(function(button){
- button.addEventListener('click',function(){void earnConnectWallet();});
+ button.addEventListener('click',earnConnectWallet);
 });
+// Re-render when the provider connects, disconnects or changes account/chain,
+// even before a PointBlock SIWE session exists.
+PB_WALLET?.subscribe?.(function(){earnRender();});
