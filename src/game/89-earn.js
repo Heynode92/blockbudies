@@ -1,9 +1,26 @@
-// Public EARN placeholder. No rate calculation, contracts, approvals or
-// backend token mutations are enabled while conversion is coming soon.
+// PointBlock EARN: 1:1 *visual preview* only. Nothing here initiates swaps,
+// contracts, approvals, balance queries, quotes, or backend token mutations.
 function earnWalletConnected(){
- // Wagmi/RainbowKit owns connection state. SIWE is not required to VIEW
- // a disabled placeholder; no conversion can be submitted here.
+ // RainbowKit/Wagmi owns wallet connection state; no SIWE is needed merely
+ // to view a disabled converter mock-up.
  return PB_WALLET?.state?.().connected===true;
+}
+// Pure decimal-string formatter: 1:1 is exact, avoids Number precision loss.
+function earnPreviewAmount(value){
+ var raw=typeof value==='string'?value.trim():'';
+ if(!raw)return '≈ —';
+ if(raw.charAt(0)==='.')raw='0'+raw;
+ if(!/^\d+(?:\.\d{0,8})?$/.test(raw))return '≈ —';
+ var halves=raw.split('.'),integer=halves[0].replace(/^0+(?=\d)/,'');
+ integer=integer.replace(/\B(?=(\d{3})+(?!\d))/g,',');
+ return '≈ '+integer+(halves.length>1&&halves[1]!==''?'.'+halves[1]:'');
+}
+function earnUpdatePreviews(){
+ document.querySelectorAll('#lbearn .earn-card').forEach(function(card){
+  var field=card.querySelector('input'),estimate=card.querySelector('.earn-estimate');
+  if(!field||!estimate)return;
+  estimate.textContent=earnPreviewAmount(field.value);
+ });
 }
 function earnRender(){
  var screen=document.getElementById('lbearn');
@@ -15,6 +32,7 @@ function earnRender(){
   button.setAttribute('aria-label',connected?
    'Token conversion coming soon':'Connect wallet to preview future conversion');
  });
+ earnUpdatePreviews();
 }
 function earnOpen(){
  lobP('lbearn');
@@ -25,8 +43,7 @@ function earnConnectWallet(){
  var notice=document.getElementById('earnStatus');
  if(earnWalletConnected()){earnRender();return;}
  if(!PB_WALLET?.configured||!PB_WALLET.openConnect?.()){
-  notice.textContent='WALLET CONNECTION UNAVAILABLE';
-  return;
+  notice.textContent='WALLET CONNECTION UNAVAILABLE';return;
  }
  notice.textContent='CONNECT YOUR WALLET TO VIEW THE COMING SOON CONVERTER';
 }
@@ -35,6 +52,7 @@ document.getElementById('earnBack').addEventListener('click',function(){lobP('lb
 document.querySelectorAll('#lbearn .earn-convert-action').forEach(function(button){
  button.addEventListener('click',earnConnectWallet);
 });
-// Re-render when the provider connects, disconnects or changes account/chain,
-// even before a PointBlock SIWE session exists.
+document.querySelectorAll('#lbearn .earn-card input').forEach(function(input){
+ input.addEventListener('input',earnUpdatePreviews);
+});
 PB_WALLET?.subscribe?.(function(){earnRender();});
