@@ -11,6 +11,17 @@ function leaderboardCount(value){
  if(typeof value!=='string'||!/^\d{1,80}$/.test(value))return '—';
  return BigInt(value).toString().replace(/\B(?=(\d{3})+(?!\d))/g,',');
 }
+// Share of career kills that are headshot kills (not headshot accuracy).
+// Fixed-point BigInt avoids rounding and precision errors for large counters.
+function leaderboardHeadshotPercent(killsValue,headshotValue){
+ if(typeof killsValue!=='string'||typeof headshotValue!=='string'||
+    !/^\d{1,80}$/.test(killsValue)||!/^\d{1,80}$/.test(headshotValue))return '—';
+ var kills=BigInt(killsValue),headshots=BigInt(headshotValue);
+ if(kills===0n)return headshots===0n?'0.0%':'—';
+ if(headshots>kills)return '—';
+ var tenths=(headshots*2000n+kills)/(2n*kills);
+ return (tenths/10n).toString()+'.'+(tenths%10n).toString()+'%';
+}
 function leaderboardValidEntry(entry,index){
  return entry&&typeof entry==='object'&&
   entry.position===index+1&&
@@ -23,7 +34,7 @@ function leaderboardValidEntry(entry,index){
   (entry.nextRankHalfExp===null||
    Number.isSafeInteger(entry.nextRankHalfExp)&&entry.nextRankHalfExp>0)&&
   typeof entry.lifetimeHalfExp==='string'&&/^\d{1,80}$/.test(entry.lifetimeHalfExp)&&
-  ['kills','deaths','headshotKills'].every(function(key){
+  ['kills','headshotKills'].every(function(key){
     return typeof entry[key]==='string'&&/^\d{1,80}$/.test(entry[key]);
   })&&
   Number.isSafeInteger(entry.mainWeaponId)&&entry.mainWeaponId>=0&&
@@ -80,9 +91,8 @@ function leaderboardRenderRows(){
   if(entry.position<=3)button.classList.add('is-top');
   button.setAttribute('aria-label',
     '#'+entry.position+' '+entry.username+', '+entry.rank+
-    ', '+leaderboardCount(entry.kills)+' kills, '+
-    leaderboardCount(entry.deaths)+' deaths, '+
-    leaderboardCount(entry.headshotKills)+' headshots');
+    ', '+leaderboardCount(entry.kills)+' total kills, '+
+    leaderboardHeadshotPercent(entry.kills,entry.headshotKills)+' headshot kills');
   button.appendChild(leaderboardNode('span','leaderboard-place',
     String(entry.position).padStart(2,'0')));
   button.appendChild(leaderboardNode('span','leaderboard-username',entry.username));
@@ -94,9 +104,7 @@ function leaderboardRenderRows(){
   button.appendChild(leaderboardNode('span','leaderboard-combat-stat',
     leaderboardCount(entry.kills)));
   button.appendChild(leaderboardNode('span','leaderboard-combat-stat',
-    leaderboardCount(entry.deaths)));
-  button.appendChild(leaderboardNode('span','leaderboard-combat-stat',
-    leaderboardCount(entry.headshotKills)));
+    leaderboardHeadshotPercent(entry.kills,entry.headshotKills)));
   button.addEventListener('click',function(){leaderboardShowSelection(entry);});
   host.appendChild(button);
  });
