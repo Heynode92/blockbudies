@@ -1765,47 +1765,87 @@ function onlineDialog(title,description,action,submit) {
 }
 // The Training Result is a proper result screen, not a fabricated match award.
 // Numbers and terminal state come from the authenticated training_result event.
-var onlineTrainingResultStatus=null;
+var onlineTrainingResultStatus=null,onlineTrainingActionPending=false;
 function onlineDisplayTrainingResult(progress){
  if(!progress||!['COMPLETED','TIMEOUT_POLICY_PENDING'].includes(progress.status))return;
+ // Only a backend training_result or a backend-confirmed onboarding state may
+ // open this report. No client-calculated kills, EXP or vPBT are awarded here.
  onlineTrainingResultStatus=progress.status;
- var won=progress.status==='COMPLETED';
- var kills=Number.isSafeInteger(progress.combinedKills)?progress.combinedKills:null;
- var target=Number.isSafeInteger(progress.targetKills)?progress.targetKills:null;
- document.getElementById('trainingResultTitle').textContent=won?'TRAINING COMPLETE':'TRAINING INCOMPLETE';
- document.getElementById('trainingResultDescription').textContent=won?
-  'Training complete! You can now register your PointBlock callsign.':
-  'Training ended before the required team kills. You cannot register yet.';
- document.getElementById('trainingResultKills').textContent=kills!==null&&target!==null?
-  kills+' / '+target:won?'VERIFIED':'NOT COMPLETED';
- document.getElementById('trainingResultStatus').textContent=won?
-  'TRAINING PASSED · READY TO REGISTER':'TRAINING INCOMPLETE · REGISTRATION LOCKED';
- document.getElementById('trainingResultContinue').textContent=won?
-  'CONTINUE · REGISTER CALLSIGN':'BACK TO HOME';
- document.getElementById('trainingResult').hidden=false;
+ onlineTrainingActionPending=false;
+ var passed=progress.status==='COMPLETED',
+     kills=Number.isSafeInteger(progress.combinedKills)&&progress.combinedKills>=0?
+       progress.combinedKills:null,
+     target=Number.isSafeInteger(progress.targetKills)&&progress.targetKills>0?
+       progress.targetKills:null;
+ var report=document.getElementById('trainingResult');
+ report.dataset.outcome=passed?'passed':'incomplete';
+ document.getElementById('trainingResultHeadline').textContent=passed?'MISSION PASSED':'MISSION FAILED';
+ document.getElementById('trainingResultTitle').textContent=
+   passed?'TRAINING COMPLETE':'TRAINING INCOMPLETE';
+ document.getElementById('trainingResultDescription').textContent=passed?
+   'Recruitment objective cleared. Your operator is ready for registration.':
+   'Recruitment objective not completed. Return to Home to retry training.';
+ document.getElementById('trainingResultKills').textContent=kills===null?'—':String(kills);
+ document.getElementById('trainingResultTarget').textContent=target===null?'—':String(target);
+ document.getElementById('trainingResultOutcome').textContent=passed?'PASSED':'INCOMPLETE';
+ document.getElementById('trainingResultBadge').textContent=passed?'VERIFIED':'NOT CLEARED';
+ document.getElementById('trainingResultStatus').textContent=passed?
+   'QUALIFICATION UNLOCKED':'REGISTRATION LOCKED';
+ var next=document.getElementById('trainingResultContinue');
+ next.disabled=!passed;next.textContent=passed?'NEXT · CREATE USERNAME':'TRAINING NOT COMPLETE';
+ var error=document.getElementById('trainingResultActionError');
+ error.textContent='';error.hidden=true;
+ report.hidden=false;
  document.getElementById('dv').classList.add('show','training-result-active');
  document.body.classList.remove('dead','bomb-spectator');
  document.body.classList.add('over');
  run=false;lob=false;
  if(document.exitPointerLock)document.exitPointerLock();
- document.getElementById('trainingResultContinue').focus();
+ (passed?next:document.getElementById('trainingResultExit')).focus();
 }
-function onlineTrainingResultContinue(){
- var result=onlineTrainingResultStatus;
- if(!result)return;
+function onlineTrainingResultClose(){
  onlineTrainingResultStatus=null;
  document.getElementById('trainingResult').hidden=true;
  document.getElementById('dv').classList.remove('show','training-result-active');
- document.body.classList.remove('over');document.body.classList.add('lobby');
- run=false;lob=true;lb.style.display='flex';lobP('lbs');
- if(result!=='COMPLETED')return;
- onlineDialog('REGISTER CALLSIGN',
-  'Training complete! Enter a unique callsign (1–12 letters, numbers or underscore).',
-  'REGISTER',async name=>{
-   await onlineApi.register(name);
-   await onlineApi.refreshProfile();
-   await onlineLoadInventory();roomLobbyOpen();
-  });
+ document.body.classList.remove('over','dead','bomb-spectator');
+ document.body.classList.add('lobby');
+ run=false;lob=true;lb.style.display='flex';
+ lobP('lbs');
+}
+function onlineTrainingResultExit(){
+ if(onlineTrainingActionPending)return;
+ // Exiting is not registration. The completed status remains in the BE and
+ // will be recovered by onboarding after the player comes back.
+ onlineTrainingResultClose();
+}
+async function onlineTrainingResultContinue(){
+ if(onlineTrainingResultStatus!=='COMPLETED'||onlineTrainingActionPending)return;
+ onlineTrainingActionPending=true;
+ var next=document.getElementById('trainingResultContinue'),
+     error=document.getElementById('trainingResultActionError');
+ next.disabled=true;error.textContent='';error.hidden=true;
+ try{
+  // A result screen cannot grant a callsign. Recheck the persisted server
+  // completion before entering the existing server-validated registration.
+  var verification=await onlineApi.trainingStatus();
+  if(!verification?.completed||!onlineApi?.state().authenticated)
+   throw Error('TRAINING_VERIFICATION_REQUIRED');
+  onlineTrainingResultClose();
+  onlineDialog('CREATE USERNAME',
+   'Choose your operator name (1–12 letters, numbers or underscore).',
+   'REGISTER USERNAME',async name=>{
+    await onlineApi.register(name);
+    await onlineApi.refreshProfile();
+    await onlineLoadInventory();
+    roomLobbyOpen();
+   });
+ }catch(err){
+  error.textContent=String(err?.code||err?.message||'TRAINING_VERIFICATION_FAILED').slice(0,160);
+  error.hidden=false;
+ }finally{
+  onlineTrainingActionPending=false;
+  next.disabled=onlineTrainingResultStatus!=='COMPLETED';
+ }
 }
 async function onlineTrainingFinished(progress){
  if(!onlineTraining)return;
@@ -1814,12 +1854,13 @@ async function onlineTrainingFinished(progress){
  onlineDisplayTrainingResult(progress);
 }
 document.getElementById('trainingResultContinue').addEventListener('click',onlineTrainingResultContinue);
+document.getElementById('trainingResultExit').addEventListener('click',onlineTrainingResultExit);
 async function onlineStartTraining(){
  if(!onlineAuth())return;
  try{
   var started=await onlineApi.startTraining();
   if(started.status==='COMPLETED'){
-   onlineDisplayTrainingResult({status:'COMPLETED'});return;
+   onlineDisplayTrainingResult(started);return;
   }
   onlineResultsDisplayed=false;onlineTraining=true;onlineActive=true;
   await onlineApi.openLive('training',null,onlineReceiveFrame,onlineSocketStatus);
