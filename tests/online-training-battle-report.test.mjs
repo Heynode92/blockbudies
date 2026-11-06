@@ -144,3 +144,13 @@ test('Home START recovery bypasses old report and Home clears any orphan',()=>{
  assert.doesNotMatch(gate,/onlineDisplayTrainingResult\(/);
  assert.match(read('src/game/85-lobby-and-match.js'),/onlineTrainingResultDismissVisual\(\)/);
 });
+
+test('authenticated completed trainees bypass the Start Training gate',()=>{
+ const home=read('src/game/82-home-showcase.js');
+ const start=home.indexOf('function homeAuthGateOpen(intent){');
+ const end=home.indexOf("document.getElementById('walletGateClose')",start);
+ assert.ok(start>=0&&end>start);
+ assert.match(home.slice(start,end),/state\.onboarding\?\.trainingCompleted/);
+ assert.match(home.slice(start,end),/void onlineStartGate\(\)/);
+ assert.match(home.slice(start,end),/homeAuthGateClose\(\)/);
+});
