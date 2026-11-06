@@ -268,7 +268,8 @@ export function createPointBlockClient({ baseUrl, wallet } = {}) {
     loadout:()=>request('/v1/me/loadout'),
     saveLoadout:mainWeaponId=>request('/v1/me/loadout',{method:'PUT',body:{mainWeaponId}}),
     inventory:()=>request('/v1/me/inventory'),
-    shop:()=>request('/v1/shop/weapons'),
+    // The catalogue is public; ownership and checkout remain authenticated.
+    shop:()=>request('/v1/shop/weapons',{authRequired:false}),
     buyWeapon:(weaponId,idempotencyKey)=>request('/v1/shop/orders',{
       method:'POST',body:{weaponId,currency:'vPBT',idempotencyKey},
     }),
