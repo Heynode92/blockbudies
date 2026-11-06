@@ -566,3 +566,18 @@
 .touch #trainingProgressHud.point-training-progress{
  top:calc(env(safe-area-inset-top,0px) + 114px);
 }
+
+
+/* Training EXIT opens a full-screen username stage, never a see-through Home menu. */
+.point-online-dialog.point-online-registration{
+ background:radial-gradient(ellipse at 50% 24%,#143550 0,#081b30 55%,#030c18 100%);
+ isolation:isolate;
+}
+.point-online-dialog.point-online-registration::before{
+ content:"";position:absolute;inset:0;pointer-events:none;
+ background:linear-gradient(115deg,transparent 0 24%,rgba(45,101,148,.10) 24% 30%,transparent 30% 68%,rgba(48,111,157,.09) 68% 74%,transparent 74%);
+}
+.point-online-dialog.point-online-registration .point-online-dialog-panel{
+ position:relative;width:min(480px,100%);padding:clamp(24px,4vw,38px);
+ border-top:4px solid #ff9029;
+}
