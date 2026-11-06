@@ -89,11 +89,20 @@ html.pb-route-restoring #lb { visibility:hidden; }
 <div id="tsel"><h2>CHOOSE YOUR TEAM</h2><div class="tsc"><button class="tbt tbp" id="tsP">POLICE<small>5 VS 5 · YOU + 4 AI</small></button><button class="tbt tbq" id="tsT">TERRORIST<small>5 VS 5 · YOU + 4 AI</small></button></div><button id="tsX" class="bk">BACK</button></div><div id="kn"></div><div id="kfd"></div><div id="toast"></div><div id="wsel"></div><div id="scope"><i></i><i></i></div><div id="tacticalAim" class="tactical-aim" aria-hidden="true"><div class="ta-frame"></div><div class="ta-cross"></div></div><button id="ab"></button><div id="wsb"></div><div id="slh"></div><canvas id="map" width="320" height="320"></canvas>
 <div id="stl" class="stk"><i></i></div><div id="str" class="stk"><i></i></div><button id="rl">Reload</button><button id="fb">Shoot</button><button id="jb">Jump</button><div id="ch"><i></i><i></i><i></i><i></i><b></b></div><div id="hit"></div><div id="hd"></div><div id="grenadeChargeHud" aria-live="off" hidden><span>THROW POWER</span><div><i></i></div><strong>0%</strong></div><div id="hmfly"><svg viewBox="0 0 24 24"><path fill="#74b816" d="M3 15c0-5 4-9 9-9s9 4 9 9v1H3z"/><path fill="#2f4a08" d="M2 16h20v2.4H2z"/><path fill="#b8e65c" d="M7 10c1.3-1.4 3-2.2 5-2.2v2c-1.5 0-2.7.5-3.6 1.4z"/></svg></div><div id="dcam"><div id="rec"><i></i>DRONE CAM 01</div></div><div id="dv"><div id="dfx"></div><div id="dfl"></div><div id="dc">
 <div class="dleft"><div class="dtag"><i></i>MISSION FAILED // SIGNAL LOST</div><h2 data-t="WIPED"><span>WIPED</span></h2><div class="dsl"></div><p class="dsub" id="dsub">The terrorists took the block. Shake it off and get back in, soldier!</p><div id="drk"></div><div class="dbar"><i id="dxp"></i></div><div class="dnx" id="dnx"></div>
-<section id="verifiedReward" class="point-online-result-reward" aria-label="Match EXP and vPBT rewards" hidden>
-  <div class="point-reward-heading"><span>MATCH REWARDS</span><b id="verifiedRewardFlag">CALCULATING</b></div>
+<section id="verifiedReward" class="point-online-result-reward" data-reward-state="loading" aria-label="Verified match EXP and vPBT rewards" hidden>
+  <header class="point-reward-heading">
+    <div class="point-reward-title"><span class="point-reward-stripes" aria-hidden="true"></span><span>MATCH REWARDS</span></div>
+    <b id="verifiedRewardFlag" class="point-reward-awarded-flag">CALCULATING</b>
+  </header>
   <div class="point-reward-grid">
-    <div class="point-reward-value"><small>EXP EARNED</small><strong id="verifiedExpAmount">—</strong></div>
-    <div class="point-reward-value point-reward-vpbt"><small>vPBT EARNED</small><strong id="verifiedVpbtAmount">—</strong></div>
+    <div class="point-reward-value point-reward-exp">
+      <span class="point-reward-emblem point-reward-emblem-exp" aria-hidden="true"><b>XP</b></span>
+      <div class="point-reward-copy"><small>EXP EARNED</small><strong id="verifiedExpAmount">—</strong></div>
+    </div>
+    <div class="point-reward-value point-reward-vpbt">
+      <span class="point-reward-emblem point-reward-emblem-vpbt" aria-hidden="true"><img src="./src/assets/icon/vPBT-logo.png" alt=""></span>
+      <div class="point-reward-copy"><small>vPBT EARNED</small><strong id="verifiedVpbtAmount">—</strong></div>
+    </div>
   </div>
   <div class="point-reward-status"><span id="verifiedRewardStatus" role="status" aria-live="polite">Calculating your match rewards…</span><button type="button" id="verifiedRewardRetry" hidden>RECHECK</button></div>
 </section>
