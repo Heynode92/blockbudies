@@ -2189,9 +2189,11 @@ roomLobbyOpen=function(){
 var onlineWasAuthenticated=onlineApi?.state().authenticated===true;
 if(onlineApi)onlineApi.setOnChange(function(state){
  homeWalletRender();
+ if(typeof earnRender==='function')earnRender();
  var wasLogout=onlineWasAuthenticated&&!state.authenticated;
  onlineWasAuthenticated=state.authenticated;
  if(wasLogout){
+  var remainEarn=document.getElementById('lbearn')?.classList.contains('on')===true;
   rankInsigniaResultDetach();
   onlineResultsDisplayed=false;onlineRewardStop();
   document.getElementById('dv').classList.remove('show');
@@ -2202,9 +2204,11 @@ if(onlineApi)onlineApi.setOnChange(function(state){
   onlineResetLive();
   if(hadLiveGame&&(run||!lob))matchExitToLobby('list');
   roomList=[];roomCurrent=null;onlineRoomRender();
-  // Authenticated/registered access is mandatory for every non-home route.
-  if(typeof lobP==='function')lobP('lbs');
-  if(typeof appRouteUpdate==='function')appRouteUpdate('lbs',true);
+  // Earn is a public screen: sign-out switches its actions to CONNECT WALLET.
+  // All protected lobby/inventory screens still return to Home.
+  var returnPanel=remainEarn?'lbearn':'lbs';
+  if(typeof lobP==='function')lobP(returnPanel);
+  if(typeof appRouteUpdate==='function')appRouteUpdate(returnPanel,true);
  }
 });
 function onlineAction(id,fn) {
