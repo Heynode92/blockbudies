@@ -21,17 +21,17 @@ function harness(){
  const ids=['trainingResult','trainingResultHeadline','trainingResultDescription',
    'trainingResultTitle','trainingResultKills','trainingResultTarget',
    'trainingResultOutcome','trainingResultBadge','trainingResultStatus',
-   'trainingResultContinue','trainingResultExit','trainingResultActionError','dv'];
+   'trainingResultExit','trainingResultActionError','dv'];
  const elements=Object.fromEntries(ids.map(id=>[id,{
   textContent:'',dataset:{},hidden:id==='trainingResult'||id==='trainingResultActionError',
   disabled:false,classList:classes(),focus(){this.focused=true;},
  }]));
- const events={route:null,form:null,registerCount:0,verified:true,authenticated:true};
+ const events={route:null,form:null,order:[],registerCount:0,verified:true,authenticated:true};
  const doc={getElementById(id){assert.ok(elements[id],id);return elements[id];},
    exitPointerLock(){},body:{classList:classes()}};
  const context={
   document:doc,run:true,lob:false,lb:{style:{display:'none'}},
-  lobP:id=>{events.route=id;},
+  lobP:id=>{events.route=id;events.order.push('home');},
   onlineApi:{
    trainingStatus:async()=>({completed:events.verified}),
    state:()=>({authenticated:events.authenticated}),
@@ -40,7 +40,7 @@ function harness(){
   },
   onlineLoadInventory:async()=>{},
   roomLobbyOpen(){},
-  onlineDialog:(...args)=>{events.form=args;},
+  onlineDialog:(...args)=>{events.form=args;events.order.push('username');},
  };
  runInNewContext(source.slice(from,to),context);
  return {elements,events,context};
@@ -50,7 +50,7 @@ test('training result adopts Battle Report layout instead of scrolling modal',()
  assert.match(html,/class="training-report-left"/);
  assert.match(html,/class="training-report-right"/);
  assert.match(html,/id="trainingResultExit"/);
- assert.match(html,/id="trainingResultContinue"/);
+ assert.doesNotMatch(html,/id="trainingResultContinue"/);
  assert.match(html,/id="trainingResultTitle"/);
  assert.match(styles,/#dv\.training-result-active #dc\{display:none!important\}/);
  assert.match(styles,/grid-template-columns:minmax\(0,1\.08fr\) minmax\(0,1fr\)/);
@@ -66,7 +66,7 @@ test('settled training counts and qualification are server supplied; no mock XP 
  assert.equal(e.trainingResultKills.textContent,'10');
  assert.equal(e.trainingResultTarget.textContent,'10');
  assert.equal(e.trainingResultOutcome.textContent,'PASSED');
- assert.equal(e.trainingResultContinue.disabled,false);
+ assert.equal(e.trainingResultExit.disabled,false);
  assert.equal(e.trainingResult.hidden,false);
  h.context.onlineDisplayTrainingResult({status:'COMPLETED'});
  assert.equal(e.trainingResultKills.textContent,'—');
@@ -76,41 +76,46 @@ test('settled training counts and qualification are server supplied; no mock XP 
    /EXP EARNED|vPBT EARNED/);
 });
 
-test('EXIT GAME returns Home without registering a username',()=>{
+test('EXIT GAME after PASSED verifies BE and opens username before hiding report',async()=>{
  const h=harness();
  h.context.onlineDisplayTrainingResult({status:'COMPLETED',combinedKills:10,targetKills:10});
- h.context.onlineTrainingResultExit();
- assert.equal(h.events.route,'lbs');
- assert.equal(h.events.form,null);
- assert.equal(h.events.registerCount,0);
+ await h.context.onlineTrainingResultExit();
+ assert.equal(h.events.form[0],'CREATE USERNAME');
+ assert.equal(h.events.form[2],'REGISTER USERNAME');
+ assert.deepEqual(h.events.order,['username','home'],
+   'registration must open before the battle report is dismissed');
  assert.equal(h.elements.trainingResult.hidden,true);
+ assert.equal(h.elements.dv.classList.contains('show'),false);
+ assert.equal(h.elements.dv.classList.contains('training-result-active'),false);
+ assert.equal(h.events.registerCount,0,'EXIT does not create an account by itself');
 });
 
-test('NEXT requires persisted backend completion before username dialog',async()=>{
+test('EXIT cannot open username if backend completion is missing or sign-in expired',async()=>{
  const h=harness();
  h.context.onlineDisplayTrainingResult({status:'COMPLETED',combinedKills:10,targetKills:10});
  h.events.verified=false;
- await h.context.onlineTrainingResultContinue();
+ await h.context.onlineTrainingResultExit();
  assert.equal(h.events.form,null);
+ assert.equal(h.events.route,null);
+ assert.equal(h.elements.trainingResult.hidden,false);
  assert.equal(h.elements.trainingResultActionError.hidden,false);
+ assert.equal(h.elements.trainingResultExit.disabled,false);
  h.events.verified=true;
- await h.context.onlineTrainingResultContinue();
- assert.equal(h.events.form[0],'CREATE USERNAME');
- assert.equal(h.events.form[2],'REGISTER USERNAME');
- assert.equal(h.events.route,'lbs');
- assert.equal(h.events.registerCount,0,'opening registration never creates an account');
+ h.events.authenticated=false;
+ await h.context.onlineTrainingResultExit();
+ assert.equal(h.events.form,null);
+ assert.equal(h.events.route,null);
 });
 
-test('timeout report locks NEXT but EXIT remains available',async()=>{
+test('EXIT from incomplete training returns Home without registration',async()=>{
  const h=harness();
  h.context.onlineDisplayTrainingResult({
   status:'TIMEOUT_POLICY_PENDING',combinedKills:6,targetKills:10,
  });
  assert.equal(h.elements.trainingResultTitle.textContent,'TRAINING INCOMPLETE');
  assert.equal(h.elements.trainingResultOutcome.textContent,'INCOMPLETE');
- assert.equal(h.elements.trainingResultContinue.disabled,true);
- await h.context.onlineTrainingResultContinue();
+ await h.context.onlineTrainingResultExit();
  assert.equal(h.events.form,null);
- h.context.onlineTrainingResultExit();
  assert.equal(h.events.route,'lbs');
+ assert.equal(h.elements.trainingResult.hidden,true);
 });
