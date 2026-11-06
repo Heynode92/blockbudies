@@ -95,6 +95,7 @@
     "src/styles/17-online.css",
     "src/styles/18-room-lobby-redesign.css",
     "src/styles/19-earn.css",
-    "src/styles/20-leaderboard.css"
+    "src/styles/20-leaderboard.css",
+    "src/styles/21-result-rewards.css"
   ]
 }
