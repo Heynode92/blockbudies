@@ -1447,55 +1447,57 @@ function onlineRewardStop(){
 function onlineCheckVerifiedReward(matchId,attempt){
  if(!onlineRewardVisible(matchId)||onlineRewardChecking||!onlineApi?.state().authenticated)return;
  onlineRewardChecking=true;
- var flag=document.getElementById('verifiedRewardFlag'),
+ var section=document.getElementById('verifiedReward'),
+  flag=document.getElementById('verifiedRewardFlag'),
   status=document.getElementById('verifiedRewardStatus'),
   retry=document.getElementById('verifiedRewardRetry');
- flag.textContent='CALCULATING';retry.hidden=true;
+ section.dataset.rewardState='loading';
+ flag.textContent='CALCULATING';
+ status.parentElement.hidden=false;
+ retry.hidden=true;
  void onlineApi.award(matchId).then(function(value){
   if(!onlineRewardVisible(matchId))return;
-  // Backend balances and rewards are serialized nonnegative half units.
-  var exp=homeFormatHalf(value?.awardedExpHalf),vpbt=homeFormatHalf(value?.awardedVpbtHalf);
+  // The server's settled half-units are the sole source of both numbers.
+  var exp=homeFormatHalf(value?.awardedExpHalf),
+      vpbt=homeFormatHalf(value?.awardedVpbtHalf);
   if(exp==='—'||vpbt==='—'||value.matchId!==matchId)
    throw Error('INVALID_MATCH_SETTLEMENT_RESPONSE');
   document.getElementById('verifiedExpAmount').textContent='+'+exp;
   document.getElementById('verifiedVpbtAmount').textContent='+'+vpbt;
   flag.textContent='AWARDED';
-  // The percentage and BOT roster are provided by the private authoritative
-  // settlement response. Never duplicate economy policy in the frontend.
-  var bots=value?.botCount,penalty=value?.botPenaltyPercent;
-  var applied=Number.isSafeInteger(bots)&&bots>=0&&bots<=9&&
-    Number.isSafeInteger(penalty)&&penalty>0&&penalty<=100;
-  status.textContent=applied?
-    'Rewards added · '+bots+' BOTs: -'+penalty+'% EXP & vPBT':
-    'Rewards added to your account';
+  section.dataset.rewardState='awarded';
+  // BOT-count reductions remain in authoritative backend settlement.
+  // Keep the results HUD clean instead of displaying economy debug details.
+  status.textContent='';
+  status.parentElement.hidden=true;
   retry.hidden=true;
-  // Read after settlement so the vPBT header and player rank meter reflect
-  // actual persisted progress, rather than an optimistic local increment.
+  // Re-read persisted progression rather than extrapolating locally.
   void onlineApi.refreshProfile().then(function(state){
    if(onlineRewardVisible(matchId)&&state?.authenticated&&state.registered){
     resultsVerifiedRank(state.player);
-    // The rank badge beside YOU must also reflect any rank-up just earned.
     if(pl.st&&Number.isSafeInteger(state.player.rankIndex)){
      pl.st.rankIndex=state.player.rankIndex;
      onlineRenderResultScoreboard(ROS,pl.st);
     }
    }
-  }).catch(function(error){
-   if(onlineRewardVisible(matchId))
-    status.textContent=applied?
-      'Rewards added · '+bots+' BOTs: -'+penalty+'% EXP & vPBT · Rank sync pending':
-      'Rewards added. Updating your rank…';
+  }).catch(function(){
+   if(!onlineRewardVisible(matchId))return;
+   status.textContent='RANK SYNC PENDING';
+   status.parentElement.hidden=false;
   });
  }).catch(function(error){
   if(!onlineRewardVisible(matchId))return;
+  section.dataset.rewardState='pending';
   if(error?.code==='MATCH_REWARD_NOT_FOUND'&&attempt<8){
    flag.textContent='PENDING';
    status.textContent='Preparing your match rewards…';
+   status.parentElement.hidden=false;
    onlineRewardTimer=setTimeout(function(){onlineCheckVerifiedReward(matchId,attempt+1);},1250);
    return;
   }
   flag.textContent='PENDING';
   status.textContent='Rewards are taking longer than expected. Select RECHECK to try again.';
+  status.parentElement.hidden=false;
   retry.hidden=false;
  }).finally(function(){onlineRewardChecking=false;});
 }
@@ -1505,9 +1507,11 @@ function onlineShowVerifiedReward(matchId){
  onlineRewardStop();
  onlineRewardMatchId=matchId;
  section.hidden=false;
+ section.dataset.rewardState='loading';
  document.getElementById('verifiedExpAmount').textContent='—';
  document.getElementById('verifiedVpbtAmount').textContent='—';
  document.getElementById('verifiedRewardStatus').textContent='Calculating your match rewards…';
+ document.getElementById('verifiedRewardStatus').parentElement.hidden=false;
  document.getElementById('verifiedRewardFlag').textContent='CALCULATING';
  document.getElementById('verifiedRewardRetry').hidden=true;
  onlineCheckVerifiedReward(matchId,0);
