@@ -82,6 +82,8 @@ test('EXIT GAME after PASSED verifies BE and opens username before hiding report
  await h.context.onlineTrainingResultExit();
  assert.equal(h.events.form[0],'CREATE USERNAME');
  assert.equal(h.events.form[2],'REGISTER USERNAME');
+ assert.equal(h.events.form[4],'onboarding');
+ assert.match(styles,/\.point-online-dialog\.point-online-registration\{/);
  assert.deepEqual(h.events.order,['username','home'],
    'registration must open before the battle report is dismissed');
  assert.equal(h.elements.trainingResult.hidden,true);
