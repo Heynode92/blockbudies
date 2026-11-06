@@ -16,8 +16,9 @@ gameplay state, kills, BOT logic, Bomb objectives, and reward/ledger entries.
   matching `SIWE_ORIGIN` and a trusted Robinhood Chain Mainnet RPC (`ROBINHOOD_RPC_URL`) for SIWE verification.
   Robinhood Chain Mainnet chainId 4663 only; never send or store wallet private keys.
 - A successful wallet connection is not an account. The user must sign the
-  backend SIWE challenge; the resulting bearer token is **memory-only**, never
-  `localStorage` or URL. Refresh requires another wallet signature.
+  backend SIWE challenge; the bearer is kept in per-tab `sessionStorage`, never
+  `localStorage` or URL, and revalidated with the backend after reload only when
+  the same Robinhood wallet is still connected.
 
 ## Transport contract
 
