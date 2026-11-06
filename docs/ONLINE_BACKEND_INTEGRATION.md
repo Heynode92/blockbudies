@@ -13,8 +13,8 @@ gameplay state, kills, BOT logic, Bomb objectives, and reward/ledger entries.
   at build time. This **public** origin is not a secret. Unconfigured production
   clients refuse to authenticate or play.
 - Backend must authorize the exact Vite origin via `CORS_ORIGINS`, and configure
-  matching `SIWE_ORIGIN` and an independently trusted BSC Mainnet RPC (`BSC_RPC_URL`) for SIWE verification.
-  BNB Smart Chain Mainnet chainId 56 only; never send or store wallet private keys.
+  matching `SIWE_ORIGIN` and a trusted Robinhood Chain Mainnet RPC (`ROBINHOOD_RPC_URL`) for SIWE verification.
+  Robinhood Chain Mainnet chainId 4663 only; never send or store wallet private keys.
 - A successful wallet connection is not an account. The user must sign the
   backend SIWE challenge; the resulting bearer token is **memory-only**, never
   `localStorage` or URL. Refresh requires another wallet signature.
