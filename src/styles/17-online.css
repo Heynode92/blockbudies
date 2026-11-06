@@ -193,22 +193,250 @@
 #lbroomlive .rml-slot .rml-kick-player{box-sizing:border-box;flex:0 0 auto;min-width:0;max-width:60px;margin:0;padding:5px 7px;border-radius:6px;white-space:nowrap;font-size:clamp(9px,.7vw,11px);line-height:1.1}
 #lbroomlive #rmlStart.room-cancel-action,#lbroomlive #rmlStart.room-cancel-action:hover{background:linear-gradient(110deg,#971b2d,#e14442);color:#fff}
 
-/* Shared Battle Report backdrop, verified training outcome variant. */
-#dv.training-result-active{background:radial-gradient(ellipse at 50% 40%,#12444a,#071b2c 70%,#030d17)}
+/* TRAINING RESULT: use the exact Battle Report screen and typographic system,
+   not the old centered modal. No local EXP/vPBT simulation is shown. */
+#dv.training-result-active{
+ background:radial-gradient(ellipse at 35% 50%,rgba(11,96,109,.42),rgba(7,17,33,.95) 73%);
+}
 #dv.training-result-active #dc{display:none!important}
 #trainingResult[hidden]{display:none!important}
-#trainingResult.point-training-result{position:relative;z-index:2;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:18px;width:min(760px,92vw);max-height:92vh;overflow-y:auto;padding:clamp(25px,5vw,65px);border:2px solid #55bea6;border-top:6px solid #ff9d38;text-align:center;background:linear-gradient(145deg,#183e53,#091b30 76%);box-shadow:0 20px 85px #000a}
-.point-training-kicker{color:#91e5d2;font:900 13px Rajdhani,sans-serif;letter-spacing:.17em}
-#trainingResult h2{margin:0;color:#fff;font:italic 900 clamp(40px,6vw,76px) Impact,sans-serif;letter-spacing:.04em}
-#trainingResult p{margin:0;max-width:48ch;font:700 clamp(15px,2vw,22px)/1.45 Rajdhani,sans-serif;color:#bad6ea}
-.point-training-score{display:flex;flex-direction:column;gap:8px;width:min(380px,100%);padding:15px;border:1px solid #467d8b;background:#0a2335}
-.point-training-score span{font:900 12px Rajdhani,sans-serif;letter-spacing:.13em;color:#9bc6d6}
-.point-training-score strong{font:900 42px Impact,sans-serif;color:#80f1c3}
-.point-training-status{font:900 13px Rajdhani,sans-serif;letter-spacing:.14em;color:#8af2b8}
-#trainingResultContinue{width:100%;min-height:60px;padding:12px;border:1px solid #ffd1a0;background:linear-gradient(120deg,#e86c1c,#ff9d38);color:#fff;font:900 clamp(17px,2.5vw,26px) Rajdhani,sans-serif;cursor:pointer}
-#trainingResultContinue:focus-visible{outline:2px solid white;outline-offset:3px}
-
-
+#trainingResult.point-training-result{
+ position:relative;z-index:2;box-sizing:border-box;
+ display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,1fr);
+ align-items:center;column-gap:clamp(25px,3.5vw,65px);
+ width:min(1200px,94vw);max-width:100%;max-height:calc(100dvh - 24px);
+ margin:0;padding:clamp(12px,2.5vh,30px) 10px;
+ overflow:hidden;border:0;background:transparent;box-shadow:none;
+ color:#f1f5fb;text-align:left;font-family:Rajdhani,sans-serif;
+}
+#trainingResult .training-report-left,
+#trainingResult .training-report-right{
+ box-sizing:border-box;display:flex;flex-direction:column;
+ min-width:0;align-items:stretch;
+}
+#trainingResult .training-report-left{gap:clamp(12px,1.8vh,21px)}
+#trainingResult .training-report-right{gap:clamp(10px,1.5vh,17px)}
+#trainingResult .training-report-tag{
+ align-self:flex-start;max-width:100%;padding-right:22px;
+ color:#8ef5d0;background:rgba(18,122,105,.22);border-left-color:#45e1b1;
+ font-size:clamp(11px,.92vw,15px);letter-spacing:.2em;
+}
+#trainingResult .training-report-tag i{background:#43ddaf}
+#trainingResult .training-report-headline{
+ align-self:flex-start;margin:0;color:#fff;
+ font:italic 900 clamp(68px,8vw,139px)/.95 Impact,"Arial Black",sans-serif;
+ letter-spacing:.04em;text-transform:uppercase;
+ transform:skewX(-6deg);
+ background:linear-gradient(180deg,#ffffff 5%,#b8fff0 47%,#38cfa4 85%);
+ -webkit-background-clip:text;background-clip:text;color:transparent;
+ filter:drop-shadow(0 6px 0 #071323) drop-shadow(0 0 18px rgba(56,221,172,.2));
+}
+#trainingResult .training-report-description{
+ margin:0;max-width:44ch;color:#bfd6e7;
+ font:700 clamp(15px,1.3vw,21px)/1.35 Rajdhani,sans-serif;
+ letter-spacing:.02em;
+}
+/* Same premium match reward hierarchy, with qualification in place of
+   fictitious EXP or vPBT for the onboarding training session. */
+#trainingResult .training-report-award{
+ position:relative;box-sizing:border-box;isolation:isolate;
+ width:100%;margin-top:clamp(12px,2.4vh,24px);
+ padding:clamp(13px,1.4vw,19px);
+ border:2px solid #ff932d;border-radius:8px;overflow:hidden;
+ background:radial-gradient(ellipse at 90% 0,rgba(37,110,168,.28),transparent 70%),
+ linear-gradient(145deg,rgba(18,42,66,.98),rgba(5,16,30,.98));
+ box-shadow:inset 0 1px rgba(255,215,174,.23),
+ 0 0 25px rgba(250,132,28,.18),0 14px 30px rgba(0,0,0,.32);
+}
+#trainingResult .training-report-award::before{
+ content:"";position:absolute;left:16px;right:24%;top:0;height:3px;
+ background:linear-gradient(90deg,#ff8e2b,#ffcf87 45%,transparent);
+}
+#trainingResult .point-reward-heading{
+ display:flex;align-items:center;justify-content:space-between;gap:8px;
+ padding-bottom:clamp(10px,1.5vh,16px);
+ border-bottom:1px solid rgba(118,164,202,.55);
+}
+#trainingResult .point-reward-title{
+ display:flex;align-items:center;gap:10px;min-width:0;
+ color:#f8fbff;font:italic 900 clamp(19px,1.75vw,27px)/1
+ Impact,"Arial Black",sans-serif;letter-spacing:.065em;white-space:nowrap;
+ text-shadow:0 3px 0 #061323;
+}
+#trainingResult .point-reward-stripes{
+ display:block;width:38px;height:17px;flex:none;transform:skewX(-14deg);
+ background:repeating-linear-gradient(110deg,#ff8a29 0 9px,transparent 9px 15px);
+}
+#trainingResult .training-report-badge{
+ padding:6px 10px;min-width:73px;flex:none;text-align:center;
+ border:1px solid #2de6a6;border-radius:4px;
+ background:linear-gradient(120deg,rgba(20,91,76,.85),rgba(7,47,47,.92));
+ color:#acffdc;font:900 11px/1 Rajdhani,sans-serif;letter-spacing:.12em;
+}
+#trainingResult .training-report-qualification{
+ display:flex;align-items:center;gap:clamp(12px,1.3vw,20px);
+ padding:clamp(14px,1.9vw,24px) clamp(9px,1vw,13px) 3px;
+}
+#trainingResult .training-report-qualification-icon{
+ box-sizing:border-box;flex:0 0 clamp(63px,5.2vw,78px);
+ display:grid;place-items:center;width:clamp(63px,5.2vw,78px);
+ height:clamp(63px,5.2vw,78px);font-size:37px;color:#eafff1;
+ clip-path:polygon(50% 0,93% 25%,93% 75%,50% 100%,7% 75%,7% 25%);
+ background:linear-gradient(145deg,#80ffdd,#288d76 50%,#0a3e43);
+ text-shadow:0 3px 6px #062a2e;filter:drop-shadow(0 0 12px rgba(65,255,186,.27));
+}
+#trainingResult .training-report-qualification-copy{
+ min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:5px;
+ border-left:1px solid rgba(150,247,217,.45);
+ padding-left:clamp(12px,1.3vw,19px);
+}
+#trainingResult .training-report-qualification-copy small{
+ color:#c3e8ed;font:900 11px Rajdhani,sans-serif;letter-spacing:.14em;
+}
+#trainingResult #trainingResultTitle{
+ color:#9fffe0;font:italic 900 clamp(24px,2.7vw,45px)/1 Impact,"Arial Black",sans-serif;
+ letter-spacing:.045em;overflow-wrap:break-word;text-shadow:0 3px 0 #062722;
+}
+#trainingResult #trainingResultStatus{
+ color:#b3d2e7;font:900 12px Rajdhani,sans-serif;letter-spacing:.09em;
+}
+#trainingResult .training-report-right .dhd{
+ color:#8fedce;font-weight:900;letter-spacing:.3em;
+}
+#trainingResult .training-report-right .dhd::after{
+ background:linear-gradient(90deg,rgba(77,226,172,.8),transparent);
+}
+#trainingResult .training-report-stats{
+ gap:clamp(9px,1.6vh,15px);
+}
+#trainingResult .training-report-stats .dr{
+ min-height:clamp(65px,9vh,84px);box-sizing:border-box;
+ padding:12px 25px 12px 19px;
+}
+#trainingResult .training-report-stats .dr span{
+ font:800 clamp(13px,1vw,17px) Rajdhani,sans-serif;letter-spacing:.16em;
+}
+#trainingResult .training-report-stats .dr b{
+ font:italic 900 clamp(29px,3vw,48px)/1 Impact,"Arial Black",sans-serif;
+}
+#trainingResult .training-report-details{
+ box-sizing:border-box;padding:12px 14px;
+ border:1px solid rgba(93,148,190,.5);border-left:4px solid #f89132;
+ color:#b8d5e7;background:rgba(10,30,48,.72);
+ font:800 clamp(11px,.9vw,14px)/1.25 Rajdhani,sans-serif;
+ letter-spacing:.1em;
+}
+#trainingResult .training-report-actions{
+ display:flex;flex-direction:column;gap:11px;margin-top:clamp(7px,2vh,20px);
+}
+#trainingResult .training-report-actions button{
+ position:relative;box-sizing:border-box;display:flex;align-items:center;justify-content:center;
+ width:100%;min-height:clamp(51px,7.5vh,67px);padding:10px 15px;
+ border:1px solid rgba(255,188,113,.73);border-radius:0;cursor:pointer;
+ clip-path:polygon(15px 0,100% 0,calc(100% - 15px) 100%,0 100%);
+ font:italic 900 clamp(20px,2.1vw,31px)/1 Impact,"Arial Black",sans-serif;
+ letter-spacing:.105em;
+ transition:transform .15s,filter .15s;
+}
+#trainingResult #trainingResultContinue{
+ background:linear-gradient(115deg,#f47c1b,#ffad47);
+ color:#fff;text-shadow:0 2px 0 #69340a;
+}
+#trainingResult #trainingResultExit{
+ background:linear-gradient(115deg,#203a52,#0d1b2b);
+ border-color:#5983a4;color:#d0e1f0;
+}
+#trainingResult .training-report-actions button:disabled{
+ opacity:.5;cursor:not-allowed;filter:grayscale(.35);transform:none;
+}
+#trainingResult .training-report-actions button:not(:disabled):hover{
+ transform:translateX(5px);filter:brightness(1.15);
+}
+#trainingResult .training-report-actions button:focus-visible{
+ outline:3px solid white;outline-offset:3px;
+}
+#trainingResult .training-report-error{
+ color:#ffb5a4;background:#45241f;border:1px solid #ed735a;
+ padding:9px 12px;overflow-wrap:anywhere;
+ font:800 13px Rajdhani,sans-serif;letter-spacing:.04em;
+}
+#trainingResult .training-report-error[hidden]{display:none}
+#trainingResult[data-outcome="incomplete"] .training-report-headline{
+ background:linear-gradient(#fff,#ffb4ad 52%,#e24b4b);
+ -webkit-background-clip:text;background-clip:text;
+ filter:drop-shadow(0 6px 0 #170707);
+}
+#trainingResult[data-outcome="incomplete"] .training-report-tag{
+ color:#ffb0a7;border-left-color:#e65858;background:#501c2d8a;
+}
+#trainingResult[data-outcome="incomplete"] .training-report-tag i{background:#ed6666}
+#trainingResult[data-outcome="incomplete"] .training-report-badge{
+ color:#ffbaa8;border-color:#b65e48;background:#402329;
+}
+#trainingResult[data-outcome="incomplete"] .training-report-qualification-icon{
+ background:linear-gradient(130deg,#ffcc9b,#c96b48,#613b34);
+}
+#trainingResult[data-outcome="incomplete"] #trainingResultTitle{color:#ffb7a8}
+/* Registration uses the same tactical typography instead of generic modal styling. */
+.point-online-dialog-panel{
+ border:2px solid #ff9336;border-radius:6px;gap:16px;
+ background:linear-gradient(140deg,#17334d,#071524);
+ box-shadow:inset 0 1px rgba(255,255,255,.13),0 0 24px #f9832b33,0 24px 80px #000b;
+ font-family:Rajdhani,sans-serif;
+}
+.point-online-dialog-panel h2{
+ font:italic 900 clamp(27px,4vw,41px)/1 Impact,"Arial Black",sans-serif;
+ letter-spacing:.07em;
+}
+.point-online-dialog-panel p{
+ color:#c7d9e9;font:700 16px/1.35 Rajdhani,sans-serif;
+}
+.point-online-dialog-panel input{
+ border-radius:4px;border:1px solid #6593b1;background:#061726;
+ color:#fff;font:800 20px Rajdhani,sans-serif;
+}
+.point-online-dialog-panel button{
+ border-radius:4px;background:linear-gradient(120deg,#f67c1d,#ffad43);
+ font:900 19px Rajdhani,sans-serif;letter-spacing:.1em;
+}
+@media(max-height:700px) and (min-width:861px){
+ #trainingResult.point-training-result{padding:8px 10px}
+ #trainingResult .training-report-left{gap:9px}
+ #trainingResult .training-report-right{gap:8px}
+ #trainingResult .training-report-headline{font-size:clamp(64px,9vh,100px)}
+ #trainingResult .training-report-award{margin-top:7px;padding:11px}
+ #trainingResult .training-report-qualification{padding:9px 7px 2px}
+ #trainingResult .training-report-stats .dr{min-height:54px;padding:9px 18px}
+ #trainingResult .training-report-details{padding:7px}
+ #trainingResult .training-report-actions{gap:7px;margin-top:5px}
+ #trainingResult .training-report-actions button{min-height:45px}
+}
+@media(max-width:860px){
+ #dv.training-result-active{overflow-y:auto;align-items:flex-start}
+ #trainingResult.point-training-result{
+  grid-template-columns:minmax(0,1fr);gap:24px;
+  width:min(680px,96vw);max-height:none;overflow:visible;
+  padding:calc(env(safe-area-inset-top,0px) + 18px) 13px 27px;
+ }
+ #trainingResult .training-report-headline{font-size:clamp(69px,19vw,114px)}
+ #trainingResult .training-report-award{margin-top:9px}
+ #trainingResult .training-report-stats .dr{min-height:55px}
+ #trainingResult .training-report-right{padding-bottom:25px}
+}
+@media(max-width:460px){
+ #trainingResult .training-report-headline{font-size:clamp(60px,18vw,83px)}
+ #trainingResult .training-report-qualification-icon{
+  flex-basis:49px;width:49px;height:49px;font-size:27px;
+ }
+ #trainingResult #trainingResultTitle{font-size:clamp(22px,7vw,32px)}
+ #trainingResult .point-reward-title{font-size:17px}
+ #trainingResult .point-reward-stripes{width:25px}
+ #trainingResult .training-report-stats .dr b{font-size:31px}
+ #trainingResult .training-report-actions button{font-size:21px}
+}
+@media(prefers-reduced-motion:reduce){
+ #trainingResult .training-report-actions button{transition:none}
+}
 
 /* Online Battle Report: preserve PointBlock typography and faction palette,
    but keep positions, 3D ranks, names and KD aligned on a single baseline. */
