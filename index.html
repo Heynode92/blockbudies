@@ -120,13 +120,40 @@ html.pb-route-restoring #lb { visibility:hidden; }
 <div id="sbd"></div>
 <div class="dbt"><button id="dgo">PLAY AGAIN<kbd>ENTER</kbd></button><button id="dmn">BACK TO ROOM</button></div></div>
 </div>
- <section id="trainingResult" class="point-training-result" aria-label="Training results" hidden>
-   <div class="point-training-kicker">POINT BLOCK · RECRUITMENT REPORT</div>
-   <h2 id="trainingResultTitle">TRAINING COMPLETE</h2>
-   <p id="trainingResultDescription"></p>
-   <div class="point-training-score"><span>COMBINED TEAM KILLS</span><strong id="trainingResultKills">—</strong></div>
-   <div class="point-training-status" id="trainingResultStatus"></div>
-   <button id="trainingResultContinue" type="button">CONTINUE · REGISTER CALLSIGN</button>
+ <section id="trainingResult" class="point-training-result" aria-label="Training Battle Report" hidden>
+  <div class="training-report-left">
+   <div class="dtag training-report-tag"><i aria-hidden="true"></i><span>TRAINING // RECRUITMENT REPORT</span></div>
+   <h2 class="training-report-headline" id="trainingResultHeadline">MISSION PASSED</h2>
+   <p id="trainingResultDescription" class="training-report-description"></p>
+   <div class="training-report-award" role="group" aria-label="Server-verified training qualification">
+    <header class="point-reward-heading">
+     <div class="point-reward-title"><span class="point-reward-stripes" aria-hidden="true"></span><span>TRAINING RESULT</span></div>
+     <b id="trainingResultBadge" class="training-report-badge">VERIFIED</b>
+    </header>
+    <div class="training-report-qualification">
+     <span class="training-report-qualification-icon" aria-hidden="true">★</span>
+     <div class="training-report-qualification-copy">
+      <small>OPERATOR QUALIFICATION</small>
+      <strong id="trainingResultTitle">TRAINING COMPLETE</strong>
+      <span id="trainingResultStatus" role="status"></span>
+     </div>
+    </div>
+   </div>
+  </div>
+  <div class="training-report-right">
+   <div class="dhd">TRAINING REPORT</div>
+   <div class="dst training-report-stats">
+    <div class="dr r1"><span>TEAM KILLS</span><b id="trainingResultKills">—</b></div>
+    <div class="dr r2"><span>KILL TARGET</span><b id="trainingResultTarget">—</b></div>
+    <div class="dr r3"><span>STATUS</span><b id="trainingResultOutcome">—</b></div>
+   </div>
+   <div class="training-report-details">TRAINING OBJECTIVES ARE VERIFIED BY THE GAME SERVER</div>
+   <div id="trainingResultActionError" class="training-report-error" role="alert" hidden></div>
+   <div class="training-report-actions">
+    <button id="trainingResultExit" type="button">EXIT GAME</button>
+    <button id="trainingResultContinue" type="button">NEXT · CREATE USERNAME</button>
+   </div>
+  </div>
  </section>
 </div>
 <div id="lb">
