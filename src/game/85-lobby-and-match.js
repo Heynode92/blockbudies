@@ -11,6 +11,15 @@ document.getElementById("go").onclick=function(){this.blur();reset();ov.style.di
 var lb=document.getElementById("lb");
 function lobBest(){var b=0;try{b=+localStorage.getItem("bbfps_best")||0;}catch(e){}var el=document.getElementById("lbbest");if(el)el.textContent=b;}
 function lobP(id){
+ if(id==="lbs"&&!run&&typeof onlineTrainingResultDismissVisual==="function"){
+  // Home must never coexist with a stale training Battle Report behind it.
+  var trainingScreen=document.getElementById('dv');
+  if(trainingScreen?.classList.contains('training-result-active')){
+   onlineTrainingResultDismissVisual();
+   document.body.classList.remove('over');
+   document.body.classList.add('lobby');
+  }
+ }
  if(id==="lbs"&&roomCurrent)roomCloseLocal();
  ["lbs","lbm","lbrooms","lbroomlive","lbiv","lbshop","lbearn","lbboard"].forEach(function(i){
   document.getElementById(i).classList.toggle("on",i===id);
