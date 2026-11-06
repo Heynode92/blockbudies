@@ -93,7 +93,7 @@
 #lbearn .earn-card {
  --earn-accent:#f0a14f;
  position:relative;display:flex;flex-direction:column;box-sizing:border-box;
- min-width:0;height:clamp(382px,52vh,490px);
+ min-width:0;height:clamp(430px,55vh,510px);
  padding:clamp(20px,2vw,34px);
  border:1px solid rgba(120,157,190,.26);border-radius:24px;
  background:radial-gradient(ellipse at 20% -25%,rgba(248,150,57,.075),transparent 65%),
