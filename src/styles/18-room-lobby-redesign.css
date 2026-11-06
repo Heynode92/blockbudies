@@ -363,3 +363,24 @@
 @media(max-width:1240px){#lbrooms .room-rank-insignia canvas{width:57px;height:62px}}
 @media(max-width:650px){#lbrooms .room-rank-insignia canvas{width:58px;height:64px}}
 @media(max-width:420px){#lbrooms .room-rank-insignia canvas{width:46px;height:52px}}
+
+
+/* Room Browser: server-authoritative PLAY status for active matches. */
+#lbrooms .room-entry.room-in-play{
+ background:linear-gradient(90deg,rgba(83,54,31,.26),rgba(17,46,71,.64));
+ border-left:3px solid #f68a2b;
+}
+#lbrooms .room-entry .rm-status.room-status-play{
+ color:#ffb46e;
+ padding:5px 10px;
+ border:1px solid rgba(250,149,61,.57);
+ border-radius:4px;
+ background:rgba(239,133,36,.11);
+ font:900 13px Rajdhani,sans-serif;
+ letter-spacing:.11em;
+}
+#lbrooms .room-entry.room-in-play .room-join:disabled{
+ cursor:not-allowed;opacity:1;
+ background:linear-gradient(140deg,#24394e,#182b40);
+ color:#9fb2c7;border:1px solid #52657b;
+}
