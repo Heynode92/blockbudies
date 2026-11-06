@@ -2193,7 +2193,9 @@ if(onlineApi)onlineApi.setOnChange(function(state){
  var wasLogout=onlineWasAuthenticated&&!state.authenticated;
  onlineWasAuthenticated=state.authenticated;
  if(wasLogout){
-  var remainEarn=document.getElementById('lbearn')?.classList.contains('on')===true;
+  var publicPanel=['lbshop','lbearn','lbboard'].find(function(id){
+   return document.getElementById(id)?.classList.contains('on')===true;
+  })||'lbs';
   rankInsigniaResultDetach();
   onlineResultsDisplayed=false;onlineRewardStop();
   document.getElementById('dv').classList.remove('show');
@@ -2204,9 +2206,9 @@ if(onlineApi)onlineApi.setOnChange(function(state){
   onlineResetLive();
   if(hadLiveGame&&(run||!lob))matchExitToLobby('list');
   roomList=[];roomCurrent=null;onlineRoomRender();
-  // Earn is a public screen: sign-out switches its actions to CONNECT WALLET.
-  // All protected lobby/inventory screens still return to Home.
-  var returnPanel=remainEarn?'lbearn':'lbs';
+  // Shop, Earn, and Leaderboard are PUBLIC. Sign-out must not redirect
+  // these read-only screens; only protected lobby/inventory return to Home.
+  var returnPanel=publicPanel;
   if(typeof lobP==='function')lobP(returnPanel);
   if(typeof appRouteUpdate==='function')appRouteUpdate(returnPanel,true);
  }
