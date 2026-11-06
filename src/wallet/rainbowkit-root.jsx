@@ -5,7 +5,7 @@ import '@rainbow-me/rainbowkit/styles.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiProvider, http, useAccount } from 'wagmi';
 import { getAccount, getWalletClient } from 'wagmi/actions';
-import { GAME_WALLET_CHAIN, GAME_WALLET_CHAIN_ID } from './bsc-network.js';
+import { GAME_WALLET_CHAIN, GAME_WALLET_CHAIN_ID } from './robinhood-network.js';
 
 const queryClient = new QueryClient({defaultOptions:{queries:{retry:1,refetchOnWindowFocus:false}}});
 const same=(a,b)=>typeof a==='string'&&typeof b==='string'&&a.toLowerCase()===b.toLowerCase();
@@ -19,8 +19,8 @@ export function createPointBlockRainbowWallet({projectId,rpcUrl}={}){
  if(rpc){
   const url=new URL(rpc);
   if(url.protocol!=='https:'&&!(import.meta.env.DEV&&url.protocol==='http:'&&
-    ['localhost','127.0.0.1'].includes(url.hostname)))throw invalid('INVALID_BSC_RPC_URL');
-  if(url.username||url.password||url.hash||url.search)throw invalid('INVALID_BSC_RPC_URL');
+    ['localhost','127.0.0.1'].includes(url.hostname)))throw invalid('INVALID_ROBINHOOD_RPC_URL');
+  if(url.username||url.password||url.hash||url.search)throw invalid('INVALID_ROBINHOOD_RPC_URL');
  }
  // Never generate, guess or commit a WalletConnect Cloud project ID.
  const config=id?getDefaultConfig({
@@ -98,7 +98,7 @@ export function createPointBlockRainbowWallet({projectId,rpcUrl}={}){
     },[a.status,a.isConnected,a.address,a.chainId]);
     const authenticated=a.isConnected&&session.authenticated&&same(session.address,a.address);
     const wrongChain=a.isConnected&&a.chainId!==GAME_WALLET_CHAIN_ID;
-    const label=!a.isConnected?'CONNECT WALLET':wrongChain?'SWITCH TO BSC':
+    const label=!a.isConnected?'CONNECT WALLET':wrongChain?'SWITCH TO ROBINHOOD CHAIN':
       authenticated?a.address.slice(0,6)+'…'+a.address.slice(-4):
       busy?'SIGNING IN…':'SIGN IN';
     async function activate(){
@@ -114,7 +114,7 @@ export function createPointBlockRainbowWallet({projectId,rpcUrl}={}){
     return <div className="pb-rainbow-wallet">
       <button id="homeWalletConnect" type="button" className={authenticated?'connected':''}
         disabled={busy||!snapshot.ready} onClick={activate}
-        aria-label={authenticated?'Authenticated BNB Smart Chain wallet':'RainbowKit BSC wallet connect and SIWE sign in'}>
+        aria-label={authenticated?'Authenticated Robinhood Chain wallet':'RainbowKit Robinhood Chain wallet connect and SIWE sign in'}>
         <span id="homeWalletLabel">{label}</span>
       </button>
       {err?<span className="pb-rainbow-error" role="status">{err.replaceAll('_',' ')}</span>:null}
