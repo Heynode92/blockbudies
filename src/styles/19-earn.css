@@ -309,3 +309,124 @@
 @media(max-width:420px){
  #lbearn .earn-brand-subtitle{display:block;}
 }
+
+
+/* In-panel balances and no-scroll desktop fit for Earn. */
+#lbearn .earn-swap-panel{
+ width:min(690px,100%);
+}
+#lbearn .earn-swap-heading{
+ padding:clamp(12px,1.6vh,18px) clamp(16px,3vw,30px) clamp(10px,1.4vh,15px);
+}
+#lbearn .earn-balances{
+ box-sizing:border-box;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ align-items:stretch;gap:0;min-height:78px;margin:0 clamp(16px,3vw,30px);
+ border:1px solid rgba(132,170,203,.42);
+ border-left:3px solid #ff902b;border-right:3px solid #ff902b;
+ background:linear-gradient(112deg,#071523,#0c2135 48%,#071523);
+ box-shadow:inset 0 1px rgba(231,245,255,.07),0 6px 18px rgba(0,0,0,.18);
+ clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);
+}
+#lbearn .earn-balance{
+ box-sizing:border-box;display:flex;align-items:center;gap:clamp(7px,1vw,13px);
+ min-width:0;padding:10px clamp(10px,1.5vw,19px);
+}
+#lbearn .earn-balance + .earn-balance{
+ border-left:1px solid rgba(151,180,209,.32);
+}
+#lbearn .earn-balance>img{
+ width:clamp(32px,3vw,43px);height:clamp(32px,3vw,43px);
+ flex:none;object-fit:contain;filter:drop-shadow(0 3px 6px #0009);
+}
+#lbearn .earn-balance-copy{
+ display:flex;flex-direction:column;justify-content:center;gap:3px;min-width:0;flex:1;
+}
+#lbearn .earn-balance-label{
+ color:#a5c2d9;font:800 11px/1.15 Rajdhani,sans-serif;letter-spacing:.16em;
+ white-space:nowrap;
+}
+#lbearn .earn-balance-copy strong{
+ display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+ color:#f6f9ff;font:900 clamp(16px,1.65vw,25px)/1.12 Rajdhani,sans-serif;
+}
+#lbearn .earn-balance-copy small{
+ color:#f6aa5b;font:800 10px/1.1 Rajdhani,sans-serif;
+ letter-spacing:.1em;white-space:nowrap;
+}
+#lbearn .earn-balance-copy small[hidden]{display:none;}
+#lbearn .earn-balance-copy .earn-not-launched{
+ align-self:flex-start;padding:3px 7px;
+ border:1px solid rgba(168,182,198,.48);
+ background:rgba(161,175,194,.12);color:#bbc9d8;
+ font:800 10px/1 Rajdhani,sans-serif;letter-spacing:.085em;
+}
+#lbearn .earn-swap-body{
+ padding:clamp(13px,1.8vh,18px) clamp(16px,3vw,30px) clamp(12px,1.6vh,17px);
+}
+#lbearn .earn-field{
+ min-height:clamp(78px,11vh,96px);
+ padding:clamp(10px,1.5vh,14px) clamp(12px,2vw,20px);
+}
+#lbearn .earn-flip-wrap{height:25px;}
+#lbearn .earn-flip{width:43px;height:43px;}
+#lbearn .earn-rate-line{margin:12px 0;}
+#lbearn .earn-convert-action{height:50px;}
+#lbearn .earn-swap-foot{min-height:34px;}
+#lbearn #earnStatus{max-width:min(690px,100%);}
+@media(max-height:760px) and (min-width:651px){
+ #lbearn .earn-page{grid-template-rows:90px minmax(0,1fr);}
+ #lbearn .earn-topbar{margin-top:8px;}
+ #lbearn .earn-brand-name{font-size:clamp(36px,7vh,51px);}
+ #lbearn .earn-stage{justify-content:center;overflow:hidden;padding:8px 16px;}
+ #lbearn .earn-swap-heading{padding:10px 24px;}
+ #lbearn .earn-swap-title h2{font-size:34px;}
+ #lbearn .earn-balances{min-height:65px;margin:0 24px;}
+ #lbearn .earn-balance{padding:7px 12px;}
+ #lbearn .earn-balance>img{width:32px;height:32px;}
+ #lbearn .earn-balance-copy strong{font-size:19px;}
+ #lbearn .earn-swap-body{padding:10px 24px;}
+ #lbearn .earn-field{min-height:76px;padding:10px 13px;}
+ #lbearn .earn-field-row input,#lbearn .earn-estimate{font-size:30px;}
+ #lbearn .earn-flip-wrap{height:21px;}
+ #lbearn .earn-flip{width:39px;height:39px;}
+ #lbearn .earn-rate-line{margin:9px 0;}
+ #lbearn .earn-convert-action{height:44px;font-size:23px;}
+ #lbearn .earn-swap-foot{min-height:29px;}
+}
+@media(max-height:600px) and (min-width:651px){
+ #lbearn .earn-page{grid-template-rows:78px minmax(0,1fr);}
+ #lbearn .earn-topbar{margin-top:5px;}
+ #lbearn .earn-brand-name{font-size:35px;}
+ #lbearn .earn-stage{padding:5px 12px;}
+ #lbearn .earn-swap-heading{padding:8px 20px;}
+ #lbearn .earn-swap-title h2{font-size:29px;}
+ #lbearn .earn-balances{min-height:55px;margin:0 20px;}
+ #lbearn .earn-balance{padding:5px 10px;}
+ #lbearn .earn-balance>img{width:29px;height:29px;}
+ #lbearn .earn-balance-copy strong{font-size:17px;}
+ #lbearn .earn-swap-body{padding:8px 20px;}
+ #lbearn .earn-field{min-height:65px;padding:7px 12px;}
+ #lbearn .earn-field-row input,#lbearn .earn-estimate{font-size:25px;}
+ #lbearn .earn-flip-wrap{height:18px;}
+ #lbearn .earn-flip{width:35px;height:35px;}
+ #lbearn .earn-rate-line{margin:7px 0;}
+ #lbearn .earn-convert-action{height:40px;font-size:21px;}
+ #lbearn .earn-swap-foot{min-height:26px;}
+}
+@media(max-width:650px){
+ #lbearn .earn-swap-heading{padding:14px 15px 10px;}
+ #lbearn .earn-balances{margin:0 15px;min-height:70px;}
+ #lbearn .earn-balance{gap:5px;padding:8px;}
+ #lbearn .earn-balance>img{width:29px;height:29px;}
+ #lbearn .earn-balance-label{font-size:10px;letter-spacing:.075em;}
+ #lbearn .earn-balance-copy strong{font-size:clamp(13px,3.3vw,20px);}
+ #lbearn .earn-balance-copy .earn-not-launched{font-size:9px;padding:3px 5px;}
+ #lbearn .earn-swap-body{padding:13px 15px;}
+ #lbearn .earn-field{min-height:84px;}
+ #lbearn .earn-swap-foot{font-size:12px;}
+}
+@media(max-width:380px){
+ #lbearn .earn-balance>img{width:23px;height:23px;}
+ #lbearn .earn-balance-copy strong{font-size:13px;}
+ #lbearn .earn-balance-label{font-size:9px;}
+}
