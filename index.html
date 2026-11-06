@@ -201,12 +201,14 @@ html.pb-route-restoring #lb { visibility:hidden; }
  <div class="earn-shell">
   <header class="earn-header">
    <div class="earn-title">
-    <svg viewBox="0 0 36 36" aria-hidden="true" fill="none" stroke="currentColor" stroke-linejoin="round"><ellipse cx="17" cy="10" rx="12" ry="5"/><path d="M5 10v8c0 3 5 5 12 5s12-2 12-5v-8M5 18v8c0 3 5 5 12 5s12-2 12-5v-8"/></svg>
-    <strong>EARN</strong><span class="earn-separator" aria-hidden="true"></span><small>TOKEN CONVERTER</small>
+    <span class="earn-brand-icon" aria-hidden="true"><svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-linejoin="round"><ellipse cx="17" cy="10" rx="12" ry="5"/><path d="M5 10v8c0 3 5 5 12 5s12-2 12-5v-8M5 18v8c0 3 5 5 12 5s12-2 12-5v-8"/></svg></span>
+    <div class="earn-heading-text"><strong>EARN</strong><small>TOKEN CONVERTER <span aria-hidden="true">//</span> POINTBLOCK</small></div>
    </div>
-   <button class="earn-back" id="earnBack" type="button">‹ BACK</button>
+   <div class="earn-header-right"><span class="earn-development-indicator"><i aria-hidden="true"></i> IN DEVELOPMENT</span>
+   <button class="earn-back" id="earnBack" type="button">‹ BACK</button></div>
   </header>
   <div class="earn-banner">
+   <span class="earn-overline">POINTBLOCK FINANCIAL SYSTEM <i aria-hidden="true"></i> FUTURE UTILITY</span>
    <div class="earn-tools" aria-hidden="true">
     <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
      <path d="M8 8l8 4-4 4 22 22a5 5 0 0 0 7-7L19 9l-4 4z"/><path d="M37 7a10 10 0 0 0-12 12L8 36a5 5 0 0 0 7 7l17-17A10 10 0 0 0 44 14l-7 7-7-7z"/>
@@ -214,38 +216,49 @@ html.pb-route-restoring #lb { visibility:hidden; }
    </div>
    <h2>COMING <span>SOON</span></h2>
    <p>CONVERTER FEATURE IS UNDER DEVELOPMENT</p>
+   <div class="earn-rate-hero" aria-label="One to one conversion preview, not a live quote">
+     <span>PREVIEW RATE</span><strong>1 vPBT <b>⇄</b> 1 PBT</strong><small>1 : 1 · NOT LIVE</small>
+   </div>
   </div>
   <div class="earn-converter-grid">
-   <article class="earn-card" aria-label="Convert virtual PBT to PBT">
-    <h3>vPBT <span aria-hidden="true">➜</span> PBT</h3>
+   <article class="earn-card" aria-label="Preview virtual PBT to PBT conversion">
+    <div class="earn-card-top"><span>CONVERTER 01</span><span>1 : 1 PREVIEW</span></div>
+    <h3>vPBT <span aria-hidden="true">→</span> PBT</h3>
+    <label class="earn-field-label" for="earnVpbtAmount">YOU SEND</label>
     <div class="earn-amount">
-     <input type="text" inputmode="decimal" maxlength="24" autocomplete="off" aria-label="vPBT amount" placeholder="Enter amount">
+     <input id="earnVpbtAmount" type="text" inputmode="decimal" maxlength="24" autocomplete="off" spellcheck="false" aria-label="vPBT preview amount" placeholder="0.00">
      <span class="earn-token"><img src="./src/assets/icon/vPBT-logo.png" alt="" aria-hidden="true">vPBT</span>
     </div>
-    <div class="earn-down" aria-hidden="true">⌄</div>
-    <div class="earn-amount earn-out" aria-label="PBT estimate unavailable">
-     <span class="earn-estimate">≈ —</span>
+    <div class="earn-swap-divider" aria-hidden="true"><span>↓</span><i></i></div>
+    <div class="earn-field-label">YOU RECEIVE <small>ESTIMATED · PREVIEW</small></div>
+    <div class="earn-amount earn-out" aria-label="Estimated PBT preview at one to one ratio">
+     <output class="earn-estimate" for="earnVpbtAmount">≈ —</output>
      <span class="earn-token"><img src="./src/assets/icon/pb-logo.png" alt="" aria-hidden="true">PBT</span>
     </div>
+    <p class="earn-card-note">1 vPBT = 1 PBT <span>UI PREVIEW ONLY</span></p>
     <button type="button" class="earn-convert-action">CONNECT WALLET</button>
    </article>
-   <article class="earn-card" aria-label="Convert PBT to virtual PBT">
-    <h3>PBT <span aria-hidden="true">➜</span> vPBT</h3>
+   <article class="earn-card" aria-label="Preview PBT to virtual PBT conversion">
+    <div class="earn-card-top"><span>CONVERTER 02</span><span>1 : 1 PREVIEW</span></div>
+    <h3>PBT <span aria-hidden="true">→</span> vPBT</h3>
+    <label class="earn-field-label" for="earnPbtAmount">YOU SEND</label>
     <div class="earn-amount">
-     <input type="text" inputmode="decimal" maxlength="24" autocomplete="off" aria-label="PBT amount" placeholder="Enter amount">
+     <input id="earnPbtAmount" type="text" inputmode="decimal" maxlength="24" autocomplete="off" spellcheck="false" aria-label="PBT preview amount" placeholder="0.00">
      <span class="earn-token"><img src="./src/assets/icon/pb-logo.png" alt="" aria-hidden="true">PBT</span>
     </div>
-    <div class="earn-down" aria-hidden="true">⌄</div>
-    <div class="earn-amount earn-out" aria-label="vPBT estimate unavailable">
-     <span class="earn-estimate">≈ —</span>
+    <div class="earn-swap-divider" aria-hidden="true"><span>↓</span><i></i></div>
+    <div class="earn-field-label">YOU RECEIVE <small>ESTIMATED · PREVIEW</small></div>
+    <div class="earn-amount earn-out" aria-label="Estimated vPBT preview at one to one ratio">
+     <output class="earn-estimate" for="earnPbtAmount">≈ —</output>
      <span class="earn-token"><img src="./src/assets/icon/vPBT-logo.png" alt="" aria-hidden="true">vPBT</span>
     </div>
+    <p class="earn-card-note">1 PBT = 1 vPBT <span>UI PREVIEW ONLY</span></p>
     <button type="button" class="earn-convert-action">CONNECT WALLET</button>
    </article>
   </div>
   <footer class="earn-footer">
-   <b>CONVERSION NOT AVAILABLE YET</b>
-   <p>Converter feature is under development.<br>Stay tuned for the official release!</p>
+   <div class="earn-footer-label"><span class="earn-footer-icon" aria-hidden="true">!</span><b>CONVERSION NOT AVAILABLE YET</b></div>
+   <p>Token conversion is not active. No swaps, fees, balances or on-chain transfers are executed.</p>
   </footer>
   <p id="earnStatus" role="status" aria-live="polite"></p>
  </div>
