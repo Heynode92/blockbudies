@@ -67,6 +67,7 @@
     "src/game/89-inventory.js",
     "src/game/89-shop.js",
     "src/game/89-earn.js",
+    "src/game/89-leaderboard.js",
     "src/game/90-bot-ai.js",
     "src/game/94-bot-qa.js",
     "src/game/95-simulation.js",
@@ -93,6 +94,7 @@
     "src/styles/16-match-scoreboard.css",
     "src/styles/17-online.css",
     "src/styles/18-room-lobby-redesign.css",
-    "src/styles/19-earn.css"
+    "src/styles/19-earn.css",
+    "src/styles/20-leaderboard.css"
   ]
 }
