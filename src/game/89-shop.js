@@ -1,6 +1,7 @@
 // Server-priced vPBT store; browser never invents currency, ownership or free unlocks.
 var shopFilter="ALL",shopAnim=true,shopFlashId=-1,shopAcc={},shopSelectedId=null;
-var shopServerItems=new Map(),shopServerReady=false,shopOrderPending=new Map();
+var shopServerItems=new Map(),shopServerReady=false,shopServerFailed=false,shopOrderPending=new Map();
+var shopRefreshEpoch=0;
 var SHOP_ACCENTS=["#ff922b","#4dc3ff","#ff5c6c","#b388ff","#70e1a5","#ffd43b","#f783ac","#74c0fc"];
 function shopCatalog(){
   return Array.from(shopServerItems.keys()).sort(function(a,b){return a-b;});
@@ -40,13 +41,15 @@ function shopBuildFilter(roles,ids){
   });
 }
 function shopRender(){
-  var grid=document.getElementById("shopGrid"),ids=shopCatalog(),owned=inventoryOwned("main"),
+  var grid=document.getElementById("shopGrid"),ids=shopCatalog(),
+      owned=typeof PB_ONLINE!=="undefined"&&PB_ONLINE.state().authenticated&&
+        PB_ONLINE.state().registered?inventoryOwned("main"):[],
       roles=[],max={d:1,s:1,m:1},flash=shopFlashId,shown=0,scrollPosition=grid.scrollTop;
   shopFlashId=-1;
   if(!shopServerReady){
    grid.replaceChildren();
-   grid.appendChild(shopEl("p","shop-server-status",typeof PB_ONLINE!=="undefined"&&PB_ONLINE.state().authenticated?
-     "SHOP UNAVAILABLE — VERIFY BACKEND CONNECTION":"CONNECT WALLET TO ACCESS STORE"));
+   grid.appendChild(shopEl("p","shop-server-status",shopServerFailed?
+     "SHOP CATALOG UNAVAILABLE — VERIFY BACKEND CONNECTION":"LOADING WEAPON CATALOG"));
    var side=document.getElementById("shopSelected");if(side)side.replaceChildren();
    return;
   }
@@ -141,8 +144,11 @@ function shopPrice(value){
  return Number.isSafeInteger(value)&&value>=0?new Intl.NumberFormat("en-US").format(value):"—";
 }
 async function shopPurchase(id){
- if(!shopServerReady||!shopServerItems.has(id)||typeof PB_ONLINE==="undefined"||
-    !PB_ONLINE.state().registered||inventoryServerOwned.has(id))return;
+ if(!shopServerReady||!shopServerItems.has(id)||typeof PB_ONLINE==="undefined")return;
+ var state=PB_ONLINE.state();
+ if(!state.authenticated){toast("SIGN IN TO PURCHASE WEAPONS");return;}
+ if(!state.registered){toast("COMPLETE REGISTRATION TO PURCHASE");return;}
+ if(inventoryServerOwned.has(id))return;
  var key=shopOrderPending.get(id)||crypto.randomUUID();
  shopOrderPending.set(id,key);
  var controls=Array.from(document.querySelectorAll(".shop-action"));
@@ -162,11 +168,15 @@ async function shopPurchase(id){
  finally{controls.forEach(function(btn){btn.disabled=false;});}
 }
 async function shopRefresh(){
- shopServerReady=false;shopRender();
- if(typeof PB_ONLINE==="undefined"||!PB_ONLINE.state().registered)return;
+ var epoch=++shopRefreshEpoch;
+ shopServerReady=false;shopServerFailed=false;shopRender();
+ if(typeof PB_ONLINE==="undefined"){
+  shopServerFailed=true;shopRender();return;
+ }
  try{
-  var results=await Promise.all([PB_ONLINE.shop(),onlineLoadInventory()]);
-  var catalog=results[0];
+  // Public, server-priced catalogue; never invent prices or entitlements in FE.
+  var catalog=await PB_ONLINE.shop();
+  if(epoch!==shopRefreshEpoch)return;
   if(!Array.isArray(catalog?.purchasable)||catalog.pbtCheckoutEnabled!==false)
    throw Error("INVALID_BACKEND_SHOP_POLICY");
   var next=new Map();
@@ -177,7 +187,15 @@ async function shopRefresh(){
    next.set(item.weaponId,item);
   });
   shopServerItems=next;shopServerReady=true;shopRender();
- }catch(error){shopServerReady=false;shopServerItems.clear();shopRender();
+  // Ownership remains private and requires verified identity. An inventory
+  // refresh failure must not blank the public catalogue.
+  if(PB_ONLINE.state().authenticated&&PB_ONLINE.state().registered){
+   try{await onlineLoadInventory();if(epoch===shopRefreshEpoch)shopRender();}
+   catch(error){if(epoch===shopRefreshEpoch)toast("INVENTORY SYNC UNAVAILABLE");}
+  }
+ }catch(error){
+  if(epoch!==shopRefreshEpoch)return;
+  shopServerReady=false;shopServerFailed=true;shopServerItems.clear();shopRender();
   toast(error.code||error.message||"SHOP UNAVAILABLE");
  }
 }
