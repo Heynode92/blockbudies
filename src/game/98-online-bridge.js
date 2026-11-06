@@ -1779,7 +1779,7 @@ function onlineDisplayTrainingResult(progress){
        progress.targetKills:null;
  var report=document.getElementById('trainingResult');
  report.dataset.outcome=passed?'passed':'incomplete';
- document.getElementById('trainingResultHeadline').textContent=passed?'MISSION PASSED':'MISSION FAILED';
+ document.getElementById('trainingResultHeadline').textContent=passed?'PASSED':'FAILED';
  document.getElementById('trainingResultTitle').textContent=
    passed?'TRAINING COMPLETE':'TRAINING INCOMPLETE';
  document.getElementById('trainingResultDescription').textContent=passed?
