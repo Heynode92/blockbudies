@@ -3,14 +3,14 @@
 // be changed to /loby without navigating away from the local HTML document.
 // No API router or server rewrite is assumed by this module.
 var APP_PANEL_ROUTES=Object.freeze({
- lbs:"/",lbrooms:"/loby",lbroomlive:"/loby/room/",lbiv:"/inventory",lbshop:"/shop",lbearn:"/earn"
+ lbs:"/",lbrooms:"/loby",lbroomlive:"/loby/room/",lbiv:"/inventory",lbshop:"/shop",lbearn:"/earn",lbboard:"/leaderboard"
 });
 var appRouteBooting=false,appRouteHashWritten=null,appRouteBootReady=false;
 function appRouteRoot(){
  if(location.protocol==="file:")return "";
  var p=location.pathname||"/";
  if(p.endsWith("/index.html"))return p.slice(0,-11);
- var tails=["/loby/room/","/loby/room","/loby","/inventory","/shop","/earn"];
+ var tails=["/loby/room/","/loby/room","/loby","/inventory","/shop","/earn","/leaderboard"];
  for(var i=0;i<tails.length;i++)if(p.endsWith(tails[i]))return p.slice(0,-tails[i].length);
  return p.endsWith("/")?p.slice(0,-1):"";
 }
@@ -22,6 +22,7 @@ function appRouteRead(){
  if(path==="/inventory")return "lbiv";
  if(path==="/shop")return "lbshop";
  if(path==="/earn")return "lbearn";
+ if(path==="/leaderboard")return "lbboard";
  return "lbs";
 }
 function appRouteUpdate(panel,replace){
@@ -51,8 +52,8 @@ function appRouteRestore(){
  }
  var panel=appRouteRead();
  var state=typeof onlineApi!=='undefined'&&onlineApi?.state?.();
- if(panel!=='lbs'&&panel!=='lbshop'&&panel!=='lbearn'&&(!state?.authenticated||!state.registered)){
-  // Home, Shop and Earn are public. Match/lobby and Inventory require verified SIWE
+ if(panel!=='lbs'&&panel!=='lbshop'&&panel!=='lbearn'&&panel!=='lbboard'&&(!state?.authenticated||!state.registered)){
+  // Home, Shop, Earn and Leaderboard are public. Match/lobby and Inventory require verified SIWE
   // and a registered player. A directly opened private URL is never a bypass.
   var requested=panel;
   appRouteUpdate('lbs',true);panel='lbs';
@@ -72,6 +73,8 @@ function appRouteRestore(){
    roomQuickFromBrowser=false;shopOpen();
   }else if(panel==="lbearn"){
    roomQuickFromBrowser=false;earnOpen();
+  }else if(panel==="lbboard"){
+   roomQuickFromBrowser=false;leaderboardOpen();
   }else{
    roomQuickFromBrowser=false;lobP("lbs");
   }
