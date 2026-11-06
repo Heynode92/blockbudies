@@ -1,9 +1,10 @@
+import { parseSiweMessage } from 'viem/siwe';
+import { GAME_WALLET_CHAIN_ID } from '../wallet/bsc-network.js';
+
 // PointBlock online transport. The only trust boundary for accounts, room state,
 // ownership and live authoritative gameplay is the matching backend API.
 // Do not store wallet private keys, pretend that a connected wallet is SIWE
 // authenticated, or accept client-generated hit/kill/reward claims.
-const CHAIN_ID = 4663;
-const CHAIN_HEX = '0x1237';
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MAX_WS_MESSAGE = 262144;
@@ -45,25 +46,20 @@ function wsPath(root, path) {
   url.search = '';url.hash = '';
   return url.toString();
 }
-function walletCandidates() {
-  const providers = [];
-  if (Array.isArray(globalThis.ethereum?.providers)) providers.push(...globalThis.ethereum.providers);
-  else if (globalThis.ethereum) providers.push(globalThis.ethereum);
-  return providers.filter(p => p && typeof p.request === 'function');
-}
-export function createPointBlockClient({ baseUrl } = {}) {
+// Wallet connection and signer are provided by RainbowKit/wagmi only.
+export function createPointBlockClient({ baseUrl, wallet } = {}) {
   const root = apiRoot(baseUrl);
-  let auth = null, provider = null, channel = null, onChange = () => {};
+  let auth = null, channel = null, onChange = () => {};
   let socketEpoch = 0, restorePromise = null;
   // Reload persistence is limited to this browser tab. Never use localStorage
   // or persist wallet secrets. Revalidate the bearer session with the backend
   // before marking the user authenticated after a reload.
-  const sessionKey = root ? 'pointblock:siwe-session:'+root.origin+root.pathname : null;
+  const sessionKey = root ? 'pointblock:siwe-session:'+GAME_WALLET_CHAIN_ID+':'+root.origin+root.pathname : null;
   function saveSession() {
     try {
       if (!sessionKey) return;
       if(auth?.token) sessionStorage.setItem(sessionKey,JSON.stringify({
-        token:auth.token,address:auth.address,
+        token:auth.token,address:auth.address,chainId:GAME_WALLET_CHAIN_ID,
       }));
       else sessionStorage.removeItem(sessionKey);
     } catch { /* Private browsing can disable web storage. */ }
@@ -76,8 +72,17 @@ export function createPointBlockClient({ baseUrl } = {}) {
       let saved;
       try{saved=sessionKey?JSON.parse(sessionStorage.getItem(sessionKey)||'null'):null;}
       catch{saved=null;}
-      if(!saved||!ADDRESS.test(saved.address||'')||
+      if(!saved||saved.chainId!==GAME_WALLET_CHAIN_ID||!ADDRESS.test(saved.address||'')||
          !/^[A-Za-z0-9_-]{32,128}$/.test(saved.token||''))return state();
+      // RainbowKit may reconnect asynchronously on page refresh. Restore only
+      // after wallet hydration AND when the exact same BSC account is present.
+      if(!wallet?.configured||!await wallet.waitReady?.())return state();
+      const connected=wallet.connection?.();
+      if(!connected||connected.chainId!==GAME_WALLET_CHAIN_ID||
+         connected.address.toLowerCase()!==saved.address.toLowerCase()){
+        try{sessionStorage.removeItem(sessionKey);}catch{}
+        return state();
+      }
       auth={token:saved.token,address:saved.address,registered:false,player:null,onboarding:null};
       try {
         // refreshProfile uses protected, no-cache /v1/onboarding and /v1/me.
@@ -98,7 +103,8 @@ export function createPointBlockClient({ baseUrl } = {}) {
     player: auth?.player ?? null, onboarding: auth?.onboarding ?? null,
     live: channel?.kind ?? null, connected: channel?.socket?.readyState === 1,
   });
-  const change = () => { try { onChange(state()); } catch (err) { console.error('[PointBlock] UI state subscriber failed', err); } };
+  const change = () => { const next=state();wallet?.updateSession?.(next);
+    try { onChange(next); } catch (err) { console.error('[PointBlock] UI state subscriber failed', err); } };
   async function request(path, { method = 'GET', body, authRequired = true } = {}) {
     if (!root) throw new PointBlockError('BACKEND_URL_NOT_CONFIGURED');
     if (authRequired && !auth?.token) throw new PointBlockError('SIWE_LOGIN_REQUIRED', 401);
@@ -123,41 +129,46 @@ export function createPointBlockClient({ baseUrl } = {}) {
   async function connectWallet() {
     if (!root) throw new PointBlockError('BACKEND_URL_NOT_CONFIGURED');
     if (auth) return state();
-    // EIP-1193 only; wallet transaction submission and arbitrary RPC are not exposed.
-    provider = walletCandidates()[0] ?? null;
-    if (!provider) throw new PointBlockError('WALLET_PROVIDER_NOT_FOUND');
-    const accounts = await provider.request({ method:'eth_requestAccounts' });
-    const address = Array.isArray(accounts) ? accounts[0] : null;
-    if (!ADDRESS.test(address ?? '')) throw new PointBlockError('INVALID_WALLET_ADDRESS');
-    const chain = await provider.request({ method:'eth_chainId' });
-    if (Number.parseInt(String(chain),16) !== CHAIN_ID) {
-      try { await provider.request({ method:'wallet_switchEthereumChain',params:[{chainId:CHAIN_HEX}]}); }
-      catch { throw new PointBlockError('ROBINHOOD_MAINNET_REQUIRED'); }
-    }
-    if (Number.parseInt(String(await provider.request({method:'eth_chainId'})),16)!==CHAIN_ID)
-      throw new PointBlockError('WRONG_WALLET_CHAIN');
-    const challenge = await request('/v1/auth/challenge',{method:'POST',body:{address},authRequired:false});
-    if (!UUID.test(challenge?.challengeId) || typeof challenge?.message !== 'string' ||
-      challenge.message.length>4096) throw new PointBlockError('INVALID_SIWE_CHALLENGE');
-    const hexMessage = '0x'+Array.from(new TextEncoder().encode(challenge.message),v=>v.toString(16).padStart(2,'0')).join('');
-    const signature = await provider.request({method:'personal_sign',params:[hexMessage,address]});
-    if (typeof signature!=='string' || !/^0x(?:[a-fA-F0-9]{2})+$/.test(signature))
-      throw new PointBlockError('INVALID_WALLET_SIGNATURE');
-    const verified = await request('/v1/auth/verify',{
+    if (!wallet?.configured) throw new PointBlockError('RAINBOWKIT_NOT_CONFIGURED');
+    const connected=wallet.connection?.();
+    if (!connected?.address) throw new PointBlockError('RAINBOWKIT_WALLET_NOT_CONNECTED');
+    const address=connected.address;
+    if (!ADDRESS.test(address)) throw new PointBlockError('INVALID_WALLET_ADDRESS');
+    if(connected.chainId!==GAME_WALLET_CHAIN_ID)throw new PointBlockError('BSC_MAINNET_REQUIRED');
+    const challenge=await request('/v1/auth/challenge',{
+      method:'POST',body:{address},authRequired:false,
+    });
+    if(challenge?.chainId!==GAME_WALLET_CHAIN_ID||!UUID.test(challenge?.challengeId)||
+       typeof challenge?.message!=='string'||challenge.message.length>4096)
+       throw new PointBlockError('INVALID_BSC_SIWE_CHALLENGE');
+    // Check domain/URI/address/chain BEFORE opening the wallet signature prompt:
+    // backend independently verifies nonce, timestamps, domain, EOA/EIP-1271.
+    const fields=parseSiweMessage(challenge.message);
+    if(fields.chainId!==GAME_WALLET_CHAIN_ID||
+       fields.address?.toLowerCase()!==address.toLowerCase()||
+       fields.domain!==globalThis.location?.host||
+       fields.uri!==globalThis.location?.origin)
+       throw new PointBlockError('SIWE_ORIGIN_OR_CHAIN_MISMATCH');
+    const signature=await wallet.signMessage({address,message:challenge.message});
+    if(typeof signature!=='string'||signature.length>4098||
+       !/^0x(?:[a-fA-F0-9]{2})+$/.test(signature))
+       throw new PointBlockError('INVALID_WALLET_SIGNATURE');
+    // Never adopt a valid session if the user switched address or network while signing.
+    const sameWallet=()=>{
+      const current=wallet.connection?.();
+      return current?.chainId===GAME_WALLET_CHAIN_ID&&
+        current.address.toLowerCase()===address.toLowerCase();
+    };
+    if(!sameWallet())throw new PointBlockError('WALLET_CHANGED');
+    const verified=await request('/v1/auth/verify',{
       method:'POST',body:{challengeId:challenge.challengeId,signature},authRequired:false,
     });
-    if (!/^[A-Za-z0-9_-]{32,128}$/.test(verified?.token??'')) throw new PointBlockError('INVALID_LOGIN_RESPONSE');
-    auth = {token:verified.token,address,registered:verified.registered===true,onboarding:null,player:null};
+    if(!/^[A-Za-z0-9_-]{32,128}$/.test(verified?.token??''))
+      throw new PointBlockError('INVALID_LOGIN_RESPONSE');
+    if(!sameWallet())throw new PointBlockError('WALLET_CHANGED');
+    auth={token:verified.token,address,registered:verified.registered===true,onboarding:null,player:null};
     saveSession();
-    const currentProvider = provider;
-    // Invalidate a SIWE session if the wallet account or chain changes.
-    if (typeof currentProvider.on === 'function') {
-      const accountChange=accounts=>{if(!Array.isArray(accounts)||accounts[0]?.toLowerCase()!==address.toLowerCase())void logout();};
-      const chainChange=id=>{if(Number.parseInt(String(id),16)!==CHAIN_ID)void logout();};
-      currentProvider.on('accountsChanged',accountChange);
-      currentProvider.on('chainChanged',chainChange);
-    }
-    try { await refreshProfile(); } catch { /* A valid SIWE token remains provisional until profile fetch. */ }
+    try { await refreshProfile(); } catch { /* SIWE valid; profile can be retried securely. */ }
     change();
     return state();
   }
@@ -225,6 +236,13 @@ export function createPointBlockClient({ baseUrl } = {}) {
     current.heartbeat=setInterval(()=>current.send({type:'ping'}),10000);
     change();return result;
   }
+  // Wagmi/RainbowKit owns account+chain events. A different wallet/chain
+  // revokes the browser bearer token; the BE independently checks chain ID.
+  wallet?.subscribe?.(connected=>{
+    if(!auth||!connected.ready)return;
+    if(!connected.connected||connected.chainId!==GAME_WALLET_CHAIN_ID||
+       connected.address?.toLowerCase()!==auth.address.toLowerCase())void logout();
+  });
   const api = {
     state, setOnChange(callback) { onChange=typeof callback==='function'?callback:()=>{};change(); },
     request, connectWallet, restoreSession, logout, refreshProfile, openLive, closeLive,

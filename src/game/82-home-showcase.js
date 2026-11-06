@@ -92,8 +92,7 @@ document.addEventListener("visibilitychange",homeShowcaseSync);
 homeDemoUpdateLabel("deathmatch");
 homeShowcaseSync();
 // Wallet identity is the backend SIWE session, never an unsigned provider account.
-var homeWalletButton=document.getElementById("homeWalletConnect"),
- homeWalletAccount=null,homeWalletLabel=document.getElementById("homeWalletLabel");
+var homeWalletAccount=null;
 function homeFormatHalf(value){
  if((typeof value!=='string'&&!Number.isSafeInteger(value))||
     !/^[0-9]+$/.test(String(value)))return '—';
@@ -131,34 +130,25 @@ function homeProfileRender(state){
  meter.setAttribute('aria-valuetext',capped?'MAX RANK':earned+' of '+homeFormatHalf(required)+' EXP');
 }
 function homeWalletRender(){
- var state=typeof PB_ONLINE!=="undefined"?PB_ONLINE.state():{configured:false,authenticated:false,address:null};
+ var state=typeof PB_ONLINE!=="undefined"?PB_ONLINE.state():
+  {configured:false,authenticated:false,address:null};
  homeWalletAccount=state.authenticated?state.address:null;
- homeWalletLabel.textContent=homeWalletAccount?
-  homeWalletAccount.slice(0,6)+"…"+homeWalletAccount.slice(-4):"CONNECT WALLET";
- homeWalletButton.classList.toggle("connected",!!homeWalletAccount);
- homeWalletButton.setAttribute("aria-label",homeWalletAccount?
-  "Authenticated Robinhood Mainnet wallet "+homeWalletAccount:"Connect wallet and sign in");
+ // RainbowKit/wagmi exclusively owns the header connect + account UI.
+ // Server-verified player data stays in the original Three.js HUD.
  homeProfileRender(state);
 }
 async function homeWalletSignIn(){
  if(typeof PB_ONLINE==='undefined')throw Error('BACKEND_REQUIRED');
  if(PB_ONLINE.state().authenticated)return PB_ONLINE.state();
- homeWalletButton.disabled=true;homeWalletLabel.textContent='SIGN IN…';
- try{
-  await PB_ONLINE.connectWallet();
-  homeWalletRender();
-  return PB_ONLINE.state();
- }catch(error){
-  homeWalletLabel.textContent=error?.code||'SIGN IN FAILED';
-  setTimeout(homeWalletRender,3500);
-  throw error;
- }finally{homeWalletButton.disabled=false;}
+ if(!PB_WALLET?.configured)throw Error('WALLETCONNECT_PROJECT_ID_REQUIRED');
+ if(!PB_WALLET.connection?.()){
+  PB_WALLET.openConnect?.();
+  throw Error('RAINBOWKIT_WALLET_NOT_CONNECTED');
+ }
+ var state=await PB_ONLINE.connectWallet();
+ homeWalletRender();
+ return state;
 }
-homeWalletButton.addEventListener('click',function(){
- if(typeof PB_ONLINE==='undefined'){homeWalletLabel.textContent='BACKEND REQUIRED';return;}
- if(PB_ONLINE.state().authenticated){PB_ONLINE.logout().finally(homeWalletRender);return;}
- void homeWalletSignIn().catch(function(){});
-});
 // Shared PointBlock-themed modal. Home START and Inventory require an authenticated
 // SIWE account. Shop/Leaderboard remain navigable without this gate.
 var homeGateIntent='inventory',homeGateOverlay=document.getElementById('walletGateOverlay');
@@ -171,6 +161,26 @@ function homeAuthGateOpen(intent){
  homeGateIntent=intent==='match'?'match':'inventory';
  var state=typeof PB_ONLINE!=='undefined'?PB_ONLINE.state():null;
  var enrolled=!!state?.authenticated&&!!state.registered&&typeof state.player?.id==='string';
+ // Unauthenticated users are directed to RainbowKit's real connector modal,
+ // not a home-built injected-wallet selector. SIWE is signed separately.
+ if(!state?.authenticated){
+  if(PB_WALLET?.connection?.()){
+   void homeWalletSignIn().then(function(){homeAuthGateOpen(intent);})
+    .catch(function(error){
+      document.getElementById('walletGateTitle').textContent='SIGN IN FAILED';
+      document.getElementById('walletGateText').textContent=String(
+       error?.code||error?.message||'WALLET_SIGN_IN_FAILED').slice(0,96).replace(/_/g,' ');
+      document.getElementById('walletGateConnect').textContent='TRY AGAIN';
+      homeGateOverlay.hidden=false;
+    });
+  }else if(!PB_WALLET?.openConnect?.()){
+   document.getElementById('walletGateTitle').textContent='WALLET CONNECTION UNAVAILABLE';
+   document.getElementById('walletGateText').textContent='Configure your WalletConnect project ID in the frontend environment.';
+   document.getElementById('walletGateConnect').disabled=true;
+   homeGateOverlay.hidden=false;
+  }
+  return;
+ }
  if(enrolled){
   homeAuthGateClose();
   if(homeGateIntent==='inventory')inventoryOpen();

@@ -1,0 +1,43 @@
+name: PointBlock BSC RainbowKit Wallet (Windows)
+
+on:
+  pull_request:
+    paths:
+      - 'src/network/pointblock-client.js'
+      - 'src/wallet/**'
+      - 'src/main.js'
+      - 'src/game/82-home-showcase.js'
+      - 'src/styles/13-home-header.css'
+      - 'index.html'
+      - 'package.json'
+      - '.env.example'
+      - 'tools/vite-game-plugin.mjs'
+      - 'assets/game.js'
+      - 'tests/bsc-rainbowkit-auth.test.mjs'
+      - 'tests/home-economy-wallet-gate.test.mjs'
+      - 'tests/vite-integration.test.mjs'
+      - '.github/workflows/bsc-wallet.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  wallet:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install official RainbowKit/wagmi/React dependencies
+        run: npm install --no-audit --no-fund
+      - name: Verify bundled Three.js game unchanged beyond wallet UI
+        run: node tools/build.mjs --check
+      - name: Verify BSC chain, SIWE wallet binding, connection gates and Vite plugin
+        run: node --test tests/bsc-rainbowkit-auth.test.mjs tests/home-economy-wallet-gate.test.mjs tests/inventory-account-gate.test.mjs tests/vite-integration.test.mjs
+      - name: Verify Vite production build
+        run: npm run build
+      - name: Verify production output
+        run: npm run check:dist

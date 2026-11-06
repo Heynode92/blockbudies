@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { createPointBlockClient } from './network/pointblock-client.js';
+import { createPointBlockRainbowWallet } from './wallet/rainbowkit-root.jsx';
 import { createBackgroundTicker } from './background/background-ticker.js';
 import { createSimulationClock } from './background/simulation-clock.js';
 import { createMenuBgm } from './audio/menu-bgm.js';
@@ -8,12 +9,21 @@ import deathmatchVideo from './assets/video/deatch_match_demo.mp4?url';
 import bombVideo from './assets/video/bomb_mission_demo.mp4?url';
 import menuMusic from './assets/audio/Pointblock_bgm.mp3?url';
 
-const online = createPointBlockClient({ baseUrl: import.meta.env.VITE_POINTBLOCK_API_URL || (import.meta.env.DEV ? 'http://127.0.0.1:3001' : undefined) });
+const wallet=createPointBlockRainbowWallet({
+  projectId:import.meta.env.VITE_WALLETCONNECT_PROJECT_ID,
+  rpcUrl:import.meta.env.VITE_BSC_RPC_URL,
+});
+const online=createPointBlockClient({
+  baseUrl:import.meta.env.VITE_POINTBLOCK_API_URL||
+    (import.meta.env.DEV?'http://127.0.0.1:3001':undefined),
+  wallet,
+});
+wallet.mount(document.getElementById('rainbowkitWalletRoot'),()=>online.connectWallet());
 
 // The original gameplay is initialized once with the pinned r128 npm engine.
 // Future ESM extraction must keep this entry point and its state boundaries.
 const menuBgm = createMenuBgm(menuMusic);
 const backgroundTicker = createBackgroundTicker();
 mountPointBlock(THREE, Object.freeze({ deathmatch: deathmatchVideo, bomb: bombVideo }), menuBgm,
-  Object.freeze({ ticker: backgroundTicker, createSimulationClock }), online);
+  Object.freeze({ ticker: backgroundTicker, createSimulationClock }), online, wallet);
 menuBgm.enterMenu();

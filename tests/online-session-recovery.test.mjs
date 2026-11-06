@@ -1,10 +1,18 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {createPointBlockClient} from '../src/network/pointblock-client.js';
+import {GAME_WALLET_CHAIN_ID} from '../src/wallet/bsc-network.js';
 
 const address='0x'+'a'.repeat(40),token='s'.repeat(43);
 const baseUrl='http://127.0.0.1:3001';
-const storageKey='pointblock:siwe-session:'+new URL(baseUrl).origin+new URL(baseUrl).pathname;
+const storageKey='pointblock:siwe-session:'+GAME_WALLET_CHAIN_ID+':'+new URL(baseUrl).origin+new URL(baseUrl).pathname;
+const storedSession=()=>JSON.stringify({token,address,chainId:GAME_WALLET_CHAIN_ID});
+const wallet=(connectedAddress=address,connectedChain=GAME_WALLET_CHAIN_ID)=>({
+ configured:true,waitReady:async()=>true,
+ connection:()=>connectedAddress?{address:connectedAddress,chainId:connectedChain}:null,
+ subscribe:fn=>{fn({ready:true,connected:Boolean(connectedAddress),address:connectedAddress,chainId:connectedChain});return()=>{};},
+ updateSession(){}
+});
 function storage(){
  const m=new Map();
  return{getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,String(v)),
@@ -24,8 +32,8 @@ test('SIWE restore revalidates server membership and preserves authenticated acc
   if(path==='/v1/me')return new Response(JSON.stringify({id:'player-id'}),{status:200});
   return new Response(JSON.stringify({code:'NOT_FOUND'}),{status:404});
  });
- sessionStorage.setItem(storageKey,JSON.stringify({token,address}));
- const client=createPointBlockClient({baseUrl});
+ sessionStorage.setItem(storageKey,storedSession());
+ const client=createPointBlockClient({baseUrl,wallet:wallet()});
  assert.equal(client.state().authenticated,false);
  const restored=await client.restoreSession();
  assert.equal(restored.authenticated,true);
@@ -37,17 +45,29 @@ test('SIWE restore revalidates server membership and preserves authenticated acc
 });
 test('expired or revoked SIWE clears tab storage and blocks protected routes',async t=>{
  await withMocks(t,async()=>new Response(JSON.stringify({code:'SESSION_EXPIRED'}),{status:401}));
- sessionStorage.setItem(storageKey,JSON.stringify({token,address}));
- const client=createPointBlockClient({baseUrl});
+ sessionStorage.setItem(storageKey,storedSession());
+ const client=createPointBlockClient({baseUrl,wallet:wallet()});
  const restored=await client.restoreSession();
  assert.equal(restored.authenticated,false);
  assert.equal(sessionStorage.getItem(storageKey),null);
 });
+test('stored session for a different wallet or BSC testnet never becomes authenticated',async t=>{
+ await withMocks(t,async()=>{throw Error('Wrong-wallet bearer cannot reach backend');});
+ sessionStorage.setItem(storageKey,storedSession());
+ const wrongAddress=createPointBlockClient({baseUrl,wallet:wallet('0x'+'b'.repeat(40))});
+ assert.equal((await wrongAddress.restoreSession()).authenticated,false);
+ assert.equal(sessionStorage.getItem(storageKey),null);
+ sessionStorage.setItem(storageKey,storedSession());
+ const wrongChain=createPointBlockClient({baseUrl,wallet:wallet(address,97)});
+ assert.equal((await wrongChain.restoreSession()).authenticated,false);
+ assert.equal(sessionStorage.getItem(storageKey),null);
+});
+
 test('malformed SIWE token cannot bypass server checks by restoring UI state',async t=>{
  let calls=0;
  await withMocks(t,async()=>{calls++;throw Error('Must not call backend')});
  sessionStorage.setItem(storageKey,JSON.stringify({token:'invalid',address}));
- const client=createPointBlockClient({baseUrl});
+ const client=createPointBlockClient({baseUrl,wallet:wallet()});
  assert.equal((await client.restoreSession()).authenticated,false);
  assert.equal(calls,0);
 });
