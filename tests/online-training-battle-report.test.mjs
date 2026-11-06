@@ -68,6 +68,8 @@ test('settled training counts and qualification are server supplied; no mock XP 
  assert.equal(e.trainingResultOutcome.textContent,'PASSED');
  assert.equal(e.trainingResultExit.disabled,false);
  assert.equal(e.trainingResult.hidden,false);
+ assert.equal(h.context.lb.style.display,'none','Home is hidden while report is shown');
+ assert.equal(h.context.document.body.classList.contains('lobby'),false);
  h.context.onlineDisplayTrainingResult({status:'COMPLETED'});
  assert.equal(e.trainingResultKills.textContent,'—');
  assert.equal(e.trainingResultTarget.textContent,'—');
@@ -89,6 +91,7 @@ test('EXIT GAME after PASSED verifies BE and opens username before hiding report
  assert.equal(h.elements.trainingResult.hidden,true);
  assert.equal(h.elements.dv.classList.contains('show'),false);
  assert.equal(h.elements.dv.classList.contains('training-result-active'),false);
+ assert.equal(h.context.lb.style.display,'flex');
  assert.equal(h.events.registerCount,0,'EXIT does not create an account by itself');
 });
 
@@ -120,4 +123,24 @@ test('EXIT from incomplete training returns Home without registration',async()=>
  assert.equal(h.events.form,null);
  assert.equal(h.events.route,'lbs');
  assert.equal(h.elements.trainingResult.hidden,true);
+});
+
+test('saved training completion reopens username directly without a second report',async()=>{
+ const h=harness();
+ await h.context.onlineOpenUsernameRegistration();
+ assert.equal(h.events.form[0],'CREATE USERNAME');
+ assert.equal(h.events.form[4],'onboarding');
+ assert.equal(h.events.route,'lbs');
+ assert.equal(h.elements.trainingResult.hidden,true);
+ assert.equal(h.elements.dv.classList.contains('show'),false);
+ assert.equal(h.events.registerCount,0);
+});
+
+test('Home START recovery bypasses old report and Home clears any orphan',()=>{
+ const gate=source.slice(source.indexOf('async function onlineStartGate(){'),
+  source.indexOf('// Called after the original begin()',source.indexOf('async function onlineStartGate(){')));
+ assert.match(gate,/info\.onboarding\?\.trainingCompleted/);
+ assert.match(gate,/await onlineOpenUsernameRegistration\(\)/);
+ assert.doesNotMatch(gate,/onlineDisplayTrainingResult\(/);
+ assert.match(read('src/game/85-lobby-and-match.js'),/onlineTrainingResultDismissVisual\(\)/);
 });
