@@ -7,6 +7,10 @@ function leaderboardHalfExp(value){
  var half=BigInt(value),integer=(half/2n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,',');
  return integer+(half%2n===0n?'':'.5');
 }
+function leaderboardCount(value){
+ if(typeof value!=='string'||!/^\d{1,80}$/.test(value))return '—';
+ return BigInt(value).toString().replace(/\B(?=(\d{3})+(?!\d))/g,',');
+}
 function leaderboardValidEntry(entry,index){
  return entry&&typeof entry==='object'&&
   entry.position===index+1&&
@@ -19,6 +23,9 @@ function leaderboardValidEntry(entry,index){
   (entry.nextRankHalfExp===null||
    Number.isSafeInteger(entry.nextRankHalfExp)&&entry.nextRankHalfExp>0)&&
   typeof entry.lifetimeHalfExp==='string'&&/^\d{1,80}$/.test(entry.lifetimeHalfExp)&&
+  ['kills','deaths','headshotKills'].every(function(key){
+    return typeof entry[key]==='string'&&/^\d{1,80}$/.test(entry[key]);
+  })&&
   Number.isSafeInteger(entry.mainWeaponId)&&entry.mainWeaponId>=0&&
   entry.mainWeaponId<WP.length;
 }
@@ -73,7 +80,9 @@ function leaderboardRenderRows(){
   if(entry.position<=3)button.classList.add('is-top');
   button.setAttribute('aria-label',
     '#'+entry.position+' '+entry.username+', '+entry.rank+
-    ', '+leaderboardHalfExp(entry.lifetimeHalfExp)+' total EXP');
+    ', '+leaderboardCount(entry.kills)+' kills, '+
+    leaderboardCount(entry.deaths)+' deaths, '+
+    leaderboardCount(entry.headshotKills)+' headshots');
   button.appendChild(leaderboardNode('span','leaderboard-place',
     String(entry.position).padStart(2,'0')));
   button.appendChild(leaderboardNode('span','leaderboard-username',entry.username));
@@ -82,8 +91,12 @@ function leaderboardRenderRows(){
   if(image){var img=document.createElement('img');img.alt='';img.src=image;rank.appendChild(img);}
   rank.appendChild(leaderboardNode('span','',entry.rank));
   button.appendChild(rank);
-  button.appendChild(leaderboardNode('span','leaderboard-total',
-    leaderboardHalfExp(entry.lifetimeHalfExp)));
+  button.appendChild(leaderboardNode('span','leaderboard-combat-stat',
+    leaderboardCount(entry.kills)));
+  button.appendChild(leaderboardNode('span','leaderboard-combat-stat',
+    leaderboardCount(entry.deaths)));
+  button.appendChild(leaderboardNode('span','leaderboard-combat-stat',
+    leaderboardCount(entry.headshotKills)));
   button.addEventListener('click',function(){leaderboardShowSelection(entry);});
   host.appendChild(button);
  });
