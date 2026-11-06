@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {createPointBlockClient} from '../src/network/pointblock-client.js';
-import {GAME_WALLET_CHAIN_ID} from '../src/wallet/bsc-network.js';
+import {GAME_WALLET_CHAIN_ID} from '../src/wallet/robinhood-network.js';
 
 const address='0x'+'a'.repeat(40),token='s'.repeat(43);
 const baseUrl='http://127.0.0.1:3001';
@@ -51,7 +51,7 @@ test('expired or revoked SIWE clears tab storage and blocks protected routes',as
  assert.equal(restored.authenticated,false);
  assert.equal(sessionStorage.getItem(storageKey),null);
 });
-test('stored session for a different wallet or BSC testnet never becomes authenticated',async t=>{
+test('stored session for a different wallet or wrong chain never becomes authenticated',async t=>{
  await withMocks(t,async()=>{throw Error('Wrong-wallet bearer cannot reach backend');});
  sessionStorage.setItem(storageKey,storedSession());
  const wrongAddress=createPointBlockClient({baseUrl,wallet:wallet('0x'+'b'.repeat(40))});
