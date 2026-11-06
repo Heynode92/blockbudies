@@ -131,7 +131,7 @@
 }
 #lbboard #leaderboardRefresh:disabled{opacity:.5;cursor:default}
 #lbboard .leaderboard-columns,#lbboard .leaderboard-row{
- display:grid;grid-template-columns:44px minmax(115px,1fr) minmax(155px,1.18fr) minmax(90px,.65fr);
+ display:grid;grid-template-columns:44px minmax(110px,1fr) minmax(150px,1.2fr) repeat(3,minmax(57px,.55fr));
  align-items:center;gap:10px;min-width:0;
 }
 #lbboard .leaderboard-columns{
@@ -139,7 +139,7 @@
  background:#0d2236;color:#89adc9;
  font:800 11px Rajdhani,sans-serif;letter-spacing:.15em;
 }
-#lbboard .leaderboard-columns span:last-child{text-align:right}
+#lbboard .leaderboard-columns span:nth-child(n+4){text-align:right}
 #lbboard .leaderboard-rows{
  display:grid;grid-template-rows:repeat(10,minmax(0,1fr));
  gap:5px;min-height:0;overflow:hidden;padding:8px 0;
@@ -184,10 +184,12 @@
  font:800 clamp(11px,.83vw,14px) Rajdhani,sans-serif;
  color:#c3d8ed;
 }
-#lbboard .leaderboard-total{
- text-align:right;white-space:nowrap;font:900 clamp(12px,.9vw,15px) Rajdhani,sans-serif;
- color:#f2f8fd;
+#lbboard .leaderboard-combat-stat{
+ text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+ font:900 clamp(12px,.9vw,16px) Rajdhani,sans-serif;color:#f2f8fd;
+ font-variant-numeric:tabular-nums;
 }
+#lbboard .leaderboard-row .leaderboard-combat-stat:last-child{color:#ffb66f}
 #lbboard .leaderboard-state{
  grid-row:1/-1;display:flex;align-items:center;justify-content:center;text-align:center;
  padding:18px;color:#b5d0e6;
@@ -202,7 +204,7 @@
 @media(max-width:1100px){
  #lbboard .leaderboard-workspace{grid-template-columns:minmax(245px,.75fr) minmax(0,1.7fr);}
  #lbboard .leaderboard-columns,#lbboard .leaderboard-row{
-  grid-template-columns:30px minmax(72px,1fr) minmax(115px,1.2fr) minmax(70px,.68fr);gap:6px;
+  grid-template-columns:30px minmax(68px,1fr) minmax(104px,1.1fr) repeat(3,minmax(41px,.47fr));gap:5px;
  }
  #lbboard .leaderboard-row{padding:0 6px}
  #lbboard .leaderboard-ranked>img{width:27px;height:31px}
@@ -233,18 +235,30 @@
  #lbboard .leaderboard-table{flex:none;min-height:650px}
  #lbboard .leaderboard-rows{grid-template-rows:repeat(10,minmax(43px,1fr))}
  #lbboard .leaderboard-columns,#lbboard .leaderboard-row{
-  grid-template-columns:26px minmax(66px,1fr) minmax(100px,1.2fr) minmax(56px,.7fr);gap:5px;
+  grid-template-columns:26px minmax(62px,1fr) minmax(94px,1.1fr) repeat(3,minmax(39px,.46fr));gap:4px;
  }
  #lbboard .leaderboard-ranked>img{width:22px;height:28px}
  #lbboard .leaderboard-ranked>span{font-size:10px}
- #lbboard .leaderboard-total{font-size:11px}
+ #lbboard .leaderboard-combat-stat{font-size:11px}
+ #lbboard .leaderboard-columns{font-size:10px;letter-spacing:.06em}
 }
 @media(max-width:380px){
  #lbboard .leaderboard-table{padding:6px}
- #lbboard .leaderboard-columns,#lbboard .leaderboard-row{grid-template-columns:22px minmax(55px,1fr) minmax(81px,1.1fr) minmax(50px,.7fr);gap:3px}
+ #lbboard .leaderboard-columns,#lbboard .leaderboard-row{grid-template-columns:22px minmax(51px,1fr) minmax(75px,1.15fr) repeat(3,minmax(28px,.45fr));gap:3px}
  #lbboard .leaderboard-ranked>img{display:none}
  #lbboard .leaderboard-ranked>span{font-size:10px}
 }
 @media(prefers-reduced-motion:reduce){
  #lbboard .leaderboard-row{transition:none}
+}
+
+
+@media(max-width:440px){
+ /* Compact headings only on very narrow screens; desktop retains full labels. */
+ #lbboard .leaderboard-columns span:nth-child(4),
+ #lbboard .leaderboard-columns span:nth-child(5),
+ #lbboard .leaderboard-columns span:nth-child(6){font-size:0;letter-spacing:0}
+ #lbboard .leaderboard-columns span:nth-child(4)::after{content:"K";font-size:10px}
+ #lbboard .leaderboard-columns span:nth-child(5)::after{content:"D";font-size:10px}
+ #lbboard .leaderboard-columns span:nth-child(6)::after{content:"HS";font-size:10px}
 }
