@@ -1791,8 +1791,8 @@ function onlineDisplayTrainingResult(progress){
  document.getElementById('trainingResultBadge').textContent=passed?'VERIFIED':'NOT CLEARED';
  document.getElementById('trainingResultStatus').textContent=passed?
    'QUALIFICATION UNLOCKED':'REGISTRATION LOCKED';
- var next=document.getElementById('trainingResultContinue');
- next.disabled=!passed;next.textContent=passed?'NEXT · CREATE USERNAME':'TRAINING NOT COMPLETE';
+ var exit=document.getElementById('trainingResultExit');
+ exit.disabled=false;exit.textContent='EXIT GAME';
  var error=document.getElementById('trainingResultActionError');
  error.textContent='';error.hidden=true;
  report.hidden=false;
@@ -1801,7 +1801,7 @@ function onlineDisplayTrainingResult(progress){
  document.body.classList.add('over');
  run=false;lob=false;
  if(document.exitPointerLock)document.exitPointerLock();
- (passed?next:document.getElementById('trainingResultExit')).focus();
+ exit.focus();
 }
 function onlineTrainingResultClose(){
  onlineTrainingResultStatus=null;
@@ -1812,25 +1812,25 @@ function onlineTrainingResultClose(){
  run=false;lob=true;lb.style.display='flex';
  lobP('lbs');
 }
-function onlineTrainingResultExit(){
+async function onlineTrainingResultExit(){
  if(onlineTrainingActionPending)return;
- // Exiting is not registration. The completed status remains in the BE and
- // will be recovered by onboarding after the player comes back.
- onlineTrainingResultClose();
-}
-async function onlineTrainingResultContinue(){
- if(onlineTrainingResultStatus!=='COMPLETED'||onlineTrainingActionPending)return;
+ if(onlineTrainingResultStatus!=='COMPLETED'){
+  // Failed training: user may leave without registration.
+  onlineTrainingResultClose();
+  return;
+ }
  onlineTrainingActionPending=true;
- var next=document.getElementById('trainingResultContinue'),
+ var exit=document.getElementById('trainingResultExit'),
      error=document.getElementById('trainingResultActionError');
- next.disabled=true;error.textContent='';error.hidden=true;
+ exit.disabled=true;error.textContent='';error.hidden=true;
  try{
-  // A result screen cannot grant a callsign. Recheck the persisted server
-  // completion before entering the existing server-validated registration.
+  // EXIT after successful training means ADVANCE TO CREATE USERNAME, not
+  // leave the onboarding flow. A persisted BE completion is mandatory.
   var verification=await onlineApi.trainingStatus();
   if(!verification?.completed||!onlineApi?.state().authenticated)
    throw Error('TRAINING_VERIFICATION_REQUIRED');
-  onlineTrainingResultClose();
+  // Mount the opaque registration dialog *before* dismissing the training
+  // scene so no Home screen flashes or half-visible report remains.
   onlineDialog('CREATE USERNAME',
    'Choose your operator name (1–12 letters, numbers or underscore).',
    'REGISTER USERNAME',async name=>{
@@ -1839,12 +1839,13 @@ async function onlineTrainingResultContinue(){
     await onlineLoadInventory();
     roomLobbyOpen();
    });
+  onlineTrainingResultClose();
  }catch(err){
   error.textContent=String(err?.code||err?.message||'TRAINING_VERIFICATION_FAILED').slice(0,160);
   error.hidden=false;
  }finally{
   onlineTrainingActionPending=false;
-  next.disabled=onlineTrainingResultStatus!=='COMPLETED';
+  exit.disabled=false;
  }
 }
 async function onlineTrainingFinished(progress){
@@ -1853,8 +1854,7 @@ async function onlineTrainingFinished(progress){
  try{await onlineApi.refreshProfile()}catch(e){onlineWarn(e)}
  onlineDisplayTrainingResult(progress);
 }
-document.getElementById('trainingResultContinue').addEventListener('click',onlineTrainingResultContinue);
-document.getElementById('trainingResultExit').addEventListener('click',onlineTrainingResultExit);
+document.getElementById('trainingResultExit').addEventListener('click',function(){void onlineTrainingResultExit();});
 async function onlineStartTraining(){
  if(!onlineAuth())return;
  try{
