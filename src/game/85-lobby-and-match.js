@@ -12,7 +12,7 @@ var lb=document.getElementById("lb");
 function lobBest(){var b=0;try{b=+localStorage.getItem("bbfps_best")||0;}catch(e){}var el=document.getElementById("lbbest");if(el)el.textContent=b;}
 function lobP(id){
  if(id==="lbs"&&roomCurrent)roomCloseLocal();
- ["lbs","lbm","lbrooms","lbroomlive","lbiv","lbshop"].forEach(function(i){
+ ["lbs","lbm","lbrooms","lbroomlive","lbiv","lbshop","lbearn"].forEach(function(i){
   document.getElementById(i).classList.toggle("on",i===id);
  });
  var header=document.getElementById("gameLobbyHeader"),activePanel=document.getElementById(id);
