@@ -131,7 +131,7 @@
 }
 #lbboard #leaderboardRefresh:disabled{opacity:.5;cursor:default}
 #lbboard .leaderboard-columns,#lbboard .leaderboard-row{
- display:grid;grid-template-columns:44px minmax(110px,1fr) minmax(150px,1.2fr) repeat(3,minmax(57px,.55fr));
+ display:grid;grid-template-columns:44px minmax(115px,1fr) minmax(150px,1.2fr) minmax(89px,.65fr) minmax(96px,.72fr);
  align-items:center;gap:10px;min-width:0;
 }
 #lbboard .leaderboard-columns{
@@ -204,7 +204,7 @@
 @media(max-width:1100px){
  #lbboard .leaderboard-workspace{grid-template-columns:minmax(245px,.75fr) minmax(0,1.7fr);}
  #lbboard .leaderboard-columns,#lbboard .leaderboard-row{
-  grid-template-columns:30px minmax(68px,1fr) minmax(104px,1.1fr) repeat(3,minmax(41px,.47fr));gap:5px;
+  grid-template-columns:30px minmax(70px,1fr) minmax(105px,1.1fr) minmax(57px,.55fr) minmax(71px,.65fr);gap:5px;
  }
  #lbboard .leaderboard-row{padding:0 6px}
  #lbboard .leaderboard-ranked>img{width:27px;height:31px}
@@ -235,7 +235,7 @@
  #lbboard .leaderboard-table{flex:none;min-height:650px}
  #lbboard .leaderboard-rows{grid-template-rows:repeat(10,minmax(43px,1fr))}
  #lbboard .leaderboard-columns,#lbboard .leaderboard-row{
-  grid-template-columns:26px minmax(62px,1fr) minmax(94px,1.1fr) repeat(3,minmax(39px,.46fr));gap:4px;
+  grid-template-columns:26px minmax(67px,1fr) minmax(98px,1.1fr) minmax(42px,.48fr) minmax(58px,.6fr);gap:4px;
  }
  #lbboard .leaderboard-ranked>img{width:22px;height:28px}
  #lbboard .leaderboard-ranked>span{font-size:10px}
@@ -244,7 +244,7 @@
 }
 @media(max-width:380px){
  #lbboard .leaderboard-table{padding:6px}
- #lbboard .leaderboard-columns,#lbboard .leaderboard-row{grid-template-columns:22px minmax(51px,1fr) minmax(75px,1.15fr) repeat(3,minmax(28px,.45fr));gap:3px}
+ #lbboard .leaderboard-columns,#lbboard .leaderboard-row{grid-template-columns:22px minmax(55px,1fr) minmax(82px,1.1fr) minmax(33px,.45fr) minmax(44px,.6fr);gap:3px}
  #lbboard .leaderboard-ranked>img{display:none}
  #lbboard .leaderboard-ranked>span{font-size:10px}
 }
@@ -254,11 +254,9 @@
 
 
 @media(max-width:440px){
- /* Compact headings only on very narrow screens; desktop retains full labels. */
+ /* Compact headings only on narrow screens; desktop retains full labels. */
  #lbboard .leaderboard-columns span:nth-child(4),
- #lbboard .leaderboard-columns span:nth-child(5),
- #lbboard .leaderboard-columns span:nth-child(6){font-size:0;letter-spacing:0}
+ #lbboard .leaderboard-columns span:nth-child(5){font-size:0;letter-spacing:0}
  #lbboard .leaderboard-columns span:nth-child(4)::after{content:"K";font-size:10px}
- #lbboard .leaderboard-columns span:nth-child(5)::after{content:"D";font-size:10px}
- #lbboard .leaderboard-columns span:nth-child(6)::after{content:"HS";font-size:10px}
+ #lbboard .leaderboard-columns span:nth-child(5)::after{content:"HS%";font-size:10px}
 }
