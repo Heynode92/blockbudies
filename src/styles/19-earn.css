@@ -240,3 +240,72 @@
 @media (prefers-reduced-motion:reduce) {
  #lbearn .earn-back,#lbearn .earn-flip,#lbearn .earn-convert-action{transition:none}
 }
+
+
+/* Header parity: EARN inherits Inventory / Shop tactical topbar visuals. */
+/* Inventory and Shop share two narrow orange top strips, stacked title and
+   subtitle, and the same compact BACK control. Keep the single swap panel. */
+#lbearn .earn-page{
+ grid-template-rows:124px minmax(0,1fr);
+ background:radial-gradient(ellipse at 44% 60%,rgba(19,65,102,.18),transparent 64%),
+            linear-gradient(145deg,#07111d,#030912);
+}
+#lbearn .earn-topbar{
+ position:relative;box-sizing:border-box;min-height:0;
+ margin:12px 14px 0;padding:8px 10px 11px;
+ border-top:0;border-bottom:1px solid rgba(114,162,203,.25);
+ background:linear-gradient(115deg,rgba(4,12,23,.78),rgba(15,26,43,.65));
+}
+#lbearn .earn-topbar::before{
+ content:"";position:absolute;top:0;left:0;right:0;height:3px;
+ pointer-events:none;opacity:.85;
+ background:linear-gradient(90deg,#ff7920 0 23%,transparent 23% 76%,#ff7920 76% 100%);
+}
+#lbearn .earn-brand{
+ display:flex;flex-direction:column;align-items:flex-start;justify-content:center;
+ gap:6px;min-width:0;
+}
+#lbearn .earn-brand-mark{display:none;}
+#lbearn .earn-brand-name{
+ display:block;color:#fff;
+ font:italic 900 clamp(42px,4.2vw,76px)/.96 Impact,"Arial Black",sans-serif;
+ letter-spacing:.045em;
+ text-shadow:3px 4px 0 rgba(140,61,27,.8),0 6px 19px #000;
+}
+#lbearn .earn-brand-subtitle{
+ display:block;margin:0;padding:0;border:0;
+ color:#a9c4e1;
+ font:800 clamp(10px,.85vw,14px)/1.2 Rajdhani,sans-serif;
+ letter-spacing:.32em;white-space:normal;
+}
+#lbearn .earn-back{
+ display:inline-flex;align-items:center;justify-content:center;
+ box-sizing:border-box;flex:none;min-width:96px;width:auto;
+ height:44px;min-height:44px;margin:0;padding:0 17px;
+ border:1px solid rgba(179,197,216,.5);border-radius:6px;
+ background:rgba(30,45,64,.85);box-shadow:none;
+ clip-path:polygon(9px 0,100% 0,calc(100% - 9px) 100%,0 100%);
+ font:800 13px Rajdhani,sans-serif;letter-spacing:.075em;
+ color:#f1f3f8;white-space:nowrap;transform:none;
+ transition:filter .15s,border-color .15s;
+}
+#lbearn .earn-back:hover,#lbearn .earn-back:focus-visible{
+ transform:none;background:rgba(30,45,64,.85);box-shadow:none;
+ filter:brightness(1.2);border-color:#ff9f39;
+ outline:2px solid #ff9f39;outline-offset:1px;
+}
+@media(max-height:760px) and (min-width:651px){
+ #lbearn .earn-page{grid-template-rows:102px minmax(0,1fr);}
+ #lbearn .earn-brand-name{font-size:clamp(38px,7vh,54px);}
+}
+@media(max-width:650px){
+ #lbearn .earn-page{grid-template-rows:96px minmax(0,1fr);}
+ #lbearn .earn-topbar{margin:8px 8px 0;padding:8px 4px;}
+ #lbearn .earn-brand{gap:4px;}
+ #lbearn .earn-brand-name{font-size:clamp(30px,7.5vw,43px);}
+ #lbearn .earn-brand-subtitle{display:block;font-size:10px;letter-spacing:.1em;}
+ #lbearn .earn-back{min-width:82px;height:40px;min-height:40px;padding:0 10px;font-size:13px;}
+}
+@media(max-width:420px){
+ #lbearn .earn-brand-subtitle{display:block;}
+}
