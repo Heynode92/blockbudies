@@ -338,13 +338,13 @@
  letter-spacing:.105em;
  transition:transform .15s,filter .15s;
 }
-#trainingResult #trainingResultContinue{
- background:linear-gradient(115deg,#f47c1b,#ffad47);
- color:#fff;text-shadow:0 2px 0 #69340a;
-}
 #trainingResult #trainingResultExit{
+ background:linear-gradient(115deg,#f47c1b,#ffad47);
+ border-color:#ffbc71;color:#fff;text-shadow:0 2px 0 #69340a;
+}
+#trainingResult[data-outcome="incomplete"] #trainingResultExit{
  background:linear-gradient(115deg,#203a52,#0d1b2b);
- border-color:#5983a4;color:#d0e1f0;
+ border-color:#5983a4;color:#d0e1f0;text-shadow:none;
 }
 #trainingResult .training-report-actions button:disabled{
  opacity:.5;cursor:not-allowed;filter:grayscale(.35);transform:none;
