@@ -712,6 +712,9 @@ function onlineRoomRender(){
  roomText('roomCount',roomList.length+' ONLINE ROOM'+(roomList.length===1?'':'S'));
  roomList.forEach(function(r){
   var row=document.createElement('div');row.className='room-entry';
+  // Only the backend can mark a match ACTIVE; the badge is never guessed.
+  var inPlay=r.status==='ACTIVE';
+  if(inPlay)row.classList.add('room-in-play');
   function cell(tag,value,cls){var el=document.createElement(tag);el.textContent=String(value);if(cls)el.className=cls;row.appendChild(el);return el}
   var idCell=cell('span',onlineRoomDisplayId(r.code),'room-id');
   idCell.setAttribute('aria-label','Room ID '+idCell.textContent);
@@ -722,22 +725,34 @@ function onlineRoomRender(){
   mode.textContent=r.mode===1?'BOMB MISSION':'DEATHMATCH';
   map.appendChild(title);map.appendChild(mode);row.appendChild(map);
   cell('span',r.members.length+' / 10','room-players');
-  cell('span',r.status||'WAITING','rm-status');
-  var button=cell('button','JOIN','room-join');button.type='button';
+  var statusCell=cell('span',inPlay?'PLAY':r.status||'WAITING','rm-status');
+  if(inPlay)statusCell.classList.add('room-status-play');
+  var button=cell('button',inPlay?'IN GAME':'JOIN','room-join');button.type='button';
   button.disabled=r.status!=='OPEN';
-  button.addEventListener('click',()=>{void onlineSelectRoom(r.id)});
+  if(inPlay)button.setAttribute('title','Match in progress — join unavailable');
+  button.addEventListener('click',()=>{if(r.status==='OPEN')void onlineSelectRoom(r.id);});
   list.appendChild(row);
  });
 }
+var onlineRoomBrowserRefreshing=false;
 async function onlineRefreshRooms(){
- if(!onlineAuth())return;
+ if(!onlineAuth()||onlineRoomBrowserRefreshing)return;
+ onlineRoomBrowserRefreshing=true;
  try {
   var response=await onlineApi.rooms();
   roomList=(response.rooms||[]).map(onlineRoomOf).filter(Boolean);
   if(roomCurrent&&!roomList.some(r=>r.id===roomCurrent.id))roomList.unshift(roomCurrent);
   onlineRoomRender();
  }catch(error){roomList=[];onlineRoomRender();onlineWarn(error)}
+ finally{onlineRoomBrowserRefreshing=false;}
 }
+// Keep a second browser's Room Browser in sync with START and match finish.
+// Poll ONLY while that screen is visible; no additional gameplay polling.
+setInterval(function(){
+ if(document.hidden||!lob||!document.getElementById('lbrooms').classList.contains('on')||
+    !onlineAuth())return;
+ void onlineRefreshRooms();
+},5000);
 // This is one PointBlock-styled, accessible dialog for server-verified room
 // events. Names enter via textContent only; no unsafe HTML interpolation.
 var onlineRoomDialogAccept=null,onlineRoomDialogBlocked=false;
@@ -941,6 +956,11 @@ async function onlineSelectRoom(id) {
  onlineRoomOpening=true;
  try{
   var room=await onlineApi.getRoom(id);
+  // A stale OPEN row must not navigate an outsider into an ACTIVE room.
+  if(room.status!=='OPEN'&&!room.members?.some(m=>m.playerId===onlineApi.state().player?.id)){
+   await onlineRefreshRooms();
+   return;
+  }
   if(room.status==='OPEN'&&!room.members?.some(m=>m.playerId===onlineApi.state().player?.id)){
    var counts=[0,1].map(t=>room.members.filter(m=>m.team===t).length);
    room=await onlineApi.joinRoom(id,counts[0]<=counts[1]&&counts[0]<5?0:1);
@@ -953,6 +973,8 @@ async function onlineSelectRoom(id) {
    try{await onlineRecoverMembership();}catch(recovery){onlineWarn(recovery);}
   }else if(error?.code==='ROOM_KICK_COOLDOWN'){
    await onlineShowOwnKick(id);
+  }else if(error?.code==='ROOM_NOT_AVAILABLE'){
+   await onlineRefreshRooms();
   }else onlineWarn(error);
  }
  finally{onlineRoomOpening=false}
