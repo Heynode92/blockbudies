@@ -235,6 +235,15 @@ function inventoryBrowserPreviewOpen(){
  inventoryPreviewMount("roomBrowserPreview");
  inventoryStartPreview();
 }
+// The public Leaderboard shares this SAME 3D soldier, renderer, mesh and
+// frame loop. Main weapon ID comes from the authoritative Top 10 API.
+function inventoryLeaderboardPreviewOpen(weaponId){
+ var id=Number.isSafeInteger(weaponId)&&WP[weaponId]?weaponId:9;
+ inventoryPreviewSetSide(0);
+ inventoryShowModel(id);
+ inventoryPreviewMount("leaderboardPreview");
+ inventoryStartPreview();
+}
 function inventoryShowModel(id){
  inventoryPreviewInit();
  var p=inventoryPreview;p.selected=id;
@@ -275,9 +284,11 @@ function inventoryPreviewFrame(now){
  // Do not spend GPU time rendering an invisible Inventory/Room 3D preview.
  var inInventory=lob&&document.getElementById("lbiv").classList.contains("on"),
      inRoom=lob&&document.getElementById("lbroomlive").classList.contains("on"),
-     inBrowser=lob&&document.getElementById("lbrooms").classList.contains("on");
- if(!inInventory&&!inRoom&&!inBrowser){inventoryPreviewLive=false;return;}
- var p=inventoryPreview,hostId=inRoom?"rmlpreview":inBrowser?"roomBrowserPreview":"ivpreview";
+     inBrowser=lob&&document.getElementById("lbrooms").classList.contains("on"),
+     inLeaderboard=lob&&document.getElementById("lbboard").classList.contains("on");
+ if(!inInventory&&!inRoom&&!inBrowser&&!inLeaderboard){inventoryPreviewLive=false;return;}
+ var p=inventoryPreview,hostId=inRoom?"rmlpreview":inBrowser?"roomBrowserPreview":
+   inLeaderboard?"leaderboardPreview":"ivpreview";
  inventoryPreviewMount(hostId);
  var w=Math.max(1,p.host.clientWidth),h=Math.max(1,p.host.clientHeight);
  if(p.renderer.domElement.width!==Math.round(w*p.renderer.getPixelRatio())||
@@ -288,7 +299,7 @@ function inventoryPreviewFrame(now){
  if(inInventory&&inventoryTab==="helm"){
   p.camera.position.set(1.35,2.05,2.35);
   p.camera.lookAt(0,1.68,0);
- }else if(inRoom||inBrowser){
+ }else if(inRoom||inBrowser||inLeaderboard){
   // Keep the actual soldier and held weapon visible in tall, narrow lobby panels.
   var pullback=Math.max(1,Math.min(1.75,.73/(w/h)));
   p.camera.position.set(2.45*pullback,2.30+(pullback-1)*1.05,3.8*pullback);
