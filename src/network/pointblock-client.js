@@ -1,5 +1,5 @@
 import { parseSiweMessage } from 'viem/siwe';
-import { GAME_WALLET_CHAIN_ID } from '../wallet/bsc-network.js';
+import { GAME_WALLET_CHAIN_ID } from '../wallet/robinhood-network.js';
 
 // PointBlock online transport. The only trust boundary for accounts, room state,
 // ownership and live authoritative gameplay is the matching backend API.
@@ -75,7 +75,7 @@ export function createPointBlockClient({ baseUrl, wallet } = {}) {
       if(!saved||saved.chainId!==GAME_WALLET_CHAIN_ID||!ADDRESS.test(saved.address||'')||
          !/^[A-Za-z0-9_-]{32,128}$/.test(saved.token||''))return state();
       // RainbowKit may reconnect asynchronously on page refresh. Restore only
-      // after wallet hydration AND when the exact same BSC account is present.
+      // after wallet hydration AND when the exact same Robinhood Chain account is present.
       if(!wallet?.configured||!await wallet.waitReady?.())return state();
       const connected=wallet.connection?.();
       if(!connected||connected.chainId!==GAME_WALLET_CHAIN_ID||
@@ -134,13 +134,13 @@ export function createPointBlockClient({ baseUrl, wallet } = {}) {
     if (!connected?.address) throw new PointBlockError('RAINBOWKIT_WALLET_NOT_CONNECTED');
     const address=connected.address;
     if (!ADDRESS.test(address)) throw new PointBlockError('INVALID_WALLET_ADDRESS');
-    if(connected.chainId!==GAME_WALLET_CHAIN_ID)throw new PointBlockError('BSC_MAINNET_REQUIRED');
+    if(connected.chainId!==GAME_WALLET_CHAIN_ID)throw new PointBlockError('ROBINHOOD_MAINNET_REQUIRED');
     const challenge=await request('/v1/auth/challenge',{
       method:'POST',body:{address},authRequired:false,
     });
     if(challenge?.chainId!==GAME_WALLET_CHAIN_ID||!UUID.test(challenge?.challengeId)||
        typeof challenge?.message!=='string'||challenge.message.length>4096)
-       throw new PointBlockError('INVALID_BSC_SIWE_CHALLENGE');
+       throw new PointBlockError('INVALID_ROBINHOOD_SIWE_CHALLENGE');
     // Check domain/URI/address/chain BEFORE opening the wallet signature prompt:
     // backend independently verifies nonce, timestamps, domain, EOA/EIP-1271.
     const fields=parseSiweMessage(challenge.message);
