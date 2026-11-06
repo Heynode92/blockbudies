@@ -50,6 +50,19 @@ export function createPointBlockRainbowWallet({projectId,rpcUrl}={}){
    if(!a.isConnected||!a.address||a.chainId!==GAME_WALLET_CHAIN_ID)return null;
    return {address:a.address,chainId:a.chainId};
   },
+  waitReady(timeoutMs=7000){
+   if(!config)return Promise.resolve(false);
+   if(snapshot.ready)return Promise.resolve(true);
+   return new Promise(resolve=>{
+    let finished=false;
+    const unsubscribe=api.subscribe(next=>{
+     if(next.ready&&!finished){finished=true;clearTimeout(timer);unsubscribe();resolve(true);}
+    });
+    const timer=setTimeout(()=>{
+     if(!finished){finished=true;unsubscribe();resolve(false);}
+    },timeoutMs);
+   });
+  },
   openConnect(){if(!modals?.openConnectModal)return false;modals.openConnectModal();return true;},
   openNetwork(){if(!modals?.openChainModal)return false;modals.openChainModal();return true;},
   async signMessage({address,message}){
