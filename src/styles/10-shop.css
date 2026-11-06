@@ -466,3 +466,61 @@ background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent)}
   font-size:clamp(17px,1.4vw,23px);
  }
 }
+
+
+/* SHOP HEADER PARITY: same two orange top strips and header rhythm as Inventory. */
+/* The Inventory reference uses a long top strip at 0-23% and 76-100%.
+   Replace the old Shop L-shaped corner ornament; leave the workspace intact. */
+#lbshop .shop-shell{
+ padding-top:12px;
+}
+#lbshop .shop-shell::before{
+ content:"";display:block;position:absolute;
+ left:14px;right:14px;top:12px;width:auto;height:3px;
+ border:0;opacity:.85;transform:none;pointer-events:none;
+ background:linear-gradient(90deg,#ff7920 0 23%,transparent 23% 76%,#ff7920 76% 100%);
+}
+#lbshop .shop-head{
+ position:relative;box-sizing:border-box;align-items:center;
+ min-height:112px;height:112px;padding:8px 10px 11px;
+ border-bottom:1px solid rgba(114,162,203,.25);
+ background:linear-gradient(115deg,rgba(4,12,23,.78),rgba(15,26,43,.65));
+}
+#lbshop .shop-heading{
+ min-width:0;display:flex;flex-direction:column;align-items:flex-start;
+}
+/* Inventory has one big display title and one tracking-heavy subtitle.
+   The old 'POINT BLOCK ARMORY' kicker made Shop a different header design. */
+#lbshop .shop-heading>span,
+#lbshop .shop-heading>span::before{display:none;}
+#lbshop .shop-heading h2{
+ margin:0;
+ font:italic 900 clamp(42px,4.2vw,76px)/.96 Impact,"Arial Black",sans-serif;
+ letter-spacing:.045em;color:#fff;
+ text-shadow:3px 4px 0 rgba(140,61,27,.8),0 6px 19px #000;
+}
+#lbshop .shop-heading p{
+ margin:6px 0 0;
+ color:#a9c4e1;font:800 clamp(10px,.85vw,14px)/1.2 Rajdhani,sans-serif;
+ letter-spacing:.19em;text-transform:uppercase;
+}
+#lbshop #shopBack{
+ align-self:center;
+}
+@media(max-height:760px) and (min-width:701px){
+ #lbshop .shop-head{min-height:90px;height:90px;}
+ #lbshop .shop-heading h2{font-size:clamp(38px,7vh,54px);}
+}
+@media(max-width:700px){
+ #lbshop .shop-shell{padding-top:12px;}
+ #lbshop .shop-shell::before{left:12px;right:12px;top:12px;}
+ #lbshop .shop-head{
+  min-height:85px;height:auto;padding:10px 4px;gap:8px;
+ }
+ #lbshop .shop-heading h2{font-size:clamp(30px,7.5vw,43px);}
+ #lbshop .shop-heading p{
+  max-width:calc(100vw - 145px);
+  letter-spacing:.08em;font-size:10px;line-height:1.2;
+ }
+ #lbshop #shopBack{height:40px;min-height:40px;padding:0 10px;}
+}
