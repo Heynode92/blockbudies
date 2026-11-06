@@ -1797,21 +1797,56 @@ function onlineDisplayTrainingResult(progress){
  var error=document.getElementById('trainingResultActionError');
  error.textContent='';error.hidden=true;
  report.hidden=false;
+ // Results and the Home lobby are mutually exclusive. Previously Home was
+ // never hidden when opening a completed-training report from the menu.
+ lb.style.display='none';
  document.getElementById('dv').classList.add('show','training-result-active');
- document.body.classList.remove('dead','bomb-spectator');
+ document.body.classList.remove('lobby','dead','bomb-spectator');
  document.body.classList.add('over');
  run=false;lob=false;
  if(document.exitPointerLock)document.exitPointerLock();
  exit.focus();
 }
-function onlineTrainingResultClose(){
+function onlineTrainingResultDismissVisual(){
+ var report=document.getElementById('trainingResult');
+ if(report)report.hidden=true;
+ var resultScreen=document.getElementById('dv');
+ if(resultScreen)resultScreen.classList.remove('show','training-result-active');
+ // Do not change ordinary match result state or touch the verified reward HUD.
  onlineTrainingResultStatus=null;
- document.getElementById('trainingResult').hidden=true;
- document.getElementById('dv').classList.remove('show','training-result-active');
+}
+function onlineTrainingResultClose(){
+ onlineTrainingResultDismissVisual();
  document.body.classList.remove('over','dead','bomb-spectator');
  document.body.classList.add('lobby');
  run=false;lob=true;lb.style.display='flex';
  lobP('lbs');
+}
+// A server-confirmed completion is reusable after a reload, so a user who
+// already passed training can resume CREATE USERNAME directly from Home.
+// No player identity or training result is ever fabricated locally.
+async function onlineOpenUsernameRegistration(){
+ var status=await onlineApi.trainingStatus();
+ if(status?.completed!==true||!onlineApi?.state().authenticated)
+  throw Error('TRAINING_VERIFICATION_REQUIRED');
+ var session=onlineApi.state();
+ if(session.registered){
+  onlineTrainingResultClose();
+  await onlineLoadInventory();
+  roomLobbyOpen();
+  return;
+ }
+ // The overlay is mounted before the lobby is shown again, preventing a
+ // Home flash. Registration still uses the existing server-side callsign API.
+ onlineDialog('CREATE USERNAME',
+  'Choose your operator name (1–12 letters, numbers or underscore).',
+  'REGISTER USERNAME',async name=>{
+   await onlineApi.register(name);
+   await onlineApi.refreshProfile();
+   await onlineLoadInventory();
+   roomLobbyOpen();
+  },'onboarding');
+ onlineTrainingResultClose();
 }
 async function onlineTrainingResultExit(){
  if(onlineTrainingActionPending)return;
@@ -1825,22 +1860,7 @@ async function onlineTrainingResultExit(){
      error=document.getElementById('trainingResultActionError');
  exit.disabled=true;error.textContent='';error.hidden=true;
  try{
-  // EXIT after successful training means ADVANCE TO CREATE USERNAME, not
-  // leave the onboarding flow. A persisted BE completion is mandatory.
-  var verification=await onlineApi.trainingStatus();
-  if(!verification?.completed||!onlineApi?.state().authenticated)
-   throw Error('TRAINING_VERIFICATION_REQUIRED');
-  // Mount the opaque registration dialog *before* dismissing the training
-  // scene so no Home screen flashes or half-visible report remains.
-  onlineDialog('CREATE USERNAME',
-   'Choose your operator name (1–12 letters, numbers or underscore).',
-   'REGISTER USERNAME',async name=>{
-    await onlineApi.register(name);
-    await onlineApi.refreshProfile();
-    await onlineLoadInventory();
-    roomLobbyOpen();
-   },'onboarding');
-  onlineTrainingResultClose();
+  await onlineOpenUsernameRegistration();
  }catch(err){
   error.textContent=String(err?.code||err?.message||'TRAINING_VERIFICATION_FAILED').slice(0,160);
   error.hidden=false;
@@ -1861,7 +1881,8 @@ async function onlineStartTraining(){
  try{
   var started=await onlineApi.startTraining();
   if(started.status==='COMPLETED'){
-   onlineDisplayTrainingResult(started);return;
+   // Recovered training completion: skip the finished report on reentry.
+   await onlineOpenUsernameRegistration();return;
   }
   onlineResultsDisplayed=false;onlineTraining=true;onlineActive=true;
   await onlineApi.openLive('training',null,onlineReceiveFrame,onlineSocketStatus);
@@ -1885,7 +1906,8 @@ async function onlineStartGate(){
    roomLobbyOpen();return
   }
   if(info.onboarding?.trainingCompleted){
-   onlineDisplayTrainingResult({status:'COMPLETED'});
+   // The server already recorded a pass; no replay or second result screen.
+   await onlineOpenUsernameRegistration();
   }else await onlineStartTraining();
  }catch(error){onlineWarn(error)}
 }
