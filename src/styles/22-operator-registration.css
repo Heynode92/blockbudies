@@ -29,7 +29,7 @@
   linear-gradient(#5f9ec4,#5f9ec4) right bottom/1px 26px no-repeat;
  opacity:.65;
 }
-.point-online-registration .operator-registration-card{
+.point-online-dialog.point-online-registration .operator-registration-card{
  --reg-orange:#ff922b;--reg-cyan:#75b9e7;--reg-mint:#63f5ac;
  position:relative;z-index:1;box-sizing:border-box;
  width:min(1360px,96vw);max-width:none;
@@ -48,11 +48,11 @@
   0 0 28px #ff7b275c,0 20px 65px #000a;
  font-family:Rajdhani,Arial,sans-serif;
 }
-.point-online-registration .operator-registration-card::before{
+.point-online-dialog.point-online-registration .operator-registration-card::before{
  content:"";position:absolute;inset:0;pointer-events:none;opacity:.55;
  background:linear-gradient(120deg,transparent 0 22%,rgba(55,111,153,.15) 22% 29%,transparent 29% 61%,rgba(32,96,161,.12) 61% 73%,transparent 73%);
 }
-.point-online-registration .operator-registration-card::after{
+.point-online-dialog.point-online-registration .operator-registration-card::after{
  content:"";position:absolute;inset:10px;pointer-events:none;
  border:1px solid #274f713d;
  clip-path:polygon(30px 0,calc(100% - 30px) 0,100% 30px,100% calc(100% - 30px),calc(100% - 30px) 100%,30px 100%,0 calc(100% - 30px),0 30px);
@@ -310,7 +310,7 @@
  flex:none;color:#ff9d35;font:900 21px Rajdhani,sans-serif;
 }
 @media(max-height:730px) and (min-width:851px){
- .point-online-registration .operator-registration-card{
+ .point-online-dialog.point-online-registration .operator-registration-card{
   gap:10px;padding:17px 20px;grid-template-rows:minmax(155px,.75fr) minmax(235px,1.05fr) 49px;
  }
  .point-online-registration .operator-registration-header h2{font-size:clamp(51px,5vw,72px);margin-top:7px}
@@ -332,7 +332,7 @@
 }
 @media(max-width:850px){
  .point-online-dialog.point-online-registration{overflow-y:auto;place-items:start center;padding:12px}
- .point-online-registration .operator-registration-card{
+ .point-online-dialog.point-online-registration .operator-registration-card{
   width:min(660px,100%);height:auto;max-height:none;min-height:0;
   grid-template-rows:auto auto auto;gap:14px;padding:21px;
   overflow:visible;margin:auto 0;
@@ -355,7 +355,7 @@
 }
 @media(max-width:490px){
  .point-online-dialog.point-online-registration{padding:8px}
- .point-online-registration .operator-registration-card{padding:18px 13px;clip-path:polygon(18px 0,calc(100% - 18px) 0,100% 18px,100% calc(100% - 18px),calc(100% - 18px) 100%,18px 100%,0 calc(100% - 18px),0 18px)}
+ .point-online-dialog.point-online-registration .operator-registration-card{padding:18px 13px;clip-path:polygon(18px 0,calc(100% - 18px) 0,100% 18px,100% calc(100% - 18px),calc(100% - 18px) 100%,18px 100%,0 calc(100% - 18px),0 18px)}
  .point-online-registration .operator-registration-header{min-height:200px;justify-content:flex-end;padding-bottom:11px}
  .point-online-registration .operator-registration-header h2{font-size:clamp(35px,9vw,48px)}
  .point-online-registration .operator-registration-header p{max-width:100%;font-size:12px}
