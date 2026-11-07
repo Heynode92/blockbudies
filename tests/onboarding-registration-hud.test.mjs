@@ -147,7 +147,7 @@ test('compact height and border-safe panels do not rely on clipped text or 690px
  assert.match(css,/height:auto;/);
  assert.match(css,/grid-template-rows:auto auto auto/);
  assert.match(css,/max-height:none/);
- assert.match(css,/\.operator-registration-preview,\s*\n \.point-online-registration \.operator-registration-entry\{\s*\n min-height:238px/);
+ assert.match(css,/\.operator-registration-preview,\s*\n\.point-online-registration \.operator-registration-entry\{\s*\n min-height:238px/);
  assert.match(css,/clip-path:none/);
  assert.match(css,/mask-image:radial-gradient/);
  assert.match(css,/@media\(max-height:700px\)/);
