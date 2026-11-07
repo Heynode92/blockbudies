@@ -544,5 +544,62 @@ html.pb-route-restoring #lb { visibility:hidden; }
 </div>
 <div id="ov"><div id="card"><h1>Point Block FPS</h1><div id="ovt"></div><button id="go">Start</button></div></div>
 <script type="module" src="./src/main.js"></script>
+
+<!-- Inert markup: cloned only after the backend confirms training completion. -->
+<template id="pointOperatorRegistrationTemplate">
+ <form class="point-online-dialog-panel operator-registration-card" aria-label="Create PointBlock operator username">
+  <div class="operator-registration-header">
+   <div class="operator-registration-eyebrow"><i aria-hidden="true"></i><span>POINT BLOCK // OPERATOR REGISTRATION</span></div>
+   <div class="operator-registration-verified" aria-label="Training passed and verified by server">
+    <span aria-hidden="true">✓</span> TRAINING VERIFIED
+   </div>
+   <div class="operator-registration-hero" aria-hidden="true"></div>
+   <h2>CREATE USERNAME</h2>
+   <p>Choose your operator callsign for matchmaking, rooms, and leaderboard.</p>
+   <span class="operator-registration-underline" aria-hidden="true"></span>
+  </div>
+  <div class="operator-registration-content">
+   <section class="operator-registration-preview" aria-label="New operator preview">
+    <div class="operator-registration-panel-heading"><span>OPERATOR PREVIEW</span><i aria-hidden="true"></i></div>
+    <div class="operator-registration-preview-body">
+     <div class="operator-registration-rank-badge" aria-label="Trainee rank insignia">
+      <img class="operator-registration-rank-image" alt="" hidden>
+      <span class="operator-registration-rank-fallback" aria-hidden="true">☠</span>
+     </div>
+     <div class="operator-registration-preview-details">
+      <strong class="operator-registration-rank-name">TRAINEE</strong>
+      <span class="operator-registration-ready"><i aria-hidden="true"></i>READY FOR DEPLOYMENT</span>
+      <div class="operator-registration-callsign-box">
+       <small>CALLSIGN PREVIEW</small>
+       <strong data-operator-callsign-preview>YOUR_NAME</strong>
+      </div>
+     </div>
+    </div>
+   </section>
+   <section class="operator-registration-entry" aria-label="Operator callsign registration">
+    <div class="operator-registration-input-heading">
+     <label for="operatorRegistrationInput">CALLSIGN</label>
+     <div class="operator-registration-rules">
+      <span data-operator-character-count>0 / 12</span>
+      <span>A–Z / 0–9 / _</span>
+     </div>
+    </div>
+    <input id="operatorRegistrationInput" name="username" type="text" maxlength="12" minlength="1"
+      pattern="[A-Za-z0-9_]{1,12}" placeholder="ENTER YOUR CALLSIGN"
+      autocomplete="off" autocapitalize="off" spellcheck="false" required
+      aria-describedby="operatorRegistrationValidation" />
+    <p class="operator-registration-validation" id="operatorRegistrationValidation" role="status"
+       aria-live="polite">Letters, numbers, and underscore only</p>
+    <p class="operator-registration-server-error" data-operator-server-error role="alert" hidden></p>
+    <button class="operator-registration-submit" type="submit" disabled>REGISTER USERNAME <span aria-hidden="true">››</span></button>
+   </section>
+  </div>
+  <footer class="operator-registration-footer">
+   <div class="operator-registration-footer-lead"><span aria-hidden="true">ⓘ</span> YOUR CALLSIGN BECOMES YOUR IN-GAME IDENTITY</div>
+   <div class="operator-registration-footer-detail"><span aria-hidden="true">▤</span> SERVER VERIFIED</div>
+   <div class="operator-registration-footer-detail"><span aria-hidden="true">◇</span> UNIQUE PLAYER IDENTITY</div>
+  </footer>
+ </form>
+</template>
 </body>
 </html>
