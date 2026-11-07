@@ -447,7 +447,8 @@
  background:
   linear-gradient(90deg,rgba(8,29,51,.5),transparent 43%),
   url("../assets/registration/operator-hero.webp") center right/contain no-repeat;
- opacity:.60;
+ opacity:.66;
+ mix-blend-mode:screen;
  -webkit-mask-image:radial-gradient(ellipse at 57% 43%,#000 23%,rgba(0,0,0,.8) 43%,transparent 75%);
  mask-image:radial-gradient(ellipse at 57% 43%,#000 23%,rgba(0,0,0,.8) 43%,transparent 75%);
 }
