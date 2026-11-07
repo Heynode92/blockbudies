@@ -1769,7 +1769,7 @@ function onlineDialog(title,description,action,submit,kind) {
   if(!form||!input||!preview||!hint||!count||!entry||!button||!error||
      !rankImage||!fallback)throw Error('OPERATOR_REGISTRATION_TEMPLATE_INVALID');
   var saving=false;
-  function renderCallsign(){
+  function renderCallsign(clearServerError){
    var value=input.value;
    var valid=/^[A-Za-z0-9_]{1,12}$/.test(value);
    count.textContent=value.length+' / 12';
@@ -1780,9 +1780,9 @@ function onlineDialog(title,description,action,submit,kind) {
      'ONLY A–Z, 0–9, AND UNDERSCORE ARE ALLOWED';
    input.setAttribute('aria-invalid',String(Boolean(value&&!valid)));
    button.disabled=saving||!valid;
-   if(!saving){error.textContent='';error.hidden=true;}
+   if(clearServerError&&!saving){error.textContent='';error.hidden=true;}
   }
-  input.addEventListener('input',renderCallsign);
+  input.addEventListener('input',function(){renderCallsign(true);});
   form.addEventListener('submit',async function(e){
    e.preventDefault();
    if(saving||!(/^[A-Za-z0-9_]{1,12}$/.test(input.value)))return;
@@ -1797,11 +1797,11 @@ function onlineDialog(title,description,action,submit,kind) {
     error.hidden=false;
    }finally{
     saving=false;input.disabled=false;
-    if(overlay.isConnected)renderCallsign();
+    if(overlay.isConnected)renderCallsign(false);
    }
   });
   document.body.appendChild(overlay);
-  renderCallsign();
+  renderCallsign(true);
   // Thumbnail reuses the same canonical 3D Trainee model as Lobby/Leaderboard.
   // A decorative fallback appears only if WebGL is unavailable.
   if(typeof rankRosterPreview==='function'){
