@@ -1747,6 +1747,72 @@ function onlineTrainingProgress(progress){
 }
 function onlineDialog(title,description,action,submit,kind) {
  var existing=document.getElementById('pointblockOnlineDialog');if(existing)existing.remove();
+ if(kind==='onboarding'){
+  // Static, inert HUD template: never interpolate a wallet, username or
+  // backend message into HTML. User-entered values use textContent only.
+  var template=document.getElementById('pointOperatorRegistrationTemplate');
+  if(!template?.content)throw Error('OPERATOR_REGISTRATION_TEMPLATE_MISSING');
+  var overlay=document.createElement('div');
+  overlay.id='pointblockOnlineDialog';
+  overlay.className='point-online-dialog point-online-registration';
+  overlay.appendChild(template.content.cloneNode(true));
+  var form=overlay.querySelector('form');
+  var input=overlay.querySelector('#operatorRegistrationInput');
+  var preview=overlay.querySelector('[data-operator-callsign-preview]');
+  var hint=overlay.querySelector('#operatorRegistrationValidation');
+  var count=overlay.querySelector('[data-operator-character-count]');
+  var entry=overlay.querySelector('.operator-registration-entry');
+  var button=overlay.querySelector('.operator-registration-submit');
+  var error=overlay.querySelector('[data-operator-server-error]');
+  var rankImage=overlay.querySelector('.operator-registration-rank-image');
+  var fallback=overlay.querySelector('.operator-registration-rank-fallback');
+  if(!form||!input||!preview||!hint||!count||!entry||!button||!error||
+     !rankImage||!fallback)throw Error('OPERATOR_REGISTRATION_TEMPLATE_INVALID');
+  var saving=false;
+  function renderCallsign(){
+   var value=input.value;
+   var valid=/^[A-Za-z0-9_]{1,12}$/.test(value);
+   count.textContent=value.length+' / 12';
+   preview.textContent=value||'YOUR_NAME';
+   entry.dataset.inputState=value?(valid?'valid':'invalid'):'empty';
+   hint.textContent=!value?'Letters, numbers, and underscore only':
+     valid?'VALID FORMAT · USERNAME AVAILABILITY CHECKED ON SUBMIT':
+     'ONLY A–Z, 0–9, AND UNDERSCORE ARE ALLOWED';
+   input.setAttribute('aria-invalid',String(Boolean(value&&!valid)));
+   button.disabled=saving||!valid;
+   if(!saving){error.textContent='';error.hidden=true;}
+  }
+  input.addEventListener('input',renderCallsign);
+  form.addEventListener('submit',async function(e){
+   e.preventDefault();
+   if(saving||!(/^[A-Za-z0-9_]{1,12}$/.test(input.value)))return;
+   saving=true;button.disabled=true;input.disabled=true;
+   error.textContent='';error.hidden=true;
+   try{
+    // Authenticated BE enforces uniqueness, character rules and training.
+    await submit(input.value);
+    overlay.remove();
+   }catch(err){
+    error.textContent=String(err?.code||err?.message||'REGISTRATION_FAILED').slice(0,160);
+    error.hidden=false;
+   }finally{
+    saving=false;input.disabled=false;
+    if(overlay.isConnected)renderCallsign();
+   }
+  });
+  document.body.appendChild(overlay);
+  renderCallsign();
+  // Thumbnail reuses the same canonical 3D Trainee model as Lobby/Leaderboard.
+  // A decorative fallback appears only if WebGL is unavailable.
+  if(typeof rankRosterPreview==='function'){
+   try{
+    var src=rankRosterPreview(0);
+    if(src){rankImage.src=src;rankImage.hidden=false;fallback.hidden=true;}
+   }catch(e){console.warn('[PointBlock] Rank preview unavailable',e);}
+  }
+  input.focus();
+  return;
+ }
  var overlay=document.createElement('div');overlay.id='pointblockOnlineDialog';
  overlay.className='point-online-dialog'+(kind==='onboarding'?' point-online-registration':'');
  var form=document.createElement('form');form.className='point-online-dialog-panel';
