@@ -96,6 +96,7 @@
     "src/styles/18-room-lobby-redesign.css",
     "src/styles/19-earn.css",
     "src/styles/20-leaderboard.css",
-    "src/styles/21-result-rewards.css"
+    "src/styles/21-result-rewards.css",
+    "src/styles/22-operator-registration.css"
   ]
 }
