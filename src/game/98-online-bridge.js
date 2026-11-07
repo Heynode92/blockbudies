@@ -1773,11 +1773,11 @@ function onlineDialog(title,description,action,submit,kind) {
    var value=input.value;
    var valid=/^[A-Za-z0-9_]{1,12}$/.test(value);
    count.textContent=value.length+' / 12';
-   preview.textContent=value||'YOUR_NAME';
+   preview.textContent=value||'YOUR NAME';
    entry.dataset.inputState=value?(valid?'valid':'invalid'):'empty';
-   hint.textContent=!value?'Letters, numbers, and underscore only':
-     valid?'VALID FORMAT · USERNAME AVAILABILITY CHECKED ON SUBMIT':
-     'ONLY A–Z, 0–9, AND UNDERSCORE ARE ALLOWED';
+   hint.textContent=!value?'Use letters, numbers, or _':
+     valid?'NAME FORMAT OK':
+     'Only letters, numbers, and _ are allowed';
    input.setAttribute('aria-invalid',String(Boolean(value&&!valid)));
    button.disabled=saving||!valid;
    if(clearServerError&&!saving){error.textContent='';error.hidden=true;}
@@ -1793,7 +1793,15 @@ function onlineDialog(title,description,action,submit,kind) {
     await submit(input.value);
     overlay.remove();
    }catch(err){
-    error.textContent=String(err?.code||err?.message||'REGISTRATION_FAILED').slice(0,160);
+    // Display player-facing feedback; raw backend codes are not HUD copy.
+    var code=String(err?.code||'');
+    error.textContent=code==='CALLSIGN_TAKEN_OR_REGISTERED'?
+      'That username is taken. Try another.':
+      code==='SESSION_EXPIRED'||code==='AUTH_REQUIRED'?
+      'Session expired. Sign in again to continue.':
+      code==='TRAINING_REQUIRED'?
+      'Complete training before creating a username.':
+      'Could not register. Please try again.';
     error.hidden=false;
    }finally{
     saving=false;input.disabled=false;
